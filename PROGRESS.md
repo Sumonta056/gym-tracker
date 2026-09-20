@@ -4,9 +4,9 @@
 then do the next step only. Stop and report when the step is done.
 
 **Current phase:** 0 — Foundation → `docs/plan/00-phase-0.md`
-**Next step:** 0.3 Husky, lint-staged and commitlint
+**Next step:** 0.6 Continuous integration and the pull request template
 **Branch:** `main`. The user chose to work on `main` for Phase 0.
-**Last commit:** none. Steps 0.1 and 0.2 are done, not committed. Phase 0 commits at 0.11.
+**Last commit:** steps 0.1 to 0.5 are committed. Reports live in `reports/`.
 
 ## Phases
 

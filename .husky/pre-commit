@@ -1,7 +1,9 @@
+. "$(dirname "$0")/node-version.sh"
+
 pnpm exec lint-staged
 pnpm typecheck
 
-# Vitest arrives in step 0.4. Until it is installed, skip this block instead of failing the commit.
+# Skip instead of failing the commit when vitest is absent, for example on a fresh clone.
 if [ -x node_modules/.bin/vitest ]; then
   STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | tr '\n' ' ')
   if [ -n "$STAGED_TS" ]; then

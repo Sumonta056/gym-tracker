@@ -3,3 +3,5 @@ coverage
 .next
 reports
 docs/design/prototype
+test-results
+playwright-report
