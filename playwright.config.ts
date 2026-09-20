@@ -29,7 +29,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `pnpm build && pnpm exec next start --port ${String(port)}`,
+    command: process.env.CI
+      ? `pnpm exec next start --port ${String(port)}`
+      : `pnpm build && pnpm exec next start --port ${String(port)}`,
     url: baseURL,
     timeout: 180000,
     reuseExistingServer: !process.env.CI,

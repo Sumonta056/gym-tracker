@@ -5,15 +5,29 @@ It works with no network in the gym. It also works on a laptop.
 
 **Start here:** `PROGRESS.md` names the next step. Never skip it.
 
-| Document                                      | Purpose                                          |
-| --------------------------------------------- | ------------------------------------------------ |
-| `PROGRESS.md`                                 | The next step. Update it after every step.       |
-| `docs/specs/2026-09-20-gym-tracker-design.md` | What we are building and why                     |
-| `docs/plan/00-phase-0.md`                     | Foundation: tooling, Claude setup, design system |
-| `docs/plan/01-phase-1.md`                     | The daily tracker                                |
-| `docs/plan/02-phase-2.md`                     | The live workout log and the CSV import          |
-| `docs/design/prototype/index.html`            | The visual contract. Open it in a browser.       |
-| `.claude/skills/design-system/`               | Load this before any UI work                     |
+| Document                                      | Purpose                                             |
+| --------------------------------------------- | --------------------------------------------------- |
+| `PROGRESS.md`                                 | The next step. Update it after every step.          |
+| `docs/specs/2026-09-20-gym-tracker-design.md` | What we are building and why                        |
+| `docs/plan/00-phase-0.md`                     | Foundation: tooling, Claude setup, design system    |
+| `docs/plan/01-phase-1.md`                     | The daily tracker                                   |
+| `docs/plan/02-phase-2.md`                     | The live workout log and the CSV import             |
+| `docs/design/prototype/index.html`            | The visual contract. Open it in a browser.          |
+| `.claude/skills/design-system/`               | Load this before any UI work                        |
+| `.claude/rules/architecture.md`               | The repository, UUID, soft delete and seconds rules |
+| `.claude/rules/testing.md`                    | Test first, coverage floors, test naming            |
+| `.claude/rules/git.md`                        | Conventional commits, scopes, the gate, branches    |
+| `.claude/rules/accessibility.md`              | 44 px targets, real elements, labels, contrast      |
+
+## The Claude workspace
+
+| Path                           | What it is                                                     |
+| ------------------------------ | -------------------------------------------------------------- |
+| `.claude/rules/`               | The four rule files above. Short and testable.                 |
+| `.claude/skills/`              | `design-system`, `commit-report`, `add-screen`, `db-migration` |
+| `.claude/agents/`              | `ui-reviewer`, `sync-auditor`, `test-writer`                   |
+| `.claude/hooks/commit-gate.sh` | Blocks a commit with no matching report                        |
+| `.claude/settings.json`        | The three hooks and the permission allow list                  |
 
 Design mockups: https://claude.ai/artifact/8pajWGN8ykJNhxaGLSNNG4
 
@@ -24,6 +38,9 @@ Next.js 15 App Router · TypeScript strict · Tailwind CSS v4 · shadcn/ui ·
 Vitest · Playwright · Prettier · ESLint · Husky · commitlint · Vercel.
 
 ## Architecture rules
+
+Full detail, with the allowed and forbidden imports spelled out:
+`.claude/rules/architecture.md`.
 
 1. **No screen calls Supabase.** Every screen calls `lib/db/repository.ts`. The
    repository writes to Dexie and returns at once. `lib/sync/worker.ts` is the only
@@ -88,7 +105,14 @@ Side gutters 20 px on the phone. Gap between cards 11 to 12 px.
 - Charts fill their container. Never set a fixed pixel width.
 - Check every screen at 390 px, 768 px and 1440 px before you call it done.
 
+### Accessibility
+
+44 px tap targets, real `button` and `a` elements, a label on every control, 4.5:1
+contrast on body text. Full detail: `.claude/rules/accessibility.md`.
+
 ## Testing rules
+
+Full detail, including test naming: `.claude/rules/testing.md`.
 
 - **Write the tests first** for `lib/duration.ts`, `lib/sync/**` and `lib/metrics/**`.
   Those three carry most of the risk.
@@ -107,6 +131,8 @@ Side gutters 20 px on the phone. Gap between cards 11 to 12 px.
   before any step is done.
 
 ## The commit gate
+
+Full detail, branch naming and the manual hash command: `.claude/rules/git.md`.
 
 **You cannot commit until a report exists for the staged change.**
 

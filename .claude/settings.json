@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(npx playwright:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/commit-gate.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(python3 -c 'import sys,json;print(json.load(sys.stdin).get(\"tool_input\",{}).get(\"file_path\",\"\"))' 2>/dev/null); case \"$f\" in *.ts|*.tsx) cd \"$CLAUDE_PROJECT_DIR\" || exit 0; export PATH=\"$HOME/Library/pnpm:$PATH\"; pnpm exec eslint --fix \"$f\" >/dev/null 2>&1; pnpm exec prettier --write \"$f\" >/dev/null 2>&1 ;; esac; exit 0"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(python3 -c 'import sys,json;print(json.load(sys.stdin).get(\"tool_input\",{}).get(\"file_path\",\"\"))' 2>/dev/null); case \"$f\" in */app/*|app/*|*/components/*|components/*) python3 -c 'import sys,json;print(json.dumps({\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Design check for \"+sys.argv[1]+\": load the design-system skill, then check the change at 390 px and 1440 px against docs/design/prototype/index.html. Tokens only, no raw hex. Every tap target 44 px or taller.\"}}))' \"$f\" ;; esac; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
