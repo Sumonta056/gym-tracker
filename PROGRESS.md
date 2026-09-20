@@ -3,15 +3,15 @@
 **Start of every session:** read `CLAUDE.md`, then the current phase file below,
 then do the next step only. Stop and report when the step is done.
 
-**Current phase:** 0 — Foundation → `docs/plan/00-phase-0.md`
-**Next step:** 0.11 Phase 0 verification
-**Branch:** `main`. The user chose to work on `main` for Phase 0.
-**Last commit:** `cfadaae`, steps 0.6 and 0.7. Steps 0.8, 0.9 and 0.10 are done but
-not yet committed. Reports live in `reports/`.
+**Current phase:** 1 — Daily tracker → `docs/plan/01-phase-1.md`
+**Next step:** 1.1
+**Branch:** `main` carried Phase 0. Phase 1 needs a feature branch.
+**Last commit:** `e983e16`, steps 0.8, 0.9 and 0.10. Step 0.11 is done but not yet
+committed. Reports live in `reports/`.
 
 ## Phases
 
-- [ ] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
+- [x] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
 - [ ] Phase 1 — Daily tracker (17 steps) · `docs/plan/01-phase-1.md`
 - [ ] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
 

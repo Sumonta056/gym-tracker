@@ -29,6 +29,7 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "lighthouse": "lhci autorun --config=./lighthouserc.json",
+    "verify": "pnpm format:check && pnpm lint --max-warnings=0 && pnpm typecheck && pnpm test:cov && pnpm build && pnpm e2e",
     "prepare": "husky"
   },
   "dependencies": {

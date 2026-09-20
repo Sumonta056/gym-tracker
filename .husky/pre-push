@@ -1,4 +1,3 @@
 . "$(dirname "$0")/node-version.sh"
 
-# The verify script arrives in step 0.11. --if-present makes this a no-op until then.
-pnpm run --if-present verify
+pnpm verify
