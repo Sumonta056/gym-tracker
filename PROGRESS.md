@@ -4,10 +4,10 @@
 then do the next step only. Stop and report when the step is done.
 
 **Current phase:** 0 — Foundation → `docs/plan/00-phase-0.md`
-**Next step:** 0.8 The commit report and the commit gate
+**Next step:** 0.11 Phase 0 verification
 **Branch:** `main`. The user chose to work on `main` for Phase 0.
-**Last commit:** `815227f`, steps 0.4 and 0.5. Steps 0.6 and 0.7 are done but not
-yet committed. Reports live in `reports/`.
+**Last commit:** `cfadaae`, steps 0.6 and 0.7. Steps 0.8, 0.9 and 0.10 are done but
+not yet committed. Reports live in `reports/`.
 
 ## Phases
 

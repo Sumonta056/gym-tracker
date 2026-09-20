@@ -33,6 +33,7 @@ export default defineConfig({
       ? `pnpm exec next start --port ${String(port)}`
       : `pnpm build && pnpm exec next start --port ${String(port)}`,
     url: baseURL,
+    env: { NEXT_PUBLIC_ENABLE_STYLEGUIDE: '1' },
     timeout: 180000,
     reuseExistingServer: !process.env.CI,
   },

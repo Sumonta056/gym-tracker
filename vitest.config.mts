@@ -11,6 +11,7 @@ export default defineConfig({
         },
       },
       {
+        oxc: { jsx: { runtime: 'automatic' } },
         test: {
           name: 'ui',
           environment: 'jsdom',

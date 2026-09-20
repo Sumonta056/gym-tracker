@@ -47,3 +47,11 @@ next-env.d.ts
 /playwright-report
 /coverage
 /test-results
+
+# serwist generated service worker
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
+
+# lighthouse ci
+/.lighthouseci

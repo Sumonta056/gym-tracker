@@ -1,9 +1,7 @@
 name: Lighthouse
 
-# Manual only until step 0.10 ships the Progressive Web App shell and the service
-# worker. Until then the installability audit cannot pass, so this workflow is not
-# wired to push or pull_request. Step 0.10 flips it to run on pull requests.
 on:
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -37,10 +35,7 @@ jobs:
         run: pnpm build
 
       - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v12
-        with:
-          configPath: ./lighthouserc.json
-          temporaryPublicStorage: false
+        run: pnpm lighthouse
 
       - name: Upload the Lighthouse report
         if: always()

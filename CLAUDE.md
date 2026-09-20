@@ -152,3 +152,11 @@ Never commit or push without being told to.
 Phase 0 is the foundation: tooling, the Claude workspace, the design system and the
 prototype. Phase 1 is the daily tracker. Phase 2 is the live workout log and the CSV
 import. Do not start a phase before the previous checklist passes.
+
+# Custom System Prompt Extensions
+
+## Bash Command Restrictions
+
+- **Do not use script sourcing** or runtime shell evaluations (such as `.` or `source`) to configure environment managers like NVM or pyenv.
+- **Execute tools directly** using their explicit environment paths or global system aliases already loaded in the environment if possible.
+- **Prioritize project-local execution** using standard local tools (e.g., `pnpm lint`, `pnpm test:cov`) directly in the working directory without wrapping them in complex, multi-line initialization chains.
