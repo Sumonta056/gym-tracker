@@ -1,4 +1,5 @@
 import { cn } from './cn'
+import { MicroLabel } from './MicroLabel'
 
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 
@@ -9,11 +10,7 @@ export type HeroCardProps = ComponentPropsWithoutRef<'section'> & {
 export function HeroCard({ label, className, children, ...rest }: HeroCardProps) {
   return (
     <section className={cn('bg-accent text-accent-ink rounded-hero p-5', className)} {...rest}>
-      {label === undefined ? null : (
-        <span className="text-accent-ink/70 block text-[10px] leading-4 font-bold tracking-[1.5px] uppercase">
-          {label}
-        </span>
-      )}
+      {label === undefined ? null : <MicroLabel tone="accent-ink">{label}</MicroLabel>}
       {children}
     </section>
   )

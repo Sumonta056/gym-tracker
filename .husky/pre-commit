@@ -2,6 +2,8 @@
 
 pnpm exec lint-staged
 pnpm typecheck
+pnpm design:check:staged
+pnpm test:required:staged
 
 # Skip instead of failing the commit when vitest is absent, for example on a fresh clone.
 if [ -x node_modules/.bin/vitest ]; then

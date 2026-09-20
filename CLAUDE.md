@@ -110,6 +110,24 @@ Side gutters 20 px on the phone. Gap between cards 11 to 12 px.
 44 px tap targets, real `button` and `a` elements, a label on every control, 4.5:1
 contrast on body text. Full detail: `.claude/rules/accessibility.md`.
 
+### The design check runs by machine
+
+`pnpm design:check` fails the build on drift. `.husky/pre-commit` runs it on the
+staged files, so a drifting change cannot be committed.
+
+| Check             | Rule                                                                                |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| Raw hex           | No `#rrggbb` under `app/` or `components/`. Use a token.                            |
+| Hand mixed colour | No `rgb()` or `rgba()` with literal channels. Use a token with an opacity modifier. |
+| Micro label       | Only `components/ui/MicroLabel.tsx` may write `uppercase` or `tracking-[1.5px]`.    |
+| Own frame         | Only `AppShell` may write `min-h-dvh` or `max-w-[1100px]`.                          |
+| Button type       | Every `<button>` carries an explicit `type`.                                        |
+
+The checks that need a real browser live in `tests/e2e/responsive.spec.ts`: no
+sideways scroll from 320 px to 2560 px, every tap target 44 px or taller, and exactly
+one navigation visible at every width. Every allowed exception is a named entry with a
+reason in `scripts/design-check.mjs`. Never add one to get past the gate.
+
 ## Testing rules
 
 Full detail, including test naming: `.claude/rules/testing.md`.
@@ -124,11 +142,18 @@ Full detail, including test naming: `.claude/rules/testing.md`.
 | `lib/metrics/**`  | 100   | 95       | 100       |
 | `lib/sync/**`     | 95    | 90       | 95        |
 | `lib/**` (rest)   | 85    | 75       | 85        |
+| `components/**`   | 85    | 75       | 85        |
+| `app/**`          | 85    | 75       | 85        |
 
 - Playwright runs three projects: iPhone 14, Pixel 7 and desktop 1440.
 - axe must report zero serious or critical issues on every route.
-- `pnpm verify` runs format, lint, typecheck, coverage and build. It must pass
-  before any step is done.
+- **Every source file has a test beside it.** `pnpm test:required` fails on any file
+  under `lib/`, `components/` or `app/` with no `<name>.test.ts` or `.test.tsx`.
+  A file that truly cannot be unit tested goes in the `EXEMPT` list in
+  `scripts/require-tests.mjs`, with a reason.
+- `pnpm verify` runs `pnpm static`, then coverage, then the build, then the
+  end to end suite. It must pass before any step is done.
+- `pnpm static` runs format, lint, typecheck, the design check and the test rule.
 
 ## The commit gate
 

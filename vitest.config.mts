@@ -15,7 +15,7 @@ export default defineConfig({
         test: {
           name: 'ui',
           environment: 'jsdom',
-          include: ['components/**/*.test.tsx', 'app/**/*.test.tsx'],
+          include: ['components/**/*.test.tsx', 'app/**/*.test.tsx', 'app/**/*.test.ts'],
           setupFiles: ['tests/setup.ui.ts'],
         },
       },
@@ -24,8 +24,8 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'json-summary', 'json'],
       reportsDirectory: 'coverage',
-      include: ['lib/**/*.{ts,tsx}'],
-      exclude: ['lib/**/*.test.{ts,tsx}', 'lib/**/*.d.ts'],
+      include: ['lib/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'app/**/*.{ts,tsx}'],
+      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', 'app/sw.ts', 'app/layout.tsx'],
       thresholds: {
         perFile: true,
         lines: 85,
@@ -45,6 +45,16 @@ export default defineConfig({
           lines: 95,
           branches: 90,
           functions: 95,
+        },
+        'components/**': {
+          lines: 85,
+          branches: 75,
+          functions: 85,
+        },
+        'app/**': {
+          lines: 85,
+          branches: 75,
+          functions: 85,
         },
       },
     },

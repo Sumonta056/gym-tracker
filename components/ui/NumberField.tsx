@@ -3,6 +3,7 @@
 import { useId } from 'react'
 
 import { cn } from './cn'
+import { MicroLabel } from './MicroLabel'
 
 import type { ComponentPropsWithoutRef } from 'react'
 
@@ -34,12 +35,9 @@ export function NumberField({
 
   return (
     <div className="flex w-full flex-col gap-1.5">
-      <label
-        htmlFor={inputId}
-        className="text-muted text-[10px] font-bold tracking-[1.5px] uppercase"
-      >
+      <MicroLabel as="label" htmlFor={inputId}>
         {label}
-      </label>
+      </MicroLabel>
       <div className="relative">
         <input
           id={inputId}

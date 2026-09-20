@@ -1,4 +1,5 @@
 import { cn } from './cn'
+import { MicroLabel } from './MicroLabel'
 
 export type SyncStatus = 'synced' | 'offline' | 'syncing'
 
@@ -31,9 +32,9 @@ export function StatusChip({ status, className }: StatusChipProps) {
       )}
     >
       <span aria-hidden="true" className={cn('h-1.5 w-1.5 rounded-full', chip.dot)} />
-      <span className={cn('text-[10px] font-bold tracking-[1.5px] uppercase', chip.text)}>
+      <MicroLabel tone="inherit" className={cn('inline-block', chip.text)}>
         {chip.label}
-      </span>
+      </MicroLabel>
     </span>
   )
 }

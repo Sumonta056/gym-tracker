@@ -29,7 +29,12 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "lighthouse": "lhci autorun --config=./lighthouserc.json",
-    "verify": "pnpm format:check && pnpm lint --max-warnings=0 && pnpm typecheck && pnpm test:cov && pnpm build && pnpm e2e",
+    "design:check": "node scripts/design-check.mjs",
+    "design:check:staged": "node scripts/design-check.mjs --staged",
+    "test:required": "node scripts/require-tests.mjs",
+    "test:required:staged": "node scripts/require-tests.mjs --staged",
+    "static": "pnpm format:check && pnpm lint --max-warnings=0 && pnpm typecheck && pnpm design:check && pnpm test:required",
+    "verify": "pnpm static && pnpm test:cov && pnpm build && pnpm e2e",
     "prepare": "husky"
   },
   "dependencies": {

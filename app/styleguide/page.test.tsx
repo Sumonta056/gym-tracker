@@ -95,6 +95,20 @@ describe('the styleguide page', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
+  it('stores the seconds the duration field reports', async () => {
+    const field = screen.getByLabelText('Gym time')
+    await userEvent.clear(field)
+    await userEvent.type(field, '72m')
+    await userEvent.tab()
+    expect(screen.getByText('Stored seconds: 4320')).toBeInTheDocument()
+  })
+
+  it('closes the sheet from its save button', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the sheet' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('shows an errored field tied to its message', () => {
     const steps = screen.getByLabelText('Steps')
     expect(steps).toHaveAttribute('aria-invalid', 'true')

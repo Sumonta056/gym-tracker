@@ -5,6 +5,7 @@ import { useId, useState } from 'react'
 import { formatDuration, parseDuration } from '../../lib/duration'
 
 import { cn } from './cn'
+import { MicroLabel } from './MicroLabel'
 
 import type { ChangeEvent, FocusEvent } from 'react'
 
@@ -66,12 +67,9 @@ export function DurationField({
 
   return (
     <div className={cn('flex w-full flex-col gap-1.5', className)}>
-      <label
-        htmlFor={inputId}
-        className="text-muted text-[10px] font-bold tracking-[1.5px] uppercase"
-      >
+      <MicroLabel as="label" htmlFor={inputId}>
         {label}
-      </label>
+      </MicroLabel>
       <input
         id={inputId}
         name={name}

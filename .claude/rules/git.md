@@ -20,7 +20,7 @@ commitlint rejects any other scope.
 
 No commit is allowed until a report exists for exactly the staged change.
 
-1. Run `pnpm verify`.
+1. Run `pnpm verify`. It includes the design check and the test rule.
 2. Run the `commit-report` skill. It writes `reports/<YYYY-MM-DD>-<slug>.html` with
    five sections: what this commit does, improvements, fallbacks, things to consider,
    and evidence. It also writes `reports/.last-report-hash`.

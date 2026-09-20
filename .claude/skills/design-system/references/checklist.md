@@ -3,6 +3,24 @@
 Pass or fail. Nine out of nine, or the screen is not done. Run it on every change under
 `app/` or `components/`, before `pnpm verify` and before any report is written.
 
+## Five points now run by machine
+
+You no longer check these by hand. They fail the build.
+
+| Point                                | Command             | Where it runs                        |
+| ------------------------------------ | ------------------- | ------------------------------------ |
+| 1, raw hex and hand mixed colour     | `pnpm design:check` | pre-commit, `pnpm static`, CI Static |
+| 2, the page builds its own frame     | `pnpm design:check` | pre-commit, `pnpm static`, CI Static |
+| 8, a hand written micro label        | `pnpm design:check` | pre-commit, `pnpm static`, CI Static |
+| 3, one navigation per width          | `pnpm e2e`          | `pnpm verify`, CI Browser            |
+| 4, every tap target 44 px or taller  | `pnpm e2e`          | `pnpm verify`, CI Browser            |
+| 5, no sideways scroll 320 to 2560 px | `pnpm e2e`          | `pnpm verify`, CI Browser            |
+
+Points 6, 7 and 9 still need your eyes. ESLint and axe carry most of point 6.
+
+Every allowed exception is a named entry with a reason in `scripts/design-check.mjs`.
+Never add one to get past the gate.
+
 ---
 
 ### 1. Does every colour come from a token? No raw hex in a component.

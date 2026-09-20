@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { cn } from './cn'
+import { MicroLabel } from './MicroLabel'
 
 import type { ReactNode } from 'react'
 
@@ -35,9 +36,7 @@ export function AppShell({ items, action, title, aside, children, className }: A
         aria-label="Sidebar"
         className="border-border bg-surface hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-r lg:p-4"
       >
-        <span className="text-muted mb-3 px-3 text-[10px] font-bold tracking-[1.5px] uppercase">
-          Gym Tracker
-        </span>
+        <MicroLabel className="mb-3 px-3">Gym Tracker</MicroLabel>
         {items.map((item) => (
           <Link
             key={item.href}
