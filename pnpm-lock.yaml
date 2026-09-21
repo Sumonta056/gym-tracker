@@ -14,6 +14,12 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.116.0
         version: 2.116.0
+      dexie:
+        specifier: ^4.4.6
+        version: 4.4.6
+      dexie-react-hooks:
+        specifier: ^4.4.0
+        version: 4.4.0(dexie@4.4.6)(react@19.1.0)
       next:
         specifier: 15.5.25
         version: 15.5.25(@playwright/test@1.63.0)(@types/node@24.13.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -2258,6 +2264,15 @@ packages:
 
   devtools-protocol@0.0.1232444:
     resolution: {integrity: sha512-pM27vqEfxSxRkTMnF+XCmxSEb6duO5R+t8A9DEEJgy4Wz2RVanje2mmj99B6A3zv2r/qGfYlOvYznUhuokizmg==}
+
+  dexie-react-hooks@4.4.0:
+    resolution: {integrity: sha512-ObLXBS5+4BJU8vtSvBx6b9fY6zZYgniAtwxzjCHsUQadgbqYN6935X2/1TWw4Rf2N1aZV1io5/ziox4vKuxABA==}
+    peerDependencies:
+      dexie: '>=4.2.0-alpha.1 <5.0.0'
+      react: '>=16'
+
+  dexie@4.4.6:
+    resolution: {integrity: sha512-hJP/BO6mjB+tX6hToIO1kmxYLNmun90wYbfcoAoLpKEyDYal/k33dg0TAfoUe2TDsbbLoVIzljJ3BN2UbR5EOg==}
 
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
@@ -6714,6 +6729,13 @@ snapshots:
   devtools-protocol@0.0.1211954: {}
 
   devtools-protocol@0.0.1232444: {}
+
+  dexie-react-hooks@4.4.0(dexie@4.4.6)(react@19.1.0):
+    dependencies:
+      dexie: 4.4.6
+      react: 19.1.0
+
+  dexie@4.4.6: {}
 
   doctrine@2.1.0:
     dependencies:

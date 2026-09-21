@@ -5,10 +5,10 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.6 → `docs/plan/phase-1/S1.6-dexie-repository.md`
+**Next step:** 1.7 → `docs/plan/phase-1/S1.7-outbox-sync-worker.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `4238aae`, the duration parser rewrite. Checkpoint A passed on a
-laptop. The iPhone half is open until step 1.17.
+**Last commit:** `370454d`, the shared zod schemas. Checkpoint A passed on a laptop.
+The iPhone half is open until step 1.17.
 
 ## Phases
 
