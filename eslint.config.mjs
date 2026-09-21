@@ -12,12 +12,24 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 })
 
+const REPOSITORY_RULE =
+  'The repository rule: no screen calls Supabase. Import lib/db/repository.ts instead. Only lib/sync/* may import lib/supabase/* or @supabase/*.'
+
 const restrictedSupabase = {
   patterns: [
     {
-      group: ['@/lib/supabase', '@/lib/supabase/*', '**/lib/supabase', '**/lib/supabase/*'],
-      message:
-        'Screens never call Supabase. Import lib/db/repository.ts instead. Only lib/sync/* may import lib/supabase/*.',
+      group: [
+        '@supabase/*',
+        '@/lib/supabase',
+        '@/lib/supabase/*',
+        '**/lib/supabase',
+        '**/lib/supabase/*',
+        '@/lib/sync',
+        '@/lib/sync/*',
+        '**/lib/sync',
+        '**/lib/sync/*',
+      ],
+      message: REPOSITORY_RULE,
     },
   ],
 }
@@ -103,6 +115,12 @@ export default tseslint.config(
     files: ['lib/sync/**/*.{ts,tsx}', 'lib/supabase/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': 'off',
+    },
+  },
+  {
+    files: ['lib/supabase/database.types.ts'],
+    rules: {
+      '@typescript-eslint/no-redundant-type-constituents': 'off',
     },
   },
   {
