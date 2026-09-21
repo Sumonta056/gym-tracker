@@ -47,7 +47,8 @@
     "next": "15.5.25",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "serwist": "^9.5.12"
+    "serwist": "^9.5.12",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

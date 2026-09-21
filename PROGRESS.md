@@ -5,10 +5,10 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.5 → `docs/plan/phase-1/S1.5-zod-schemas.md`
+**Next step:** 1.6 → `docs/plan/phase-1/S1.6-dexie-repository.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `e2f939a`, the magic link sign-in. Checkpoint A passed on a laptop.
-The iPhone half is open until step 1.17.
+**Last commit:** `4238aae`, the duration parser rewrite. Checkpoint A passed on a
+laptop. The iPhone half is open until step 1.17.
 
 ## Phases
 
