@@ -12,11 +12,13 @@ type CookieHandlers = {
 
 type ServerClientOptions = { cookies: CookieHandlers }
 
-type FakeClient = { auth: { getUser: () => Promise<{ data: { user: null } }> } }
+type FakeUser = { id: string }
+
+type FakeClient = { auth: { getUser: () => Promise<{ data: { user: FakeUser | null } }> } }
 
 const mocks = vi.hoisted(() => ({
   createServerClient: vi.fn<(url: string, key: string, options: ServerClientOptions) => unknown>(),
-  getUser: vi.fn<() => Promise<{ data: { user: null } }>>(),
+  getUser: vi.fn<() => Promise<{ data: { user: FakeUser | null } }>>(),
 }))
 
 vi.mock('@supabase/ssr', () => ({
@@ -48,9 +50,22 @@ describe('updateSession', () => {
 
   it('refreshes the session on every request', async () => {
     const request = new NextRequest('https://gym.example/today')
-    const response = await updateSession(request)
+    const { response } = await updateSession(request)
     expect(mocks.getUser).toHaveBeenCalledTimes(1)
     expect(response.status).toBe(200)
+  })
+
+  it('returns the signed in user', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+    const request = new NextRequest('https://gym.example/today')
+    const { user } = await updateSession(request)
+    expect(user).toEqual({ id: 'user-1' })
+  })
+
+  it('returns no user when nobody is signed in', async () => {
+    const request = new NextRequest('https://gym.example/today')
+    const { user } = await updateSession(request)
+    expect(user).toBeNull()
   })
 
   it('reads every cookie from the request', async () => {
@@ -68,9 +83,20 @@ describe('updateSession', () => {
     expect(request.cookies.get('sb-access-token')?.value).toBe('fresh')
   })
 
-  it('throws when the anon key is missing', async () => {
+  it('treats a missing anon key as no session instead of throwing', async () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     const request = new NextRequest('https://gym.example/today')
-    await expect(updateSession(request)).rejects.toThrow('NEXT_PUBLIC_SUPABASE_ANON_KEY is missing')
+    const { response, user } = await updateSession(request)
+    expect(user).toBeNull()
+    expect(response.status).toBe(200)
+    expect(mocks.createServerClient).not.toHaveBeenCalled()
+  })
+
+  it('treats a missing url as no session instead of throwing', async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL
+    const request = new NextRequest('https://gym.example/today')
+    const { user } = await updateSession(request)
+    expect(user).toBeNull()
+    expect(mocks.createServerClient).not.toHaveBeenCalled()
   })
 })

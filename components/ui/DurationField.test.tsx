@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
 import { DurationField } from './DurationField'
+import { FIELD_INPUT_CLASS } from './Field'
 
 function setup(value: number | null = null) {
   const onValueChange = vi.fn()
@@ -77,5 +78,19 @@ describe('DurationField', () => {
     const { input } = setup()
     expect(input).toHaveClass('h-[52px]')
     expect(input).toHaveClass('rounded-input')
+  })
+
+  it('wears the one shared input skin, so it cannot drift from the other fields', () => {
+    const { input } = setup()
+    expect(input).toHaveClass(...FIELD_INPUT_CLASS.split(' '))
+  })
+
+  it('announces its error, like every other field', async () => {
+    const { input } = setup()
+    await userEvent.type(input, 'nope')
+    await userEvent.tab()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Enter a duration such as 1:12:05, 72m or 1h 12m.',
+    )
   })
 })

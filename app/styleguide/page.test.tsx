@@ -64,6 +64,7 @@ describe('the styleguide page', () => {
       'Status chips',
       'Segmented tabs',
       'Fields',
+      'Sign in',
       'Buttons and the sheet',
     ]) {
       expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
@@ -109,9 +110,26 @@ describe('the styleguide page', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('shows an errored field tied to its message', () => {
+  it('holds the error state back until it is asked for, so nothing shouts on arrival', () => {
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Steps')).not.toHaveAttribute('aria-invalid')
+  })
+
+  it('shows an errored field tied to its message', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Show the error state' }))
     const steps = screen.getByLabelText('Steps')
     expect(steps).toHaveAttribute('aria-invalid', 'true')
     expect(steps).toHaveAccessibleDescription('Enter a whole number')
+  })
+
+  it('shows an errored email field tied to its message', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Show the email error' }))
+    const email = screen.getByLabelText('Email, rejected')
+    expect(email).toHaveAttribute('aria-invalid', 'true')
+    expect(email).toHaveAccessibleDescription('Enter an email address like you@example.com.')
+  })
+
+  it('renders the brand mark from the shared component', () => {
+    expect(screen.getByText('GT')).toHaveAttribute('aria-hidden', 'true')
   })
 })

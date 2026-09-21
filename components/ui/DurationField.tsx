@@ -1,11 +1,10 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useState } from 'react'
 
 import { formatDuration, parseDuration } from '../../lib/duration'
 
-import { cn } from './cn'
-import { MicroLabel } from './MicroLabel'
+import { Field } from './Field'
 
 import type { ChangeEvent, FocusEvent } from 'react'
 
@@ -30,11 +29,6 @@ export function DurationField({
   hint = 'Accepts 1:12:05, 72m or 1h 12m.',
   className,
 }: DurationFieldProps) {
-  const generatedId = useId()
-  const inputId = id ?? generatedId
-  const hintId = `${inputId}-hint`
-  const errorId = `${inputId}-error`
-
   const [text, setText] = useState(value === null ? '' : formatDuration(value))
   const [error, setError] = useState<string | null>(null)
 
@@ -66,35 +60,20 @@ export function DurationField({
   }
 
   return (
-    <div className={cn('flex w-full flex-col gap-1.5', className)}>
-      <MicroLabel as="label" htmlFor={inputId}>
-        {label}
-      </MicroLabel>
-      <input
-        id={inputId}
-        name={name}
-        type="text"
-        inputMode="text"
-        autoComplete="off"
-        placeholder="1:12:05"
-        value={text}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        aria-invalid={error === null ? undefined : true}
-        aria-describedby={error === null ? hintId : `${hintId} ${errorId}`}
-        className={cn(
-          'bg-surface text-text placeholder:text-dim rounded-input h-[52px] w-full border px-4 text-base',
-          error === null ? 'border-border' : 'border-danger',
-        )}
-      />
-      <p id={hintId} className="text-muted text-xs">
-        {hint}
-      </p>
-      {error === null ? null : (
-        <p id={errorId} className="text-danger text-xs">
-          {error}
-        </p>
-      )}
-    </div>
+    <Field
+      label={label}
+      id={id}
+      name={name}
+      type="text"
+      inputMode="text"
+      autoComplete="off"
+      placeholder="1:12:05"
+      value={text}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      hint={hint}
+      error={error ?? undefined}
+      wrapperClassName={className}
+    />
   )
 }

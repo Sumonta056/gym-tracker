@@ -5,9 +5,10 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.3 → `docs/plan/phase-1/S1.3-auth-magic-link.md`
+**Next step:** 1.4 → `docs/plan/phase-1/S1.4-duration.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `e17bb41`, migration 0001 with row level security. Step 1.1 is done.
+**Last commit:** `b5e61de`, the supabase clients and the import guard. Step 1.2 is
+done.
 
 ## Phases
 

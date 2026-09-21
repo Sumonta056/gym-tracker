@@ -1,5 +1,5 @@
-import { AppShell } from '../components/ui/AppShell'
-import { MicroLabel } from '../components/ui/MicroLabel'
+import { AppShell } from '../../components/ui/AppShell'
+import { MicroLabel } from '../../components/ui/MicroLabel'
 
 const NAV = [{ href: '/', label: 'Today', current: true }]
 

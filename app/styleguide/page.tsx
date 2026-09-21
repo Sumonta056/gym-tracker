@@ -4,8 +4,10 @@ import { notFound } from 'next/navigation'
 import { useState } from 'react'
 
 import { AppShell } from '../../components/ui/AppShell'
+import { BrandMark } from '../../components/ui/BrandMark'
 import { Card } from '../../components/ui/Card'
 import { DurationField } from '../../components/ui/DurationField'
+import { EmailField } from '../../components/ui/EmailField'
 import { HeroCard } from '../../components/ui/HeroCard'
 import { MicroLabel } from '../../components/ui/MicroLabel'
 import { NumberField } from '../../components/ui/NumberField'
@@ -63,6 +65,8 @@ function Styleguide() {
   const [range, setRange] = useState('week')
   const [seconds, setSeconds] = useState<number | null>(4325)
   const [open, setOpen] = useState(false)
+  const [showFieldError, setShowFieldError] = useState(false)
+  const [showEmailError, setShowEmailError] = useState(false)
 
   return (
     <AppShell items={NAV} action={{ href: '/log', label: 'Log a set' }} title="Style guide">
@@ -168,7 +172,18 @@ function Styleguide() {
           <Card className="flex flex-col gap-4">
             <NumberField label="Weight" unit="kg" placeholder="82.5" inputMode="decimal" />
             <NumberField label="Reps" inputMode="numeric" placeholder="8" />
-            <NumberField label="Steps" error="Enter a whole number" defaultValue="eight" />
+            <NumberField
+              label="Steps"
+              error={showFieldError ? 'Enter a whole number' : undefined}
+              defaultValue="eight"
+            />
+            <SecondaryButton
+              onClick={() => {
+                setShowFieldError(!showFieldError)
+              }}
+            >
+              {showFieldError ? 'Hide the error state' : 'Show the error state'}
+            </SecondaryButton>
           </Card>
           <Card className="flex flex-col gap-4">
             <DurationField
@@ -179,6 +194,31 @@ function Styleguide() {
               }}
             />
             <p className="text-muted text-xs">{`Stored seconds: ${seconds === null ? 'none' : String(seconds)}`}</p>
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="Sign in">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Card className="flex flex-col items-center gap-2 text-center">
+            <BrandMark />
+            <MicroLabel>Brand mark</MicroLabel>
+            <p className="text-muted text-xs">64 px, hero radius, accent fill, accent ink.</p>
+          </Card>
+          <Card className="flex flex-col gap-4">
+            <EmailField label="Email" placeholder="you@example.com" />
+            <EmailField
+              label="Email, rejected"
+              defaultValue="not-an-email"
+              error={showEmailError ? 'Enter an email address like you@example.com.' : undefined}
+            />
+            <SecondaryButton
+              onClick={() => {
+                setShowEmailError(!showEmailError)
+              }}
+            >
+              {showEmailError ? 'Hide the email error' : 'Show the email error'}
+            </SecondaryButton>
           </Card>
         </div>
       </Section>

@@ -112,7 +112,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['lib/sync/**/*.{ts,tsx}', 'lib/supabase/**/*.{ts,tsx}'],
+    files: [
+      'lib/sync/**/*.{ts,tsx}',
+      'lib/supabase/**/*.{ts,tsx}',
+      'lib/auth/**/*.{ts,tsx}',
+      'middleware.ts',
+    ],
     rules: {
       'no-restricted-imports': 'off',
     },

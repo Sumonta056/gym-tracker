@@ -4,13 +4,33 @@ import { NextResponse } from 'next/server'
 import { readSupabaseEnv } from './env'
 
 import type { Database } from './database.types'
+import type { SupabaseEnv } from './env'
+import type { User } from '@supabase/supabase-js'
 import type { NextRequest } from 'next/server'
 
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
-  const { url, anonKey } = readSupabaseEnv()
+export type SessionResult = {
+  response: NextResponse
+  user: User | null
+}
+
+function readEnvOrNull(): SupabaseEnv | null {
+  try {
+    return readSupabaseEnv()
+  } catch {
+    return null
+  }
+}
+
+export async function updateSession(request: NextRequest): Promise<SessionResult> {
+  const env = readEnvOrNull()
+
+  if (env === null) {
+    return { response: NextResponse.next({ request }), user: null }
+  }
+
   let response = NextResponse.next({ request })
 
-  const supabase = createServerClient<Database>(url, anonKey, {
+  const supabase = createServerClient<Database>(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll()
@@ -27,7 +47,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     },
   })
 
-  await supabase.auth.getUser()
+  const { data } = await supabase.auth.getUser()
 
-  return response
+  return { response, user: data.user }
 }

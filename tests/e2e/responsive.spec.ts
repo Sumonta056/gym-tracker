@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-const ROUTES = ['/', '/styleguide']
+const UNAUTHENTICATED_ROUTES = ['/sign-in', '/styleguide']
+const SHELL_ROUTES = ['/styleguide']
 const WIDTHS = [320, 360, 390, 414, 640, 768, 834, 1024, 1280, 1440, 1920, 2560]
 const TAP_TARGET_WIDTHS = [390, 768, 1440]
 const MINIMUM_TAP_TARGET = 44
@@ -8,7 +9,7 @@ const SIDEBAR_BREAKPOINT = 1024
 
 const CONTROL_SELECTOR = 'a, button, input, select, textarea, [role="button"], [role="tab"]'
 
-for (const route of ROUTES) {
+for (const route of UNAUTHENTICATED_ROUTES) {
   test(`never scrolls sideways on ${route}, from 320 px to 2560 px`, async ({ page }) => {
     await page.goto(route)
 
@@ -57,7 +58,9 @@ for (const route of ROUTES) {
 
     expect(small).toEqual([])
   })
+}
 
+for (const route of SHELL_ROUTES) {
   test(`shows exactly one navigation at every width on ${route}`, async ({ page }) => {
     await page.goto(route)
 

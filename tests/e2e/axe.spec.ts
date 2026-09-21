@@ -1,9 +1,9 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
-const routes = ['/', '/styleguide']
+const UNAUTHENTICATED_ROUTES = ['/sign-in', '/styleguide']
 
-for (const route of routes) {
+for (const route of UNAUTHENTICATED_ROUTES) {
   test(`reports no serious or critical accessibility issue on ${route}`, async ({ page }) => {
     const response = await page.goto(route)
 
