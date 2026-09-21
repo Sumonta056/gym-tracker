@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { formatDuration, parseDuration } from '../../lib/duration'
+import { formatDuration, parseInput } from '../../lib/duration'
 
 import { Field } from './Field'
 
@@ -18,8 +18,6 @@ export type DurationFieldProps = {
   className?: string
 }
 
-const INVALID = 'Enter a duration such as 1:12:05, 72m or 1h 12m.'
-
 export function DurationField({
   label,
   value,
@@ -29,7 +27,7 @@ export function DurationField({
   hint = 'Accepts 1:12:05, 72m or 1h 12m.',
   className,
 }: DurationFieldProps) {
-  const [text, setText] = useState(value === null ? '' : formatDuration(value))
+  const [text, setText] = useState(value === null ? '' : formatDuration(value, 'clock'))
   const [error, setError] = useState<string | null>(null)
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
@@ -46,17 +44,17 @@ export function DurationField({
       return
     }
 
-    const seconds = parseDuration(raw)
+    const parsed = parseInput(raw)
 
-    if (seconds === null) {
-      setError(INVALID)
+    if (!parsed.ok) {
+      setError(parsed.reason)
       onValueChange(null)
       return
     }
 
     setError(null)
-    setText(formatDuration(seconds))
-    onValueChange(seconds)
+    setText(formatDuration(parsed.seconds, 'clock'))
+    onValueChange(parsed.seconds)
   }
 
   return (

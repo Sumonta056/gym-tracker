@@ -1,93 +1,174 @@
-const MINUTES_ONLY = /^\d+$/
-const CLOCK_PART = /^\d{1,2}$/
-const UNIT_FORM = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/
-
 const SECONDS_PER_MINUTE = 60
 const SECONDS_PER_HOUR = 3600
+const MAX_SECONDS = 86400
 
-export function parseDuration(input: string): number | null {
-  const text = input.toLowerCase().replaceAll(/\s/g, '')
+const DIGITS = /^\d+$/
+const DECIMAL = /^\d+(?:\.\d+)?$/
+const UNITS = /^(?:(\d+(?:\.\d+)?)h)?(?:(\d+(?:\.\d+)?)m)?(?:(\d+(?:\.\d+)?)s)?$/
+const SHEET_THREE_PARTS = /^\d+\.\d+\.\d+$/
+const SHEET_TWO_PARTS = /^\d+\.\d+$/
 
-  if (text.includes(':')) {
-    return parseClock(text)
+const EMPTY_REASON = 'Enter a duration.'
+const SHAPE_REASON = 'Enter a duration such as 1:12:05, 72m or 1h 12m.'
+const OVERFLOW_REASON = 'Minutes and seconds must be under 60.'
+const NEGATIVE_REASON = 'A duration cannot be negative.'
+const TOO_LONG_REASON = 'A duration cannot be longer than 24 hours.'
+
+export type ParsedInput = { ok: true; seconds: number } | { ok: false; reason: string }
+
+export type ParsedSheetValue = { seconds: number; certain: boolean }
+
+export type DurationStyle = 'clock' | 'short'
+
+export function parseInput(text: string): ParsedInput {
+  const compact = text.toLowerCase().replaceAll(/\s+/g, '')
+
+  if (compact === '') {
+    return fail(EMPTY_REASON)
   }
 
-  if (MINUTES_ONLY.test(text)) {
-    return Number(text) * SECONDS_PER_MINUTE
+  if (compact.startsWith('-')) {
+    return fail(NEGATIVE_REASON)
   }
 
-  return parseUnits(text)
+  const parsed = compact.includes(':') ? readClock(compact) : readPlain(compact)
+
+  if (!parsed.ok) {
+    return parsed
+  }
+
+  if (parsed.seconds > MAX_SECONDS) {
+    return fail(TOO_LONG_REASON)
+  }
+
+  return parsed
 }
 
-export function formatDuration(totalSeconds: number): string {
-  const safe = clamp(totalSeconds)
+export function parseSheetValue(text: string): ParsedSheetValue | null {
+  const compact = text.trim()
+
+  if (compact === '' || compact === '-') {
+    return null
+  }
+
+  if (compact.includes(':')) {
+    const clock = readClock(compact)
+
+    if (!clock.ok) {
+      return null
+    }
+
+    return settle(clock.seconds, true)
+  }
+
+  if (SHEET_THREE_PARTS.test(compact)) {
+    return settle(readDotParts(compact), true)
+  }
+
+  if (SHEET_TWO_PARTS.test(compact)) {
+    const trailing = Number(compact.slice(compact.indexOf('.') + 1))
+
+    if (trailing >= SECONDS_PER_MINUTE) {
+      return settle(Math.round(Number(compact) * SECONDS_PER_MINUTE), true)
+    }
+
+    return settle(readDotParts(compact), false)
+  }
+
+  if (DIGITS.test(compact)) {
+    return settle(Number(compact) * SECONDS_PER_MINUTE, true)
+  }
+
+  return null
+}
+
+export function formatDuration(seconds: number, style: DurationStyle): string {
+  const safe = Math.max(0, Math.round(seconds))
   const hours = Math.floor(safe / SECONDS_PER_HOUR)
   const minutes = Math.floor((safe % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE)
-  const seconds = safe % SECONDS_PER_MINUTE
 
-  if (hours === 0) {
-    return `${String(minutes)}:${pad(seconds)}`
+  if (style === 'short') {
+    if (hours === 0) {
+      return `${String(minutes)}m`
+    }
+
+    if (minutes === 0) {
+      return `${String(hours)}h`
+    }
+
+    return `${String(hours)}h ${String(minutes)}m`
   }
 
-  return `${String(hours)}:${pad(minutes)}:${pad(seconds)}`
-}
-
-export function formatCompact(totalSeconds: number): string {
-  const safe = clamp(totalSeconds)
-  const hours = Math.floor(safe / SECONDS_PER_HOUR)
-  const minutes = Math.floor((safe % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE)
+  const rest = safe % SECONDS_PER_MINUTE
 
   if (hours === 0) {
-    return `${String(minutes)}m`
+    return `${String(minutes)}:${pad(rest)}`
   }
 
-  return `${String(hours)}h ${String(minutes)}m`
+  return `${String(hours)}:${pad(minutes)}:${pad(rest)}`
 }
 
-function parseClock(text: string): number | null {
-  const parts = text.split(':')
+function readClock(compact: string): ParsedInput {
+  const parts = compact.split(':')
 
   if (parts.length > 3) {
-    return null
+    return fail(SHAPE_REASON)
   }
 
-  if (!parts.every((part) => CLOCK_PART.test(part))) {
-    return null
+  if (!parts.every((part) => DIGITS.test(part))) {
+    return fail(SHAPE_REASON)
   }
 
   const numbers = parts.map(Number)
 
-  if (numbers.slice(1).some((value) => value > 59)) {
-    return null
+  if (numbers.slice(1).some((value) => value >= SECONDS_PER_MINUTE)) {
+    return fail(OVERFLOW_REASON)
   }
 
-  return numbers.reduce((total, value) => total * SECONDS_PER_MINUTE + value, 0)
+  return { ok: true, seconds: numbers.reduce(stepUp, 0) }
 }
 
-function parseUnits(text: string): number | null {
-  const match = UNIT_FORM.exec(text)
+function readPlain(compact: string): ParsedInput {
+  if (DECIMAL.test(compact)) {
+    return { ok: true, seconds: Math.round(Number(compact) * SECONDS_PER_MINUTE) }
+  }
+
+  const match = UNITS.exec(compact)
 
   if (match === null) {
-    return null
+    return fail(SHAPE_REASON)
   }
 
   const [, hours, minutes, seconds] = match
 
-  if (hours === undefined && minutes === undefined && seconds === undefined) {
-    return null
+  return {
+    ok: true,
+    seconds: Math.round(
+      toNumber(hours) * SECONDS_PER_HOUR +
+        toNumber(minutes) * SECONDS_PER_MINUTE +
+        toNumber(seconds),
+    ),
   }
+}
 
-  return (
-    toNumber(hours) * SECONDS_PER_HOUR + toNumber(minutes) * SECONDS_PER_MINUTE + toNumber(seconds)
-  )
+function readDotParts(compact: string): number {
+  return compact.split('.').map(Number).reduce(stepUp, 0)
+}
+
+function stepUp(total: number, value: number): number {
+  return total * SECONDS_PER_MINUTE + value
+}
+
+function settle(seconds: number, certain: boolean): ParsedSheetValue | null {
+  return seconds === 0 ? null : { seconds, certain }
+}
+
+function fail(reason: string): ParsedInput {
+  return { ok: false, reason }
 }
 
 function toNumber(part: string | undefined): number {
   return part === undefined ? 0 : Number(part)
-}
-
-function clamp(totalSeconds: number): number {
-  return Math.max(0, Math.round(totalSeconds))
 }
 
 function pad(value: number): string {

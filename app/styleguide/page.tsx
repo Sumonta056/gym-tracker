@@ -18,7 +18,7 @@ import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
-import { formatCompact } from '../../lib/duration'
+import { formatDuration } from '../../lib/duration'
 
 import type { ReactNode } from 'react'
 
@@ -118,7 +118,9 @@ function Styleguide() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <HeroCard label="Gym time today">
             <p className="text-[44px] leading-none font-extrabold">1:12:05</p>
-            <p className="text-accent-ink/70 mt-1 text-sm font-semibold">{formatCompact(4325)}</p>
+            <p className="text-accent-ink/70 mt-1 text-sm font-semibold">
+              {formatDuration(4325, 'short')}
+            </p>
           </HeroCard>
           <Card>
             <MicroLabel>Card</MicroLabel>
