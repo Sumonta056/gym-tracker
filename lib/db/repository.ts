@@ -1,25 +1,19 @@
 import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { profileSchema } from '../schema/profile'
+import { append as enqueue } from '../sync/outbox'
 
 import { db } from './dexie'
 
-import type {
-  DailyEntry,
-  OutboxEntry,
-  OutboxOperation,
-  OutboxTableName,
-  Profile,
-  SyncMetaRecord,
-} from './dexie'
+import type { DailyEntry, Profile } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { ProfileInput } from '../schema/profile'
+
+export { OUTBOX_SEQUENCE_KEY } from './dexie'
 
 export const LOCAL_PROFILE_ID = '00000000-0000-4000-8000-000000000000'
 
 export const NEVER_WRITTEN = new Date(0).toISOString()
-
-export const OUTBOX_SEQUENCE_KEY = 'outbox_sequence'
 
 const PROFILE_FIELDS = [
   'display_name',
@@ -31,42 +25,6 @@ const PROFILE_FIELDS = [
 
 function nowIso(): string {
   return new Date().toISOString()
-}
-
-function issuedSequence(marker: SyncMetaRecord | undefined): number {
-  const issued = Number(marker?.value ?? 0)
-
-  if (!Number.isSafeInteger(issued) || issued < 0) {
-    return 0
-  }
-
-  return issued
-}
-
-async function enqueue(
-  tableName: OutboxTableName,
-  operation: OutboxOperation,
-  payload: DailyEntry | Profile,
-): Promise<void> {
-  const marker = await db.syncMeta.get(OUTBOX_SEQUENCE_KEY)
-  const queued = await db.outbox.orderBy('sequence').last()
-  const sequence = Math.max(issuedSequence(marker), queued?.sequence ?? 0) + 1
-
-  await db.syncMeta.put({ key: OUTBOX_SEQUENCE_KEY, value: String(sequence) })
-
-  const entry: OutboxEntry = {
-    id: newId(),
-    sequence,
-    table_name: tableName,
-    operation,
-    row_id: payload.id,
-    payload,
-    created_at: nowIso(),
-    attempts: 0,
-    last_error: null,
-  }
-
-  await db.outbox.add(entry)
 }
 
 function newerFirst(left: DailyEntry, right: DailyEntry): number {

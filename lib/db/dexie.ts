@@ -29,6 +29,7 @@ export interface OutboxEntry {
   created_at: string
   attempts: number
   last_error: string | null
+  next_attempt_at: string | null
 }
 
 export interface SyncMetaRecord {
@@ -42,6 +43,12 @@ export type GymDatabase = Dexie & {
   outbox: EntityTable<OutboxEntry, 'id'>
   syncMeta: EntityTable<SyncMetaRecord, 'key'>
 }
+
+export const OUTBOX_SEQUENCE_KEY = 'outbox_sequence'
+
+export const DAILY_CURSOR_KEY = 'pull_cursor_daily_entries'
+
+export const PROFILE_CURSOR_KEY = 'pull_cursor_profiles'
 
 export const DATABASE_NAME = 'gym-tracker'
 

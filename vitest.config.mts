@@ -8,6 +8,7 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['lib/**/*.test.ts', 'middleware.test.ts'],
+          exclude: ['lib/sync/worker.test.ts', 'lib/sync/useSyncStatus.test.ts'],
         },
       },
       {
@@ -15,7 +16,13 @@ export default defineConfig({
         test: {
           name: 'ui',
           environment: 'jsdom',
-          include: ['components/**/*.test.tsx', 'app/**/*.test.tsx', 'app/**/*.test.ts'],
+          include: [
+            'components/**/*.test.tsx',
+            'app/**/*.test.tsx',
+            'app/**/*.test.ts',
+            'lib/sync/worker.test.ts',
+            'lib/sync/useSyncStatus.test.ts',
+          ],
           setupFiles: ['tests/setup.ui.ts'],
         },
       },
