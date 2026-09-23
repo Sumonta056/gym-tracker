@@ -5,10 +5,16 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.10 → `docs/plan/phase-1/S1.10-*.md`
+**Next step:** 1.11 → `docs/plan/phase-1/S1.11-*.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `ae88ac6`, the app shell wired to the five destinations. Checkpoints A
-and B are ticked. The iPhone half of A is open until step 1.17.
+**Last commit:** `45f09ec`, the daily log form. Checkpoints A and B are ticked. The
+iPhone half of A is open until step 1.17.
+
+## Settled, do not reopen
+
+- **Zones are modelled, not measured.** Floors 0.6, 0.7, 0.85 of the session's own peak.
+  A true `220 − age` needs a migration. The bar is indicative, never clinical. From 1.10.
+- **The zone bar has four segments**, warm included. The prototype is corrected. From 1.10.
 
 ## Open, with the step that closes each one
 
