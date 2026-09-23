@@ -19,9 +19,20 @@ describe('StatusChip', () => {
     expect(screen.getByText('SYNCING')).toHaveClass('text-data-cyan')
   })
 
+  it('renders PENDING in the muted token', () => {
+    render(<StatusChip status="pending" />)
+    expect(screen.getByText('PENDING')).toHaveClass('text-muted')
+  })
+
   it('exposes the chip as a status region', () => {
     render(<StatusChip status="synced" />)
     expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+
+  it('stays out of the live regions when a second chip on the screen already announces', () => {
+    render(<StatusChip status="synced" announce={false} />)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByText('SYNCED')).toBeInTheDocument()
   })
 
   it('carries the meaning in words, not colour alone', () => {

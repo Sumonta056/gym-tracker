@@ -11,6 +11,8 @@ to Supabase. ESLint enforces this.
 
 - Allowed: `app/**` and `components/**` import `lib/db/repository.ts`.
 - Forbidden: `app/**` or `components/**` import `@supabase/*` or `lib/sync/**`.
+- Exception: `lib/auth/**` may call Supabase auth, in the browser or a server action:
+  sign in, session read and sign out. Nothing else. ESLint already exempts it.
 
 ## 2. The UUID rule
 

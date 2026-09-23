@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.13 → `docs/plan/phase-1/S1.13-*.md`
+**Next step:** 1.13b → `docs/plan/phase-1/S1.13b-*.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `9fc55e7`, the screenshot rule. The 1.12 charts commit on top of it.
+**Last commit:** `56888e4`, the analytics charts. The 1.13 profile commits on top of it.
 Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 
 ## Settled, do not reopen
@@ -19,13 +19,17 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
   `--color-ok` also marks the fat-burn zone. From 1.11.
 - **Chart screens keep two columns at 1024 px and up.** `SegmentedTabs` is a toggle
   group with `aria-pressed`, not tabs. The prototype analytics plate is corrected. From 1.12.
+- **The sync worker starts in the `(app)` layout** through `SyncRunner`. Sign out drains
+  first, then asks before it deletes a pending write. The chip has four states. From 1.13.
 
 ## Open, with the step that closes each one
 
-- **1.13** — the drain stops at the first failure, with no ceiling. Dead letter? From 1.7.
-- **1.13** — the chip reads `navigator.onLine`; rule 1 blocks `lib/sync/**`. From 1.9.
+- **1.13b** — a dead-letter table, a second-tab lock, a `haltSync` timeout and the
+  sign-out backoff. The step file is written. From 1.7 and 1.13.
 - **1.16** — no signed-in Playwright fixture, so `/log` offline is untested. From 1.9.
-- **1.13** — `/profile` is in the tab bar with no route.
+- **1.15** — `StatusChip` frame and `SecondaryButton` size drift from their recipes. From 1.13.
+- **Owner** — `/log` takes weight in kg only. The imperial setting is display only elsewhere.
+  From 1.13.
 - **1.16** — `/`, `/log` and `/analytics` are proven at three widths only through
   `/styleguide` samples. The signed-in fixture proves the live routes. From 1.12.
 

@@ -43,7 +43,15 @@ export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): An
             tab,
             state: {
               status: 'ready',
-              data: analyse(entries, history, tab, today, now, profile.step_goal),
+              data: analyse(
+                entries,
+                history,
+                tab,
+                today,
+                now,
+                profile.step_goal,
+                profile.unit_system,
+              ),
             },
           })
         }

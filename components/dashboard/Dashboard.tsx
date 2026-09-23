@@ -1,5 +1,6 @@
 'use client'
 
+import { formatWeight, toDisplayWeight, weightSymbol } from '../../lib/format/weight'
 import { StatCard } from '../ui/StatCard'
 
 import { DashboardHeader } from './DashboardHeader'
@@ -26,6 +27,9 @@ export function stepsHint(steps: number | null, goal: number): string {
 export function DashboardView({ summary }: { summary: DashboardSummary }) {
   const steps = summary.entry?.steps ?? null
   const weight = summary.latestWeightKg
+  const unit = summary.unitSystem
+  const digits = unit === 'metric' ? 2 : 1
+  const trend = summary.weightTrend.map((kg) => Number(toDisplayWeight(kg, unit).toFixed(digits)))
 
   return (
     <>
@@ -51,10 +55,10 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
           />
           <StatCard
             label="Weight"
-            value={weight === null ? '—' : weight.toFixed(2)}
-            unit="kg"
+            value={weight === null ? '—' : formatWeight(weight, unit, digits)}
+            unit={weightSymbol(unit)}
             hint={weight === null ? 'Not logged yet' : 'Latest entry'}
-            sparkline={summary.weightTrend.length > 1 ? summary.weightTrend : undefined}
+            sparkline={trend.length > 1 ? trend : undefined}
             tone="violet"
           />
         </div>

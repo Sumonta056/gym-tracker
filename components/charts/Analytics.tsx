@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { NetworkChip } from '../dashboard/NetworkChip'
+import { SyncChip } from '../sync/SyncChip'
 import { SegmentedTabs } from '../ui/SegmentedTabs'
 
 import { CaloriesChart } from './CaloriesChart'
@@ -28,7 +28,7 @@ export function AnalyticsHeader({ label }: AnalyticsHeaderProps) {
         <h1 className="text-text text-[23px] leading-tight font-bold tracking-[-0.6px]">Stats</h1>
         {label === null ? null : <p className="text-muted text-[13px]">{label}</p>}
       </div>
-      <NetworkChip className="shrink-0" />
+      <SyncChip className="shrink-0" />
     </header>
   )
 }
@@ -58,7 +58,7 @@ export type AnalyticsViewProps = {
 export function AnalyticsView({ data, testId = 'analytics-grid' }: AnalyticsViewProps) {
   return (
     <div data-testid={testId} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-      <WeightChart days={data.days} tab={data.tab} />
+      <WeightChart days={data.days} tab={data.tab} unit={data.unitSystem} />
       <CaloriesChart days={data.days} tab={data.tab} />
       <StepsChart days={data.days} tab={data.tab} stepGoal={data.stepGoal} />
       <HeartRateChart days={data.days} tab={data.tab} />

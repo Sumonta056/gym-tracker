@@ -4148,7 +4148,10 @@
                   <button type="button" aria-pressed="true">Metric</button>
                   <button type="button" aria-pressed="false">Imperial</button>
                 </div>
-                <p class="dim" style="margin: 10px 0 0">
+                <p style="margin: 10px 0 0; font-size: 14px; font-weight: 600">
+                  Weight shows in kilograms (kg).
+                </p>
+                <p class="muted" style="margin: 4px 0 0; font-size: 12px">
                   Display only. Weight is always stored in kilograms.
                 </p>
               </div>
@@ -4172,28 +4175,24 @@
               </div>
 
               <div class="card">
-                <span class="micro">Data</span>
-                <div style="display: grid; gap: 10px; margin-top: 10px">
-                  <button class="btn btn-secondary" type="button">Import the Excel CSV</button>
-                  <button class="btn btn-secondary" type="button">Export everything as CSV</button>
-                </div>
-                <p class="dim" style="margin: 10px 0 0">
-                  Last import 12 Sep · 318 rows · 0 skipped
-                </p>
-              </div>
-
-              <div class="card">
                 <div class="row">
                   <span class="micro">Sync</span>
                   <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
                 </div>
                 <ul class="list" style="margin-top: 6px">
                   <li class="row"><span class="muted">Pending writes</span><strong>0</strong></li>
-                  <li class="row"><span class="muted">Last push</span><strong>18:44</strong></li>
                 </ul>
+                <button class="btn btn-secondary" type="button" style="margin-top: 12px">
+                  Sync now
+                </button>
               </div>
 
-              <button class="btn btn-danger" type="button">Sign out</button>
+              <div>
+                <button class="btn btn-danger" type="button">Sign out</button>
+                <p class="muted" style="margin: 8px 0 0; font-size: 12px">
+                  Signing out clears every entry on this device.
+                </p>
+              </div>
             </div>
 
             <nav class="tabbar" aria-label="Main">
@@ -4206,6 +4205,20 @@
               <a href="#" aria-current="page"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
             </nav>
           </div>
+        </div>
+        <div
+          role="group"
+          aria-label="Sync chip states"
+          style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px"
+        >
+          <span class="micro">Chip states</span>
+          <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+          <span class="chip"><span class="dot dot-cyan" aria-hidden="true"></span>Syncing</span>
+          <span class="chip"
+            ><span class="dot" style="background: var(--color-muted)" aria-hidden="true"></span
+            >Pending</span
+          >
+          <span class="chip"><span class="dot dot-warn" aria-hidden="true"></span>Offline</span>
         </div>
       </section>
     </main>

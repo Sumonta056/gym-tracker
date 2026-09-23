@@ -9,6 +9,7 @@ import type { DailyEntry } from '../../lib/db/dexie'
 import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
 import type { Streak } from '../../lib/metrics/streak'
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
+import type { UnitSystem } from '../../lib/schema/profile'
 
 const MS_PER_DAY = 86400000
 
@@ -61,6 +62,7 @@ export type AnalyticsData = {
   streak: Streak
   heatMap: HeatWeek[]
   stepGoal: number
+  unitSystem: UnitSystem
 }
 
 export const MONTH_TICK_DAYS = ['01', '08', '15', '22', '29']
@@ -163,6 +165,7 @@ export function analyse(
   today: string,
   now: Date,
   stepGoal: number,
+  unitSystem: UnitSystem = 'metric',
 ): AnalyticsData {
   const range = rangeFor(tab, today)
   const byDate = new Map(entries.map((row) => [row.entry_date, row]))
@@ -205,6 +208,7 @@ export function analyse(
     ),
     heatMap: heatMapFor(new Set(past.map((row) => row.entry_date)), today),
     stepGoal,
+    unitSystem,
   }
 }
 

@@ -50,6 +50,10 @@ export const DAILY_CURSOR_KEY = 'pull_cursor_daily_entries'
 
 export const PROFILE_CURSOR_KEY = 'pull_cursor_profiles'
 
+export const LOCAL_PROFILE_ID = '00000000-0000-4000-8000-000000000000'
+
+export const NEVER_WRITTEN = new Date(0).toISOString()
+
 export const DATABASE_NAME = 'gym-tracker'
 
 export const DATABASE_VERSION = 1

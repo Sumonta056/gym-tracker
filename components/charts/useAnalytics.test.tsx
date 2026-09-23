@@ -1,8 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { listRange } from '../../lib/db/repository'
-import { entryOn, NOW } from '../../tests/fixtures/dashboard'
+import { getProfile, listRange } from '../../lib/db/repository'
+import { entryOn, NOW, PROFILE } from '../../tests/fixtures/dashboard'
 
 import { READ_ERROR, useAnalytics } from './useAnalytics'
 
@@ -48,6 +48,14 @@ describe('useAnalytics', () => {
     const { result } = renderHook(() => useAnalytics('week', clock))
     await waitFor(() => {
       expect(result.current.status === 'ready' && result.current.data.stepGoal).toBe(10000)
+    })
+  })
+
+  it('carries the unit system from the profile so the weight chart can follow it', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ ...PROFILE, unit_system: 'imperial' })
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status === 'ready' && result.current.data.unitSystem).toBe('imperial')
     })
   })
 

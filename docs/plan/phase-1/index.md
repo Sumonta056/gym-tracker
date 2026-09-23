@@ -1,7 +1,7 @@
 # Phase 1 — step index
 
 `docs/plan/01-phase-1.md` is the source of truth. This folder splits it into 17 step
-files. One step is one session. Never do two steps in one session.
+files, plus step 1.13b, added after 1.13. One step is one session. Never do two steps in one session.
 
 **Branch for all of Phase 1:** `feat/phase-1-daily-tracker`
 
@@ -16,25 +16,26 @@ files. One step is one session. Never do two steps in one session.
 
 ## The steps
 
-| Step | File                            | Title                       | Size | Depends on | State |
-| ---- | ------------------------------- | --------------------------- | ---- | ---------- | ----- |
-| 1.1  | `S1.1-supabase-migration.md`    | Supabase project and 0001   | M    | —          | done  |
-| 1.2  | `S1.2-supabase-clients.md`      | Generated types and clients | S    | 1.1        | done  |
-| 1.3  | `S1.3-auth-magic-link.md`       | Magic link and route groups | M    | 1.2        | done  |
-| 1.4  | `S1.4-duration.md`              | `lib/duration.ts` rewrite   | M    | —          | done  |
-| 1.5  | `S1.5-zod-schemas.md`           | Shared zod schemas          | S    | 1.4        | done  |
-| 1.6  | `S1.6-dexie-repository.md`      | Dexie and the repository    | M    | 1.5        | done  |
-| 1.7  | `S1.7-outbox-sync-worker.md`    | Outbox and sync worker      | L    | 1.2, 1.6   | done  |
-| 1.8  | `S1.8-app-shell.md`             | The responsive app shell    | S    | 1.3        | done  |
-| 1.9  | `S1.9-log-form.md`              | `/log` — the daily form     | M    | 1.6, 1.8   | done  |
-| 1.10 | `S1.10-metrics.md`              | `lib/metrics`               | M    | 1.4        | done  |
-| 1.11 | `S1.11-dashboard.md`            | `/` — the dashboard         | M    | 1.9, 1.10  | done  |
-| 1.12 | `S1.12-analytics-charts.md`     | `/analytics` — the charts   | L    | 1.10, 1.11 | done  |
-| 1.13 | `S1.13-profile.md`              | `/profile`                  | M    | 1.7, 1.8   | now   |
-| 1.14 | `S1.14-motion-pass.md`          | The motion pass             | S    | 1.12       | —     |
-| 1.15 | `S1.15-responsive-a11y-pass.md` | Responsive and access pass  | M    | 1.13       | —     |
-| 1.16 | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       | —     |
-| 1.17 | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16       | —     |
+| Step  | File                            | Title                       | Size | Depends on | State |
+| ----- | ------------------------------- | --------------------------- | ---- | ---------- | ----- |
+| 1.1   | `S1.1-supabase-migration.md`    | Supabase project and 0001   | M    | —          | done  |
+| 1.2   | `S1.2-supabase-clients.md`      | Generated types and clients | S    | 1.1        | done  |
+| 1.3   | `S1.3-auth-magic-link.md`       | Magic link and route groups | M    | 1.2        | done  |
+| 1.4   | `S1.4-duration.md`              | `lib/duration.ts` rewrite   | M    | —          | done  |
+| 1.5   | `S1.5-zod-schemas.md`           | Shared zod schemas          | S    | 1.4        | done  |
+| 1.6   | `S1.6-dexie-repository.md`      | Dexie and the repository    | M    | 1.5        | done  |
+| 1.7   | `S1.7-outbox-sync-worker.md`    | Outbox and sync worker      | L    | 1.2, 1.6   | done  |
+| 1.8   | `S1.8-app-shell.md`             | The responsive app shell    | S    | 1.3        | done  |
+| 1.9   | `S1.9-log-form.md`              | `/log` — the daily form     | M    | 1.6, 1.8   | done  |
+| 1.10  | `S1.10-metrics.md`              | `lib/metrics`               | M    | 1.4        | done  |
+| 1.11  | `S1.11-dashboard.md`            | `/` — the dashboard         | M    | 1.9, 1.10  | done  |
+| 1.12  | `S1.12-analytics-charts.md`     | `/analytics` — the charts   | L    | 1.10, 1.11 | done  |
+| 1.13  | `S1.13-profile.md`              | `/profile`                  | M    | 1.7, 1.8   | done  |
+| 1.13b | `S1.13b-sync-hardening.md`      | Sync hardening, dead letter | M    | 1.13       | now   |
+| 1.14  | `S1.14-motion-pass.md`          | The motion pass             | S    | 1.12       | —     |
+| 1.15  | `S1.15-responsive-a11y-pass.md` | Responsive and access pass  | M    | 1.13b      | —     |
+| 1.16  | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       | —     |
+| 1.17  | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16       | —     |
 
 ## Order
 
@@ -47,7 +48,7 @@ files. One step is one session. Never do two steps in one session.
   │                    │
   └── 1.10 ────────────┤
                        ├─ 1.9 ─ 1.11 ─ 1.12 ─ 1.14 ─┐
-                       └─ 1.13 ─────────────────────┼─ 1.15 ─ 1.16 ─ 1.17
+                       └─ 1.13 ─ 1.13b ─────────────┼─ 1.15 ─ 1.16 ─ 1.17
 ```
 
 1.4 has no dependency. Start it at any time. It is the highest risk step.

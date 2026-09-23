@@ -1,24 +1,35 @@
 import 'fake-indexeddb/auto'
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { dailyEntrySchema } from '../schema/dailyEntry'
+import { resumeSync } from '../sync/worker'
 
 import { db } from './dexie'
 import {
+  clearAll,
   getDay,
   getProfile,
   listRange,
   LOCAL_PROFILE_ID,
   NEVER_WRITTEN,
   OUTBOX_SEQUENCE_KEY,
+  pendingWrites,
+  resumeSync as resumeFromRepository,
   softDeleteDay,
+  syncNow,
   updateProfile,
   upsertDay,
 } from './repository'
 
 import type { DailyEntry } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
+
+vi.mock('../supabase/client', () => ({
+  createClient: () => {
+    throw new Error('no network in a unit test')
+  },
+}))
 
 function entry(entryDate: string, overrides: Partial<DailyEntryInput> = {}): DailyEntryInput {
   return dailyEntrySchema.parse({ entry_date: entryDate, ...overrides })
@@ -572,5 +583,66 @@ describe('two live rows for one date', () => {
 
     expect(stored.filter((row) => row.deleted_at === null)).toHaveLength(0)
     expect(await getDay('2026-09-01')).toBeUndefined()
+  })
+})
+
+describe('clearAll', () => {
+  beforeEach(() => {
+    Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true })
+  })
+
+  afterEach(() => {
+    resumeSync()
+  })
+
+  it('empties every table on the device', async () => {
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+    await updateProfile({ step_goal: 9000 })
+    await db.syncMeta.put({ key: 'pull_cursor_daily_entries', value: '2026-09-01T00:00:00.000Z' })
+
+    await clearAll()
+
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.profiles.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+    expect(await db.syncMeta.count()).toBe(0)
+  })
+
+  it('halts the sync worker so it cannot write the old rows back', async () => {
+    await clearAll()
+
+    expect(await syncNow()).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
+  })
+
+  it('lets the worker run again when the clear itself fails', async () => {
+    vi.spyOn(db, 'transaction').mockRejectedValueOnce(new Error('locked'))
+
+    await expect(clearAll()).rejects.toThrow('locked')
+
+    expect(await syncNow()).toMatchObject({ status: 'error', error: 'no network in a unit test' })
+  })
+
+  it('re-exports resumeSync so a failed sign-out can restart the worker', async () => {
+    await clearAll()
+    resumeFromRepository()
+
+    expect(await syncNow()).toMatchObject({ status: 'error', error: 'no network in a unit test' })
+  })
+
+  it('reads the default profile once the device is cleared', async () => {
+    await updateProfile({ step_goal: 9000 })
+
+    await clearAll()
+
+    expect((await getProfile()).step_goal).toBe(12000)
+  })
+})
+
+describe('pendingWrites', () => {
+  it('counts the writes that wait in the outbox', async () => {
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+    await updateProfile({ step_goal: 9000 })
+
+    expect(await pendingWrites()).toBe(2)
   })
 })

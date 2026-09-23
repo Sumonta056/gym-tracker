@@ -1,7 +1,7 @@
 import { cn } from './cn'
 import { MicroLabel } from './MicroLabel'
 
-export type SyncStatus = 'synced' | 'offline' | 'syncing'
+export type SyncStatus = 'synced' | 'offline' | 'syncing' | 'pending'
 
 type ChipStyle = {
   label: string
@@ -13,19 +13,21 @@ const CHIP: Record<SyncStatus, ChipStyle> = {
   synced: { label: 'SYNCED', dot: 'bg-ok', text: 'text-ok' },
   offline: { label: 'OFFLINE', dot: 'bg-warn', text: 'text-warn' },
   syncing: { label: 'SYNCING', dot: 'bg-data-cyan', text: 'text-data-cyan' },
+  pending: { label: 'PENDING', dot: 'bg-muted', text: 'text-muted' },
 }
 
 export type StatusChipProps = {
   status: SyncStatus
+  announce?: boolean
   className?: string
 }
 
-export function StatusChip({ status, className }: StatusChipProps) {
+export function StatusChip({ status, announce = true, className }: StatusChipProps) {
   const chip = CHIP[status]
 
   return (
     <span
-      role="status"
+      role={announce ? 'status' : undefined}
       className={cn(
         'bg-surface-2 border-border inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1',
         className,

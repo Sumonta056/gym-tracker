@@ -167,6 +167,14 @@ describe('analyse', () => {
     expect(data.stepGoal).toBe(12000)
   })
 
+  it('defaults the unit system to metric', () => {
+    expect(data.unitSystem).toBe('metric')
+  })
+
+  it('carries the unit system it is given', () => {
+    expect(analyse([], [], 'week', TODAY, NOW, 12000, 'imperial').unitSystem).toBe('imperial')
+  })
+
   it('totals only the days inside the range', () => {
     expect(data.totals.sessions).toBe(2)
   })

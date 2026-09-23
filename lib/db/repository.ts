@@ -2,18 +2,25 @@ import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { profileSchema } from '../schema/profile'
 import { append as enqueue } from '../sync/outbox'
+import { haltSync, resumeSync } from '../sync/worker'
 
-import { db } from './dexie'
+import { db, LOCAL_PROFILE_ID, NEVER_WRITTEN } from './dexie'
 
 import type { DailyEntry, Profile } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { ProfileInput } from '../schema/profile'
 
-export { OUTBOX_SEQUENCE_KEY } from './dexie'
+export { LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY } from './dexie'
 
-export const LOCAL_PROFILE_ID = '00000000-0000-4000-8000-000000000000'
+export { useSyncStatus } from '../sync/useSyncStatus'
 
-export const NEVER_WRITTEN = new Date(0).toISOString()
+export type { SyncStatus, SyncStatusReport } from '../sync/useSyncStatus'
+
+export { haltSync, resumeSync, startSync, sync as syncNow } from '../sync/worker'
+
+export { pendingCount as pendingWrites } from '../sync/outbox'
+
+export type { SyncOutcome } from '../sync/worker'
 
 const PROFILE_FIELDS = [
   'display_name',
@@ -177,4 +184,22 @@ export async function updateProfile(patch: Partial<Profile>): Promise<Profile> {
 
     return row
   })
+}
+
+export async function clearAll(): Promise<void> {
+  await haltSync()
+
+  try {
+    await db.transaction('rw', db.dailyEntries, db.profiles, db.outbox, db.syncMeta, async () => {
+      await Promise.all([
+        db.dailyEntries.clear(),
+        db.profiles.clear(),
+        db.outbox.clear(),
+        db.syncMeta.clear(),
+      ])
+    })
+  } catch (cause) {
+    resumeSync()
+    throw cause
+  }
 }

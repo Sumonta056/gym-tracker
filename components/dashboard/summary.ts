@@ -6,6 +6,7 @@ import { weekTotals } from '../../lib/metrics/weekTotals'
 import type { DailyEntry, Profile } from '../../lib/db/dexie'
 import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
+import type { UnitSystem } from '../../lib/schema/profile'
 
 const MS_PER_DAY = 86400000
 
@@ -24,6 +25,7 @@ export type DashboardSummary = {
   latestWeightKg: number | null
   weightTrend: number[]
   displayName: string | null
+  unitSystem: UnitSystem
 }
 
 function fromDayNumber(day: number): string {
@@ -75,6 +77,7 @@ export function summarise(
     latestWeightKg: latest?.kg ?? null,
     weightTrend: weights.filter((row) => row.date >= trendStart).map((row) => row.kg),
     displayName: profile.display_name,
+    unitSystem: profile.unit_system,
   }
 }
 

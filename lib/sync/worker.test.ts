@@ -11,8 +11,10 @@ import { append, listPending } from './outbox'
 import {
   DUPLICATE_KEY,
   getSyncState,
+  haltSync,
   pull,
   push,
+  resumeSync,
   startSync,
   subscribeSyncState,
   SYNC_INTERVAL_MS,
@@ -245,6 +247,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.useRealTimers()
+  resumeSync()
 })
 
 describe('push', () => {
@@ -934,6 +937,69 @@ describe('sync', () => {
   })
 })
 
+describe('haltSync', () => {
+  it('resolves at once when no drain is running', async () => {
+    await expect(haltSync()).resolves.toBeUndefined()
+  })
+
+  it('waits for the drain in flight to settle before it resolves', async () => {
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const order: string[] = []
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const fake = fakeClient({ onUpsert: () => gate })
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const drain = sync().then(() => order.push('drain'))
+    await vi.waitFor(() => {
+      expect(fake.upserted).toHaveLength(1)
+    })
+    const halted = haltSync().then(() => order.push('halt'))
+    release()
+    await Promise.all([drain, halted])
+
+    expect(order).toEqual(['drain', 'halt'])
+  })
+
+  it('stops every later drain from touching the network or the outbox', async () => {
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    await haltSync()
+    const outcome = await sync()
+
+    expect(outcome).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
+    expect(mocks.createClient).not.toHaveBeenCalled()
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('leaves the reported state alone while halted', async () => {
+    await haltSync()
+    const listener = vi.fn()
+    const stop = subscribeSyncState(listener)
+
+    await sync()
+    stop()
+
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('lets the next drain run again after resumeSync', async () => {
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    await haltSync()
+    resumeSync()
+    const outcome = await sync()
+
+    expect(outcome.status).toBe('synced')
+    expect(mocks.createClient).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('the sync state', () => {
   it('moves from syncing to synced and tells every listener', async () => {
     const fake = fakeClient()
@@ -992,6 +1058,80 @@ describe('startSync', () => {
     window.dispatchEvent(new Event('online'))
     await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS * 2)
     expect(mocks.createClient).toHaveBeenCalledTimes(3)
+  })
+
+  it('shares one set of triggers when it is started twice', async () => {
+    vi.useFakeTimers()
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const stopFirst = startSync()
+    const stopSecond = startSync()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(mocks.createClient).toHaveBeenCalledTimes(1)
+
+    window.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+
+    await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS - 1000)
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(mocks.createClient).toHaveBeenCalledTimes(3)
+
+    stopFirst()
+    window.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(mocks.createClient).toHaveBeenCalledTimes(4)
+
+    stopSecond()
+    window.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS * 2)
+    expect(mocks.createClient).toHaveBeenCalledTimes(4)
+  })
+
+  it('ignores a second call to the same stop function', async () => {
+    vi.useFakeTimers()
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const stopFirst = startSync()
+    const stopSecond = startSync()
+    await vi.advanceTimersByTimeAsync(1000)
+    stopFirst()
+    stopFirst()
+
+    window.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+    stopSecond()
+  })
+
+  it('starts afresh, with a tick, after every caller stopped', async () => {
+    vi.useFakeTimers()
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    startSync()()
+    await vi.advanceTimersByTimeAsync(1000)
+    const stop = startSync()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+    stop()
+  })
+
+  it('touches no network from its triggers while halted', async () => {
+    vi.useFakeTimers()
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    await haltSync()
+    const stop = startSync()
+    window.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS * 2)
+
+    expect(mocks.createClient).not.toHaveBeenCalled()
+    stop()
   })
 
   it('skips the interval tick while the browser is offline', async () => {

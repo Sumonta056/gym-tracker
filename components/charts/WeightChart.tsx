@@ -3,6 +3,7 @@
 import { LabelList, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 
 import { colorTokens } from '../../lib/design/tokens'
+import { toDisplayWeight, weightSymbol, weightWord } from '../../lib/format/weight'
 
 import { ChartCard, SparseValue } from './ChartCard'
 import { AXIS_TICK, END_LABEL_GUTTER, LABEL_HALO, RANGE_TICK } from './chartStyle'
@@ -19,10 +20,12 @@ import {
 
 import type { LegendItem } from './ChartCard'
 import type { DayPoint, RangeTab } from './rangeData'
+import type { UnitSystem } from '../../lib/schema/profile'
 
 export type WeightChartProps = {
   days: DayPoint[]
   tab: RangeTab
+  unit?: UnitSystem
   className?: string
 }
 
@@ -34,7 +37,11 @@ export type WeightRow = {
   averageEnd: string | null
 }
 
-export function weightSummary(weights: readonly number[], tab: RangeTab): string {
+export function weightSummary(
+  weights: readonly number[],
+  tab: RangeTab,
+  unit: UnitSystem = 'metric',
+): string {
   const first = weights[0]
   const last = weights.at(-1)
 
@@ -42,13 +49,17 @@ export function weightSummary(weights: readonly number[], tab: RangeTab): string
     return ''
   }
 
-  const latest = `${formatKg(last)} kg`
+  const latest = `${formatKg(last)} ${weightSymbol(unit)}`
 
   return weights.length < 2 ? latest : `${latest} · ${signedKg(last - first)} ${PERIOD_WORD[tab]}`
 }
 
-export function weightLabel(weights: readonly number[], averages: readonly number[]): string {
-  const base = `Weight per day: ${weights.map(formatKg).join(', ')} kilograms.`
+export function weightLabel(
+  weights: readonly number[],
+  averages: readonly number[],
+  unit: UnitSystem = 'metric',
+): string {
+  const base = `Weight per day: ${weights.map(formatKg).join(', ')} ${weightWord(unit)}.`
   const last = averages.at(-1)
 
   if (averages.length < 2 || last === undefined) {
@@ -56,6 +67,18 @@ export function weightLabel(weights: readonly number[], averages: readonly numbe
   }
 
   return `${base} Seven day average ${trendWord(averages)}, ${formatKg(last)} on the last day.`
+}
+
+function inUnit(value: number | null, unit: UnitSystem): number | null {
+  return value === null ? null : toDisplayWeight(value, unit)
+}
+
+export function daysInUnit(days: readonly DayPoint[], unit: UnitSystem): DayPoint[] {
+  return days.map((day) => ({
+    ...day,
+    weightKg: inUnit(day.weightKg, unit),
+    averageKg: inUnit(day.averageKg, unit),
+  }))
 }
 
 export function weightRows(days: readonly DayPoint[]): WeightRow[] {
@@ -79,7 +102,8 @@ export function weightLegend(averages: readonly number[]): LegendItem[] {
     : [...legend, { name: '7-day average', dot: 'bg-data-violet' }]
 }
 
-export function WeightChart({ days, tab, className }: WeightChartProps) {
+export function WeightChart({ days: stored, tab, unit = 'metric', className }: WeightChartProps) {
+  const days = daysInUnit(stored, unit)
   const weights = presentValues(days.map((day) => day.weightKg))
   const averages = presentValues(days.map((day) => day.averageKg))
   const latest = weights.at(-1)
@@ -89,14 +113,14 @@ export function WeightChart({ days, tab, className }: WeightChartProps) {
   return (
     <ChartCard
       title="Weight"
-      summary={weightSummary(weights, tab)}
+      summary={weightSummary(weights, tab, unit)}
       empty={latest === undefined}
       emptyText="Log a weight to see the trend and its 7-day average."
-      label={weightLabel(weights, averages)}
+      label={weightLabel(weights, averages, unit)}
       legend={weightLegend(averages)}
       sparse={
         latest !== undefined && weights.length < 2 ? (
-          <SparseValue parts={[{ value: formatKg(latest), unit: 'kg' }]} />
+          <SparseValue parts={[{ value: formatKg(latest), unit: weightSymbol(unit) }]} />
         ) : undefined
       }
       className={className}

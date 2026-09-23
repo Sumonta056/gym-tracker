@@ -1,5 +1,4 @@
-import { DAILY_CURSOR_KEY, db, PROFILE_CURSOR_KEY } from '../db/dexie'
-import { LOCAL_PROFILE_ID } from '../db/repository'
+import { DAILY_CURSOR_KEY, db, LOCAL_PROFILE_ID, PROFILE_CURSOR_KEY } from '../db/dexie'
 import { createClient } from '../supabase/client'
 
 import { hasPending, isDue, markDone, markFailed, nextPending, pendingCount } from './outbox'
@@ -44,6 +43,8 @@ let state: SyncState = 'idle'
 const listeners = new Set<() => void>()
 
 let draining: Promise<SyncOutcome> | null = null
+
+let halted = false
 
 export function getSyncState(): SyncState {
   return state
@@ -463,7 +464,21 @@ async function runSync(): Promise<SyncOutcome> {
   }
 }
 
+export async function haltSync(): Promise<void> {
+  halted = true
+
+  await draining
+}
+
+export function resumeSync(): void {
+  halted = false
+}
+
 export function sync(): Promise<SyncOutcome> {
+  if (halted) {
+    return Promise.resolve({ status: 'offline', pushed: 0, pulled: 0, error: null })
+  }
+
   draining ??= runSync().finally(() => {
     draining = null
   })
@@ -471,7 +486,9 @@ export function sync(): Promise<SyncOutcome> {
   return draining
 }
 
-export function startSync(): () => void {
+let triggers: { callers: number; teardown: () => void } | null = null
+
+function mountTriggers(): () => void {
   const tick = (): void => {
     void sync()
   }
@@ -488,5 +505,30 @@ export function startSync(): () => void {
   return () => {
     window.removeEventListener('online', tick)
     window.clearInterval(timer)
+  }
+}
+
+export function startSync(): () => void {
+  if (triggers === null) {
+    triggers = { callers: 0, teardown: mountTriggers() }
+  }
+
+  const shared = triggers
+  let stopped = false
+
+  shared.callers += 1
+
+  return () => {
+    if (stopped) {
+      return
+    }
+
+    stopped = true
+    shared.callers -= 1
+
+    if (shared.callers === 0 && triggers === shared) {
+      shared.teardown()
+      triggers = null
+    }
   }
 }

@@ -13,6 +13,7 @@ vi.mock('../../../lib/db/repository', async () => {
   return {
     listRange: vi.fn(() => Promise.resolve([])),
     getProfile: vi.fn(() => Promise.resolve(PROFILE)),
+    useSyncStatus: () => ({ status: 'synced', pending: 0 }),
   }
 })
 

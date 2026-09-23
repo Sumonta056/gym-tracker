@@ -68,6 +68,7 @@ describe('the styleguide page', () => {
       'Stat cards',
       'Dashboard',
       'Analytics',
+      'Profile',
       'Status chips',
       'Segmented tabs',
       'Fields',
@@ -78,11 +79,76 @@ describe('the styleguide page', () => {
     }
   })
 
-  it('renders the hero card and the three sync chips', () => {
+  it('renders the hero card and the four sync chips', () => {
     expect(screen.getAllByText('Gym time today').length).toBeGreaterThan(0)
-    expect(screen.getByText('SYNCED')).toBeInTheDocument()
-    expect(screen.getByText('SYNCING')).toBeInTheDocument()
-    expect(screen.getByText('OFFLINE')).toBeInTheDocument()
+    const chips = within(screen.getByTestId('status-chips'))
+    for (const word of ['SYNCED', 'SYNCING', 'OFFLINE', 'PENDING']) {
+      expect(chips.getByText(word)).toBeInTheDocument()
+    }
+  })
+
+  it('renders the profile sample with the import card hidden, as the flag is off', () => {
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    expect(grid.getByLabelText('Target weight (kg)')).toHaveValue('71.0')
+    expect(grid.queryByRole('button', { name: 'Import the Excel CSV' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('data-card')).toBeInTheDocument()
+  })
+
+  it('switches the profile sample to imperial from its unit toggle', async () => {
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    await userEvent.click(grid.getByRole('button', { name: 'Imperial' }))
+    expect(grid.getByLabelText('Target weight (lb)')).toHaveValue('156.5')
+  })
+
+  it('saves a profile sample target into its own state', async () => {
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    const field = grid.getByLabelText('Daily step goal')
+    await userEvent.clear(field)
+    await userEvent.type(field, '9000')
+    await userEvent.tab()
+    expect(grid.getByLabelText('Daily step goal')).toHaveValue('9000')
+  })
+
+  it('shows the pending warning on the profile sample and clears it with Sync now', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Show two pending writes' }))
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    expect(
+      grid.getByText('2 writes have not reached the server yet. Signing out now loses them.'),
+    ).toBeInTheDocument()
+    await userEvent.click(grid.getByRole('button', { name: 'Sync now' }))
+    expect(grid.getByText('Signing out clears every entry on this device.')).toBeInTheDocument()
+    await userEvent.click(grid.getByRole('button', { name: 'Sign out' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Show two pending writes' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Clear the pending writes' }))
+    expect(screen.getByRole('button', { name: 'Show two pending writes' })).toBeInTheDocument()
+  })
+
+  it('opens the sign-out confirm sheet on the profile sample while writes wait', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Show two pending writes' }))
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    await userEvent.click(grid.getByRole('button', { name: 'Sign out' }))
+    expect(screen.getByRole('dialog', { name: 'Sign out with unsynced writes?' })).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await userEvent.click(grid.getByRole('button', { name: 'Sign out' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out and lose 2 writes' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('shows the sign-out error on the profile sample when asked', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Show the sign-out error' }))
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    expect(grid.getByRole('alert')).toHaveTextContent('the sign-out did not reach the server')
+    await userEvent.click(screen.getByRole('button', { name: 'Hide the sign-out error' }))
+    expect(grid.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows the sync card offline and syncing', () => {
+    expect(
+      screen.getByText('Offline. The writes wait on this device until the network is back.'),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Syncing…' }).length).toBeGreaterThan(0)
   })
 
   it('renders the dashboard hero, its empty state, the zone bar and the week totals', () => {

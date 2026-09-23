@@ -101,6 +101,11 @@ describe('summarise', () => {
     expect(summary.stepGoal).toBe(9000)
     expect(summary.displayName).toBe('Sumonta')
   })
+
+  it('carries the unit system from the profile', () => {
+    const summary = summarise([], { ...PROFILE, unit_system: 'imperial' }, TODAY, NOW)
+    expect(summary.unitSystem).toBe('imperial')
+  })
 })
 
 describe('headerDate', () => {

@@ -178,6 +178,11 @@ export function StatusChip({ state }: { state: keyof typeof chipTone }) {
 The word carries the meaning; the dot only repeats it. The dot is `aria-hidden`. The
 chip is not a button, so it is exempt from the 44 px rule.
 
+The live chip adds a fourth state, `pending`, with a `muted` dot and the word
+`Pending`: a write still waits in the outbox, or the last drain failed. `Synced` shows
+only when the outbox is empty. When a screen shows two chips, the second one passes
+`announce={false}`, so the state is read out once.
+
 ---
 
 ## 7. `NumberField`
@@ -340,6 +345,7 @@ export function Button({
 
 - Something that **does** a thing is this button. Something that **goes** somewhere is
   a `next/link`, styled the same way.
+- In the live code the destructive shape is `SecondaryButton` with `tone="danger"`.
 - An icon-only button carries an `aria-label`.
 - Always set `type`. An unset button inside a form submits it.
 

@@ -1,8 +1,8 @@
 import Link from 'next/link'
 
+import { SyncChip } from '../sync/SyncChip'
 import { MicroLabel } from '../ui/MicroLabel'
 
-import { NetworkChip } from './NetworkChip'
 import { headerDate } from './summary'
 
 export type DashboardHeaderProps = {
@@ -28,7 +28,7 @@ export function DashboardHeader({ date, displayName }: DashboardHeaderProps) {
         </h1>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <NetworkChip />
+        <SyncChip />
         <Link
           href="/profile"
           aria-label="Profile"

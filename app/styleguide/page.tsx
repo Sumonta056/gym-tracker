@@ -11,6 +11,9 @@ import { DashboardHeader } from '../../components/dashboard/DashboardHeader'
 import { HeartRateZonesCard } from '../../components/dashboard/HeartRateZonesCard'
 import { TodayHero } from '../../components/dashboard/TodayHero'
 import { WeekTotalsCard } from '../../components/dashboard/WeekTotalsCard'
+import { DataCard } from '../../components/profile/DataCard'
+import { ProfileView } from '../../components/profile/ProfileView'
+import { SyncCard } from '../../components/profile/SyncCard'
 import { AppShell } from '../../components/ui/AppShell'
 import { BrandMark } from '../../components/ui/BrandMark'
 import { Card } from '../../components/ui/Card'
@@ -29,7 +32,8 @@ import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
 
 import type { RangeTab } from '../../components/charts/rangeData'
-import type { DailyEntry } from '../../lib/db/dexie'
+import type { DailyEntry, Profile } from '../../lib/db/dexie'
+import type { UnitSystem } from '../../lib/schema/profile'
 import type { ReactNode } from 'react'
 
 const NAV = [
@@ -142,6 +146,16 @@ function sampleStats(entries: DailyEntry[], tab: RangeTab) {
   return analyse(entries, entries, tab, SAMPLE_STATS_TODAY, SAMPLE_STATS_NOW, SAMPLE_STEP_GOAL)
 }
 
+const SAMPLE_PROFILE: Profile = {
+  id: '00000000-0000-4000-8000-000000000000',
+  display_name: 'Sumonta',
+  unit_system: 'metric',
+  height_cm: 174,
+  target_weight_kg: 71,
+  step_goal: 12000,
+  updated_at: '2026-09-20T10:00:00.000Z',
+}
+
 const SAMPLE_WEEK = { sessions: 3, gymSeconds: 9120, walkSeconds: 0, calories: 2627, steps: 21480 }
 
 const RANGES = [
@@ -186,6 +200,10 @@ function Styleguide() {
   const [open, setOpen] = useState(false)
   const [showFieldError, setShowFieldError] = useState(false)
   const [showEmailError, setShowEmailError] = useState(false)
+  const [sampleProfile, setSampleProfile] = useState<Profile>(SAMPLE_PROFILE)
+  const [samplePending, setSamplePending] = useState(0)
+  const [showSignOutError, setShowSignOutError] = useState(false)
+  const [sampleLost, setSampleLost] = useState<number | null>(null)
   const parsedDuration = parseInput(durationText.trim())
   const storedSeconds = parsedDuration.ok ? parsedDuration.seconds : null
 
@@ -298,11 +316,82 @@ function Styleguide() {
         </div>
       </Section>
 
+      <Section title="Profile">
+        <ProfileView
+          email="sumonta@example.com"
+          profile={sampleProfile}
+          report={{ status: 'synced', pending: samplePending }}
+          showImport={false}
+          syncBusy={false}
+          signingOut={false}
+          signOutError={
+            showSignOutError
+              ? 'This device is cleared, but the sign-out did not reach the server. Try again when online.'
+              : null
+          }
+          onUnitChange={(unit: UnitSystem) => {
+            setSampleProfile((current) => ({ ...current, unit_system: unit }))
+          }}
+          onSaveTarget={(patch) => {
+            setSampleProfile((current) => ({ ...current, ...patch }))
+            return Promise.resolve()
+          }}
+          onSyncNow={() => {
+            setSamplePending(0)
+          }}
+          onSignOut={() => {
+            setSampleLost(samplePending === 0 ? null : samplePending)
+          }}
+          lostOnSignOut={sampleLost}
+          onConfirmSignOut={() => {
+            setSampleLost(null)
+          }}
+          onCancelSignOut={() => {
+            setSampleLost(null)
+          }}
+          testId="profile-grid-sample"
+        />
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <SecondaryButton
+            onClick={() => {
+              setSamplePending(samplePending === 0 ? 2 : 0)
+            }}
+          >
+            {samplePending === 0 ? 'Show two pending writes' : 'Clear the pending writes'}
+          </SecondaryButton>
+          <SecondaryButton
+            onClick={() => {
+              setShowSignOutError(!showSignOutError)
+            }}
+          >
+            {showSignOutError ? 'Hide the sign-out error' : 'Show the sign-out error'}
+          </SecondaryButton>
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">Sync card, offline and syncing</h3>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <SyncCard
+            report={{ status: 'offline', pending: 3 }}
+            busy={false}
+            onSyncNow={() => undefined}
+          />
+          <SyncCard
+            report={{ status: 'syncing', pending: 1 }}
+            busy={false}
+            onSyncNow={() => undefined}
+          />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">With the Phase 2 flag on</h3>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <DataCard />
+        </div>
+      </Section>
+
       <Section title="Status chips">
-        <Card className="flex flex-wrap items-center gap-3">
+        <Card className="flex flex-wrap items-center gap-3" data-testid="status-chips">
           <StatusChip status="synced" />
           <StatusChip status="syncing" />
           <StatusChip status="offline" />
+          <StatusChip status="pending" />
         </Card>
       </Section>
 
@@ -418,6 +507,7 @@ function Styleguide() {
             Open the sheet
           </PrimaryButton>
           <SecondaryButton>Secondary</SecondaryButton>
+          <SecondaryButton tone="danger">Destructive</SecondaryButton>
         </Card>
         <SheetModal
           open={open}

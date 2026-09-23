@@ -5,7 +5,14 @@ import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
 import { AXIS_TICKS, RANGE_TICKS, svgTexts, VALUE_LABELS } from '../../tests/fixtures/recharts'
 
 import { analyse } from './rangeData'
-import { weightLabel, weightLegend, weightRows, weightSummary, WeightChart } from './WeightChart'
+import {
+  daysInUnit,
+  weightLabel,
+  weightLegend,
+  weightRows,
+  weightSummary,
+  WeightChart,
+} from './WeightChart'
 
 vi.mock('recharts', async (importOriginal) => {
   const { withFixedContainer } = await import('../../tests/fixtures/recharts')
@@ -19,6 +26,8 @@ const entries = [
   entryOn(TODAY, { weight_kg: 73.4 }),
 ]
 const full = analyse(entries, entries, 'week', TODAY, NOW, 12000)
+const imperial = [entryOn('2026-09-22', { weight_kg: 71 }), entryOn(TODAY, { weight_kg: 70 })]
+const inPounds = analyse(imperial, imperial, 'week', TODAY, NOW, 12000, 'imperial')
 const one = analyse([entryOn(TODAY, { weight_kg: 73.4 })], [], 'week', TODAY, NOW, 12000)
 
 describe('WeightChart', () => {
@@ -77,6 +86,26 @@ describe('WeightChart', () => {
     ])
   })
 
+  it('names the weights in pounds when the profile is imperial', () => {
+    render(<WeightChart days={inPounds.days} tab="week" unit={inPounds.unitSystem} />)
+    expect(
+      screen.getByRole('img', {
+        name: 'Weight per day: 156.5, 154.3 pounds. Seven day average falling, 155.4 on the last day.',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows the latest weight and the change in pounds when the profile is imperial', () => {
+    render(<WeightChart days={inPounds.days} tab="week" unit="imperial" />)
+    expect(screen.getByText('154.3 lb · −2.2 this week')).toBeVisible()
+  })
+
+  it('writes the one logged weight in pounds when the profile is imperial', () => {
+    render(<WeightChart days={one.days} tab="week" unit="imperial" />)
+    expect(screen.getAllByText('161.8', { exact: false }).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('lb').length).toBeGreaterThan(0)
+  })
+
   it('shows the latest weight and the not enough data hint for one logged day', () => {
     const { container } = render(<WeightChart days={one.days} tab="week" />)
     expect(screen.getByText('Log one more day to see a trend.')).toBeVisible()
@@ -112,6 +141,19 @@ describe('weightLabel', () => {
 describe('weightLegend', () => {
   it('names only the daily line when the average is not drawn', () => {
     expect(weightLegend([73.4]).map((item) => item.name)).toEqual(['Weight'])
+  })
+})
+
+describe('daysInUnit', () => {
+  it('leaves kilograms untouched for metric', () => {
+    expect(daysInUnit(full.days, 'metric')).toEqual(full.days)
+  })
+
+  it('converts the weight and its average to pounds and keeps a gap a gap', () => {
+    const days = daysInUnit(inPounds.days, 'imperial')
+    expect(days[0]?.weightKg).toBeNull()
+    expect(days[1]?.weightKg).toBeCloseTo(156.53, 2)
+    expect(days[1]?.averageKg).toBeCloseTo(156.53, 2)
   })
 })
 

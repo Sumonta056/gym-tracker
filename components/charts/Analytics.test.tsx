@@ -15,9 +15,11 @@ vi.mock('recharts', async (importOriginal) => {
 
 vi.mock('../../lib/db/repository', async () => {
   const { PROFILE } = await import('../../tests/fixtures/dashboard')
+  const { syncedStatus } = await import('../../tests/fixtures/sync')
   return {
     listRange: vi.fn(),
     getProfile: vi.fn(() => Promise.resolve({ ...PROFILE, step_goal: 10000 })),
+    useSyncStatus: syncedStatus,
   }
 })
 
@@ -64,7 +66,7 @@ describe('Analytics', () => {
   it('shows the loading state before the read settles', () => {
     vi.mocked(listRange).mockReturnValue(new Promise(() => undefined))
     render(<Analytics clock={clock} />)
-    expect(screen.getByRole('status')).toHaveTextContent('Reading this device…')
+    expect(screen.getByText('Reading this device…')).toHaveAttribute('role', 'status')
   })
 
   it('shows the error when the read fails', async () => {

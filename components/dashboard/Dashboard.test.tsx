@@ -9,10 +9,14 @@ import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 import { Dashboard, DashboardView, stepsHint } from './Dashboard'
 import { summarise } from './summary'
 
-vi.mock('../../lib/db/repository', () => ({
-  getProfile: vi.fn(),
-  listRange: vi.fn(),
-}))
+vi.mock('../../lib/db/repository', async () => {
+  const { syncedStatus } = await import('../../tests/fixtures/sync')
+  return {
+    getProfile: vi.fn(),
+    listRange: vi.fn(),
+    useSyncStatus: syncedStatus,
+  }
+})
 
 const clock = () => NOW
 
@@ -58,8 +62,8 @@ describe('Dashboard', () => {
 })
 
 describe('DashboardView', () => {
-  function view(entries = [entryOn(TODAY)]) {
-    render(<DashboardView summary={summarise(entries, PROFILE, TODAY, NOW)} />)
+  function view(entries = [entryOn(TODAY)], profile = PROFILE) {
+    render(<DashboardView summary={summarise(entries, profile, TODAY, NOW)} />)
   }
 
   it('lays the cards out in one, two, then three columns', () => {
@@ -78,6 +82,20 @@ describe('DashboardView', () => {
     view([entryOn(TODAY, { weight_kg: 73.65 })])
     expect(screen.getByText('73.65')).toBeInTheDocument()
     expect(screen.getByText('kg')).toBeInTheDocument()
+  })
+
+  it('shows the latest weight in pounds when the profile is imperial', () => {
+    view([entryOn(TODAY, { weight_kg: 71 })], { ...PROFILE, unit_system: 'imperial' })
+    expect(screen.getByText('156.5')).toBeInTheDocument()
+    expect(screen.getByText('lb')).toBeInTheDocument()
+  })
+
+  it('reads the weight trend out in pounds when the profile is imperial', () => {
+    view([entryOn('2026-09-22', { weight_kg: 71 }), entryOn(TODAY, { weight_kg: 70 })], {
+      ...PROFILE,
+      unit_system: 'imperial',
+    })
+    expect(screen.getByText('Weight series: 156.5, 154.3')).toBeInTheDocument()
   })
 
   it('draws the weight trend once two weights exist', () => {

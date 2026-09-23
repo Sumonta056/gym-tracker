@@ -18,6 +18,18 @@ describe('SecondaryButton', () => {
     expect(button).toHaveClass('border-border')
   })
 
+  it('writes its label in the text token by default', () => {
+    render(<SecondaryButton>Cancel</SecondaryButton>)
+    expect(screen.getByRole('button')).toHaveClass('text-text')
+  })
+
+  it('writes a destructive label in the danger token', () => {
+    render(<SecondaryButton tone="danger">Sign out</SecondaryButton>)
+    const button = screen.getByRole('button')
+    expect(button).toHaveClass('text-danger')
+    expect(button).not.toHaveClass('text-text')
+  })
+
   it('defaults to a non submitting button', () => {
     render(<SecondaryButton>Cancel</SecondaryButton>)
     expect(screen.getByRole('button')).toHaveAttribute('type', 'button')
