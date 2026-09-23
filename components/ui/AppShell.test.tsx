@@ -4,15 +4,15 @@ import { describe, expect, it } from 'vitest'
 import { AppShell } from './AppShell'
 
 const ITEMS = [
-  { href: '/', label: 'Today', current: true },
-  { href: '/history', label: 'History' },
-  { href: '/body', label: 'Body' },
-  { href: '/settings', label: 'Settings' },
+  { href: '/', label: 'Today', glyph: '◧', current: true },
+  { href: '/history', label: 'History', glyph: '◔' },
+  { href: '/body', label: 'Body', glyph: '⛊' },
+  { href: '/settings', label: 'Settings', glyph: '☰' },
 ]
 
 function setup() {
   render(
-    <AppShell items={ITEMS} action={{ href: '/log', label: 'Log a set' }} title="Today">
+    <AppShell items={ITEMS} action={{ href: '/log', label: 'Log a set', glyph: '✎' }} title="Today">
       <p>Page body</p>
     </AppShell>,
   )
@@ -47,7 +47,7 @@ describe('AppShell', () => {
   it('pads the bottom bar for the safe area inset', () => {
     setup()
     expect(screen.getByRole('navigation', { name: 'Bottom navigation' })).toHaveClass(
-      'pb-[calc(env(safe-area-inset-bottom)+8px)]',
+      'pb-[calc(env(safe-area-inset-bottom)+10px)]',
     )
   })
 
@@ -72,8 +72,24 @@ describe('AppShell', () => {
   it('keeps every navigation target at least 44 px tall', () => {
     setup()
     for (const link of screen.getAllByRole('link')) {
-      expect(link.className).toMatch(/min-h-11|h-14/)
+      expect(link.className).toMatch(/min-h-11|min-h-\[52px\]|min-h-\[54px\]/)
     }
+  })
+
+  it('lays the bottom bar out as five equal slots', () => {
+    setup()
+    const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
+    expect(bar).toHaveClass('grid')
+    expect(bar).toHaveClass('auto-cols-fr')
+    expect(within(bar).getAllByRole('link')).toHaveLength(5)
+  })
+
+  it('hides every glyph from the screen reader, so the label carries the meaning', () => {
+    setup()
+    const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
+    const glyphs = bar.querySelectorAll('[aria-hidden="true"]')
+    expect(glyphs).toHaveLength(5)
+    expect(within(bar).getByRole('link', { name: 'Today' })).toBeInTheDocument()
   })
 
   it('caps the content column at 1100 px and centres it', () => {
@@ -88,6 +104,24 @@ describe('AppShell', () => {
     const main = screen.getByRole('main')
     expect(main).toHaveClass('px-5')
     expect(main).toHaveClass('md:px-7')
+  })
+
+  it('marks the centre action as the current page when it is current', () => {
+    render(
+      <AppShell items={ITEMS} action={{ href: '/log', label: 'Log a set', current: true }}>
+        <p>Page body</p>
+      </AppShell>,
+    )
+    for (const link of screen.getAllByRole('link', { name: 'Log a set' })) {
+      expect(link).toHaveAttribute('aria-current', 'page')
+    }
+  })
+
+  it('leaves the centre action unmarked when it is not current', () => {
+    setup()
+    for (const link of screen.getAllByRole('link', { name: 'Log a set' })) {
+      expect(link).not.toHaveAttribute('aria-current')
+    }
   })
 
   it('renders no action button when none is given', () => {

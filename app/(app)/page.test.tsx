@@ -9,18 +9,9 @@ describe('HomePage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument()
   })
 
-  it('renders inside the app shell, so it carries both navigations', () => {
+  it('builds no frame of its own, because the route group layout owns it', () => {
     render(<HomePage />)
-    expect(screen.getByRole('navigation', { name: 'Sidebar' })).toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'Bottom navigation' })).toBeInTheDocument()
-  })
-
-  it('marks today as the current page', () => {
-    render(<HomePage />)
-    const links = screen.getAllByRole('link', { name: 'Today' })
-    for (const link of links) {
-      expect(link).toHaveAttribute('aria-current', 'page')
-    }
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
   })
 
   it('says the daily tracker is still to come', () => {

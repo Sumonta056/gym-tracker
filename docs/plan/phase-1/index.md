@@ -16,25 +16,25 @@ files. One step is one session. Never do two steps in one session.
 
 ## The steps
 
-| Step | File                            | Title                       | Size | Depends on |
-| ---- | ------------------------------- | --------------------------- | ---- | ---------- |
-| 1.1  | `S1.1-supabase-migration.md`    | Supabase project and 0001   | M    | —          |
-| 1.2  | `S1.2-supabase-clients.md`      | Generated types and clients | S    | 1.1        |
-| 1.3  | `S1.3-auth-magic-link.md`       | Magic link and route groups | M    | 1.2        |
-| 1.4  | `S1.4-duration.md`              | `lib/duration.ts` rewrite   | M    | —          |
-| 1.5  | `S1.5-zod-schemas.md`           | Shared zod schemas          | S    | 1.4        |
-| 1.6  | `S1.6-dexie-repository.md`      | Dexie and the repository    | M    | 1.5        |
-| 1.7  | `S1.7-outbox-sync-worker.md`    | Outbox and sync worker      | L    | 1.2, 1.6   |
-| 1.8  | `S1.8-app-shell.md`             | The responsive app shell    | S    | 1.3        |
-| 1.9  | `S1.9-log-form.md`              | `/log` — the daily form     | M    | 1.6, 1.8   |
-| 1.10 | `S1.10-metrics.md`              | `lib/metrics`               | M    | 1.4        |
-| 1.11 | `S1.11-dashboard.md`            | `/` — the dashboard         | M    | 1.9, 1.10  |
-| 1.12 | `S1.12-analytics-charts.md`     | `/analytics` — the charts   | L    | 1.10, 1.11 |
-| 1.13 | `S1.13-profile.md`              | `/profile`                  | M    | 1.7, 1.8   |
-| 1.14 | `S1.14-motion-pass.md`          | The motion pass             | S    | 1.12       |
-| 1.15 | `S1.15-responsive-a11y-pass.md` | Responsive and access pass  | M    | 1.13       |
-| 1.16 | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       |
-| 1.17 | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16       |
+| Step | File                            | Title                       | Size | Depends on | State |
+| ---- | ------------------------------- | --------------------------- | ---- | ---------- | ----- |
+| 1.1  | `S1.1-supabase-migration.md`    | Supabase project and 0001   | M    | —          | done  |
+| 1.2  | `S1.2-supabase-clients.md`      | Generated types and clients | S    | 1.1        | done  |
+| 1.3  | `S1.3-auth-magic-link.md`       | Magic link and route groups | M    | 1.2        | done  |
+| 1.4  | `S1.4-duration.md`              | `lib/duration.ts` rewrite   | M    | —          | done  |
+| 1.5  | `S1.5-zod-schemas.md`           | Shared zod schemas          | S    | 1.4        | done  |
+| 1.6  | `S1.6-dexie-repository.md`      | Dexie and the repository    | M    | 1.5        | done  |
+| 1.7  | `S1.7-outbox-sync-worker.md`    | Outbox and sync worker      | L    | 1.2, 1.6   | done  |
+| 1.8  | `S1.8-app-shell.md`             | The responsive app shell    | S    | 1.3        | now   |
+| 1.9  | `S1.9-log-form.md`              | `/log` — the daily form     | M    | 1.6, 1.8   | —     |
+| 1.10 | `S1.10-metrics.md`              | `lib/metrics`               | M    | 1.4        | —     |
+| 1.11 | `S1.11-dashboard.md`            | `/` — the dashboard         | M    | 1.9, 1.10  | —     |
+| 1.12 | `S1.12-analytics-charts.md`     | `/analytics` — the charts   | L    | 1.10, 1.11 | —     |
+| 1.13 | `S1.13-profile.md`              | `/profile`                  | M    | 1.7, 1.8   | —     |
+| 1.14 | `S1.14-motion-pass.md`          | The motion pass             | S    | 1.12       | —     |
+| 1.15 | `S1.15-responsive-a11y-pass.md` | Responsive and access pass  | M    | 1.13       | —     |
+| 1.16 | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       | —     |
+| 1.17 | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16       | —     |
 
 ## Order
 
@@ -56,17 +56,18 @@ files. One step is one session. Never do two steps in one session.
 
 Stop and report to the user at each checkpoint. Do not continue without approval.
 
-### Checkpoint A — after 1.3
+### Checkpoint A — after 1.3 · passed
 
-- [ ] The migration applies on a fresh database.
-- [ ] Account A cannot read a row of account B.
-- [ ] A real magic link signs the user in on a phone and on a laptop.
+- [x] The migration applies on a fresh database.
+- [x] Account A cannot read a row of account B.
+- [x] A real magic link signs the user in on a phone and on a laptop.
+      Laptop confirmed. The iPhone half runs again at 1.17 on the deployed URL.
 
-### Checkpoint B — after 1.7
+### Checkpoint B — after 1.7 · passed
 
-- [ ] `lib/duration.ts` coverage is 100 percent.
-- [ ] `lib/sync/**` coverage is 95 percent or higher.
-- [ ] A write with the network down survives a reload.
+- [x] `lib/duration.ts` coverage is 100 percent.
+- [x] `lib/sync/**` coverage is 95 percent or higher.
+- [x] A write with the network down survives a reload.
 
 ### Checkpoint C — after 1.12
 

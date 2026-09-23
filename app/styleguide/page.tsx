@@ -23,10 +23,10 @@ import { formatDuration } from '../../lib/duration'
 import type { ReactNode } from 'react'
 
 const NAV = [
-  { href: '/', label: 'Today', current: false },
-  { href: '/history', label: 'History' },
-  { href: '/body', label: 'Body' },
-  { href: '/styleguide', label: 'Style guide', current: true },
+  { href: '/', label: 'Today', glyph: '◧', current: false },
+  { href: '/analytics', label: 'Stats', glyph: '◔' },
+  { href: '/workouts', label: 'Workouts', glyph: '⛊' },
+  { href: '/styleguide', label: 'Style guide', glyph: '☰', current: true },
 ]
 
 const RANGES = [
@@ -69,7 +69,11 @@ function Styleguide() {
   const [showEmailError, setShowEmailError] = useState(false)
 
   return (
-    <AppShell items={NAV} action={{ href: '/log', label: 'Log a set' }} title="Style guide">
+    <AppShell
+      items={NAV}
+      action={{ href: '/log', label: 'Log the day', glyph: '✎' }}
+      title="Style guide"
+    >
       <Section title="Colour tokens">
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {Object.entries(colorTokens).map(([name, value]) => (
