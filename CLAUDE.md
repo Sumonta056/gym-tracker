@@ -165,7 +165,9 @@ Full detail, branch naming and the manual hash command: `.claude/rules/git.md`.
 2. Run the `commit-report` skill. It writes `reports/<date>-<slug>.html` with five
    sections: what this commit does, improvements, fallbacks, things to consider,
    and evidence.
-3. Then commit. A pre-tool hook blocks any `git commit` with no matching report.
+3. A UI change adds screenshots of every changed page to the report, at 390 px,
+   768 px and 1440 px, next to the matching prototype screen. Never wait to be asked.
+4. Then commit. A pre-tool hook blocks any `git commit` with no matching report.
 
 Conventional commits only. Scopes: `setup`, `db`, `sync`, `ui`, `design`, `charts`,
 `pwa`, `auth`, `csv`, `test`, `docs`, `ci`.

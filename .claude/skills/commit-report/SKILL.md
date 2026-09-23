@@ -118,7 +118,32 @@ missing or incomplete.
 It runs on Node 25 with no bundler and no `tsx`. It imports only `node:` built-ins and
 nothing from the project.
 
-### 5. Hand the commit to the user
+### 5. Add the screenshots for a UI change
+
+Do this step when the staged diff touches `app/`, `components/` or
+`docs/design/prototype/`. Skip it for any other change. The user never has to ask.
+
+1. Serve the build: `NEXT_PUBLIC_ENABLE_STYLEGUIDE=1 pnpm exec next start --port 3199`,
+   in the background.
+2. Capture with Playwright at 390, 768 and 1440 px, `deviceScaleFactor: 2`. A script
+   outside the project imports `node_modules/@playwright/test/index.mjs` by its
+   absolute path.
+3. Capture every changed page. When a page needs a signed-in session and no fixture
+   exists, capture its `/styleguide` section and say so in the report.
+4. Hide the fixed tab bar with `page.addStyleTag({ content: 'nav { display: none !important; }' })`
+   before an element capture, or it covers the bottom of the shot.
+5. Capture the matching prototype screen: `section.plate[aria-labelledby="pN"]` in
+   `docs/design/prototype/index.html`.
+6. Look at every image before you use it.
+7. Insert a `Screenshots` section just before the Evidence section of the HTML, with
+   each image as a base64 `<img>` and a caption that names the width. Keep the
+   390 px app shot next to the prototype shot.
+8. Stop the server.
+
+`reports/` is git-ignored, so this edit leaves the gate hash valid. Check it anyway:
+the sha256 of `git diff --cached` must still equal `reports/.last-report-hash`.
+
+### 6. Hand the commit to the user
 
 Print the report path and the commit command. Do not run it.
 
@@ -138,5 +163,7 @@ exists.
 - `reports/<date>-<slug>.html` opens in a browser and reads cleanly.
 - The five sections are present, in order, and the Evidence section holds the counts,
   the coverage table and the changed file list.
+- A UI change has its Screenshots section, at 390 px, 768 px and 1440 px, with the
+  prototype screen.
 - `.claude/hooks/commit-gate.sh` exits 0 for the staged diff.
 - The user has the commit command and has not been committed for.
