@@ -46,6 +46,7 @@ In a component you reach a token through its Tailwind class — `bg-surface`,
 - **The data colours mean something.** Cyan is movement and volume, violet is body
   weight, orange is the cardio zone, red is the peak zone, green is sync. Do not borrow
   a data colour because it looks nice; the reader learns the mapping across screens.
+- **`--color-ok` also marks the fat-burn zone** in the heart rate zone bar.
 - **Never carry meaning by colour alone.** A green dot is paired with the word
   `SYNCED`. A red bar is paired with the word `Peak`.
 - Body text is 4.5:1 or better against the token behind it. Large text may drop to 3:1.

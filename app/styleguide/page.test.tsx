@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -61,6 +61,7 @@ describe('the styleguide page', () => {
       'Type scale',
       'Cards',
       'Stat cards',
+      'Dashboard',
       'Status chips',
       'Segmented tabs',
       'Fields',
@@ -72,10 +73,22 @@ describe('the styleguide page', () => {
   })
 
   it('renders the hero card and the three sync chips', () => {
-    expect(screen.getByText('Gym time today')).toBeInTheDocument()
+    expect(screen.getAllByText('Gym time today').length).toBeGreaterThan(0)
     expect(screen.getByText('SYNCED')).toBeInTheDocument()
     expect(screen.getByText('SYNCING')).toBeInTheDocument()
     expect(screen.getByText('OFFLINE')).toBeInTheDocument()
+  })
+
+  it('renders the dashboard hero, its empty state, the zone bar and the week totals', () => {
+    expect(screen.getByText('4 day streak')).toBeInTheDocument()
+    const empty = screen.getByText('Nothing logged yet today.').closest('section')
+    expect(empty).not.toBeNull()
+    expect(within(empty as HTMLElement).getByRole('link', { name: 'Log the day' })).toHaveAttribute(
+      'href',
+      '/log',
+    )
+    expect(screen.getByRole('img', { name: /^Heart rate zones: Warm 8m/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'This week' })).toBeInTheDocument()
   })
 
   it('shows the duration field already formatted from stored seconds', () => {

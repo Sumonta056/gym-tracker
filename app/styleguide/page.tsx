@@ -4,6 +4,10 @@ import { notFound } from 'next/navigation'
 import { useState } from 'react'
 
 import { nextWeight } from '../../components/DailyEntryForm'
+import { DashboardHeader } from '../../components/dashboard/DashboardHeader'
+import { HeartRateZonesCard } from '../../components/dashboard/HeartRateZonesCard'
+import { TodayHero } from '../../components/dashboard/TodayHero'
+import { WeekTotalsCard } from '../../components/dashboard/WeekTotalsCard'
 import { AppShell } from '../../components/ui/AppShell'
 import { BrandMark } from '../../components/ui/BrandMark'
 import { Card } from '../../components/ui/Card'
@@ -21,6 +25,7 @@ import { StatusChip } from '../../components/ui/StatusChip'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
 
+import type { DailyEntry } from '../../lib/db/dexie'
 import type { ReactNode } from 'react'
 
 const NAV = [
@@ -29,6 +34,31 @@ const NAV = [
   { href: '/workouts', label: 'Workouts', glyph: '⛊' },
   { href: '/styleguide', label: 'Style guide', glyph: '☰', current: true },
 ]
+
+const SAMPLE_DAY: DailyEntry = {
+  id: '00000000-0000-4000-8000-000000000001',
+  entry_date: '2026-09-13',
+  walk_seconds: 3324,
+  gym_seconds: 4325,
+  avg_heart_rate: 117,
+  max_heart_rate: 174,
+  weight_kg: 73.65,
+  calories_burnt: 963,
+  steps: 5909,
+  note: null,
+  created_at: '2026-09-13T10:00:00.000Z',
+  updated_at: '2026-09-13T10:00:00.000Z',
+  deleted_at: null,
+}
+
+const SAMPLE_ZONES = {
+  warmSeconds: 480,
+  fatBurnSeconds: 2280,
+  cardioSeconds: 1260,
+  peakSeconds: 300,
+}
+
+const SAMPLE_WEEK = { sessions: 3, gymSeconds: 9120, walkSeconds: 0, calories: 2627, steps: 21480 }
 
 const RANGES = [
   { value: 'day', label: 'Day' },
@@ -152,6 +182,18 @@ function Styleguide() {
             tone="cyan"
             sparkline={[8, 11, 9, 14, 12, 16]}
           />
+        </div>
+      </Section>
+
+      <Section title="Dashboard">
+        <Card className="mb-3">
+          <DashboardHeader date="2026-09-13" displayName="Sumonta" />
+        </Card>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <TodayHero entry={SAMPLE_DAY} streak={4} />
+          <TodayHero entry={undefined} streak={0} name="Today, empty state" />
+          <HeartRateZonesCard zones={SAMPLE_ZONES} />
+          <WeekTotalsCard totals={SAMPLE_WEEK} className="md:col-span-2 lg:col-span-3" />
         </div>
       </Section>
 

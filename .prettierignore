@@ -9,3 +9,5 @@ public/sw.js
 public/sw.js.map
 public/swe-worker-*.js
 .lighthouseci
+.claude/settings.local.json
+.claude/commands/

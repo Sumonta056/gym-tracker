@@ -5,16 +5,18 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.11 → `docs/plan/phase-1/S1.11-*.md`
+**Next step:** 1.12 → `docs/plan/phase-1/S1.12-*.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `45f09ec`, the daily log form. Checkpoints A and B are ticked. The
-iPhone half of A is open until step 1.17.
+**Last commit:** `25acb44`, the metrics. The 1.11 dashboard commits on top of it.
+Checkpoints A and B are ticked. The iPhone half of A is open until step 1.17.
 
 ## Settled, do not reopen
 
 - **Zones are modelled, not measured.** Floors 0.6, 0.7, 0.85 of the session's own peak.
   A true `220 − age` needs a migration. The bar is indicative, never clinical. From 1.10.
 - **The zone bar has four segments**, warm included. The prototype is corrected. From 1.10.
+- **The dashboard follows the step file and the mockup.** The prototype is corrected.
+  `--color-ok` also marks the fat-burn zone. From 1.11.
 
 ## Open, with the step that closes each one
 
