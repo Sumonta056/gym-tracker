@@ -5,17 +5,17 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.9 → `docs/plan/phase-1/S1.9-*.md`
+**Next step:** 1.10 → `docs/plan/phase-1/S1.10-*.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** the app shell wired to the five destinations. Checkpoints A and B are
-ticked. The iPhone half of A is open until step 1.17.
+**Last commit:** `ae88ac6`, the app shell wired to the five destinations. Checkpoints A
+and B are ticked. The iPhone half of A is open until step 1.17.
 
-**Open from 1.7, for the owner:** the drain still stops at the first failure, with no
-attempt ceiling. One unresolvable server error on one row holds back every other row.
-A per-row dead letter would keep the ordering rule and remove that. Decide before 1.13.
+## Open, with the step that closes each one
 
-**Open from 1.8:** `/analytics`, `/log` and `/profile` are in the tab bar but have no
-route. They land in steps 1.12, 1.9 and 1.13.
+- **1.13** — the drain stops at the first failure, with no ceiling. Dead letter? From 1.7.
+- **1.13** — the chip reads `navigator.onLine`; rule 1 blocks `lib/sync/**`. From 1.9.
+- **1.16** — no signed-in Playwright fixture, so `/log` offline is untested. From 1.9.
+- **1.12, 1.13** — `/analytics` and `/profile` are in the tab bar with no route.
 
 ## Phases
 

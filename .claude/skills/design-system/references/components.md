@@ -215,35 +215,52 @@ export function NumberField({ id, label, decimal = false, ...rest }: NumberField
 Accepts `1:12:05`, `72m`, `1h 12m`. **It never parses by hand** — it calls
 `lib/duration.ts`, which owns every parse and every format, and stores integer seconds.
 
+It is a **controlled text field**, the same shape as `NumberField`: `value`, `onChange`
+and `error`. It holds text, not seconds. The owning form parses the text once, on
+submit, and stores the seconds.
+
 ```tsx
-export function DurationField({ id, label, seconds, onChangeSeconds }: DurationFieldProps) {
-  const [draft, setDraft] = useState(() => formatDuration(seconds))
+export const DURATION_HINT = 'Accepts 1:12:05, 72m or 1h 12m.'
+
+export function durationPreview(text: string): string | null {
+  const raw = text.trim()
+  if (raw === '') return null
+  const parsed = parseInput(raw)
+  if (!parsed.ok) return null
+  return `${formatDuration(parsed.seconds, 'clock')} · ${formatDuration(parsed.seconds, 'short')}`
+}
+
+export function DurationField({ hint = DURATION_HINT, value, ...rest }: DurationFieldProps) {
+  const preview = durationPreview(typeof value === 'string' ? value : '')
   return (
-    <div>
-      <label htmlFor={id}>
-        <MicroLabel className="mb-1.5 block">{label}</MicroLabel>
-      </label>
-      <input
-        id={id}
-        inputMode="numeric"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          const parsed = parseDuration(draft)
-          if (parsed !== null) {
-            onChangeSeconds(parsed)
-            setDraft(formatDuration(parsed))
-          }
-        }}
-        className="rounded-input border-border bg-surface text-text h-13 w-full border px-3.5 text-base font-semibold"
-      />
-      <p className="text-dim mt-1.5 text-xs">Type 1:12:05, 72m or 1h 12m.</p>
-    </div>
+    <Field
+      type="text"
+      inputMode="text"
+      autoComplete="off"
+      placeholder="1:12:05"
+      value={value}
+      hint={
+        <>
+          {hint}
+          {preview === null ? null : (
+            <span className="text-text mt-1 block font-semibold">{preview}</span>
+          )}
+        </>
+      }
+      {...rest}
+    />
   )
 }
 ```
 
-The hint line is the only place the accepted formats are written. Keep it.
+- The hint line is the only place the accepted formats are written. Keep it.
+- The preview under the hint shows the parsed value as the user types, so a wrong guess
+  is visible before the save.
+- **`inputMode` is `text`, not `numeric`.** The hint promises `72m` and `1h 12m`, and an
+  iOS numeric keypad offers no `m` and no `h`. A numeric keypad would contradict the
+  field's own hint. This is the one duration field that is not a number pad.
+- The field never reports a silent `null`. Unreadable text stays in the field, and the
+  owning form blocks the save and names the problem.
 
 ---
 

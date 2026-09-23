@@ -12,7 +12,7 @@ export const FIELD_INPUT_CLASS =
 
 export type FieldProps = ComponentPropsWithoutRef<'input'> & {
   label: string
-  hint?: string
+  hint?: ReactNode
   error?: string
   adornment?: ReactNode
   wrapperClassName?: string
@@ -38,7 +38,7 @@ export function Field({
   )
 
   return (
-    <div className={cn('flex w-full flex-col gap-1.5', wrapperClassName)}>
+    <div className={cn('flex w-full min-w-0 flex-col gap-1.5', wrapperClassName)}>
       <MicroLabel as="label" htmlFor={inputId}>
         {label}
       </MicroLabel>

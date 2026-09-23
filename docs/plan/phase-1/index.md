@@ -25,9 +25,9 @@ files. One step is one session. Never do two steps in one session.
 | 1.5  | `S1.5-zod-schemas.md`           | Shared zod schemas          | S    | 1.4        | done  |
 | 1.6  | `S1.6-dexie-repository.md`      | Dexie and the repository    | M    | 1.5        | done  |
 | 1.7  | `S1.7-outbox-sync-worker.md`    | Outbox and sync worker      | L    | 1.2, 1.6   | done  |
-| 1.8  | `S1.8-app-shell.md`             | The responsive app shell    | S    | 1.3        | now   |
-| 1.9  | `S1.9-log-form.md`              | `/log` — the daily form     | M    | 1.6, 1.8   | —     |
-| 1.10 | `S1.10-metrics.md`              | `lib/metrics`               | M    | 1.4        | —     |
+| 1.8  | `S1.8-app-shell.md`             | The responsive app shell    | S    | 1.3        | done  |
+| 1.9  | `S1.9-log-form.md`              | `/log` — the daily form     | M    | 1.6, 1.8   | done  |
+| 1.10 | `S1.10-metrics.md`              | `lib/metrics`               | M    | 1.4        | now   |
 | 1.11 | `S1.11-dashboard.md`            | `/` — the dashboard         | M    | 1.9, 1.10  | —     |
 | 1.12 | `S1.12-analytics-charts.md`     | `/analytics` — the charts   | L    | 1.10, 1.11 | —     |
 | 1.13 | `S1.13-profile.md`              | `/profile`                  | M    | 1.7, 1.8   | —     |

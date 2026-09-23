@@ -1,15 +1,44 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { useState } from 'react'
+import { describe, expect, it } from 'vitest'
 
-import { DurationField } from './DurationField'
+import { durationPreview, DurationField } from './DurationField'
 import { FIELD_INPUT_CLASS } from './Field'
 
-function setup(value: number | null = null) {
-  const onValueChange = vi.fn()
-  render(<DurationField label="Gym time" value={value} onValueChange={onValueChange} />)
-  return { input: screen.getByLabelText('Gym time'), onValueChange }
+function Harness({ initial = '', error }: { initial?: string; error?: string }) {
+  const [text, setText] = useState(initial)
+
+  return (
+    <DurationField
+      label="Gym time"
+      value={text}
+      error={error}
+      onChange={(event) => {
+        setText(event.target.value)
+      }}
+    />
+  )
 }
+
+function setup(initial = '', error?: string) {
+  render(<Harness initial={initial} error={error} />)
+  return { input: screen.getByLabelText('Gym time') }
+}
+
+describe('durationPreview', () => {
+  it('returns null for an empty string', () => {
+    expect(durationPreview('   ')).toBeNull()
+  })
+
+  it('returns null for text that cannot be parsed', () => {
+    expect(durationPreview('about an hour')).toBeNull()
+  })
+
+  it('returns the clock and the short form for a parsed duration', () => {
+    expect(durationPreview('72m')).toBe('1:12:00 · 1h 12m')
+  })
+})
 
 describe('DurationField', () => {
   it('ties its label to its input', () => {
@@ -17,61 +46,40 @@ describe('DurationField', () => {
     expect(input).toBeInstanceOf(HTMLInputElement)
   })
 
-  it('shows the formatted value it is given', () => {
-    const { input } = setup(4325)
+  it('shows the accepted formats as its hint', () => {
+    setup()
+    expect(screen.getByText(/Accepts 1:12:05, 72m or 1h 12m\./)).toBeInTheDocument()
+  })
+
+  it('shows the parsed value under the field as the user types', async () => {
+    const { input } = setup()
+    await userEvent.type(input, '72m')
+    expect(screen.getByText('1:12:00 · 1h 12m')).toBeInTheDocument()
+  })
+
+  it('shows no parsed value while the text cannot be parsed', async () => {
+    const { input } = setup()
+    await userEvent.type(input, 'nope')
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the text the caller gives it', () => {
+    const { input } = setup('1:12:05')
     expect(input).toHaveValue('1:12:05')
   })
 
-  it('reports the seconds for a clock string', async () => {
-    const { input, onValueChange } = setup()
-    await userEvent.type(input, '1:12:05')
-    await userEvent.tab()
-    expect(onValueChange).toHaveBeenCalledWith(4325)
-  })
-
-  it('reports the seconds for a minutes string', async () => {
-    const { input, onValueChange } = setup()
-    await userEvent.type(input, '72m')
-    await userEvent.tab()
-    expect(onValueChange).toHaveBeenCalledWith(4320)
-  })
-
-  it('reports the seconds for an hours and minutes string', async () => {
-    const { input, onValueChange } = setup()
-    await userEvent.type(input, '1h 12m')
-    await userEvent.tab()
-    expect(onValueChange).toHaveBeenCalledWith(4320)
-  })
-
-  it('normalises the text it shows on blur', async () => {
-    const { input } = setup()
-    await userEvent.type(input, '72m')
-    await userEvent.tab()
-    expect(input).toHaveValue('1:12:00')
-  })
-
-  it('reports null for an empty field', async () => {
-    const { input, onValueChange } = setup()
-    await userEvent.click(input)
-    await userEvent.tab()
-    expect(onValueChange).toHaveBeenCalledWith(null)
-  })
-
-  it('marks an unparseable value as invalid', async () => {
-    const { input, onValueChange } = setup()
-    await userEvent.type(input, 'about an hour')
-    await userEvent.tab()
+  it('marks itself invalid and names the problem when the caller passes an error', () => {
+    const { input } = setup('nope', 'Enter a duration such as 1:12:05, 72m or 1h 12m.')
     expect(input).toHaveAttribute('aria-invalid', 'true')
-    expect(onValueChange).toHaveBeenCalledWith(null)
-    expect(screen.getByText(/Enter a duration/)).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Enter a duration such as 1:12:05, 72m or 1h 12m.',
+    )
   })
 
-  it('clears the error once the user types again', async () => {
-    const { input } = setup()
-    await userEvent.type(input, 'nope')
-    await userEvent.tab()
-    await userEvent.type(input, '5')
-    expect(input).not.toHaveAttribute('aria-invalid')
+  it('ties its error to its input', () => {
+    const { input } = setup('nope', 'Enter a duration.')
+    const describedBy = input.getAttribute('aria-describedby') ?? ''
+    expect(describedBy).toContain(`${input.id}-error`)
   })
 
   it('is 52 px tall and uses the input radius token', () => {
@@ -83,14 +91,5 @@ describe('DurationField', () => {
   it('wears the one shared input skin, so it cannot drift from the other fields', () => {
     const { input } = setup()
     expect(input).toHaveClass(...FIELD_INPUT_CLASS.split(' '))
-  })
-
-  it('announces its error, like every other field', async () => {
-    const { input } = setup()
-    await userEvent.type(input, 'nope')
-    await userEvent.tab()
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Enter a duration such as 1:12:05, 72m or 1h 12m.',
-    )
   })
 })

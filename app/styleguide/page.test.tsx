@@ -83,6 +83,15 @@ describe('the styleguide page', () => {
     expect(screen.getByText('Stored seconds: 4325')).toBeInTheDocument()
   })
 
+  it('shows the weight nudge pair from the daily log', async () => {
+    const weight = screen.getByLabelText('Weight (kg)')
+    expect(weight).toHaveValue('73.40')
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Increase the weight by 0.05 kilograms' }),
+    )
+    expect(weight).toHaveValue('73.45')
+  })
+
   it('switches the segmented tabs', async () => {
     await userEvent.click(screen.getByRole('button', { name: 'Month' }))
     expect(screen.getByText('Selected: month')).toBeInTheDocument()

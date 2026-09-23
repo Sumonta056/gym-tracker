@@ -3,6 +3,7 @@
 import { notFound } from 'next/navigation'
 import { useState } from 'react'
 
+import { nextWeight } from '../../components/DailyEntryForm'
 import { AppShell } from '../../components/ui/AppShell'
 import { BrandMark } from '../../components/ui/BrandMark'
 import { Card } from '../../components/ui/Card'
@@ -18,7 +19,7 @@ import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
-import { formatDuration } from '../../lib/duration'
+import { formatDuration, parseInput } from '../../lib/duration'
 
 import type { ReactNode } from 'react'
 
@@ -63,10 +64,13 @@ export default function StyleguidePage() {
 
 function Styleguide() {
   const [range, setRange] = useState('week')
-  const [seconds, setSeconds] = useState<number | null>(4325)
+  const [durationText, setDurationText] = useState(formatDuration(4325, 'clock'))
+  const [nudgeWeight, setNudgeWeight] = useState(73.4)
   const [open, setOpen] = useState(false)
   const [showFieldError, setShowFieldError] = useState(false)
   const [showEmailError, setShowEmailError] = useState(false)
+  const parsedDuration = parseInput(durationText.trim())
+  const storedSeconds = parsedDuration.ok ? parsedDuration.seconds : null
 
   return (
     <AppShell
@@ -194,12 +198,44 @@ function Styleguide() {
           <Card className="flex flex-col gap-4">
             <DurationField
               label="Gym time"
-              value={seconds}
-              onValueChange={(next) => {
-                setSeconds(next)
+              value={durationText}
+              onChange={(event) => {
+                setDurationText(event.target.value)
               }}
             />
-            <p className="text-muted text-xs">{`Stored seconds: ${seconds === null ? 'none' : String(seconds)}`}</p>
+            <p className="text-muted text-xs">{`Stored seconds: ${storedSeconds === null ? 'none' : String(storedSeconds)}`}</p>
+          </Card>
+          <Card className="flex flex-col gap-2">
+            <NumberField
+              label="Weight (kg)"
+              inputMode="decimal"
+              value={nudgeWeight.toFixed(2)}
+              onChange={(event) => {
+                setNudgeWeight(Number(event.target.value) || 0)
+              }}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <SecondaryButton
+                aria-label="Decrease the weight by 0.05 kilograms"
+                onClick={() => {
+                  setNudgeWeight(nextWeight(nudgeWeight, -1))
+                }}
+              >
+                −0.05
+              </SecondaryButton>
+              <SecondaryButton
+                aria-label="Increase the weight by 0.05 kilograms"
+                onClick={() => {
+                  setNudgeWeight(nextWeight(nudgeWeight, 1))
+                }}
+              >
+                +0.05
+              </SecondaryButton>
+            </div>
+            <p className="text-muted text-xs">
+              The weight nudge pair from the daily log. One step is 0.05 kg, and it never crosses
+              the schema floor or ceiling.
+            </p>
           </Card>
         </div>
       </Section>
