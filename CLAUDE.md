@@ -92,17 +92,19 @@ Side gutters 20 px on the phone. Gap between cards 11 to 12 px.
 
 ### Responsive contract
 
-| Range          | Layout                                                                                 |
-| -------------- | -------------------------------------------------------------------------------------- |
-| Under 640 px   | One column. 20 px gutters. Bottom tab bar with a centre action.                        |
-| 640 to 1023 px | Two-column card grid. Bottom tab bar stays. 28 px gutters.                             |
-| 1024 px and up | Left sidebar 240 px. Content capped at 1100 px, centred. Three columns. No bottom bar. |
+| Range          | Layout                                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| Under 640 px   | One column. 20 px gutters. Bottom tab bar with a centre action.                                                |
+| 640 to 1023 px | Two-column card grid. Bottom tab bar stays. 28 px gutters.                                                     |
+| 1024 px and up | Left sidebar 240 px. Content capped at 1100 px, centred. Three columns; chart screens keep two. No bottom bar. |
 
 - Mobile first. Write the phone style as the base. Add `md:` and `lg:` upward only.
 - The tab bar adds `env(safe-area-inset-bottom)`.
 - No horizontal scroll at any width from 320 px to 2560 px.
 - Every tap target is 44 px or taller, at every breakpoint.
 - Charts fill their container. Never set a fixed pixel width.
+- Charts carry day labels, value labels, a goal or average line and a sparse-data
+  state. Full rules: `.claude/skills/design-system/references/charts.md`.
 - Check every screen at 390 px, 768 px and 1440 px before you call it done.
 
 ### Accessibility

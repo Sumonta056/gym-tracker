@@ -5,10 +5,10 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.12 → `docs/plan/phase-1/S1.12-*.md`
+**Next step:** 1.13 → `docs/plan/phase-1/S1.13-*.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `25acb44`, the metrics. The 1.11 dashboard commits on top of it.
-Checkpoints A and B are ticked. The iPhone half of A is open until step 1.17.
+**Last commit:** `9fc55e7`, the screenshot rule. The 1.12 charts commit on top of it.
+Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 
 ## Settled, do not reopen
 
@@ -17,13 +17,17 @@ Checkpoints A and B are ticked. The iPhone half of A is open until step 1.17.
 - **The zone bar has four segments**, warm included. The prototype is corrected. From 1.10.
 - **The dashboard follows the step file and the mockup.** The prototype is corrected.
   `--color-ok` also marks the fat-burn zone. From 1.11.
+- **Chart screens keep two columns at 1024 px and up.** `SegmentedTabs` is a toggle
+  group with `aria-pressed`, not tabs. The prototype analytics plate is corrected. From 1.12.
 
 ## Open, with the step that closes each one
 
 - **1.13** — the drain stops at the first failure, with no ceiling. Dead letter? From 1.7.
 - **1.13** — the chip reads `navigator.onLine`; rule 1 blocks `lib/sync/**`. From 1.9.
 - **1.16** — no signed-in Playwright fixture, so `/log` offline is untested. From 1.9.
-- **1.12, 1.13** — `/analytics` and `/profile` are in the tab bar with no route.
+- **1.13** — `/profile` is in the tab bar with no route.
+- **1.16** — `/`, `/log` and `/analytics` are proven at three widths only through
+  `/styleguide` samples. The signed-in fixture proves the live routes. From 1.12.
 
 ## Phases
 

@@ -6,6 +6,11 @@ import { colorTokens } from '../../lib/design/tokens'
 
 import StyleguidePage from './page'
 
+vi.mock('recharts', async (importOriginal) => {
+  const { withFixedContainer } = await import('../../tests/fixtures/recharts')
+  return withFixedContainer(await importOriginal<object>())
+})
+
 vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND')
@@ -62,6 +67,7 @@ describe('the styleguide page', () => {
       'Cards',
       'Stat cards',
       'Dashboard',
+      'Analytics',
       'Status chips',
       'Segmented tabs',
       'Fields',
@@ -91,6 +97,43 @@ describe('the styleguide page', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'This week' })).toBeInTheDocument()
   })
 
+  it('renders the seven analytics charts from the sample week, each with a text alternative', () => {
+    const grid = screen.getByTestId('analytics-grid')
+    expect(within(grid).getAllByRole('img')).toHaveLength(7)
+    expect(
+      within(grid).getByRole('img', {
+        name: 'Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling, 73.8 on the last day.',
+      }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('14 – 20 September')).toBeInTheDocument()
+  })
+
+  it('shows the range tabs under the analytics header, on the week', () => {
+    const section = screen.getByRole('heading', { level: 2, name: 'Analytics' }).closest('section')
+    const tabs = within(section as HTMLElement).getByRole('group', { name: 'Range' })
+    expect(within(tabs).getByRole('button', { name: 'Week' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('switches the analytics sample to the month from its range tabs', async () => {
+    const section = screen.getByRole('heading', { level: 2, name: 'Analytics' }).closest('section')
+    await userEvent.click(within(section as HTMLElement).getByRole('button', { name: 'Month' }))
+    expect(within(section as HTMLElement).getByText('1 – 30 September')).toBeInTheDocument()
+  })
+
+  it('renders the one logged day sample, with its not enough data state and ghost slots', () => {
+    expect(screen.getByRole('heading', { level: 3, name: 'One logged day' })).toBeInTheDocument()
+    const grid = screen.getByTestId('analytics-grid-one-day')
+    expect(within(grid).getAllByText('Log one more day to see a trend.')).toHaveLength(2)
+    expect(within(grid).getAllByRole('img').length).toBeGreaterThan(0)
+  })
+
+  it('renders a chart in its empty state', () => {
+    expect(screen.getByText('Log your steps to see them per day.')).toBeInTheDocument()
+  })
+
   it('shows the duration field already formatted from stored seconds', () => {
     expect(screen.getByLabelText('Gym time')).toHaveValue('1:12:05')
     expect(screen.getByText('Stored seconds: 4325')).toBeInTheDocument()
@@ -106,7 +149,10 @@ describe('the styleguide page', () => {
   })
 
   it('switches the segmented tabs', async () => {
-    await userEvent.click(screen.getByRole('button', { name: 'Month' }))
+    const section = screen
+      .getByRole('heading', { level: 2, name: 'Segmented tabs' })
+      .closest('section')
+    await userEvent.click(within(section as HTMLElement).getByRole('button', { name: 'Month' }))
     expect(screen.getByText('Selected: month')).toBeInTheDocument()
   })
 

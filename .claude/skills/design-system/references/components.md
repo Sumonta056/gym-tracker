@@ -266,26 +266,26 @@ export function DurationField({ hint = DURATION_HINT, value, ...rest }: Duration
 
 ## 9. `SegmentedTabs`
 
-Day / Week / Month. An accent pill marks the selected tab.
+Day / Week / Month. A toggle button group, not a tab list. An accent pill marks the
+pressed button.
 
 ```tsx
-export function SegmentedTabs({ options, value, onChange, label }: SegmentedTabsProps) {
+export function SegmentedTabs({ label, options, value, onValueChange }: SegmentedTabsProps) {
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label={label}
-      className="border-border bg-surface grid auto-cols-fr grid-flow-col gap-1 rounded-full border p-1"
+      className="bg-surface border-border inline-flex w-full gap-1 rounded-full border p-1"
     >
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
-          role="tab"
-          aria-selected={option.value === value}
-          onClick={() => onChange(option.value)}
+          aria-pressed={option.value === value}
+          onClick={() => onValueChange(option.value)}
           className={cn(
-            'min-h-11 rounded-full text-sm font-bold',
-            option.value === value ? 'bg-accent text-accent-ink' : 'text-dim',
+            'h-11 flex-1 rounded-full px-4 text-sm font-bold',
+            option.value === value ? 'bg-accent text-accent-ink' : 'text-muted',
           )}
         >
           {option.label}
@@ -296,8 +296,12 @@ export function SegmentedTabs({ options, value, onChange, label }: SegmentedTabs
 }
 ```
 
-`min-h-11` is 44 px. The selected state is the accent fill **and** `aria-selected`, so
-it is not carried by colour alone.
+`h-11` is 44 px. The selected state is the accent fill **and** `aria-pressed`, so it is
+not carried by colour alone.
+
+It is `role="group"` with `aria-pressed`, never `role="tablist"` with `aria-selected`.
+The buttons switch a value; they own no tab panels and no arrow key roving, so a tab
+role would promise a screen reader behaviour that is not there.
 
 ---
 

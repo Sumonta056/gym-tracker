@@ -2,11 +2,11 @@
 
 Three ranges. One layout each. Nothing between them is invented on the spot.
 
-| Range          | Layout                                                                                                    |
-| -------------- | --------------------------------------------------------------------------------------------------------- |
-| Under 640 px   | One column. 20 px side gutters. Bottom tab bar with a centre action button.                               |
-| 640 to 1023 px | Two-column card grid. Bottom tab bar stays. Gutters grow to 28 px.                                        |
-| 1024 px and up | Left sidebar 240 px. Content column capped at 1100 px and centred. Three-column card grid. No bottom bar. |
+| Range          | Layout                                                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Under 640 px   | One column. 20 px side gutters. Bottom tab bar with a centre action button.                                                                 |
+| 640 to 1023 px | Two-column card grid. Bottom tab bar stays. Gutters grow to 28 px.                                                                          |
+| 1024 px and up | Left sidebar 240 px. Content column capped at 1100 px and centred. Three-column card grid, except chart screens (see below). No bottom bar. |
 
 `md:` is 640 px. `lg:` is 1024 px.
 
@@ -43,6 +43,21 @@ Three ranges. One layout each. Nothing between them is invented on the spot.
 
 A card that must stay full width across the grid takes `md:col-span-2 lg:col-span-3` —
 the hero card usually does.
+
+### Named exception: chart screens
+
+A chart screen, such as `/analytics`, keeps **two columns at 1024 px and up**, not three.
+One chart card fills one cell. The content column stays capped at 1100 px by `AppShell`.
+A chart in a third of 1100 px is too narrow to read a month of bars.
+
+```tsx
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2">{chartCards}</div>
+```
+
+- One chart per row under 640 px. Two from 640 px up, including at 1024 px and up.
+- No `lg:grid-cols-3` on a chart grid. A chart card that must span the row takes
+  `md:col-span-2`.
+- `tests/e2e/analytics.spec.ts` proves one per row at 390 px and two per row at 1440 px.
 
 ## The tab bar and the sidebar
 

@@ -188,7 +188,8 @@ Load the `design-system` skill first.
 
 **Do**
 
-Add to `/analytics`, using the same rules as Phase 1:
+Add to `/analytics`, using the same rules as Phase 1, written in
+`.claude/skills/design-system/references/charts.md`:
 
 1. Volume load per session, bars, with the change against the previous week.
 2. Estimated one-rep maximum per exercise, a line per selected exercise.
@@ -201,6 +202,7 @@ Add to `/analytics`, using the same rules as Phase 1:
 **Tests**
 
 - Component: each chart renders its empty state before any session exists.
+- Component: each chart renders with one session, with no lone dot.
 - Component: the muscle balance warning appears below the threshold and not above it.
 
 ---

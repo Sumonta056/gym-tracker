@@ -244,6 +244,23 @@ describe('formatDuration', () => {
     { seconds: 86399, text: '23h 59m' },
   ]
 
+  const minuteCases: { seconds: number; text: string }[] = [
+    { seconds: 4325, text: '72m' },
+    { seconds: 3707, text: '62m' },
+    { seconds: 0, text: '0m' },
+    { seconds: 29, text: '0m' },
+    { seconds: 30, text: '1m' },
+    { seconds: -90, text: '0m' },
+    { seconds: 7200, text: '120m' },
+  ]
+
+  it.each(minuteCases)(
+    'formats $seconds seconds in the minutes style as $text',
+    ({ seconds, text }) => {
+      expect(formatDuration(seconds, 'minutes')).toBe(text)
+    },
+  )
+
   it.each(clockCases)(
     'formats $seconds seconds in the clock style as $text',
     ({ seconds, text }) => {

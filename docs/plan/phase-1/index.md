@@ -29,8 +29,8 @@ files. One step is one session. Never do two steps in one session.
 | 1.9  | `S1.9-log-form.md`              | `/log` — the daily form     | M    | 1.6, 1.8   | done  |
 | 1.10 | `S1.10-metrics.md`              | `lib/metrics`               | M    | 1.4        | done  |
 | 1.11 | `S1.11-dashboard.md`            | `/` — the dashboard         | M    | 1.9, 1.10  | done  |
-| 1.12 | `S1.12-analytics-charts.md`     | `/analytics` — the charts   | L    | 1.10, 1.11 | now   |
-| 1.13 | `S1.13-profile.md`              | `/profile`                  | M    | 1.7, 1.8   | —     |
+| 1.12 | `S1.12-analytics-charts.md`     | `/analytics` — the charts   | L    | 1.10, 1.11 | done  |
+| 1.13 | `S1.13-profile.md`              | `/profile`                  | M    | 1.7, 1.8   | now   |
 | 1.14 | `S1.14-motion-pass.md`          | The motion pass             | S    | 1.12       | —     |
 | 1.15 | `S1.15-responsive-a11y-pass.md` | Responsive and access pass  | M    | 1.13       | —     |
 | 1.16 | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       | —     |
@@ -69,10 +69,12 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 - [x] `lib/sync/**` coverage is 95 percent or higher.
 - [x] A write with the network down survives a reload.
 
-### Checkpoint C — after 1.12
+### Checkpoint C — after 1.12 · passed
 
-- [ ] Every Phase 1 screen renders at 390 px, 768 px and 1440 px.
-- [ ] Every chart has an empty state and a text alternative.
+- [x] Every Phase 1 screen renders at 390 px, 768 px and 1440 px.
+      Proven on `/sign-in` and the `/styleguide` samples. The live signed-in routes,
+      `/log` included, run again at 1.16 with the signed-in fixture.
+- [x] Every chart has an empty state and a text alternative.
 
 ### Checkpoint D — after 1.17
 

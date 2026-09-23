@@ -41,6 +41,7 @@ one of them is a bug. Say which, do not guess and do not silently change the oth
 | `references/components.md` | All eleven primitives, each with its markup recipe |
 | `references/responsive.md` | The three-range layout table and the fixed rules   |
 | `references/checklist.md`  | The nine-point pass-or-fail list, in full          |
+| `references/charts.md`     | Chart labels, reference lines and sparse data      |
 
 ## The nine-point checklist
 

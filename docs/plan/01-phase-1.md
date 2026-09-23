@@ -318,10 +318,16 @@ Load the `design-system` skill first.
 4. Each chart has an empty state and a `role="img"` with an `aria-label` that states
    the trend in words.
 5. At 1024 px and up, show two charts per row.
+6. Every chart follows `.claude/skills/design-system/references/charts.md`: day labels,
+   value labels, a goal or average line, end labels on lines, ghost slots, the "not
+   enough data" state under 2 points, and a legend for drawn series only.
 
 **Tests**
 
 - Component: each chart renders with an empty series and shows its empty state.
+- Component: each daily chart renders with one logged day, with no lone dot and no
+  legend item for an undrawn series.
+- E2E: no two chart labels overlap and none is cut off at 320 px and 390 px.
 - Component: switching the tab changes the range passed to `listRange`.
 - E2E desktop: two charts per row at 1440 px. E2E mobile: one per row at 390 px.
 
@@ -413,6 +419,7 @@ Write these, on all three Playwright projects:
 - [ ] Installed on the iPhone home screen and tested with flight mode.
 - [ ] The laptop layout uses the sidebar and shows the same data.
 - [ ] `/styleguide` still matches the prototype.
+- [ ] Every chart reads with one logged day and with a full month.
 
 **Commit** one report per step. The final one is
 `feat(ui): phase 1 daily tracker complete`.

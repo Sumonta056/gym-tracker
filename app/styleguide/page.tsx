@@ -3,6 +3,9 @@
 import { notFound } from 'next/navigation'
 import { useState } from 'react'
 
+import { AnalyticsHeader, AnalyticsView, RangeTabs } from '../../components/charts/Analytics'
+import { analyse } from '../../components/charts/rangeData'
+import { StepsChart } from '../../components/charts/StepsChart'
 import { nextWeight } from '../../components/DailyEntryForm'
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader'
 import { HeartRateZonesCard } from '../../components/dashboard/HeartRateZonesCard'
@@ -25,6 +28,7 @@ import { StatusChip } from '../../components/ui/StatusChip'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
 
+import type { RangeTab } from '../../components/charts/rangeData'
 import type { DailyEntry } from '../../lib/db/dexie'
 import type { ReactNode } from 'react'
 
@@ -56,6 +60,86 @@ const SAMPLE_ZONES = {
   fatBurnSeconds: 2280,
   cardioSeconds: 1260,
   peakSeconds: 300,
+}
+
+const SAMPLE_STATS_TODAY = '2026-09-20'
+
+const SAMPLE_STATS_NOW = new Date(2026, 8, 20, 10, 0, 0)
+
+const SAMPLE_STATS_DAYS: [string, Partial<DailyEntry>][] = [
+  ['2026-09-09', { weight_kg: 74.6 }],
+  ['2026-09-10', { weight_kg: 74.4 }],
+  ['2026-09-11', { weight_kg: 74.5 }],
+  ['2026-09-12', { weight_kg: 74.3 }],
+  ['2026-09-13', { weight_kg: 74.2 }],
+  [
+    '2026-09-14',
+    { weight_kg: 74.1, calories_burnt: 620, steps: 9120, avg_heart_rate: 114, max_heart_rate: 162 },
+  ],
+  [
+    '2026-09-15',
+    {
+      weight_kg: 73.9,
+      calories_burnt: 780,
+      steps: 11400,
+      avg_heart_rate: 116,
+      max_heart_rate: 158,
+    },
+  ],
+  [
+    '2026-09-16',
+    {
+      weight_kg: 74.2,
+      calories_burnt: 410,
+      steps: 6900,
+      gym_seconds: null,
+      avg_heart_rate: 112,
+      max_heart_rate: 171,
+    },
+  ],
+  [
+    '2026-09-17',
+    {
+      weight_kg: 73.7,
+      calories_burnt: 985,
+      steps: 12480,
+      avg_heart_rate: 118,
+      max_heart_rate: 160,
+    },
+  ],
+  [
+    '2026-09-18',
+    { weight_kg: 73.6, calories_burnt: 540, steps: 8300, avg_heart_rate: 115, max_heart_rate: 165 },
+  ],
+  [
+    '2026-09-19',
+    {
+      weight_kg: 73.5,
+      calories_burnt: 900,
+      steps: 13100,
+      avg_heart_rate: 117,
+      max_heart_rate: 159,
+    },
+  ],
+  [
+    '2026-09-20',
+    { weight_kg: 73.4, calories_burnt: 705, steps: 9904, avg_heart_rate: 113, max_heart_rate: 168 },
+  ],
+]
+
+const SAMPLE_STATS_ENTRIES: DailyEntry[] = SAMPLE_STATS_DAYS.map(([date, patch], index) => ({
+  ...SAMPLE_DAY,
+  id: `00000000-0000-4000-8000-${String(index + 100).padStart(12, '0')}`,
+  entry_date: date,
+  ...patch,
+}))
+
+const SAMPLE_STEP_GOAL = 12000
+
+const SAMPLE_ONE_DAY = SAMPLE_STATS_ENTRIES.filter((row) => row.entry_date === SAMPLE_STATS_TODAY)
+
+function sampleStats(entries: DailyEntry[], tab: RangeTab) {
+  return analyse(entries, entries, tab, SAMPLE_STATS_TODAY, SAMPLE_STATS_NOW, SAMPLE_STEP_GOAL)
 }
 
 const SAMPLE_WEEK = { sessions: 3, gymSeconds: 9120, walkSeconds: 0, calories: 2627, steps: 21480 }
@@ -94,6 +178,9 @@ export default function StyleguidePage() {
 
 function Styleguide() {
   const [range, setRange] = useState('week')
+  const [statsTab, setStatsTab] = useState<RangeTab>('week')
+  const stats = sampleStats(SAMPLE_STATS_ENTRIES, statsTab)
+  const oneDay = sampleStats(SAMPLE_ONE_DAY, statsTab)
   const [durationText, setDurationText] = useState(formatDuration(4325, 'clock'))
   const [nudgeWeight, setNudgeWeight] = useState(73.4)
   const [open, setOpen] = useState(false)
@@ -194,6 +281,20 @@ function Styleguide() {
           <TodayHero entry={undefined} streak={0} name="Today, empty state" />
           <HeartRateZonesCard zones={SAMPLE_ZONES} />
           <WeekTotalsCard totals={SAMPLE_WEEK} className="md:col-span-2 lg:col-span-3" />
+        </div>
+      </Section>
+
+      <Section title="Analytics">
+        <Card className="mb-3">
+          <AnalyticsHeader label={stats.label} />
+          <RangeTabs value={statsTab} onValueChange={setStatsTab} />
+        </Card>
+        <AnalyticsView data={stats} />
+        <h3 className="text-text mt-6 text-base font-bold">One logged day</h3>
+        <AnalyticsView data={oneDay} testId="analytics-grid-one-day" />
+        <h3 className="text-text mt-6 text-base font-bold">Nothing logged</h3>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <StepsChart days={[]} tab="week" stepGoal={SAMPLE_STEP_GOAL} />
         </div>
       </Section>
 
