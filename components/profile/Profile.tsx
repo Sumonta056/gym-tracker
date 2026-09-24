@@ -5,12 +5,18 @@ import { useEffect, useRef, useState } from 'react'
 import { readSignedInEmail, signOut } from '../../lib/auth/browser'
 import {
   clearAll,
+  discardDeadLetter,
+  drainForSignOut,
+  failedWrites,
   getProfile,
-  haltSync,
+  outboxSequence,
   pendingWrites,
   resumeSync,
+  retryDeadLetter,
   syncNow,
+  UnsyncedWritesChanged,
   updateProfile,
+  useDeadLetters,
   useSyncStatus,
 } from '../../lib/db/repository'
 import { csvImportEnabled } from '../../lib/flags'
@@ -18,9 +24,12 @@ import { csvImportEnabled } from '../../lib/flags'
 import { ProfileView } from './ProfileView'
 
 import type { Profile as StoredProfile } from '../../lib/db/dexie'
+import type { ConfirmedWrites } from '../../lib/db/repository'
 import type { UnitSystem } from '../../lib/schema/profile'
 
 export const READ_ERROR = 'The profile on this device could not be read.'
+
+export const DEAD_LETTER_FAILED = 'The failed write could not be changed on this device.'
 
 export const CLEAR_FAILED = 'This device could not be cleared, so you are still signed in.'
 
@@ -45,11 +54,14 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
   const [lostOnSignOut, setLostOnSignOut] = useState<number | null>(null)
+  const [deadLetterError, setDeadLetterError] = useState<string | null>(null)
   const syncing = useRef(false)
   const leaving = useRef(false)
   const clearing = useRef(false)
+  const confirmedSequence = useRef(0)
   const alive = useRef(true)
   const report = useSyncStatus()
+  const deadLetters = useDeadLetters()
 
   useEffect(() => {
     let cancelled = false
@@ -116,6 +128,29 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
     })
   }
 
+  function retryFailed(id: string): void {
+    void retryDeadLetter(id).then(
+      () => {
+        setDeadLetterError(null)
+        runSyncNow()
+      },
+      () => {
+        setDeadLetterError(DEAD_LETTER_FAILED)
+      },
+    )
+  }
+
+  function discardFailed(id: string): void {
+    void discardDeadLetter(id).then(
+      () => {
+        setDeadLetterError(null)
+      },
+      () => {
+        setDeadLetterError(DEAD_LETTER_FAILED)
+      },
+    )
+  }
+
   function stayed(message: string): void {
     leaving.current = false
     clearing.current = false
@@ -130,15 +165,12 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
     setSigningOut(true)
     setSignOutError(null)
 
-    if (report.status !== 'offline') {
-      await syncNow()
-    }
-
     let waiting: number
 
     try {
-      await haltSync()
-      waiting = await pendingWrites()
+      await drainForSignOut()
+      waiting = (await pendingWrites()) + (await failedWrites())
+      confirmedSequence.current = await outboxSequence()
     } catch {
       resumeSync()
       stayed(CLEAR_FAILED)
@@ -155,7 +187,7 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
       return
     }
 
-    await finishSignOut()
+    await finishSignOut({ count: 0, sequence: confirmedSequence.current })
   }
 
   function cancelSignOut(): void {
@@ -166,21 +198,30 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
   }
 
   function confirmSignOut(): void {
+    const confirmed = { count: lostOnSignOut ?? 0, sequence: confirmedSequence.current }
+
     setLostOnSignOut(null)
-    void finishSignOut()
+    void finishSignOut(confirmed)
   }
 
-  async function finishSignOut(): Promise<void> {
+  async function finishSignOut(confirmed: ConfirmedWrites): Promise<void> {
     clearing.current = true
 
+    let result: Awaited<ReturnType<typeof signOut>>
+
     try {
-      await clearAll()
-    } catch {
+      result = await clearAll(confirmed, signOut)
+    } catch (cause) {
+      if (cause instanceof UnsyncedWritesChanged) {
+        clearing.current = false
+        confirmedSequence.current = cause.sequence
+        setLostOnSignOut(cause.count)
+        return
+      }
+
       stayed(CLEAR_FAILED)
       return
     }
-
-    const result = await signOut()
 
     if (result.status === 'error') {
       resumeSync()
@@ -223,6 +264,10 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
       onSignOut={() => {
         void runSignOut()
       }}
+      deadLetters={deadLetters}
+      onRetryDeadLetter={retryFailed}
+      onDiscardDeadLetter={discardFailed}
+      deadLetterError={deadLetterError}
       lostOnSignOut={lostOnSignOut}
       onConfirmSignOut={confirmSignOut}
       onCancelSignOut={cancelSignOut}

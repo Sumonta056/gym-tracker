@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
 import { PROFILE } from '../../tests/fixtures/dashboard'
+import { DEAD_DAY } from '../../tests/fixtures/sync'
 
 import { ProfileView, signOutHint } from './ProfileView'
 
@@ -12,7 +13,7 @@ function renderView(overrides: Partial<ProfileViewProps> = {}) {
   const props: ProfileViewProps = {
     email: 'sam@example.com',
     profile: PROFILE,
-    report: { status: 'synced', pending: 0 },
+    report: { status: 'synced', pending: 0, failed: 0 },
     showImport: false,
     syncBusy: false,
     signingOut: false,
@@ -80,10 +81,34 @@ describe('ProfileView', () => {
   })
 
   it('warns that pending writes are lost on sign out, tied to the button', () => {
-    renderView({ report: { status: 'synced', pending: 2 } })
+    renderView({ report: { status: 'synced', pending: 2, failed: 0 } })
     const warning = '2 writes have not reached the server yet. Signing out now loses them.'
     expect(screen.getByText(warning)).toHaveClass('text-warn')
     expect(screen.getByRole('button', { name: 'Sign out' })).toHaveAccessibleDescription(warning)
+  })
+
+  it('counts the failed writes in the sign-out warning, as sign-out deletes them too', () => {
+    renderView({ report: { status: 'synced', pending: 1, failed: 1 } })
+    expect(
+      screen.getByText('2 writes have not reached the server yet. Signing out now loses them.'),
+    ).toHaveClass('text-warn')
+  })
+
+  it('hands the failed writes and their actions to the sync card', async () => {
+    const onRetryDeadLetter = vi.fn()
+    const onDiscardDeadLetter = vi.fn()
+    renderView({
+      report: { status: 'synced', pending: 0, failed: 1 },
+      deadLetters: [DEAD_DAY],
+      onRetryDeadLetter,
+      onDiscardDeadLetter,
+      deadLetterError: 'Not moved.',
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'Retry Tuesday 1 September' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Discard Tuesday 1 September' }))
+    expect(onRetryDeadLetter).toHaveBeenCalledWith(DEAD_DAY.id)
+    expect(onDiscardDeadLetter).toHaveBeenCalledWith(DEAD_DAY.id)
+    expect(screen.getByRole('alert')).toHaveTextContent('Not moved.')
   })
 
   it('announces the sync state once, from the header chip', () => {

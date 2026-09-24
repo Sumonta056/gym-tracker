@@ -139,9 +139,23 @@ describe('the styleguide page', () => {
   it('shows the sign-out error on the profile sample when asked', async () => {
     await userEvent.click(screen.getByRole('button', { name: 'Show the sign-out error' }))
     const grid = within(screen.getByTestId('profile-grid-sample'))
-    expect(grid.getByRole('alert')).toHaveTextContent('the sign-out did not reach the server')
+    expect(grid.getByRole('alert')).toHaveTextContent('comes back from the server')
     await userEvent.click(screen.getByRole('button', { name: 'Hide the sign-out error' }))
     expect(grid.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows the sync card with a write the server refused', () => {
+    expect(screen.getByRole('list', { name: 'Failed writes' })).toHaveTextContent(
+      'Sunday 13 September',
+    )
+    expect(screen.getByRole('button', { name: 'Retry Sunday 13 September' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Discard Sunday 13 September' })).toBeInTheDocument()
+  })
+
+  it('keeps the refused write sample still when its Sync now is pressed', async () => {
+    const card = within(screen.getByTestId('sync-card-refused'))
+    await userEvent.click(card.getByRole('button', { name: 'Sync now' }))
+    expect(card.getByRole('list', { name: 'Failed writes' })).toBeInTheDocument()
   })
 
   it('shows the sync card offline and syncing', () => {

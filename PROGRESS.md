@@ -5,10 +5,19 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.13b → `docs/plan/phase-1/S1.13b-*.md`
+**Next step:** 1.14 → `docs/plan/phase-1/S1.14-*.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `56888e4`, the analytics charts. The 1.13 profile commits on top of it.
+**Last commit:** `c077fc7`, the profile screen. The 1.13b sync hardening commits on top of it.
 Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
+
+## Resume here
+
+- Stopped on 2026-09-24 after 1.13b.
+- Left in Phase 1: 1.14, 1.15, 1.16, 1.17. The next stop is Checkpoint D,
+  after 1.17. It needs a real iPhone and a Vercel account.
+- Run each step in a fresh subagent. It stages and stops. The owner runs the commit.
+- A UI change puts screenshots in the report. See `.claude/rules/git.md`.
+- Stop any `next dev` before `pnpm verify`. A shared `.next` breaks the build.
 
 ## Settled, do not reopen
 
@@ -21,11 +30,17 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
   group with `aria-pressed`, not tabs. The prototype analytics plate is corrected. From 1.12.
 - **The sync worker starts in the `(app)` layout** through `SyncRunner`. Sign out drains
   first, then asks before it deletes a pending write. The chip has four states. From 1.13.
+- **A refused write moves to `deadLetters`** after a permanent code or 20 attempts, 3 in a
+  row at most per drain. The chip shows Pending. Sign-out holds `DRAIN_LOCK` across the
+  clear and the server sign-out, with a 15 s marker for other tabs. From 1.13b.
 
 ## Open, with the step that closes each one
 
-- **1.13b** — a dead-letter table, a second-tab lock, a `haltSync` timeout and the
-  sign-out backoff. The step file is written. From 1.7 and 1.13.
+- **1.15** — `clearAll` waits on `DRAIN_LOCK` with no timeout. The dead-letter cap resets
+  each turn. A save in another tab after the clear, before sign-out ends, stays. From 1.13b.
+- **1.15** — a re-sign-in within 15 s of a sign-out waits for its first sync. With no Web
+  Locks and a blocked `localStorage`, another tab can refill the device. From 1.13b.
+- **Owner** — the prototype sync card lacks the failed-writes rows. From 1.13b.
 - **1.16** — no signed-in Playwright fixture, so `/log` offline is untested. From 1.9.
 - **1.15** — `StatusChip` frame and `SecondaryButton` size drift from their recipes. From 1.13.
 - **Owner** — `/log` takes weight in kg only. The imperial setting is display only elsewhere.
@@ -36,7 +51,7 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 ## Phases
 
 - [x] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
-- [ ] Phase 1 — Daily tracker (17 steps) · `docs/plan/phase-1/index.md`
+- [ ] Phase 1 — Daily tracker (18 steps, 14 done) · `docs/plan/phase-1/index.md`
 - [ ] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
 
 ## Rules that block you

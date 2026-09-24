@@ -3,16 +3,19 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 
+import { deadLetterCount, listDeadLetters } from './deadLetters'
 import { pendingCount } from './outbox'
 import { getSyncState, subscribeSyncState } from './worker'
 
 import type { SyncState } from './worker'
+import type { DeadLetter } from '../db/dexie'
 
 export type SyncStatus = 'offline' | 'syncing' | 'synced' | 'error'
 
 export interface SyncStatusReport {
   status: SyncStatus
   pending: number
+  failed: number
 }
 
 export function toStatus(online: boolean, state: SyncState): SyncStatus {
@@ -57,6 +60,11 @@ export function useSyncStatus(): SyncStatusReport {
   }, [])
 
   const pending = useLiveQuery(() => pendingCount(), [], 0)
+  const failed = useLiveQuery(() => deadLetterCount(), [], 0)
 
-  return { status: toStatus(online, state), pending }
+  return { status: toStatus(online, state), pending, failed }
+}
+
+export function useDeadLetters(): DeadLetter[] {
+  return useLiveQuery(() => listDeadLetters(), [], [])
 }

@@ -179,8 +179,9 @@ The word carries the meaning; the dot only repeats it. The dot is `aria-hidden`.
 chip is not a button, so it is exempt from the 44 px rule.
 
 The live chip adds a fourth state, `pending`, with a `muted` dot and the word
-`Pending`: a write still waits in the outbox, or the last drain failed. `Synced` shows
-only when the outbox is empty. When a screen shows two chips, the second one passes
+`Pending`: a write still waits in the outbox, a write the server refused waits in the
+dead-letter table for a Retry or a Discard, or the last drain failed. `Synced` shows
+only when both the outbox and the dead-letter table are empty. When a screen shows two chips, the second one passes
 `announce={false}`, so the state is read out once.
 
 ---

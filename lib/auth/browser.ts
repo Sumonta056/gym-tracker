@@ -3,7 +3,7 @@ import { createClient } from '../supabase/client'
 export type SignOutResult = { status: 'signed-out' } | { status: 'error'; message: string }
 
 export const SIGN_OUT_FAILED =
-  'This device is cleared, but the sign-out did not reach the server. Try again when online.'
+  'This device is cleared, but the sign-out did not finish. You are still signed in, so your data comes back from the server until the sign-out succeeds. Try again.'
 
 export async function readSignedInEmail(): Promise<string | null> {
   try {

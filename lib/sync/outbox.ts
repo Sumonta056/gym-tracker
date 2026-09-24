@@ -75,6 +75,10 @@ export async function append(
   return entry
 }
 
+export async function lastSequence(): Promise<number> {
+  return issuedSequence(await db.syncMeta.get(OUTBOX_SEQUENCE_KEY))
+}
+
 export async function listPending(): Promise<OutboxEntry[]> {
   return db.outbox.orderBy('sequence').toArray()
 }

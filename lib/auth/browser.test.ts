@@ -51,6 +51,14 @@ describe('readSignedInEmail', () => {
   })
 })
 
+describe('SIGN_OUT_FAILED', () => {
+  it('says the data comes back from the server until the sign-out succeeds', () => {
+    expect(SIGN_OUT_FAILED).toBe(
+      'This device is cleared, but the sign-out did not finish. You are still signed in, so your data comes back from the server until the sign-out succeeds. Try again.',
+    )
+  })
+})
+
 describe('signOut', () => {
   it('ends the session on this device only', async () => {
     mocks.signOut.mockResolvedValue({ error: null })

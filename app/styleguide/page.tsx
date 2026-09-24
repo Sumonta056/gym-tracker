@@ -28,11 +28,12 @@ import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
+import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
 
 import type { RangeTab } from '../../components/charts/rangeData'
-import type { DailyEntry, Profile } from '../../lib/db/dexie'
+import type { DailyEntry, DeadLetter, Profile } from '../../lib/db/dexie'
 import type { UnitSystem } from '../../lib/schema/profile'
 import type { ReactNode } from 'react'
 
@@ -57,6 +58,21 @@ const SAMPLE_DAY: DailyEntry = {
   created_at: '2026-09-13T10:00:00.000Z',
   updated_at: '2026-09-13T10:00:00.000Z',
   deleted_at: null,
+}
+
+const SAMPLE_DEAD_LETTER: DeadLetter = {
+  id: '00000000-0000-4000-8000-000000000002',
+  sequence: 7,
+  table_name: 'daily_entries',
+  operation: 'upsert',
+  row_id: SAMPLE_DAY.id,
+  payload: SAMPLE_DAY,
+  created_at: '2026-09-13T10:00:00.000Z',
+  attempts: 1,
+  last_error: 'new row violates row-level security policy for table "daily_entries"',
+  next_attempt_at: null,
+  error_code: '42501',
+  failed_at: '2026-09-13T10:00:05.000Z',
 }
 
 const SAMPLE_ZONES = {
@@ -320,15 +336,11 @@ function Styleguide() {
         <ProfileView
           email="sumonta@example.com"
           profile={sampleProfile}
-          report={{ status: 'synced', pending: samplePending }}
+          report={{ status: 'synced', pending: samplePending, failed: 0 }}
           showImport={false}
           syncBusy={false}
           signingOut={false}
-          signOutError={
-            showSignOutError
-              ? 'This device is cleared, but the sign-out did not reach the server. Try again when online.'
-              : null
-          }
+          signOutError={showSignOutError ? SIGN_OUT_FAILED : null}
           onUnitChange={(unit: UnitSystem) => {
             setSampleProfile((current) => ({ ...current, unit_system: unit }))
           }}
@@ -370,14 +382,28 @@ function Styleguide() {
         <h3 className="text-text mt-6 text-base font-bold">Sync card, offline and syncing</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <SyncCard
-            report={{ status: 'offline', pending: 3 }}
+            report={{ status: 'offline', pending: 3, failed: 0 }}
             busy={false}
             onSyncNow={() => undefined}
           />
           <SyncCard
-            report={{ status: 'syncing', pending: 1 }}
+            report={{ status: 'syncing', pending: 1, failed: 0 }}
             busy={false}
             onSyncNow={() => undefined}
+          />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">
+          Sync card, a write the server refused
+        </h3>
+        <div
+          data-testid="sync-card-refused"
+          className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
+        >
+          <SyncCard
+            report={{ status: 'synced', pending: 0, failed: 1 }}
+            busy={false}
+            onSyncNow={() => undefined}
+            deadLetters={[SAMPLE_DEAD_LETTER]}
           />
         </div>
         <h3 className="text-text mt-6 text-base font-bold">With the Phase 2 flag on</h3>

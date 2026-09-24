@@ -10,41 +10,45 @@ vi.mock('../../lib/db/repository', () => ({
 }))
 
 beforeEach(() => {
-  vi.mocked(useSyncStatus).mockReturnValue({ status: 'synced', pending: 0 })
+  vi.mocked(useSyncStatus).mockReturnValue({ status: 'synced', pending: 0, failed: 0 })
 })
 
 describe('chipStatus', () => {
   it('reports offline whenever the device is offline', () => {
-    expect(chipStatus({ status: 'offline', pending: 3 })).toBe('offline')
+    expect(chipStatus({ status: 'offline', pending: 3, failed: 0 })).toBe('offline')
   })
 
   it('reports syncing while a drain runs', () => {
-    expect(chipStatus({ status: 'syncing', pending: 1 })).toBe('syncing')
+    expect(chipStatus({ status: 'syncing', pending: 1, failed: 0 })).toBe('syncing')
   })
 
   it('reports synced only when nothing waits in the outbox', () => {
-    expect(chipStatus({ status: 'synced', pending: 0 })).toBe('synced')
+    expect(chipStatus({ status: 'synced', pending: 0, failed: 0 })).toBe('synced')
   })
 
   it('reports pending when a write still waits, even after a clean drain', () => {
-    expect(chipStatus({ status: 'synced', pending: 2 })).toBe('pending')
+    expect(chipStatus({ status: 'synced', pending: 2, failed: 0 })).toBe('pending')
+  })
+
+  it('reports pending while a write the server refused waits, even with an empty outbox', () => {
+    expect(chipStatus({ status: 'synced', pending: 0, failed: 1 })).toBe('pending')
   })
 
   it('reports pending after a failed drain', () => {
-    expect(chipStatus({ status: 'error', pending: 0 })).toBe('pending')
+    expect(chipStatus({ status: 'error', pending: 0, failed: 0 })).toBe('pending')
   })
 })
 
 describe('SyncChipView', () => {
   it('names the state in words', () => {
-    render(<SyncChipView report={{ status: 'syncing', pending: 1 }} />)
+    render(<SyncChipView report={{ status: 'syncing', pending: 1, failed: 0 }} />)
     expect(screen.getByRole('status')).toHaveTextContent('SYNCING')
   })
 })
 
 describe('SyncChip', () => {
   it('reads the status the repository re-exports', () => {
-    vi.mocked(useSyncStatus).mockReturnValue({ status: 'offline', pending: 0 })
+    vi.mocked(useSyncStatus).mockReturnValue({ status: 'offline', pending: 0, failed: 0 })
     render(<SyncChip />)
     expect(screen.getByRole('status')).toHaveTextContent('OFFLINE')
   })

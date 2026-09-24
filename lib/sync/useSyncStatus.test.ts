@@ -6,8 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db/dexie'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 
+import { moveToDeadLetters } from './deadLetters'
 import { append } from './outbox'
-import { toStatus, useSyncStatus } from './useSyncStatus'
+import { toStatus, useDeadLetters, useSyncStatus } from './useSyncStatus'
 
 import type { SyncState } from './worker'
 import type { DailyEntry } from '../db/dexie'
@@ -51,7 +52,7 @@ beforeEach(async () => {
   })
   setOnline(true)
   await db.open()
-  await Promise.all([db.outbox.clear(), db.syncMeta.clear()])
+  await Promise.all([db.outbox.clear(), db.deadLetters.clear(), db.syncMeta.clear()])
 })
 
 describe('useSyncStatus', () => {
@@ -127,6 +128,18 @@ describe('useSyncStatus', () => {
     const { result } = renderHook(() => useSyncStatus())
 
     expect(result.current.pending).toBe(0)
+    expect(result.current.failed).toBe(0)
+  })
+
+  it('counts the writes that failed for good apart from the pending ones', async () => {
+    const queued = await append('daily_entries', 'upsert', entry())
+    await moveToDeadLetters(queued.id, '42501', 'rls', Date.now())
+    const { result } = renderHook(() => useSyncStatus())
+
+    await waitFor(() => {
+      expect(result.current.failed).toBe(1)
+    })
+    expect(result.current.pending).toBe(0)
   })
 
   it('drops its listeners on unmount', async () => {
@@ -166,5 +179,23 @@ describe('toStatus', () => {
     expect(toStatus(true, 'synced')).toBe('synced')
     expect(toStatus(true, 'error')).toBe('error')
     expect(toStatus(true, 'offline')).toBe('offline')
+  })
+})
+
+describe('useDeadLetters', () => {
+  it('starts empty before the list arrives', () => {
+    const { result } = renderHook(() => useDeadLetters())
+
+    expect(result.current).toEqual([])
+  })
+
+  it('lists the writes that failed for good', async () => {
+    const queued = await append('daily_entries', 'upsert', entry())
+    await moveToDeadLetters(queued.id, '42501', 'rls', Date.now())
+    const { result } = renderHook(() => useDeadLetters())
+
+    await waitFor(() => {
+      expect(result.current.map((letter) => letter.id)).toEqual([queued.id])
+    })
   })
 })

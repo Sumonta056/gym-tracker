@@ -10,6 +10,7 @@ import {
   backoffMs,
   hasPending,
   isDue,
+  lastSequence,
   listPending,
   nextPending,
   markDone,
@@ -223,5 +224,19 @@ describe('isDue', () => {
 
     expect(isDue(held, at + 999)).toBe(false)
     expect(isDue(held, at + 1000)).toBe(true)
+  })
+})
+
+describe('lastSequence', () => {
+  it('is 0 before any write was queued', async () => {
+    expect(await lastSequence()).toBe(0)
+  })
+
+  it('names the last sequence issued, even once the queue drained', async () => {
+    const first = await append('daily_entries', 'upsert', row())
+    await append('daily_entries', 'upsert', row())
+    await markDone(first.id)
+
+    expect(await lastSequence()).toBe(2)
   })
 })

@@ -6,12 +6,12 @@ import { StatusChip } from '../ui/StatusChip'
 import type { SyncStatusReport } from '../../lib/db/repository'
 import type { SyncStatus as ChipStatus } from '../ui/StatusChip'
 
-export function chipStatus({ status, pending }: SyncStatusReport): ChipStatus {
+export function chipStatus({ status, pending, failed }: SyncStatusReport): ChipStatus {
   if (status === 'offline' || status === 'syncing') {
     return status
   }
 
-  return status === 'error' || pending > 0 ? 'pending' : 'synced'
+  return status === 'error' || pending > 0 || failed > 0 ? 'pending' : 'synced'
 }
 
 export function SyncChipView({

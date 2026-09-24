@@ -12,7 +12,7 @@ import { SyncCard } from './SyncCard'
 import { TargetsCard } from './TargetsCard'
 import { UnitsCard } from './UnitsCard'
 
-import type { Profile } from '../../lib/db/dexie'
+import type { DeadLetter, Profile } from '../../lib/db/dexie'
 import type { SyncStatusReport } from '../../lib/db/repository'
 import type { UnitSystem } from '../../lib/schema/profile'
 
@@ -43,6 +43,10 @@ export type ProfileViewProps = {
   onSaveTarget: (patch: Partial<Profile>) => Promise<void>
   onSyncNow: () => void
   onSignOut: () => void
+  deadLetters?: DeadLetter[]
+  onRetryDeadLetter?: (id: string) => void
+  onDiscardDeadLetter?: (id: string) => void
+  deadLetterError?: string | null
   lostOnSignOut?: number | null
   onConfirmSignOut?: () => void
   onCancelSignOut?: () => void
@@ -62,6 +66,10 @@ export function ProfileView({
   onSaveTarget,
   onSyncNow,
   onSignOut,
+  deadLetters = [],
+  onRetryDeadLetter = ignore,
+  onDiscardDeadLetter = ignore,
+  deadLetterError = null,
   lostOnSignOut = null,
   onConfirmSignOut = ignore,
   onCancelSignOut = ignore,
@@ -70,6 +78,7 @@ export function ProfileView({
   const unit = profile.unit_system
   const hintId = useId()
   const errorId = useId()
+  const unsynced = report.pending + report.failed
 
   return (
     <>
@@ -86,7 +95,15 @@ export function ProfileView({
           className="md:row-span-2"
         />
         {showImport ? <DataCard /> : null}
-        <SyncCard report={report} busy={syncBusy} onSyncNow={onSyncNow} />
+        <SyncCard
+          report={report}
+          busy={syncBusy}
+          onSyncNow={onSyncNow}
+          deadLetters={deadLetters}
+          onRetry={onRetryDeadLetter}
+          onDiscard={onDiscardDeadLetter}
+          deadLetterError={deadLetterError}
+        />
         <div className="flex flex-col gap-2">
           <SecondaryButton
             tone="danger"
@@ -96,11 +113,8 @@ export function ProfileView({
           >
             {signingOut ? 'Signing out…' : 'Sign out'}
           </SecondaryButton>
-          <p
-            id={hintId}
-            className={report.pending === 0 ? 'text-muted text-xs' : 'text-warn text-xs'}
-          >
-            {signOutHint(report.pending)}
+          <p id={hintId} className={unsynced === 0 ? 'text-muted text-xs' : 'text-warn text-xs'}>
+            {signOutHint(unsynced)}
           </p>
           {signOutError === null ? null : (
             <p id={errorId} role="alert" className="text-danger text-xs">

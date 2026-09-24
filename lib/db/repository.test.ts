@@ -3,22 +3,30 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { dailyEntrySchema } from '../schema/dailyEntry'
-import { resumeSync } from '../sync/worker'
+import { moveToDeadLetters } from '../sync/deadLetters'
+import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
 import { db } from './dexie'
 import {
   clearAll,
+  discardDeadLetter,
+  outboxSequence,
+  drainForSignOut,
+  failedWrites,
   getDay,
   getProfile,
+  listDeadLetters,
   listRange,
   LOCAL_PROFILE_ID,
   NEVER_WRITTEN,
   OUTBOX_SEQUENCE_KEY,
   pendingWrites,
   resumeSync as resumeFromRepository,
+  retryDeadLetter,
   softDeleteDay,
   syncNow,
   updateProfile,
+  UnsyncedWritesChanged,
   upsertDay,
 } from './repository'
 
@@ -31,20 +39,43 @@ vi.mock('../supabase/client', () => ({
   },
 }))
 
+function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'clear'> {
+  const values = new Map<string, string>()
+
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => {
+      values.set(key, value)
+    },
+    removeItem: (key) => {
+      values.delete(key)
+    },
+    clear: () => {
+      values.clear()
+    },
+  }
+}
+
 function entry(entryDate: string, overrides: Partial<DailyEntryInput> = {}): DailyEntryInput {
   return dailyEntrySchema.parse({ entry_date: entryDate, ...overrides })
 }
 
 beforeEach(async () => {
   vi.restoreAllMocks()
+  vi.stubGlobal('localStorage', memoryStorage())
 
   await db.open()
   await Promise.all([
     db.dailyEntries.clear(),
     db.profiles.clear(),
     db.outbox.clear(),
+    db.deadLetters.clear(),
     db.syncMeta.clear(),
   ])
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
 })
 
 describe('upsertDay', () => {
@@ -587,8 +618,139 @@ describe('two live rows for one date', () => {
 })
 
 describe('clearAll', () => {
+  async function counted(): Promise<{ count: number; sequence: number }> {
+    return {
+      count: (await pendingWrites()) + (await failedWrites()),
+      sequence: await outboxSequence(),
+    }
+  }
+
+  function endSession(): Promise<string> {
+    return Promise.resolve('signed out')
+  }
+
   beforeEach(() => {
     Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true })
+    globalThis.localStorage.clear()
+  })
+
+  it('ends the session after the clear and hands back its answer', async () => {
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+    let rowsAtSignOut = -1
+
+    const answer = await clearAll(await counted(), async () => {
+      rowsAtSignOut = await db.dailyEntries.count()
+      return 'signed out'
+    })
+
+    expect(answer).toBe('signed out')
+    expect(rowsAtSignOut).toBe(0)
+  })
+
+  it('ends the session while it still holds the drain lock', async () => {
+    const held: boolean[] = []
+    let holding = false
+    Object.defineProperty(globalThis.navigator, 'locks', {
+      configurable: true,
+      value: {
+        request: async (_name: string, callback: () => Promise<unknown>) => {
+          holding = true
+          try {
+            return await callback()
+          } finally {
+            holding = false
+          }
+        },
+      },
+    })
+
+    await clearAll(await counted(), () => {
+      held.push(holding)
+      return Promise.resolve()
+    })
+    Reflect.deleteProperty(globalThis.navigator, 'locks')
+
+    expect(held).toEqual([true])
+  })
+
+  it('refuses to clear a write that landed after the confirm count, and keeps it', async () => {
+    Object.defineProperty(globalThis.navigator, 'onLine', { value: false, configurable: true })
+    await drainForSignOut()
+    expect(await pendingWrites()).toBe(0)
+    const confirmed = await counted()
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+    const signOut = vi.fn(endSession)
+
+    const refused = await clearAll(confirmed, signOut).then(
+      () => null,
+      (cause: unknown) => cause,
+    )
+
+    expect(refused).toBeInstanceOf(UnsyncedWritesChanged)
+    expect((refused as UnsyncedWritesChanged).count).toBe(1)
+    expect(signOut).not.toHaveBeenCalled()
+    expect(await db.dailyEntries.count()).toBe(1)
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('refuses a write that landed after the confirm count even when the count stayed the same', async () => {
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+    const confirmed = await counted()
+    const [queued] = await db.outbox.toArray()
+    await db.outbox.delete(queued?.id ?? '')
+    await upsertDay(entry('2026-09-02', { steps: 5000 }))
+    const signOut = vi.fn(endSession)
+
+    const refused = await clearAll(confirmed, signOut).then(
+      () => null,
+      (cause: unknown) => cause,
+    )
+
+    expect(confirmed.count).toBe(1)
+    expect(await pendingWrites()).toBe(1)
+    expect(refused).toBeInstanceOf(UnsyncedWritesChanged)
+    expect(refused).toMatchObject({ count: 1, sequence: confirmed.sequence + 1 })
+    expect(signOut).not.toHaveBeenCalled()
+    expect(await getDay('2026-09-02')).toMatchObject({ steps: 5000 })
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('keeps this tab halted but lets the other tabs go when the count grew', async () => {
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+
+    await expect(clearAll({ count: 0, sequence: 0 }, endSession)).rejects.toBeInstanceOf(
+      UnsyncedWritesChanged,
+    )
+
+    expect(globalThis.localStorage.getItem(SIGN_OUT_MARKER)).toBeNull()
+    expect(await syncNow()).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
+  })
+
+  it('counts the failed writes when it checks the confirm count', async () => {
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+    const queued = await db.outbox.toArray()
+    await moveToDeadLetters(queued[0]?.id ?? '', '42501', 'rls', Date.now())
+
+    const sequence = await outboxSequence()
+
+    await expect(clearAll({ count: 0, sequence }, endSession)).rejects.toBeInstanceOf(
+      UnsyncedWritesChanged,
+    )
+    await expect(clearAll({ count: 1, sequence }, endSession)).resolves.toBe('signed out')
+  })
+
+  it('leaves the sign-out marker for the other tabs once the device is cleared', async () => {
+    await clearAll(await counted(), endSession)
+
+    expect(globalThis.localStorage.getItem(SIGN_OUT_MARKER)).not.toBeNull()
+  })
+
+  it('removes its sign-out marker when the clear fails', async () => {
+    vi.spyOn(db, 'transaction').mockRejectedValueOnce(new Error('locked'))
+
+    await expect(clearAll(await counted(), endSession)).rejects.toThrow('locked')
+
+    expect(globalThis.localStorage.getItem(SIGN_OUT_MARKER)).toBeNull()
   })
 
   afterEach(() => {
@@ -599,17 +761,20 @@ describe('clearAll', () => {
     await upsertDay(entry('2026-09-01', { steps: 4000 }))
     await updateProfile({ step_goal: 9000 })
     await db.syncMeta.put({ key: 'pull_cursor_daily_entries', value: '2026-09-01T00:00:00.000Z' })
+    const queued = await db.outbox.toArray()
+    await moveToDeadLetters(queued[0]?.id ?? '', '42501', 'rls', Date.now())
 
-    await clearAll()
+    await clearAll(await counted(), endSession)
 
     expect(await db.dailyEntries.count()).toBe(0)
     expect(await db.profiles.count()).toBe(0)
     expect(await db.outbox.count()).toBe(0)
+    expect(await db.deadLetters.count()).toBe(0)
     expect(await db.syncMeta.count()).toBe(0)
   })
 
   it('halts the sync worker so it cannot write the old rows back', async () => {
-    await clearAll()
+    await clearAll(await counted(), endSession)
 
     expect(await syncNow()).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
   })
@@ -617,13 +782,13 @@ describe('clearAll', () => {
   it('lets the worker run again when the clear itself fails', async () => {
     vi.spyOn(db, 'transaction').mockRejectedValueOnce(new Error('locked'))
 
-    await expect(clearAll()).rejects.toThrow('locked')
+    await expect(clearAll(await counted(), endSession)).rejects.toThrow('locked')
 
     expect(await syncNow()).toMatchObject({ status: 'error', error: 'no network in a unit test' })
   })
 
   it('re-exports resumeSync so a failed sign-out can restart the worker', async () => {
-    await clearAll()
+    await clearAll(await counted(), endSession)
     resumeFromRepository()
 
     expect(await syncNow()).toMatchObject({ status: 'error', error: 'no network in a unit test' })
@@ -632,7 +797,7 @@ describe('clearAll', () => {
   it('reads the default profile once the device is cleared', async () => {
     await updateProfile({ step_goal: 9000 })
 
-    await clearAll()
+    await clearAll(await counted(), endSession)
 
     expect((await getProfile()).step_goal).toBe(12000)
   })
@@ -644,5 +809,40 @@ describe('pendingWrites', () => {
     await updateProfile({ step_goal: 9000 })
 
     expect(await pendingWrites()).toBe(2)
+  })
+})
+
+describe('the dead letters', () => {
+  it('counts, lists, retries and discards the writes that failed for good', async () => {
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+    await upsertDay(entry('2026-09-02', { steps: 5000 }))
+    const [first, second] = await db.outbox.orderBy('sequence').toArray()
+    await moveToDeadLetters(first?.id ?? '', '42501', 'rls', Date.now())
+    await moveToDeadLetters(second?.id ?? '', '23514', 'check', Date.now())
+
+    expect(await failedWrites()).toBe(2)
+    expect((await listDeadLetters()).map((letter) => letter.error_code)).toEqual(['42501', '23514'])
+
+    await retryDeadLetter(first?.id ?? '')
+    await discardDeadLetter(second?.id ?? '')
+
+    expect(await failedWrites()).toBe(0)
+    expect(await pendingWrites()).toBe(1)
+    expect((await getDay('2026-09-02'))?.steps).toBe(5000)
+  })
+})
+
+describe('drainForSignOut', () => {
+  afterEach(() => {
+    resumeSync()
+    globalThis.localStorage.clear()
+  })
+
+  it('halts the worker once the sign-out drain is done', async () => {
+    Object.defineProperty(globalThis.navigator, 'onLine', { value: false, configurable: true })
+
+    await drainForSignOut()
+
+    expect(await syncNow()).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
   })
 })

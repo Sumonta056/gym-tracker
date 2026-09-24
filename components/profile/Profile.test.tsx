@@ -2,30 +2,47 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { readSignedInEmail, signOut } from '../../lib/auth/browser'
+import { readSignedInEmail, SIGN_OUT_FAILED, signOut } from '../../lib/auth/browser'
 import { db } from '../../lib/db/dexie'
 import {
   clearAll,
+  discardDeadLetter,
+  drainForSignOut,
+  failedWrites,
   getProfile,
   haltSync,
   pendingWrites,
   resumeSync,
+  retryDeadLetter,
   syncNow,
   updateProfile,
   upsertDay,
 } from '../../lib/db/repository'
 import { dailyEntrySchema } from '../../lib/schema/dailyEntry'
 
-import { CLEAR_FAILED, goToSignIn, Profile, READ_ERROR, SIGN_IN_PATH, UNIT_FAILED } from './Profile'
+import {
+  CLEAR_FAILED,
+  DEAD_LETTER_FAILED,
+  goToSignIn,
+  Profile,
+  READ_ERROR,
+  SIGN_IN_PATH,
+  UNIT_FAILED,
+} from './Profile'
 import { SAVE_FAILED } from './TargetsCard'
 
+import type * as Browser from '../../lib/auth/browser'
 import type * as Repository from '../../lib/db/repository'
 import type { SyncOutcome } from '../../lib/db/repository'
 
-vi.mock('../../lib/auth/browser', () => ({
-  readSignedInEmail: vi.fn(),
-  signOut: vi.fn(),
-}))
+vi.mock('../../lib/auth/browser', async (importOriginal) => {
+  const actual = await importOriginal<typeof Browser>()
+  return {
+    ...actual,
+    readSignedInEmail: vi.fn(),
+    signOut: vi.fn(),
+  }
+})
 
 vi.mock('../../lib/db/repository', async (importOriginal) => {
   const actual = await importOriginal<typeof Repository>()
@@ -35,7 +52,11 @@ vi.mock('../../lib/db/repository', async (importOriginal) => {
     clearAll: vi.fn(actual.clearAll),
     resumeSync: vi.fn(actual.resumeSync),
     haltSync: vi.fn(actual.haltSync),
+    drainForSignOut: vi.fn(),
     pendingWrites: vi.fn(actual.pendingWrites),
+    failedWrites: vi.fn(actual.failedWrites),
+    retryDeadLetter: vi.fn(actual.retryDeadLetter),
+    discardDeadLetter: vi.fn(actual.discardDeadLetter),
     getProfile: vi.fn(actual.getProfile),
     updateProfile: vi.fn(actual.updateProfile),
   }
@@ -54,8 +75,27 @@ async function tableCounts(): Promise<number[]> {
     db.dailyEntries.count(),
     db.profiles.count(),
     db.outbox.count(),
+    db.deadLetters.count(),
     db.syncMeta.count(),
   ])
+}
+
+async function refuseFirstWrite(): Promise<string> {
+  const first = await db.outbox.orderBy('sequence').first()
+
+  if (first === undefined) {
+    throw new Error('nothing is queued')
+  }
+
+  await db.deadLetters.put({
+    ...first,
+    attempts: 1,
+    last_error: 'row level security',
+    error_code: '42501',
+    failed_at: '2026-09-20T10:00:00.000Z',
+  })
+  await db.outbox.delete(first.id)
+  return first.id
 }
 
 beforeEach(async () => {
@@ -64,6 +104,7 @@ beforeEach(async () => {
     db.dailyEntries.clear(),
     db.profiles.clear(),
     db.outbox.clear(),
+    db.deadLetters.clear(),
     db.syncMeta.clear(),
   ])
   vi.mocked(readSignedInEmail).mockResolvedValue('sam@example.com')
@@ -73,6 +114,12 @@ beforeEach(async () => {
   vi.mocked(resumeSync).mockClear()
   vi.mocked(haltSync).mockClear()
   vi.mocked(pendingWrites).mockClear()
+  vi.mocked(failedWrites).mockClear()
+  vi.mocked(retryDeadLetter).mockClear()
+  vi.mocked(discardDeadLetter).mockClear()
+  vi.mocked(drainForSignOut).mockReset()
+  vi.mocked(drainForSignOut).mockImplementation(() => haltSync())
+  globalThis.localStorage.clear()
   Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true })
   vi.mocked(signOut).mockClear()
   vi.mocked(syncNow).mockResolvedValue(SYNCED)
@@ -182,6 +229,65 @@ describe('Profile', () => {
     expect(await screen.findByRole('button', { name: 'Sync now' })).toBeEnabled()
   })
 
+  it('lists a failed write, retries it, then syncs at once', async () => {
+    await seedEveryTable()
+    const id = await refuseFirstWrite()
+    render(<Profile />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry Sunday 20 September' }))
+
+    await waitFor(() => {
+      expect(syncNow).toHaveBeenCalledTimes(1)
+    })
+    expect(retryDeadLetter).toHaveBeenCalledWith(id)
+    expect(await db.deadLetters.count()).toBe(0)
+    expect(await db.outbox.get(id)).toBeDefined()
+  })
+
+  it('discards a failed write and keeps the day on the device', async () => {
+    await seedEveryTable()
+    const id = await refuseFirstWrite()
+    render(<Profile />)
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Discard Sunday 20 September' }),
+    )
+
+    await waitFor(async () => {
+      expect(await db.deadLetters.count()).toBe(0)
+    })
+    expect(discardDeadLetter).toHaveBeenCalledWith(id)
+    expect((await db.dailyEntries.toArray())[0]?.weight_kg).toBe(73.4)
+  })
+
+  it('says so when a failed write cannot be retried on this device', async () => {
+    await seedEveryTable()
+    await refuseFirstWrite()
+    vi.mocked(retryDeadLetter).mockRejectedValueOnce(new Error('locked'))
+    render(<Profile />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry Sunday 20 September' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(DEAD_LETTER_FAILED)
+    expect(syncNow).not.toHaveBeenCalled()
+  })
+
+  it('says so when a failed write cannot be discarded, and clears it on the next success', async () => {
+    await seedEveryTable()
+    await refuseFirstWrite()
+    vi.mocked(discardDeadLetter).mockRejectedValueOnce(new Error('locked'))
+    render(<Profile />)
+    const discard = await screen.findByRole('button', { name: 'Discard Sunday 20 September' })
+
+    await userEvent.click(discard)
+    expect(await screen.findByRole('alert')).toHaveTextContent(DEAD_LETTER_FAILED)
+
+    await userEvent.click(discard)
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+  })
+
   it('leaves the Phase 2 import card out while the flag is off', async () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_CSV_IMPORT', '')
     render(<Profile />)
@@ -198,9 +304,9 @@ describe('Profile', () => {
 
 describe('sign out', () => {
   function drainEverything(): void {
-    vi.mocked(syncNow).mockImplementation(async () => {
+    vi.mocked(drainForSignOut).mockImplementation(async () => {
       await db.outbox.clear()
-      return SYNCED
+      await haltSync()
     })
   }
 
@@ -219,9 +325,9 @@ describe('sign out', () => {
     await waitFor(() => {
       expect(redirect).toHaveBeenCalledTimes(1)
     })
-    expect(syncNow).toHaveBeenCalledTimes(1)
+    expect(drainForSignOut).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(await tableCounts()).toEqual([0, 0, 0, 0])
+    expect(await tableCounts()).toEqual([0, 0, 0, 0, 0])
   })
 
   it('halts the worker before it counts and clears, so no drain writes rows back', async () => {
@@ -233,7 +339,7 @@ describe('sign out', () => {
     await waitFor(() => {
       expect(clearAll).toHaveBeenCalledTimes(1)
     })
-    const halted = vi.mocked(haltSync).mock.invocationCallOrder[0] ?? Infinity
+    const halted = vi.mocked(drainForSignOut).mock.invocationCallOrder[0] ?? Infinity
     const counted = vi.mocked(pendingWrites).mock.invocationCallOrder[0] ?? -Infinity
     expect(halted).toBeLessThan(counted)
   })
@@ -269,8 +375,8 @@ describe('sign out', () => {
     await waitFor(() => {
       expect(redirect).toHaveBeenCalledTimes(1)
     })
-    expect(countsAtSignOut).toEqual([0, 0, 0, 0])
-    expect(await tableCounts()).toEqual([0, 0, 0, 0])
+    expect(countsAtSignOut).toEqual([0, 0, 0, 0, 0])
+    expect(await tableCounts()).toEqual([0, 0, 0, 0, 0])
   })
 
   it('keeps everything and resumes sync on cancel', async () => {
@@ -291,7 +397,7 @@ describe('sign out', () => {
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeEnabled()
   })
 
-  it('skips the drain offline and goes straight to the confirm sheet', async () => {
+  it('goes to the confirm sheet offline, with no manual drain', async () => {
     Object.defineProperty(globalThis.navigator, 'onLine', { value: false, configurable: true })
     await seedEveryTable()
     render(<Profile redirect={vi.fn()} />)
@@ -301,6 +407,94 @@ describe('sign out', () => {
 
     expect(await screen.findByRole('button', { name: 'Sign out and lose 2 writes' })).toBeVisible()
     expect(syncNow).not.toHaveBeenCalled()
+  })
+
+  it('counts the failed writes in the confirm sheet, as sign-out deletes them too', async () => {
+    await seedEveryTable()
+    await refuseFirstWrite()
+    render(<Profile redirect={vi.fn()} />)
+
+    await pressSignOut()
+
+    expect(await screen.findByRole('button', { name: 'Sign out and lose 2 writes' })).toBeVisible()
+    expect(failedWrites).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks again with the new count when a write lands after the confirm count', async () => {
+    await seedEveryTable()
+    const redirect = vi.fn()
+    render(<Profile redirect={redirect} />)
+
+    await pressSignOut()
+    const first = await screen.findByRole('button', { name: 'Sign out and lose 2 writes' })
+    await upsertDay(dailyEntrySchema.parse({ entry_date: '2026-09-21', steps: 4000 }))
+    await userEvent.click(first)
+
+    expect(await screen.findByRole('button', { name: 'Sign out and lose 3 writes' })).toBeVisible()
+    expect(redirect).not.toHaveBeenCalled()
+    expect(signOut).not.toHaveBeenCalled()
+    expect(await db.dailyEntries.count()).toBe(2)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out and lose 3 writes' }))
+
+    await waitFor(() => {
+      expect(redirect).toHaveBeenCalledTimes(1)
+    })
+    expect(await tableCounts()).toEqual([0, 0, 0, 0, 0])
+  })
+
+  it('asks again when another tab swaps a synced write for a new one, so the count stays the same', async () => {
+    await seedEveryTable()
+    const redirect = vi.fn()
+    render(<Profile redirect={redirect} />)
+
+    await pressSignOut()
+    const first = await screen.findByRole('button', { name: 'Sign out and lose 2 writes' })
+    const synced = await db.outbox.orderBy('sequence').first()
+    await db.outbox.delete(synced?.id ?? '')
+    await upsertDay(dailyEntrySchema.parse({ entry_date: '2026-09-21', steps: 4000 }))
+    await userEvent.click(first)
+
+    expect(await screen.findByRole('button', { name: 'Sign out and lose 2 writes' })).toBeVisible()
+    expect(signOut).not.toHaveBeenCalled()
+    expect(redirect).not.toHaveBeenCalled()
+    expect(await db.dailyEntries.count()).toBe(2)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out and lose 2 writes' }))
+
+    await waitFor(() => {
+      expect(redirect).toHaveBeenCalledTimes(1)
+    })
+    expect(await tableCounts()).toEqual([0, 0, 0, 0, 0])
+  })
+
+  it('clears the failed writes with the rest of the device', async () => {
+    await seedEveryTable()
+    await refuseFirstWrite()
+    const redirect = vi.fn()
+    render(<Profile redirect={redirect} />)
+
+    await pressSignOut()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign out and lose 2 writes' }))
+
+    await waitFor(() => {
+      expect(redirect).toHaveBeenCalledTimes(1)
+    })
+    expect(await tableCounts()).toEqual([0, 0, 0, 0, 0])
+  })
+
+  it('tells the truth when the device is cleared but the sign-out fails', async () => {
+    await seedEveryTable()
+    drainEverything()
+    vi.mocked(signOut).mockResolvedValue({ status: 'error', message: SIGN_OUT_FAILED })
+    render(<Profile redirect={vi.fn()} />)
+
+    await pressSignOut()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('comes back from the server until the sign-out succeeds')
+    expect(await tableCounts()).toEqual([0, 0, 0, 0, 0])
+    expect(resumeSync).toHaveBeenCalledTimes(1)
   })
 
   it('stays on the page and says why when the session cannot be ended', async () => {
@@ -362,9 +556,9 @@ describe('sign out', () => {
 
   it('resumes sync when the screen unmounts while the sign-out drain still runs', async () => {
     await seedEveryTable()
-    let release: (outcome: SyncOutcome) => void = () => undefined
-    vi.mocked(syncNow).mockReturnValue(
-      new Promise<SyncOutcome>((resolve) => {
+    let release: () => void = () => undefined
+    vi.mocked(drainForSignOut).mockReturnValue(
+      new Promise<void>((resolve) => {
         release = resolve
       }),
     )
@@ -373,12 +567,12 @@ describe('sign out', () => {
     await pressSignOut()
     unmount()
     vi.mocked(resumeSync).mockClear()
-    release(SYNCED)
+    release()
 
     await waitFor(() => {
       expect(resumeSync).toHaveBeenCalledTimes(1)
     })
-    expect(haltSync).toHaveBeenCalledTimes(1)
+    expect(drainForSignOut).toHaveBeenCalledTimes(1)
   })
 
   it('leaves sync halted when the screen unmounts after the clear', async () => {
@@ -438,7 +632,7 @@ describe('sign out', () => {
     await waitFor(() => {
       expect(redirect).toHaveBeenCalledTimes(1)
     })
-    expect(syncNow).toHaveBeenCalledTimes(1)
+    expect(drainForSignOut).toHaveBeenCalledTimes(1)
     expect(clearAll).toHaveBeenCalledTimes(1)
     expect(signOut).toHaveBeenCalledTimes(1)
   })

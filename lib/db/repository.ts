@@ -1,8 +1,8 @@
 import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { profileSchema } from '../schema/profile'
-import { append as enqueue } from '../sync/outbox'
-import { haltSync, resumeSync } from '../sync/worker'
+import { append as enqueue, lastSequence } from '../sync/outbox'
+import { endSigningOut, haltSync, markSigningOut, resumeSync, withDrainLock } from '../sync/worker'
 
 import { db, LOCAL_PROFILE_ID, NEVER_WRITTEN } from './dexie'
 
@@ -12,13 +12,20 @@ import type { ProfileInput } from '../schema/profile'
 
 export { LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY } from './dexie'
 
-export { useSyncStatus } from '../sync/useSyncStatus'
+export { useDeadLetters, useSyncStatus } from '../sync/useSyncStatus'
 
 export type { SyncStatus, SyncStatusReport } from '../sync/useSyncStatus'
 
-export { haltSync, resumeSync, startSync, sync as syncNow } from '../sync/worker'
+export { drainForSignOut, haltSync, resumeSync, startSync, sync as syncNow } from '../sync/worker'
 
-export { pendingCount as pendingWrites } from '../sync/outbox'
+export { lastSequence as outboxSequence, pendingCount as pendingWrites } from '../sync/outbox'
+
+export {
+  deadLetterCount as failedWrites,
+  discardDeadLetter,
+  listDeadLetters,
+  retryDeadLetter,
+} from '../sync/deadLetters'
 
 export type { SyncOutcome } from '../sync/worker'
 
@@ -186,20 +193,60 @@ export async function updateProfile(patch: Partial<Profile>): Promise<Profile> {
   })
 }
 
-export async function clearAll(): Promise<void> {
+export interface ConfirmedWrites {
+  count: number
+  sequence: number
+}
+
+export class UnsyncedWritesChanged extends Error {
+  constructor(
+    readonly count: number,
+    readonly sequence: number,
+  ) {
+    super(`${String(count)} unsynced writes wait on this device`)
+    this.name = 'UnsyncedWritesChanged'
+  }
+}
+
+export async function clearAll<T>(
+  confirmed: ConfirmedWrites,
+  endSession: () => Promise<T>,
+): Promise<T> {
   await haltSync()
+  markSigningOut()
 
   try {
-    await db.transaction('rw', db.dailyEntries, db.profiles, db.outbox, db.syncMeta, async () => {
-      await Promise.all([
-        db.dailyEntries.clear(),
-        db.profiles.clear(),
-        db.outbox.clear(),
-        db.syncMeta.clear(),
-      ])
+    return await withDrainLock(async () => {
+      await db.transaction(
+        'rw',
+        [db.dailyEntries, db.profiles, db.outbox, db.deadLetters, db.syncMeta],
+        async () => {
+          const count = (await db.outbox.count()) + (await db.deadLetters.count())
+          const sequence = await lastSequence()
+
+          if (count > confirmed.count || sequence > confirmed.sequence) {
+            throw new UnsyncedWritesChanged(count, sequence)
+          }
+
+          await Promise.all([
+            db.dailyEntries.clear(),
+            db.profiles.clear(),
+            db.outbox.clear(),
+            db.deadLetters.clear(),
+            db.syncMeta.clear(),
+          ])
+        },
+      )
+
+      return endSession()
     })
   } catch (cause) {
-    resumeSync()
+    if (cause instanceof UnsyncedWritesChanged) {
+      endSigningOut()
+    } else {
+      resumeSync()
+    }
+
     throw cause
   }
 }
