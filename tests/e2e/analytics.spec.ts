@@ -84,45 +84,60 @@ test('reads the weight trend outside the canvas, on the style guide sample', asy
   ).toBeAttached()
 })
 
-for (const width of [320, 390]) {
-  test(`keeps every chart label apart and inside its chart at ${String(width)} px, on both style guide samples`, async ({
+const LABEL_CHECKS = [
+  { width: 320, grids: ['analytics-grid', 'analytics-grid-one-day'] },
+  { width: 390, grids: ['analytics-grid', 'analytics-grid-one-day', 'analytics-grid-heavy'] },
+  { width: 430, grids: ['analytics-grid', 'analytics-grid-one-day', 'analytics-grid-heavy'] },
+]
+
+async function labelProblems(page: Page, grids: readonly string[]): Promise<string[]> {
+  return page.evaluate((ids) => {
+    const found: string[] = []
+    const selector = ids.map((id) => `[data-testid="${id}"] [role="img"] svg`).join(', ')
+    for (const svg of document.querySelectorAll(selector)) {
+      const texts = Array.from(svg.querySelectorAll('text'))
+        .filter((node) => node.textContent.trim() !== '')
+        .map((node) => ({ text: node.textContent, box: node.getBoundingClientRect() }))
+      const frame = svg.getBoundingClientRect()
+      texts.forEach((one, index) => {
+        if (one.box.right > frame.right + 0.5 || one.box.left < frame.left - 0.5) {
+          found.push(`clipped ${one.text}`)
+        }
+        for (const other of texts.slice(index + 1)) {
+          const apart =
+            one.box.right <= other.box.left + 0.5 ||
+            other.box.right <= one.box.left + 0.5 ||
+            one.box.bottom <= other.box.top + 0.5 ||
+            other.box.bottom <= one.box.top + 0.5
+          if (!apart) {
+            found.push(`${one.text} overlaps ${other.text}`)
+          }
+        }
+      })
+    }
+    return found
+  }, grids)
+}
+
+for (const { width, grids } of LABEL_CHECKS) {
+  test(`keeps every chart label apart and inside its chart at ${String(width)} px, on ${grids.join(', ')}`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 })
     await page.goto('/styleguide')
     await chartBoxes(page)
 
-    const problems = await page.evaluate(() => {
-      const found: string[] = []
-      for (const svg of document.querySelectorAll(
-        '[data-testid^="analytics-grid"] [role="img"] svg',
-      )) {
-        const texts = Array.from(svg.querySelectorAll('text'))
-          .filter((node) => node.textContent.trim() !== '')
-          .map((node) => ({ text: node.textContent, box: node.getBoundingClientRect() }))
-        const frame = svg.getBoundingClientRect()
-        texts.forEach((one, index) => {
-          if (one.box.right > frame.right + 0.5 || one.box.left < frame.left - 0.5) {
-            found.push(`clipped ${one.text}`)
-          }
-          for (const other of texts.slice(index + 1)) {
-            const apart =
-              one.box.right <= other.box.left + 0.5 ||
-              other.box.right <= one.box.left + 0.5 ||
-              one.box.bottom <= other.box.top + 0.5 ||
-              other.box.bottom <= one.box.top + 0.5
-            if (!apart) {
-              found.push(`${one.text} overlaps ${other.text}`)
-            }
-          }
-        })
-      }
-      return found
-    })
-
-    expect(problems).toEqual([])
+    expect(await labelProblems(page, grids)).toEqual([])
   })
 }
+
+test('keeps the five character step labels of a heavy week apart at 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.goto('/styleguide')
+  await chartBoxes(page)
+
+  expect(await labelProblems(page, ['analytics-grid-heavy'])).toEqual([])
+})
 
 test('shows the not enough data state on the one logged day sample', async ({ page }) => {
   await page.goto('/styleguide')

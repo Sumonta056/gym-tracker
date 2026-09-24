@@ -5,16 +5,16 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.15 → `docs/plan/phase-1/S1.15-*.md`
+**Next step:** 1.16 → `docs/plan/phase-1/S1.16-*.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** the 1.14 motion pass, on top of `713cdd9`.
+**Last commit:** the 1.15 responsive and access pass, on top of `fca16b9`.
 Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 
 ## Resume here
 
-- Stopped on 2026-09-24 after 1.14. Start 1.15 in a new session.
-- The report is `reports/2026-09-24-motion-pass.html`.
-- Left in Phase 1: 1.15, 1.16, 1.17. The next stop is Checkpoint D,
+- Stopped on 2026-09-24 after 1.15. Start 1.16 in a new session.
+- The report is `reports/2026-09-24-responsive-a11y-pass.html`.
+- Left in Phase 1: 1.16, 1.16b, 1.17. The next stop is Checkpoint D,
   after 1.17. It needs a real iPhone and a Vercel account.
 - Run each step in a fresh subagent. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
@@ -36,21 +36,23 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
   clear and the server sign-out, with a 15 s marker for other tabs. From 1.13b.
 - **Motion lives in `components/motion/`.** Chart labels fade in on every chart, bars too.
   The durations are in the design-system skill's Motion section. From 1.14.
+- **The recipe wins over the prototype**, unless the recipe is wrong for real use.
+  `NumberField` keeps `decimal`. The `/log` two-column form and the Phase 1 tab bar are
+  named exceptions in `responsive.md`. A bar chart's goal label sits inside the plot. From 1.15.
 
 ## Open, with the step that closes each one
 
-- **1.15** — `app/styleguide/page.test.tsx` runs 12 s and can pass the 5 s test timeout
-  under coverage load. It did so before 1.14 too. From 1.14.
 - **1.16** — the page transition and the live dashboard count-up have no e2e test.
   They need the signed-in fixture. From 1.14.
-
-- **1.15** — `clearAll` waits on `DRAIN_LOCK` with no timeout. The dead-letter cap resets
+- **1.16b** — `clearAll` waits on `DRAIN_LOCK` with no timeout. The dead-letter cap resets
   each turn. A save in another tab after the clear, before sign-out ends, stays. From 1.13b.
-- **1.15** — a re-sign-in within 15 s of a sign-out waits for its first sync. With no Web
+- **1.16b** — a re-sign-in within 15 s of a sign-out waits for its first sync. With no Web
   Locks and a blocked `localStorage`, another tab can refill the device. From 1.13b.
 - **Owner** — the prototype sync card lacks the failed-writes rows. From 1.13b.
 - **1.16** — no signed-in Playwright fixture, so `/log` offline is untested. From 1.9.
-- **1.15** — `StatusChip` frame and `SecondaryButton` size drift from their recipes. From 1.13.
+- **1.16** — `/sign-in`, `/styleguide` and `/~offline` pass the seven widths and axe live. The
+  four signed-in routes pass only through samples. Re-run both specs on them. From 1.15.
+- **Owner** — `/log` shows its chip only when offline. The recipe wants `SyncChip`. From 1.15.
 - **Owner** — `/log` takes weight in kg only. The imperial setting is display only elsewhere.
   From 1.13.
 - **1.16** — `/`, `/log` and `/analytics` are proven at three widths only through
@@ -59,7 +61,7 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 ## Phases
 
 - [x] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
-- [ ] Phase 1 — Daily tracker (18 steps, 15 done) · `docs/plan/phase-1/index.md`
+- [ ] Phase 1 — Daily tracker (19 steps, 16 done) · `docs/plan/phase-1/index.md`
 - [ ] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
 
 ## Rules that block you

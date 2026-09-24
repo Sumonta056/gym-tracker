@@ -12,13 +12,7 @@ import {
 
 import { colorTokens } from '../../lib/design/tokens'
 
-import {
-  AXIS_TICK,
-  LABEL_HALO,
-  REFERENCE_GUTTER,
-  REFERENCE_LABEL,
-  REFERENCE_STROKE,
-} from './chartStyle'
+import { AXIS_TICK, LABEL_HALO, REFERENCE_LABEL, REFERENCE_STROKE } from './chartStyle'
 import { dayTick, highestIndex, tickDates } from './rangeData'
 
 import type { DayPoint, RangeTab } from './rangeData'
@@ -55,26 +49,86 @@ export function drawnValue(value: number | null): number | null {
   return value !== null && value > 0 ? value : null
 }
 
+export type ReferencePlacement = 'above' | 'below' | 'band'
+
 export type ReferenceLabelProps = {
   viewBox?: { x?: number; y?: number; width?: number }
   text: string
+  placement?: ReferencePlacement
 }
 
-export function ReferenceLabel({ viewBox, text }: ReferenceLabelProps) {
-  const x = (viewBox?.x ?? 0) + (viewBox?.width ?? 0) + REFERENCE_GUTTER
+const PLOT_TOP = 18
+
+const AXIS_HEIGHT = 22
+
+const LABEL_BOX = 13
+
+const LABEL_PAD = 3
+
+const VALUE_LABEL_OFFSET = 5
+
+const LABEL_SPAN = 0.22
+
+const BAND_HEIGHT = 14
+
+const BAND_BASELINE = 11
+
+export function ReferenceLabel({ viewBox, text, placement = 'above' }: ReferenceLabelProps) {
+  const x = (viewBox?.x ?? 0) + (viewBox?.width ?? 0)
+  const line = viewBox?.y ?? 0
+  const below = placement === 'below'
+  const y = placement === 'band' ? BAND_BASELINE : below ? line + LABEL_PAD : line - LABEL_PAD
 
   return (
     <text
       className="reference-label"
       x={x}
-      y={viewBox?.y ?? 0}
-      dy="0.355em"
+      y={y}
+      dy={below ? '0.8em' : undefined}
       textAnchor="end"
       {...REFERENCE_LABEL}
+      stroke={LABEL_HALO.stroke}
+      strokeWidth={LABEL_HALO.strokeWidth}
+      strokeLinejoin={LABEL_HALO.strokeLinejoin}
+      paintOrder={LABEL_HALO.paintOrder}
     >
       {text}
     </text>
   )
+}
+
+type Box = { top: number; bottom: number }
+
+function overlaps(one: Box, other: Box): boolean {
+  return one.top < other.bottom && other.top < one.bottom
+}
+
+export function referencePlacement(
+  rows: readonly { value: number | null; label: string | null }[],
+  top: number,
+  reference: number,
+  height: number,
+): ReferencePlacement {
+  const plot = height - PLOT_TOP - AXIS_HEIGHT
+  const at = (value: number): number => PLOT_TOP + plot * (1 - value / top)
+  const line = at(reference)
+  const above = { top: line - LABEL_PAD - LABEL_BOX, bottom: line - LABEL_PAD }
+  const below = { top: line + LABEL_PAD, bottom: line + LABEL_PAD + LABEL_BOX }
+  const under = rows.slice(rows.length - Math.ceil(rows.length * LABEL_SPAN))
+  const values = under.flatMap((row) =>
+    row.value === null || row.label === null ? [] : [row.value],
+  )
+  const boxes = values.map((value) => {
+    const bottom = at(value) - VALUE_LABEL_OFFSET
+    return { top: bottom - LABEL_BOX, bottom }
+  })
+
+  if (!boxes.some((box) => overlaps(box, above))) return 'above'
+
+  const fitsBelow = below.bottom <= PLOT_TOP + plot
+  const clearBelow = !boxes.some((box) => overlaps(box, below))
+
+  return fitsBelow && clearBelow ? 'below' : 'band'
 }
 
 export function barRows(
@@ -125,6 +179,9 @@ export function DailyBars({
   const top = chartTop(days, dataKey, reference)
   const rows = barRows(days, dataKey, tab, formatValue, top)
   const radius = barRadius(days.length)
+  const placement =
+    reference === null ? null : referencePlacement(rows, top, reference.value, height)
+  const plotTop = placement === 'band' ? PLOT_TOP + BAND_HEIGHT : PLOT_TOP
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -133,7 +190,7 @@ export function DailyBars({
         accessibilityLayer={false}
         barCategoryGap={days.length > 7 ? '33%' : '18%'}
         maxBarSize={MAX_BAR_WIDTH}
-        margin={{ top: 18, right: reference === null ? 0 : REFERENCE_GUTTER, bottom: 0, left: 0 }}
+        margin={{ top: plotTop, right: 0, bottom: 0, left: 0 }}
       >
         <XAxis
           dataKey="date"
@@ -143,7 +200,7 @@ export function DailyBars({
           tick={AXIS_TICK}
           axisLine={false}
           tickLine={false}
-          height={22}
+          height={AXIS_HEIGHT}
         />
         <YAxis hide domain={[0, top]} />
         <Bar
@@ -161,7 +218,7 @@ export function DailyBars({
             y={reference.value}
             {...REFERENCE_STROKE}
             ifOverflow="visible"
-            label={<ReferenceLabel text={reference.label} />}
+            label={<ReferenceLabel text={reference.label} placement={placement ?? 'above'} />}
           />
         )}
       </BarChart>

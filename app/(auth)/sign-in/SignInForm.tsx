@@ -59,7 +59,7 @@ export function SignInForm() {
           className="flex flex-col gap-2 text-center"
         >
           <MicroLabel as="p">Check your email</MicroLabel>
-          <p className="text-text text-base font-semibold">{sentTo}</p>
+          <p className="text-text min-w-0 text-base font-semibold break-words">{sentTo}</p>
           <p className="text-muted text-sm leading-relaxed">
             Open the link on the phone you want to log from. It signs you in and brings you straight
             back.
@@ -107,13 +107,13 @@ export function SignInForm() {
         </PrimaryButton>
       </form>
 
-      <p className="text-muted text-center text-sm">
+      <p className="text-muted text-center text-[13px]">
         No password. The link signs you in for 30 days.
       </p>
 
       <Card className="mt-2 flex flex-col gap-2">
         <MicroLabel as="p">Install on iPhone</MicroLabel>
-        <p className="text-muted text-sm leading-relaxed">
+        <p className="text-muted text-[13px] leading-relaxed">
           Open in Safari, tap <span className="text-text font-semibold">Share</span>, then{' '}
           <span className="text-text font-semibold">Add to Home Screen</span>. The app then opens
           full screen and logs offline.
@@ -125,10 +125,10 @@ export function SignInForm() {
 
 function SignInHeader() {
   return (
-    <div className="flex flex-col items-center text-center">
+    <div className="mb-2 flex flex-col items-center text-center">
       <BrandMark className="mb-[18px]" />
       <h1 className="text-text text-[23px] font-bold tracking-[-0.6px]">Gym Tracker</h1>
-      <p className="text-muted mt-2 text-sm">One log. Works with no signal in the gym.</p>
+      <p className="text-muted mt-2 text-[13px]">One log. Works with no signal in the gym.</p>
     </div>
   )
 }

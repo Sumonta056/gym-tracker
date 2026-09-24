@@ -19,7 +19,7 @@ describe('DashboardHeader', () => {
 
   it('shows the sync chip beside the avatar', () => {
     render(<DashboardHeader date="2026-09-13" displayName="Sumonta" />)
-    expect(screen.getByRole('status')).toHaveTextContent('SYNCED')
+    expect(screen.getByRole('status')).toHaveTextContent('Synced')
   })
 
   it('gives the avatar a 44 px target', () => {

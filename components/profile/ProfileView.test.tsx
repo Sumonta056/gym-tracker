@@ -113,7 +113,7 @@ describe('ProfileView', () => {
 
   it('announces the sync state once, from the header chip', () => {
     renderView()
-    const chips = screen.getAllByRole('status').filter((node) => node.textContent === 'SYNCED')
+    const chips = screen.getAllByRole('status').filter((node) => node.textContent === 'Synced')
     expect(chips).toHaveLength(1)
   })
 

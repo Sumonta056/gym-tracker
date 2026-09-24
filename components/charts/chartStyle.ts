@@ -33,6 +33,4 @@ export const REFERENCE_LABEL = {
   fontWeight: 600,
 }
 
-export const REFERENCE_GUTTER = 58
-
 export const END_LABEL_GUTTER = 34

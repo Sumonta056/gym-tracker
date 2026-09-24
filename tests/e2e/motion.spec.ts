@@ -57,7 +57,7 @@ test.describe('with reduced motion set', () => {
   test('shows the final hero value at once', async ({ page }) => {
     await page.goto('/styleguide')
 
-    const hero = page.getByTestId('count-up-value')
+    const hero = page.getByTestId('count-up-value').first()
     await expect(hero).toHaveText(HERO_VALUE)
     await expect(hero).toHaveCSS('opacity', '1')
     await expect(page.getByTestId('count-up-display')).toHaveCount(0)
@@ -89,7 +89,7 @@ test.describe('with motion allowed', () => {
     await page.goto('/styleguide')
 
     await expect(page.getByTestId('count-up-display')).toHaveCount(0)
-    const hero = page.getByTestId('count-up-value')
+    const hero = page.getByTestId('count-up-value').first()
     await expect(hero).toHaveText(HERO_VALUE)
     await expect(hero).toHaveCSS('opacity', '1')
   })

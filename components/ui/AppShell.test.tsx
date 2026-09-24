@@ -38,6 +38,19 @@ describe('AppShell', () => {
     expect(sidebar).toHaveClass('lg:w-60')
   })
 
+  it('pins the sidebar to the viewport, so it stays in view on a long page', () => {
+    setup()
+    const sidebar = screen.getByRole('navigation', { name: 'Sidebar' })
+    expect(sidebar).toHaveClass('lg:sticky', 'lg:top-0', 'lg:h-dvh', 'lg:overflow-y-auto')
+  })
+
+  it('sets the page title at the screen title size: 23 px, bold, tight tracking', () => {
+    setup()
+    const title = screen.getByRole('heading', { level: 1, name: 'Today' })
+    expect(title).toHaveClass('text-[23px]', 'font-bold', 'tracking-[-0.6px]')
+    expect(title).not.toHaveClass('text-2xl')
+  })
+
   it('renders a bottom bar that hides at the large breakpoint', () => {
     setup()
     const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })

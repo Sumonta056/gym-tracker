@@ -13,11 +13,12 @@ test('parses a duration in the browser, with no network and no server round trip
   await page.goto('/styleguide')
   await context.setOffline(true)
 
-  const field = page.getByLabel('Gym time')
+  const sample = page.getByTestId('duration-sample')
+  const field = sample.getByLabel('Gym time')
   await field.fill('72m')
 
-  await expect(page.getByText('Stored seconds: 4320')).toBeVisible()
-  await expect(page.getByText('1:12:00 · 1h 12m')).toBeVisible()
+  await expect(sample.getByText('Stored seconds: 4320')).toBeVisible()
+  await expect(sample.getByText('1:12:00 · 1h 12m')).toBeVisible()
 
   await context.setOffline(false)
 })

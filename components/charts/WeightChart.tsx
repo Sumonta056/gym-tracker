@@ -94,6 +94,18 @@ export function weightRows(days: readonly DayPoint[]): WeightRow[] {
   }))
 }
 
+const RANGE_AXIS_WIDTH = 30
+
+const RANGE_AXIS_FITS = 4
+
+const RANGE_AXIS_PER_CHARACTER = 7
+
+export function rangeAxisWidth(labels: readonly string[]): number {
+  const longest = Math.max(RANGE_AXIS_FITS, ...labels.map((label) => label.length))
+
+  return RANGE_AXIS_WIDTH + (longest - RANGE_AXIS_FITS) * RANGE_AXIS_PER_CHARACTER
+}
+
 export function weightLegend(averages: readonly number[]): LegendItem[] {
   const legend: LegendItem[] = [{ name: 'Weight', dot: 'bg-data-violet/50' }]
 
@@ -109,6 +121,7 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
   const latest = weights.at(-1)
   const color = colorTokens['data-violet']
   const drawAverage = averages.length >= 2
+  const rangeTicks = [...new Set([Math.min(...weights), Math.max(...weights)])]
 
   return (
     <ChartCard
@@ -143,8 +156,8 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
             padding={{ left: 10, right: 10 }}
           />
           <YAxis
-            width={30}
-            ticks={[...new Set([Math.min(...weights), Math.max(...weights)])]}
+            width={rangeAxisWidth(rangeTicks.map(formatKg))}
+            ticks={rangeTicks}
             tickFormatter={formatKg}
             tick={RANGE_TICK}
             axisLine={false}

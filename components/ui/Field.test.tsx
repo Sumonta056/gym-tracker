@@ -45,6 +45,23 @@ describe('Field', () => {
     expect(screen.getByText('kg')).toHaveAttribute('aria-hidden', 'true')
   })
 
+  it('names the input with its unit, since the visible unit is hidden from assistive technology', () => {
+    render(<Field label="Weight" adornment="kg" />)
+    expect(screen.getByRole('textbox', { name: 'Weight, kg' })).toBeInTheDocument()
+  })
+
+  it('leaves the name alone when there is no unit', () => {
+    render(<Field label="Weight" />)
+    expect(screen.getByRole('textbox', { name: 'Weight' })).toBeInTheDocument()
+  })
+
+  it('sets the input at the recipe padding and a lighter placeholder', () => {
+    render(<Field label="Weight" />)
+    const input = screen.getByLabelText('Weight')
+    expect(input).toHaveClass('px-3.5', 'placeholder:font-medium')
+    expect(input).not.toHaveClass('px-4')
+  })
+
   it('takes an id from its caller', () => {
     render(<Field label="Weight" id="given" />)
     expect(screen.getByLabelText('Weight')).toHaveAttribute('id', 'given')

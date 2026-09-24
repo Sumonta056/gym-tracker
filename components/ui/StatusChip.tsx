@@ -6,14 +6,13 @@ export type SyncStatus = 'synced' | 'offline' | 'syncing' | 'pending'
 type ChipStyle = {
   label: string
   dot: string
-  text: string
 }
 
 const CHIP: Record<SyncStatus, ChipStyle> = {
-  synced: { label: 'SYNCED', dot: 'bg-ok', text: 'text-ok' },
-  offline: { label: 'OFFLINE', dot: 'bg-warn', text: 'text-warn' },
-  syncing: { label: 'SYNCING', dot: 'bg-data-cyan', text: 'text-data-cyan' },
-  pending: { label: 'PENDING', dot: 'bg-muted', text: 'text-muted' },
+  synced: { label: 'Synced', dot: 'bg-ok' },
+  offline: { label: 'Offline', dot: 'bg-warn' },
+  syncing: { label: 'Syncing', dot: 'bg-data-cyan' },
+  pending: { label: 'Pending', dot: 'bg-muted' },
 }
 
 export type StatusChipProps = {
@@ -29,14 +28,12 @@ export function StatusChip({ status, announce = true, className }: StatusChipPro
     <span
       role={announce ? 'status' : undefined}
       className={cn(
-        'bg-surface-2 border-border inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1',
+        'bg-surface border-border inline-flex min-h-7 items-center gap-1.5 rounded-full border px-3',
         className,
       )}
     >
-      <span aria-hidden="true" className={cn('h-1.5 w-1.5 rounded-full', chip.dot)} />
-      <MicroLabel tone="inherit" className={cn('inline-block', chip.text)}>
-        {chip.label}
-      </MicroLabel>
+      <span aria-hidden="true" className={cn('size-1.5 shrink-0 rounded-full', chip.dot)} />
+      <MicroLabel className="inline-block">{chip.label}</MicroLabel>
     </span>
   )
 }

@@ -51,7 +51,7 @@ export function AppShell({
     <div className={cn('bg-ground text-text min-h-dvh w-full lg:flex', className)}>
       <nav
         aria-label="Sidebar"
-        className="border-border bg-surface hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-r lg:p-4"
+        className="border-border bg-surface hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:border-r lg:p-4"
       >
         <MicroLabel className="mb-3 px-3">Gym Tracker</MicroLabel>
         {items.map((item) => (
@@ -89,7 +89,9 @@ export function AppShell({
       <div className="flex w-full min-w-0 flex-1 flex-col">
         <main className="mx-auto w-full max-w-[1100px] px-5 pt-5 pb-[calc(env(safe-area-inset-bottom)+88px)] md:px-7 lg:pb-10">
           {title === undefined ? null : (
-            <h1 className="text-text mb-4 text-2xl font-extrabold">{title}</h1>
+            <h1 className="text-text mb-4 text-[23px] leading-tight font-bold tracking-[-0.6px]">
+              {title}
+            </h1>
           )}
           {transitionKey === undefined ? (
             children

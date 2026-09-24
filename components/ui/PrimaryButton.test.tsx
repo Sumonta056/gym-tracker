@@ -20,10 +20,23 @@ describe('PrimaryButton', () => {
     expect(screen.getByRole('button')).toHaveAttribute('type', 'submit')
   })
 
-  it('is 54 px tall with the accent fill and accent ink text', () => {
+  it('grows with a wrapped label instead of clipping it', () => {
+    render(<PrimaryButton>Log a set</PrimaryButton>)
+    expect(screen.getByRole('button')).not.toHaveClass('h-[54px]')
+  })
+
+  it('sets its label at the recipe size: 15 px, bold, tight tracking, 16 px sides', () => {
     render(<PrimaryButton>Log a set</PrimaryButton>)
     const button = screen.getByRole('button')
-    expect(button).toHaveClass('h-[54px]')
+    expect(button).toHaveClass('text-[15px]', 'font-bold', 'tracking-[-0.2px]', 'px-4', 'gap-2')
+    expect(button).toHaveClass('border', 'border-accent')
+    expect(button).not.toHaveClass('font-extrabold')
+  })
+
+  it('is at least 54 px tall with the accent fill and accent ink text', () => {
+    render(<PrimaryButton>Log a set</PrimaryButton>)
+    const button = screen.getByRole('button')
+    expect(button).toHaveClass('min-h-[54px]')
     expect(button).toHaveClass('bg-accent')
     expect(button).toHaveClass('text-accent-ink')
   })

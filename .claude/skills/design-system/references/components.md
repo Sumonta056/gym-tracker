@@ -191,7 +191,7 @@ only when both the outbox and the dead-letter table are empty. When a screen sho
 52 px tall, `rounded-input`, with the right phone keypad.
 
 ```tsx
-export function NumberField({ id, label, decimal = false, ...rest }: NumberFieldProps) {
+export function NumberField({ id, label, inputMode = 'decimal', ...rest }: NumberFieldProps) {
   return (
     <div>
       <label htmlFor={id}>
@@ -199,7 +199,7 @@ export function NumberField({ id, label, decimal = false, ...rest }: NumberField
       </label>
       <input
         id={id}
-        inputMode={decimal ? 'decimal' : 'numeric'}
+        inputMode={inputMode}
         className="rounded-input border-border bg-surface text-text placeholder:text-dim h-13 w-full border px-3.5 text-base font-semibold"
         {...rest}
       />
@@ -208,8 +208,12 @@ export function NumberField({ id, label, decimal = false, ...rest }: NumberField
 }
 ```
 
-- `inputMode` decides the keypad. `decimal` for weight, `numeric` for steps and heart
-  rate.
+- `inputMode` decides the keypad, and it **defaults to `decimal`**. Weight needs a
+  decimal point, and the iOS `numeric` keypad has none, so the safe default is the one
+  that can type every value.
+- Pass `inputMode="numeric"` only on a field that holds whole numbers. Today that is
+  heart rate, calories and steps on `/log`, and the step goal and height on
+  `/profile`.
 - Font size is 16 px or larger, or iOS Safari zooms the page on focus.
 - On an error: `aria-invalid` on the input, `aria-describedby` pointing at the message,
   and the message in `text-danger` with words, not colour alone.

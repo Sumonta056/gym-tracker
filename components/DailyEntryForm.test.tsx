@@ -152,9 +152,7 @@ describe('DailyEntryForm', () => {
     await renderForm()
     const weight = screen.getByLabelText('Weight (kg)')
     await userEvent.type(weight, '73.40')
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Increase the weight by 0.05 kilograms' }),
-    )
+    await userEvent.click(screen.getByRole('button', { name: '+0.05 kg, increase the weight' }))
     expect(weight).toHaveValue('73.45')
   })
 
@@ -162,9 +160,7 @@ describe('DailyEntryForm', () => {
     await renderForm()
     const weight = screen.getByLabelText('Weight (kg)')
     await userEvent.type(weight, '73.40')
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Decrease the weight by 0.05 kilograms' }),
-    )
+    await userEvent.click(screen.getByRole('button', { name: '−0.05 kg, decrease the weight' }))
     expect(weight).toHaveValue('73.35')
   })
 
@@ -172,17 +168,26 @@ describe('DailyEntryForm', () => {
     await renderForm()
     const weight = screen.getByLabelText('Weight (kg)')
     await userEvent.type(weight, '20.02')
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Decrease the weight by 0.05 kilograms' }),
-    )
+    await userEvent.click(screen.getByRole('button', { name: '−0.05 kg, decrease the weight' }))
     expect(weight).toHaveValue('20.00')
+  })
+
+  it('starts each nudge button name with its visible text, so voice control can find it', async () => {
+    await renderForm()
+    const names = [
+      ['−0.05', '−0.05 kg, decrease the weight'],
+      ['+0.05', '+0.05 kg, increase the weight'],
+    ] as const
+    for (const [visible, name] of names) {
+      const button = screen.getByRole('button', { name })
+      expect(button).not.toHaveAttribute('aria-label')
+      expect(button.textContent.startsWith(visible)).toBe(true)
+    }
   })
 
   it('leaves the nudge buttons disabled while the weight is empty', async () => {
     await renderForm()
-    expect(
-      screen.getByRole('button', { name: 'Increase the weight by 0.05 kilograms' }),
-    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: '+0.05 kg, increase the weight' })).toBeDisabled()
   })
 
   it('says why the nudge buttons are off while the weight is empty', async () => {
@@ -265,6 +270,20 @@ describe('DailyEntryForm', () => {
     ).toBeInTheDocument()
   })
 
+  it('heads the screen with its title and date only, as the prototype log top bar does', async () => {
+    await renderForm()
+    const header = screen.getByRole('banner')
+    expect(header).not.toHaveTextContent('Gym Tracker')
+    expect(screen.getByRole('heading', { level: 1, name: 'Log' })).not.toHaveClass('mt-2')
+  })
+
+  it('lays the gym time out before the walk time, as step 1.9 names them', async () => {
+    await renderForm()
+    const gym = screen.getByLabelText('Gym time')
+    const walk = screen.getByLabelText('Walk time')
+    expect(gym.compareDocumentPosition(walk) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('shows the parsed duration under the field as the user types', async () => {
     await renderForm()
     await userEvent.type(screen.getByLabelText('Gym time'), '72m')
@@ -273,7 +292,7 @@ describe('DailyEntryForm', () => {
 
   it('hides the offline chip while the network is up', async () => {
     await renderForm()
-    expect(screen.queryByText('OFFLINE')).not.toBeInTheDocument()
+    expect(screen.queryByText('Offline')).not.toBeInTheDocument()
   })
 
   it('shows the offline chip and says the data is safe when the network drops', async () => {
@@ -281,19 +300,19 @@ describe('DailyEntryForm', () => {
     setOnline(false)
     window.dispatchEvent(new Event('offline'))
 
-    expect(await screen.findByText('OFFLINE')).toBeInTheDocument()
+    expect(await screen.findByText('Offline')).toBeInTheDocument()
     expect(screen.getByText(/Saved on this phone first/)).toBeInTheDocument()
   })
 
   it('goes back to no chip when the network returns', async () => {
     setOnline(false)
     await renderForm()
-    expect(await screen.findByText('OFFLINE')).toBeInTheDocument()
+    expect(await screen.findByText('Offline')).toBeInTheDocument()
 
     setOnline(true)
     window.dispatchEvent(new Event('online'))
     await waitFor(() => {
-      expect(screen.queryByText('OFFLINE')).not.toBeInTheDocument()
+      expect(screen.queryByText('Offline')).not.toBeInTheDocument()
     })
   })
 

@@ -59,7 +59,7 @@ export function StatCard({
   return (
     <Card className={cn('flex flex-col gap-2', className)}>
       <MicroLabel>{label}</MicroLabel>
-      <p className="text-text flex items-baseline gap-1 text-[25px] leading-none font-extrabold">
+      <p className="text-text flex min-w-0 flex-wrap items-baseline gap-1 text-[25px] leading-none font-bold tracking-[-0.9px]">
         <span>{value}</span>
         {unit === undefined ? null : (
           <span className="text-muted text-xs font-semibold">{unit}</span>
@@ -70,10 +70,10 @@ export function StatCard({
         <div
           role="progressbar"
           aria-label={`${label} progress`}
-          aria-valuenow={Math.round(progress * 100)}
+          aria-valuenow={Math.round(Math.min(Math.max(progress, 0), 1) * 100)}
           aria-valuemin={0}
           aria-valuemax={100}
-          className="bg-surface-2 h-1.5 w-full overflow-hidden rounded-full"
+          className="bg-surface-2 h-[5px] w-full overflow-hidden rounded-full"
         >
           <div
             className={cn('h-full rounded-full', BAR_TONE[tone])}

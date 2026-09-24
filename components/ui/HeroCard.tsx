@@ -9,7 +9,7 @@ export type HeroCardProps = ComponentPropsWithoutRef<'section'> & {
 
 export function HeroCard({ label, className, children, ...rest }: HeroCardProps) {
   return (
-    <section className={cn('bg-accent text-accent-ink rounded-hero p-5', className)} {...rest}>
+    <section className={cn('bg-accent text-accent-ink rounded-hero p-4 pb-5', className)} {...rest}>
       {label === undefined ? null : <MicroLabel tone="accent-ink">{label}</MicroLabel>}
       {children}
     </section>

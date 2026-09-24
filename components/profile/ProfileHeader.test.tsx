@@ -17,7 +17,7 @@ describe('ProfileHeader', () => {
 
   it('shows the sync chip', () => {
     render(<ProfileHeader email={null} report={{ status: 'offline', pending: 0, failed: 0 }} />)
-    expect(screen.getByRole('status')).toHaveTextContent('OFFLINE')
+    expect(screen.getByRole('status')).toHaveTextContent('Offline')
   })
 
   it('leaves the email out when no session is known', () => {

@@ -6,7 +6,8 @@ import { useState } from 'react'
 import { AnalyticsHeader, AnalyticsView, RangeTabs } from '../../components/charts/Analytics'
 import { analyse } from '../../components/charts/rangeData'
 import { StepsChart } from '../../components/charts/StepsChart'
-import { nextWeight } from '../../components/DailyEntryForm'
+import { DailyEntryForm, nextWeight } from '../../components/DailyEntryForm'
+import { DashboardView } from '../../components/dashboard/Dashboard'
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader'
 import { HeartRateZonesCard } from '../../components/dashboard/HeartRateZonesCard'
 import { TodayHero } from '../../components/dashboard/TodayHero'
@@ -33,6 +34,7 @@ import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
 
 import type { RangeTab } from '../../components/charts/rangeData'
+import type { DashboardSummary } from '../../components/dashboard/summary'
 import type { DailyEntry, DeadLetter, Profile } from '../../lib/db/dexie'
 import type { UnitSystem } from '../../lib/schema/profile'
 import type { ReactNode } from 'react'
@@ -158,6 +160,36 @@ const SAMPLE_STEP_GOAL = 12000
 
 const SAMPLE_ONE_DAY = SAMPLE_STATS_ENTRIES.filter((row) => row.entry_date === SAMPLE_STATS_TODAY)
 
+const SAMPLE_HEAVY_ENTRIES: DailyEntry[] = SAMPLE_STATS_ENTRIES.map((row, index) => ({
+  ...row,
+  id: `00000000-0000-4000-8000-${String(index + 200).padStart(12, '0')}`,
+  weight_kg: 104.6 - index * 0.3,
+  calories_burnt: 1180 + index * 37,
+  steps: 12480 + index * 413,
+}))
+
+const SAMPLE_HEAVY_DAY: DailyEntry = {
+  ...SAMPLE_DAY,
+  gym_seconds: 5400,
+  weight_kg: 103.4,
+  steps: 13100,
+  calories_burnt: 1285,
+}
+
+const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
+  today: SAMPLE_HEAVY_DAY.entry_date,
+  entry: SAMPLE_HEAVY_DAY,
+  streak: 12,
+  zones: { warmSeconds: 600, fatBurnSeconds: 2700, cardioSeconds: 1680, peakSeconds: 420 },
+  week: { sessions: 6, gymSeconds: 25920, walkSeconds: 19440, calories: 7710, steps: 78600 },
+  weekRange: { from: '2026-09-07', to: '2026-09-13' },
+  stepGoal: 12000,
+  latestWeightKg: SAMPLE_HEAVY_DAY.weight_kg,
+  weightTrend: [104.6, 104.3, 104.1, 103.9, 103.4],
+  displayName: 'Sumonta',
+  unitSystem: 'metric',
+}
+
 function sampleStats(entries: DailyEntry[], tab: RangeTab) {
   return analyse(entries, entries, tab, SAMPLE_STATS_TODAY, SAMPLE_STATS_NOW, SAMPLE_STEP_GOAL)
 }
@@ -211,6 +243,15 @@ function Styleguide() {
   const [statsTab, setStatsTab] = useState<RangeTab>('week')
   const stats = sampleStats(SAMPLE_STATS_ENTRIES, statsTab)
   const oneDay = sampleStats(SAMPLE_ONE_DAY, statsTab)
+  const heavy = analyse(
+    SAMPLE_HEAVY_ENTRIES,
+    SAMPLE_HEAVY_ENTRIES,
+    statsTab,
+    SAMPLE_STATS_TODAY,
+    SAMPLE_STATS_NOW,
+    SAMPLE_STEP_GOAL,
+    'imperial',
+  )
   const [durationText, setDurationText] = useState(formatDuration(4325, 'clock'))
   const [nudgeWeight, setNudgeWeight] = useState(73.4)
   const [open, setOpen] = useState(false)
@@ -311,10 +352,14 @@ function Styleguide() {
           <DashboardHeader date="2026-09-13" displayName="Sumonta" />
         </Card>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <TodayHero entry={SAMPLE_DAY} streak={4} />
+          <TodayHero entry={SAMPLE_DAY} streak={4} name="Today, logged" />
           <TodayHero entry={undefined} streak={0} name="Today, empty state" />
           <HeartRateZonesCard zones={SAMPLE_ZONES} />
           <WeekTotalsCard totals={SAMPLE_WEEK} className="md:col-span-2 lg:col-span-3" />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">The full screen, a heavy day</h3>
+        <div className="mt-4" data-testid="dashboard-sample">
+          <DashboardView summary={SAMPLE_HEAVY_SUMMARY} />
         </div>
       </Section>
 
@@ -326,9 +371,17 @@ function Styleguide() {
         <AnalyticsView data={stats} />
         <h3 className="text-text mt-6 text-base font-bold">One logged day</h3>
         <AnalyticsView data={oneDay} testId="analytics-grid-one-day" />
+        <h3 className="text-text mt-6 text-base font-bold">A heavy week, in pounds</h3>
+        <AnalyticsView data={heavy} testId="analytics-grid-heavy" />
         <h3 className="text-text mt-6 text-base font-bold">Nothing logged</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           <StepsChart days={[]} tab="week" stepGoal={SAMPLE_STEP_GOAL} />
+        </div>
+      </Section>
+
+      <Section title="Daily log">
+        <div data-testid="log-sample">
+          <DailyEntryForm date="2026-09-13" />
         </div>
       </Section>
 
@@ -437,7 +490,7 @@ function Styleguide() {
 
       <Section title="Fields">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Card className="flex flex-col gap-4">
+          <Card className="flex flex-col gap-4" data-testid="number-sample">
             <NumberField label="Weight" unit="kg" placeholder="82.5" inputMode="decimal" />
             <NumberField label="Reps" inputMode="numeric" placeholder="8" />
             <NumberField
@@ -453,7 +506,7 @@ function Styleguide() {
               {showFieldError ? 'Hide the error state' : 'Show the error state'}
             </SecondaryButton>
           </Card>
-          <Card className="flex flex-col gap-4">
+          <Card className="flex flex-col gap-4" data-testid="duration-sample">
             <DurationField
               label="Gym time"
               value={durationText}
@@ -463,7 +516,7 @@ function Styleguide() {
             />
             <p className="text-muted text-xs">{`Stored seconds: ${storedSeconds === null ? 'none' : String(storedSeconds)}`}</p>
           </Card>
-          <Card className="flex flex-col gap-2">
+          <Card className="flex flex-col gap-2" data-testid="nudge-sample">
             <NumberField
               label="Weight (kg)"
               inputMode="decimal"
@@ -474,20 +527,18 @@ function Styleguide() {
             />
             <div className="grid grid-cols-2 gap-2">
               <SecondaryButton
-                aria-label="Decrease the weight by 0.05 kilograms"
                 onClick={() => {
                   setNudgeWeight(nextWeight(nudgeWeight, -1))
                 }}
               >
-                −0.05
+                −0.05 <span className="sr-only">kg, decrease the weight</span>
               </SecondaryButton>
               <SecondaryButton
-                aria-label="Increase the weight by 0.05 kilograms"
                 onClick={() => {
                   setNudgeWeight(nextWeight(nudgeWeight, 1))
                 }}
               >
-                +0.05
+                +0.05 <span className="sr-only">kg, increase the weight</span>
               </SecondaryButton>
             </div>
             <p className="text-muted text-xs">

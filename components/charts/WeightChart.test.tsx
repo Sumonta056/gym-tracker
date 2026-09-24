@@ -9,6 +9,7 @@ import { analyse } from './rangeData'
 import { DRAW_CLASS, LABEL_FADE_MS, LINE_DRAW_MS } from './useLineDraw'
 import {
   daysInUnit,
+  rangeAxisWidth,
   weightLabel,
   weightLegend,
   weightRows,
@@ -189,6 +190,24 @@ describe('daysInUnit', () => {
     expect(days[0]?.weightKg).toBeNull()
     expect(days[1]?.weightKg).toBeCloseTo(156.53, 2)
     expect(days[1]?.averageKg).toBeCloseTo(156.53, 2)
+  })
+})
+
+describe('rangeAxisWidth', () => {
+  it('keeps the 30 px axis for a four character weight', () => {
+    expect(rangeAxisWidth(['73.4', '74.6'])).toBe(30)
+  })
+
+  it('widens the axis for a five character weight, so its first digit is not cut off', () => {
+    expect(rangeAxisWidth(['223.3', '230.6'])).toBe(37)
+  })
+
+  it('widens the axis by the longest label only', () => {
+    expect(rangeAxisWidth(['99.5', '100.2'])).toBe(37)
+  })
+
+  it('keeps the 30 px axis when there is no label', () => {
+    expect(rangeAxisWidth([])).toBe(30)
   })
 })
 

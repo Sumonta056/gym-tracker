@@ -12,7 +12,15 @@ import {
   VALUE_LABELS,
 } from '../../tests/fixtures/recharts'
 
-import { barRadius, barRows, chartTop, DailyBars, drawnValue, ReferenceLabel } from './DailyBars'
+import {
+  barRadius,
+  barRows,
+  chartTop,
+  DailyBars,
+  drawnValue,
+  ReferenceLabel,
+  referencePlacement,
+} from './DailyBars'
 import { analyse } from './rangeData'
 
 vi.mock('recharts', async (importOriginal) => {
@@ -140,7 +148,7 @@ describe('drawnValue', () => {
 })
 
 describe('ReferenceLabel', () => {
-  it('ends the label at the right edge of the gutter, so a longer label grows to the left', () => {
+  it('ends the label at the right edge of the plot, inside it, so the chart needs no gutter', () => {
     const { container } = render(
       <svg>
         <ReferenceLabel viewBox={{ x: 0, y: 30, width: 262 }} text="goal 12.5k" />
@@ -148,8 +156,52 @@ describe('ReferenceLabel', () => {
     )
     const text = container.querySelector('.reference-label')
     expect(text).toHaveAttribute('text-anchor', 'end')
-    expect(text).toHaveAttribute('x', '320')
+    expect(text).toHaveAttribute('x', '262')
     expect(text).toHaveTextContent('goal 12.5k')
+  })
+
+  it('sits just above its line by default', () => {
+    const { container } = render(
+      <svg>
+        <ReferenceLabel viewBox={{ x: 0, y: 30, width: 262 }} text="goal 12k" />
+      </svg>,
+    )
+    const text = container.querySelector('.reference-label')
+    expect(text).toHaveAttribute('y', '27')
+    expect(text).not.toHaveAttribute('dy')
+  })
+
+  it('sits in the row above the plot when placed in the band', () => {
+    const { container } = render(
+      <svg>
+        <ReferenceLabel viewBox={{ x: 0, y: 60, width: 262 }} text="avg 706" placement="band" />
+      </svg>,
+    )
+    const text = container.querySelector('.reference-label')
+    expect(text).toHaveAttribute('y', '11')
+    expect(text).toHaveAttribute('x', '262')
+  })
+
+  it('hangs just below its line when placed below', () => {
+    const { container } = render(
+      <svg>
+        <ReferenceLabel viewBox={{ x: 0, y: 30, width: 262 }} text="goal 12k" placement="below" />
+      </svg>,
+    )
+    const text = container.querySelector('.reference-label')
+    expect(text).toHaveAttribute('y', '33')
+    expect(text).toHaveAttribute('dy', '0.8em')
+  })
+
+  it('carries the label halo, so it reads over a bar', () => {
+    const { container } = render(
+      <svg>
+        <ReferenceLabel viewBox={{ x: 0, y: 30, width: 262 }} text="avg 706" />
+      </svg>,
+    )
+    const text = container.querySelector('.reference-label')
+    expect(text).toHaveAttribute('stroke', colorTokens.surface)
+    expect(text).toHaveAttribute('paint-order', 'stroke')
   })
 
   it('draws at the origin when no view box is given', () => {
@@ -158,7 +210,156 @@ describe('ReferenceLabel', () => {
         <ReferenceLabel text="avg 5" />
       </svg>,
     )
-    expect(container.querySelector('.reference-label')).toHaveAttribute('y', '0')
+    expect(container.querySelector('.reference-label')).toHaveAttribute('x', '0')
+  })
+})
+
+describe('referencePlacement', () => {
+  const label = (value: number | null) => ({ value, label: value === null ? null : 'x' })
+
+  it('goes above the line when the bars at the right end sit well below it', () => {
+    const rows = [
+      label(12000),
+      label(4000),
+      label(4000),
+      label(4000),
+      label(4000),
+      label(3000),
+      label(3000),
+    ]
+    expect(referencePlacement(rows, 12000, 12000, 112)).toBe('above')
+  })
+
+  it('goes below the line when a value label at the right end would sit on it', () => {
+    const rows = [
+      label(16000),
+      label(9000),
+      label(9000),
+      label(9000),
+      label(4000),
+      label(4000),
+      label(11000),
+    ]
+    expect(referencePlacement(rows, 16000, 12000, 112)).toBe('below')
+  })
+
+  it('takes its own row at the top when a value label sits on each side of the line', () => {
+    const rows = [
+      label(13100),
+      label(11400),
+      label(6900),
+      label(12480),
+      label(8300),
+      label(13100),
+      label(9904),
+    ]
+    expect(referencePlacement(rows, 13100, 12000, 112)).toBe('band')
+  })
+
+  it('takes its own row at the top when below would run into the day labels', () => {
+    const rows = [
+      label(10000),
+      label(9000),
+      label(9000),
+      label(9000),
+      label(9000),
+      label(9000),
+      label(1500),
+    ]
+    expect(referencePlacement(rows, 10000, 1000, 112)).toBe('band')
+  })
+
+  it('ignores a bar with no value label, as a month bar that is not the highest', () => {
+    const rows = [
+      label(16000),
+      label(9000),
+      label(9000),
+      label(9000),
+      label(4000),
+      label(4000),
+      { value: 11000, label: null },
+    ]
+    expect(referencePlacement(rows, 16000, 12000, 112)).toBe('above')
+  })
+
+  it('goes above for an empty chart', () => {
+    expect(referencePlacement([], 1, 1, 112)).toBe('above')
+  })
+})
+
+describe('DailyBars, reference band', () => {
+  it('lowers the plot by one label row when the label takes the band', () => {
+    const steps = [9120, 11400, 6900, 12480, 8300, 13100, 9904]
+    const data = analyse(
+      steps.map((value, index) => entryOn(`2026-09-${String(21 + index)}`, { steps: value })),
+      [],
+      'week',
+      TODAY,
+      NOW,
+      12000,
+    )
+    const { container } = render(
+      <DailyBars
+        days={data.days}
+        dataKey="steps"
+        color={colorTokens['data-cyan']}
+        tab="week"
+        formatValue={compactNumber}
+        reference={{ value: 12000, label: 'goal 12k' }}
+      />,
+    )
+    const tops = Array.from(container.querySelectorAll('.recharts-bar-rectangle path')).map(
+      (path) => Number(path.getAttribute('y')),
+    )
+    expect(Math.min(...tops)).toBe(32)
+    expect(container.querySelector('.reference-label')).toHaveAttribute('y', '11')
+  })
+
+  it('keeps the plot at its usual top when the label fits beside the line', () => {
+    const calories = [620, 780, 410, 985, 540, 900, 705]
+    const data = analyse(
+      calories.map((value, index) =>
+        entryOn(`2026-09-${String(21 + index)}`, { calories_burnt: value }),
+      ),
+      [],
+      'week',
+      TODAY,
+      NOW,
+      12000,
+    )
+    const { container } = render(
+      <DailyBars
+        days={data.days}
+        dataKey="calories"
+        color={colorTokens.warn}
+        tab="week"
+        formatValue={compactNumber}
+        reference={{ value: 706, label: 'avg 706' }}
+      />,
+    )
+    const tops = Array.from(container.querySelectorAll('.recharts-bar-rectangle path')).map(
+      (path) => Number(path.getAttribute('y')),
+    )
+    expect(Math.min(...tops)).toBe(18)
+    expect(container.querySelector('.reference-label')).toHaveAttribute('dy', '0.8em')
+  })
+})
+
+describe('DailyBars, reference gutter', () => {
+  it('leaves no right gutter for the reference label', () => {
+    const { container } = render(
+      <DailyBars
+        days={week.days}
+        dataKey="steps"
+        color={colorTokens['data-cyan']}
+        tab="week"
+        formatValue={compactNumber}
+        reference={{ value: 12000, label: 'goal 12k' }}
+      />,
+    )
+    const line = container.querySelector('.recharts-reference-line-line')
+    const surface = container.querySelector('svg.recharts-surface')
+    expect(Number(line?.getAttribute('x2'))).toBe(Number(surface?.getAttribute('width')))
   })
 })
 

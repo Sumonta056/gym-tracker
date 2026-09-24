@@ -11,7 +11,6 @@ import { dailyEntrySchema, localDate, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from '../li
 
 import { DurationField } from './ui/DurationField'
 import { Field } from './ui/Field'
-import { MicroLabel } from './ui/MicroLabel'
 import { NumberField } from './ui/NumberField'
 import { PrimaryButton } from './ui/PrimaryButton'
 import { SecondaryButton } from './ui/SecondaryButton'
@@ -227,8 +226,7 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
     >
       <header className="flex items-start justify-between gap-3">
         <div>
-          <MicroLabel as="p">Gym Tracker</MicroLabel>
-          <h1 className="mt-2 text-[23px] leading-tight font-bold tracking-[-0.6px]">Log</h1>
+          <h1 className="text-[23px] leading-tight font-bold tracking-[-0.6px]">Log</h1>
           <p className="text-muted mt-1 text-[13px]">
             {`${prettyDate(entryDate)} · ${String(FIELD_COUNT)} fields`}
           </p>
@@ -280,22 +278,20 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
           />
           <div className="grid grid-cols-2 gap-2">
             <SecondaryButton
-              aria-label="Decrease the weight by 0.05 kilograms"
               disabled={!canNudge}
               onClick={() => {
                 nudge(-1)
               }}
             >
-              −0.05
+              −0.05 <span className="sr-only">kg, decrease the weight</span>
             </SecondaryButton>
             <SecondaryButton
-              aria-label="Increase the weight by 0.05 kilograms"
               disabled={!canNudge}
               onClick={() => {
                 nudge(1)
               }}
             >
-              +0.05
+              +0.05 <span className="sr-only">kg, increase the weight</span>
             </SecondaryButton>
           </div>
         </div>

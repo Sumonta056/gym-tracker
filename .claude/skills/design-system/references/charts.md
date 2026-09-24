@@ -24,13 +24,32 @@ prototype plates `p5` and `p5-one-day`. The shared parts live in `components/cha
    - Month: a value above the highest bar only.
    - Numbers use `compactNumber` from `lib/format/compactNumber.ts`: `706`, `12k`,
      `12.5k`. Durations use `formatDuration(seconds, 'minutes')`: `72m`.
-3. **Reference lines**, dashed, `muted`, with the label at the right edge of the chart
-   (`ReferenceLabel`, `REFERENCE_GUTTER`).
+3. **Reference lines**, dashed, `muted`, full width. The label sits **inside the plot**,
+   ending at its right edge, just above the line (`ReferenceLabel`). A bar chart keeps
+   no right gutter for it, so the bars get the whole width.
+   - The label carries the same `surface` halo as the value labels, so it reads over a
+     bar.
+   - `referencePlacement` in `components/charts/DailyBars.tsx` picks the spot. It checks
+     the value labels in the right 22 % of the slots, the ones the label spans at 320 px.
+     1. **Above the line**, when no value label there sits on it.
+     2. **Just below the line**, when above collides, below is clear and below still
+        clears the day labels.
+     3. **The band**, when both collide: the plot drops by one 14 px label row and the
+        label sits in that row at the top right. It is never beside its line there, but
+        it never overlaps a value.
    - A goal when the profile holds one, for example the steps goal.
    - Otherwise the average over logged days.
    - No average line with fewer than 2 logged days. A goal line always shows.
+   - The steps goal, the calories average and the gym time average all use this one
+     label, so every bar chart places it the same way.
 4. **End labels** on line charts: the last value at the end of each line, in the
    colour of its line. A weight chart also writes its min and max at the left.
+   - **Named exception: the raw weight end label is `muted`,** not the violet of its
+     line. The raw weight line is drawn at half opacity, and its label in that colour
+     would fall below 4.5:1 on `surface`. The 7-day average, the line the user reads,
+     keeps its violet end label. The prototype `p5` plate does the same.
+   - A weight chart widens its left range axis for a five character value
+     (`rangeAxisWidth`), so `223.3` lb keeps its first digit.
 
 ## Sparse data
 
@@ -56,4 +75,5 @@ the last values, and the goal or the average when a reference line shows.
 - The style guide Analytics section shows the full sample, "One logged day" and
   "Nothing logged".
 - `tests/e2e/analytics.spec.ts` proves that no two labels overlap and none is cut off at
-  320 px and 390 px.
+  320 px, 390 px and 430 px, on the full week, the one logged day and a heavy week in
+  pounds with five character values.

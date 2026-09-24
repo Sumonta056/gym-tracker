@@ -17,7 +17,7 @@ describe('SyncCard', () => {
     )
     expect(screen.getByText('Pending writes')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
-    expect(screen.getByText('PENDING')).toBeInTheDocument()
+    expect(screen.getByText('Pending')).toBeInTheDocument()
   })
 
   it('leaves the announcing to the header chip', () => {
@@ -99,7 +99,7 @@ describe('SyncCard', () => {
         deadLetters={[DEAD_DAY]}
       />,
     )
-    expect(screen.getByText('PENDING')).toBeInTheDocument()
+    expect(screen.getByText('Pending')).toBeInTheDocument()
     expect(screen.getByText('Failed writes').nextSibling).toHaveTextContent('1')
     expect(screen.getByText(failedHint(1))).toBeInTheDocument()
   })

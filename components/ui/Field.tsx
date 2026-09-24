@@ -8,7 +8,7 @@ import { MicroLabel } from './MicroLabel'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 
 export const FIELD_INPUT_CLASS =
-  'bg-surface text-text placeholder:text-dim rounded-input h-[52px] w-full border px-4 text-base font-semibold'
+  'bg-surface text-text placeholder:text-dim rounded-input h-[52px] w-full border px-3.5 text-base font-semibold placeholder:font-medium'
 
 export type FieldProps = ComponentPropsWithoutRef<'input'> & {
   label: string
@@ -38,9 +38,10 @@ export function Field({
   )
 
   return (
-    <div className={cn('flex w-full min-w-0 flex-col gap-1.5', wrapperClassName)}>
+    <div className={cn('flex w-full min-w-0 flex-col gap-[7px]', wrapperClassName)}>
       <MicroLabel as="label" htmlFor={inputId}>
         {label}
+        {typeof adornment === 'string' ? <span className="sr-only">{`, ${adornment}`}</span> : null}
       </MicroLabel>
       <div className="relative">
         <input

@@ -101,6 +101,24 @@ describe('SignInForm', () => {
     })
   })
 
+  it('breaks a long email address inside its card instead of pushing the page sideways', async () => {
+    const long = 'a.very.long.name.that.keeps.going.and.going@an-equally-long-domain.example.com'
+    mocks.sendMagicLink.mockResolvedValue({ status: 'sent', email: long })
+    render(<SignInForm />)
+    await userEvent.type(screen.getByLabelText('Email'), long)
+    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
+
+    expect(await screen.findByText(long)).toHaveClass('break-words', 'min-w-0')
+  })
+
+  it('sets the secondary lines at the prototype 13 px', () => {
+    render(<SignInForm />)
+    expect(screen.getByText('One log. Works with no signal in the gym.')).toHaveClass('text-[13px]')
+    expect(screen.getByText('No password. The link signs you in for 30 days.')).toHaveClass(
+      'text-[13px]',
+    )
+  })
+
   it('goes back to the form from the check your email state', async () => {
     render(<SignInForm />)
     await userEvent.type(screen.getByLabelText('Email'), 'you@example.com')

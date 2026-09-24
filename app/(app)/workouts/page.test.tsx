@@ -9,6 +9,13 @@ describe('WorkoutsPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Workouts' })).toBeInTheDocument()
   })
 
+  it('sets the heading at the screen title size', () => {
+    render(<WorkoutsPage />)
+    const title = screen.getByRole('heading', { level: 1, name: 'Workouts' })
+    expect(title).toHaveClass('text-[23px]', 'font-bold', 'tracking-[-0.6px]')
+    expect(title).not.toHaveClass('text-3xl')
+  })
+
   it('says the live workout log is still to come', () => {
     render(<WorkoutsPage />)
     expect(screen.getByText(/Phase 2/)).toBeInTheDocument()

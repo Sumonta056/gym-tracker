@@ -42,7 +42,7 @@ describe('chipStatus', () => {
 describe('SyncChipView', () => {
   it('names the state in words', () => {
     render(<SyncChipView report={{ status: 'syncing', pending: 1, failed: 0 }} />)
-    expect(screen.getByRole('status')).toHaveTextContent('SYNCING')
+    expect(screen.getByRole('status')).toHaveTextContent('Syncing')
   })
 })
 
@@ -50,11 +50,11 @@ describe('SyncChip', () => {
   it('reads the status the repository re-exports', () => {
     vi.mocked(useSyncStatus).mockReturnValue({ status: 'offline', pending: 0, failed: 0 })
     render(<SyncChip />)
-    expect(screen.getByRole('status')).toHaveTextContent('OFFLINE')
+    expect(screen.getByRole('status')).toHaveTextContent('Offline')
   })
 
   it('shows synced when the outbox is empty and the last drain passed', () => {
     render(<SyncChip />)
-    expect(screen.getByRole('status')).toHaveTextContent('SYNCED')
+    expect(screen.getByRole('status')).toHaveTextContent('Synced')
   })
 })

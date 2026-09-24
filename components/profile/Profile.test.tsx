@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -401,7 +401,7 @@ describe('sign out', () => {
     Object.defineProperty(globalThis.navigator, 'onLine', { value: false, configurable: true })
     await seedEveryTable()
     render(<Profile redirect={vi.fn()} />)
-    await screen.findAllByText('OFFLINE')
+    await screen.findAllByText('Offline')
 
     await pressSignOut()
 
@@ -596,7 +596,7 @@ describe('sign out', () => {
     await screen.findByRole('dialog')
     vi.mocked(updateProfile).mockClear()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Imperial' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Imperial' }))
 
     expect(updateProfile).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Metric' })).toHaveAttribute('aria-pressed', 'true')
@@ -610,12 +610,12 @@ describe('sign out', () => {
     await screen.findByRole('dialog')
     vi.mocked(updateProfile).mockClear()
 
-    await userEvent.clear(field)
-    await userEvent.type(field, '9000')
-    await userEvent.tab()
+    fireEvent.change(field, { target: { value: '9000' } })
+    fireEvent.blur(field)
 
-    expect(updateProfile).not.toHaveBeenCalled()
     expect(await screen.findByText(SAVE_FAILED)).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
+    expect(field).toHaveValue('9000')
   })
 
   it('runs one sign out when the button is pressed twice fast', async () => {

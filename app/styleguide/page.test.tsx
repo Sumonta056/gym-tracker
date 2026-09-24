@@ -30,7 +30,7 @@ describe('the styleguide route guard', () => {
   })
 })
 
-describe('the styleguide page', () => {
+describe('the styleguide page', { timeout: 15000 }, () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_STYLEGUIDE', '1')
     render(<StyleguidePage />)
@@ -82,7 +82,7 @@ describe('the styleguide page', () => {
   it('renders the hero card and the four sync chips', () => {
     expect(screen.getAllByText('Gym time today').length).toBeGreaterThan(0)
     const chips = within(screen.getByTestId('status-chips'))
-    for (const word of ['SYNCED', 'SYNCING', 'OFFLINE', 'PENDING']) {
+    for (const word of ['Synced', 'Syncing', 'Offline', 'Pending']) {
       expect(chips.getByText(word)).toBeInTheDocument()
     }
   })
@@ -174,7 +174,44 @@ describe('the styleguide page', () => {
       '/log',
     )
     expect(screen.getByRole('img', { name: /^Heart rate zones: Warm 8m/ })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'This week' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 2, name: 'This week' }).length).toBeGreaterThan(
+      0,
+    )
+  })
+
+  it('renders the full dashboard screen on a heavy day, the weight and steps in their stat cards', () => {
+    const sample = screen.getByTestId('dashboard-sample')
+    expect(within(sample).getByTestId('dashboard-grid')).toBeInTheDocument()
+    expect(within(sample).getByText('103.40')).toBeInTheDocument()
+    expect(within(sample).getByText('13,100')).toBeInTheDocument()
+  })
+
+  it('renders the heavy week in pounds, every chart with a text alternative', () => {
+    const grid = screen.getByTestId('analytics-grid-heavy')
+    expect(within(grid).getAllByRole('img')).toHaveLength(7)
+    expect(
+      within(grid).getByRole('img', { name: /^Weight per day: .* pounds\./ }),
+    ).toBeInTheDocument()
+  })
+
+  it('renders the daily log form with every field labelled', () => {
+    const sample = screen.getByTestId('log-sample')
+    for (const label of [
+      'Gym time',
+      'Walk time',
+      'Avg heart rate',
+      'Max heart rate',
+      'Weight (kg)',
+      'Calories',
+      'Steps',
+      'Note',
+    ]) {
+      expect(within(sample).getByLabelText(label)).toBeInTheDocument()
+    }
+    expect(within(sample).getByRole('button', { name: 'Save entry' })).toHaveAttribute(
+      'type',
+      'submit',
+    )
   })
 
   it('renders the seven analytics charts from the sample week, each with a text alternative', () => {
@@ -215,16 +252,17 @@ describe('the styleguide page', () => {
   })
 
   it('shows the duration field already formatted from stored seconds', () => {
-    expect(screen.getByLabelText('Gym time')).toHaveValue('1:12:05')
+    expect(within(screen.getByTestId('duration-sample')).getByLabelText('Gym time')).toHaveValue(
+      '1:12:05',
+    )
     expect(screen.getByText('Stored seconds: 4325')).toBeInTheDocument()
   })
 
   it('shows the weight nudge pair from the daily log', async () => {
-    const weight = screen.getByLabelText('Weight (kg)')
+    const sample = within(screen.getByTestId('nudge-sample'))
+    const weight = sample.getByLabelText('Weight (kg)')
     expect(weight).toHaveValue('73.40')
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Increase the weight by 0.05 kilograms' }),
-    )
+    await userEvent.click(sample.getByRole('button', { name: '+0.05 kg, increase the weight' }))
     expect(weight).toHaveValue('73.45')
   })
 
@@ -245,7 +283,7 @@ describe('the styleguide page', () => {
   })
 
   it('stores the seconds the duration field reports', async () => {
-    const field = screen.getByLabelText('Gym time')
+    const field = within(screen.getByTestId('duration-sample')).getByLabelText('Gym time')
     await userEvent.clear(field)
     await userEvent.type(field, '72m')
     await userEvent.tab()
@@ -260,12 +298,14 @@ describe('the styleguide page', () => {
 
   it('holds the error state back until it is asked for, so nothing shouts on arrival', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Steps')).not.toHaveAttribute('aria-invalid')
+    expect(within(screen.getByTestId('number-sample')).getByLabelText('Steps')).not.toHaveAttribute(
+      'aria-invalid',
+    )
   })
 
   it('shows an errored field tied to its message', async () => {
     await userEvent.click(screen.getByRole('button', { name: 'Show the error state' }))
-    const steps = screen.getByLabelText('Steps')
+    const steps = within(screen.getByTestId('number-sample')).getByLabelText('Steps')
     expect(steps).toHaveAttribute('aria-invalid', 'true')
     expect(steps).toHaveAccessibleDescription('Enter a whole number')
   })

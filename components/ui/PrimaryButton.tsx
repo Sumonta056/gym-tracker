@@ -14,7 +14,7 @@ export function PrimaryButton({
     <button
       type={type}
       className={cn(
-        'bg-accent text-accent-ink rounded-input inline-flex h-[54px] w-full items-center justify-center px-5 text-base font-extrabold disabled:opacity-50',
+        'bg-accent text-accent-ink border-accent rounded-input inline-flex min-h-[54px] w-full items-center justify-center gap-2 border px-4 text-[15px] font-bold tracking-[-0.2px] disabled:opacity-50',
         className,
       )}
       {...rest}

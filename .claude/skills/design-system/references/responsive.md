@@ -59,6 +59,16 @@ A chart in a third of 1100 px is too narrow to read a month of bars.
   `md:col-span-2`.
 - `tests/e2e/analytics.spec.ts` proves one per row at 390 px and two per row at 1440 px.
 
+### Named exception: the `/log` form
+
+The daily log form keeps **two columns at 1024 px and up**, not three. Step 1.9 asks for
+two, and a three-column form breaks the field pairs (gym and walk time, the two heart
+rates, calories and steps), which the user reads across as one row.
+
+```tsx
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2">{fieldPairs}</div>
+```
+
 ## The tab bar and the sidebar
 
 They are the same five destinations, rendered two ways by `AppShell`.
@@ -69,6 +79,19 @@ They are the same five destinations, rendered two ways by `AppShell`.
   so the state is not colour alone.
 - The tab bar is `lg:hidden`. The sidebar is `hidden lg:flex`. **Never both at once,
   never neither.**
+
+### Named exception: the Phase 1 tab bar
+
+Until the Phase 2 live log exists, the tab bar and the sidebar differ from the prototype.
+
+- **Prototype:** Today, Log, a centre ▶ that starts a live workout, Stats, Profile.
+- **Phase 1:** Today, Stats, a centre ✎ that goes to `/log`, Workouts, Profile.
+- **Why:** there is no live session to start yet, so the daily log takes the centre
+  slot, and Workouts holds the place of the Phase 2 screen.
+- **The current centre action:** when `/log` is the current page, the centre action
+  carries an `accent-ink` border as well as `aria-current="page"`. The prototype's
+  centre has no current state, because a live workout is never a place you are on.
+- The prototype stays the Phase 2 target. The Phase 2 live log step restores it.
 
 ## Finding horizontal scroll
 
