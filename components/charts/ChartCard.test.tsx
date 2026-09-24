@@ -1,9 +1,57 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { setReducedMotion } from '../../tests/fixtures/motion'
 
 import { ChartCard, SPARSE_HINT, SparseValue } from './ChartCard'
+import { DRAW_CLASS, LABEL_FADE_MS, LINE_DRAW_MS } from './useLineDraw'
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
+
+function drawn(label = 'Steps per day') {
+  return (
+    <ChartCard title="Steps" empty={false} emptyText="Nothing yet." label={label}>
+      <svg>
+        <text>706</text>
+      </svg>
+    </ChartCard>
+  )
+}
 
 describe('ChartCard', () => {
+  it('marks the chart for its first draw when the user has no motion preference', () => {
+    setReducedMotion(false)
+    render(drawn())
+    expect(screen.getByRole('img')).toHaveClass(DRAW_CLASS)
+  })
+
+  it('keeps every chart label in the document while the lines draw', () => {
+    setReducedMotion(false)
+    render(drawn())
+    expect(screen.getByText('706')).toBeInTheDocument()
+  })
+
+  it('does not replay the draw on a re-render', () => {
+    vi.useFakeTimers()
+    setReducedMotion(false)
+    const { rerender } = render(drawn())
+    act(() => {
+      vi.advanceTimersByTime(LINE_DRAW_MS + LABEL_FADE_MS)
+    })
+    rerender(drawn('Steps per day, updated'))
+    expect(screen.getByRole('img')).not.toHaveClass(DRAW_CLASS)
+  })
+
+  it('runs no draw and puts every label in the document at once with reduced motion', () => {
+    setReducedMotion(true)
+    render(drawn())
+    expect(screen.getByRole('img')).not.toHaveClass(DRAW_CLASS)
+    expect(screen.getByText('706')).toBeInTheDocument()
+  })
+
   it('shows the empty text and no chart when empty', () => {
     render(
       <ChartCard title="Steps" summary="0 total" empty emptyText="Nothing yet." label="Steps">

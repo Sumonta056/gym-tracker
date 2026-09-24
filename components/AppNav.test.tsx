@@ -78,4 +78,9 @@ describe('AppNav', () => {
       expect(link).toHaveAttribute('aria-current', 'page')
     }
   })
+
+  it('wraps the page in the route transition', () => {
+    setup('/log')
+    expect(screen.getByTestId('page-transition')).toContainElement(screen.getByText('Page body'))
+  })
 })

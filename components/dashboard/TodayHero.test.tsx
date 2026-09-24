@@ -1,12 +1,31 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { formatDuration } from '../../lib/duration'
 import { entryOn, TODAY } from '../../tests/fixtures/dashboard'
+import { setReducedMotion } from '../../tests/fixtures/motion'
 
 import { streakLabel, TodayHero } from './TodayHero'
 
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 describe('TodayHero', () => {
+  it('puts the final gym time in the document at once with reduced motion', () => {
+    setReducedMotion(true)
+    render(<TodayHero entry={entryOn(TODAY, { gym_seconds: 4325 })} streak={1} />)
+    expect(screen.getByText(formatDuration(4325, 'clock'))).not.toHaveClass('opacity-0')
+    expect(screen.queryByTestId('count-up-display')).not.toBeInTheDocument()
+  })
+
+  it('keeps the final gym time readable while the count-up runs', () => {
+    setReducedMotion(false)
+    render(<TodayHero entry={entryOn(TODAY, { gym_seconds: 4325 })} streak={1} />)
+    expect(screen.getByText(formatDuration(4325, 'clock'))).toBeInTheDocument()
+    expect(screen.getByTestId('count-up-display')).toHaveAttribute('aria-hidden', 'true')
+  })
+
   it('invites the user to log the day when today has no entry', () => {
     render(<TodayHero entry={undefined} streak={0} />)
     expect(screen.getByText('Nothing logged yet today.')).toBeInTheDocument()

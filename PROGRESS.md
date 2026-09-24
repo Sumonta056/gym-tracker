@@ -5,15 +5,16 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.14 → `docs/plan/phase-1/S1.14-*.md`
+**Next step:** 1.15 → `docs/plan/phase-1/S1.15-*.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** `c077fc7`, the profile screen. The 1.13b sync hardening commits on top of it.
+**Last commit:** the 1.14 motion pass, on top of `713cdd9`.
 Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 
 ## Resume here
 
-- Stopped on 2026-09-24 after 1.13b.
-- Left in Phase 1: 1.14, 1.15, 1.16, 1.17. The next stop is Checkpoint D,
+- Stopped on 2026-09-24 after 1.14. Start 1.15 in a new session.
+- The report is `reports/2026-09-24-motion-pass.html`.
+- Left in Phase 1: 1.15, 1.16, 1.17. The next stop is Checkpoint D,
   after 1.17. It needs a real iPhone and a Vercel account.
 - Run each step in a fresh subagent. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
@@ -33,8 +34,15 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 - **A refused write moves to `deadLetters`** after a permanent code or 20 attempts, 3 in a
   row at most per drain. The chip shows Pending. Sign-out holds `DRAIN_LOCK` across the
   clear and the server sign-out, with a 15 s marker for other tabs. From 1.13b.
+- **Motion lives in `components/motion/`.** Chart labels fade in on every chart, bars too.
+  The durations are in the design-system skill's Motion section. From 1.14.
 
 ## Open, with the step that closes each one
+
+- **1.15** — `app/styleguide/page.test.tsx` runs 12 s and can pass the 5 s test timeout
+  under coverage load. It did so before 1.14 too. From 1.14.
+- **1.16** — the page transition and the live dashboard count-up have no e2e test.
+  They need the signed-in fixture. From 1.14.
 
 - **1.15** — `clearAll` waits on `DRAIN_LOCK` with no timeout. The dead-letter cap resets
   each turn. A save in another tab after the clear, before sign-out ends, stays. From 1.13b.
@@ -51,7 +59,7 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 ## Phases
 
 - [x] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
-- [ ] Phase 1 — Daily tracker (18 steps, 14 done) · `docs/plan/phase-1/index.md`
+- [ ] Phase 1 — Daily tracker (18 steps, 15 done) · `docs/plan/phase-1/index.md`
 - [ ] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
 
 ## Rules that block you

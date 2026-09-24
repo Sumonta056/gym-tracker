@@ -21,7 +21,7 @@ export function AppNav({ children }: { children: ReactNode }) {
   const action = { ...NAV_ACTION, current: isCurrentPath(pathname, NAV_ACTION.href) }
 
   return (
-    <AppShell items={items} action={action}>
+    <AppShell items={items} action={action} transitionKey={pathname}>
       {children}
     </AppShell>
   )

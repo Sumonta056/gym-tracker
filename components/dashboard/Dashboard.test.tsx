@@ -1,10 +1,12 @@
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { animate } from 'motion/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getProfile, listRange } from '../../lib/db/repository'
 import { formatDuration } from '../../lib/duration'
 import { streak } from '../../lib/metrics/streak'
 import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
+import { setReducedMotion } from '../../tests/fixtures/motion'
 
 import { Dashboard, DashboardView, stepsHint } from './Dashboard'
 import { summarise } from './summary'
@@ -18,6 +20,11 @@ vi.mock('../../lib/db/repository', async () => {
   }
 })
 
+vi.mock('motion/react', async (importOriginal) => {
+  const original = await importOriginal<object>()
+  return { ...original, animate: vi.fn(() => ({ stop: vi.fn() })) }
+})
+
 const clock = () => NOW
 
 const STREAK_DATES = ['2026-09-19', '2026-09-20', '2026-09-21', '2026-09-22', TODAY]
@@ -25,6 +32,38 @@ const STREAK_DATES = ['2026-09-19', '2026-09-20', '2026-09-21', '2026-09-22', TO
 beforeEach(() => {
   vi.mocked(listRange).mockResolvedValue([])
   vi.mocked(getProfile).mockResolvedValue(PROFILE)
+  vi.mocked(animate).mockClear()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('DashboardView motion', () => {
+  const entries = [entryOn(TODAY, { gym_seconds: 4325 })]
+
+  it('counts the hero number up once when it first appears', () => {
+    setReducedMotion(false)
+    render(<DashboardView summary={summarise(entries, PROFILE, TODAY, NOW)} />)
+    expect(vi.mocked(animate)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(animate).mock.calls[0]?.slice(0, 2)).toEqual([0, 4325])
+  })
+
+  it('does not replay the count-up on a dashboard re-render', () => {
+    setReducedMotion(false)
+    const { rerender } = render(<DashboardView summary={summarise(entries, PROFILE, TODAY, NOW)} />)
+    rerender(<DashboardView summary={summarise(entries, PROFILE, TODAY, NOW)} />)
+    rerender(<DashboardView summary={summarise(entries, PROFILE, TODAY, NOW)} />)
+    expect(vi.mocked(animate)).toHaveBeenCalledTimes(1)
+  })
+
+  it('runs no count-up and shows the final hero value at once with reduced motion', () => {
+    setReducedMotion(true)
+    render(<DashboardView summary={summarise(entries, PROFILE, TODAY, NOW)} />)
+    expect(vi.mocked(animate)).not.toHaveBeenCalled()
+    expect(screen.getByText(formatDuration(4325, 'clock'))).toBeVisible()
+    expect(screen.getByText(formatDuration(4325, 'clock'))).not.toHaveClass('opacity-0')
+  })
 })
 
 describe('Dashboard', () => {

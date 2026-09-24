@@ -35,6 +35,15 @@ const one = analyse(
 )
 
 describe('HeartRateChart', () => {
+  it('gives each line a unit path length, so the draw covers the whole line', () => {
+    const { container } = render(<HeartRateChart days={full.days} tab="week" />)
+    const curves = Array.from(container.querySelectorAll('.recharts-line-curve'))
+    expect(curves.length).toBeGreaterThan(0)
+    for (const curve of curves) {
+      expect(curve).toHaveAttribute('pathLength', '1')
+    }
+  })
+
   it('shows its empty state for an empty series, without throwing', () => {
     render(<HeartRateChart days={empty.days} tab="week" />)
     expect(screen.getByText('Log an average or a peak heart rate to see the trend.')).toBeVisible()

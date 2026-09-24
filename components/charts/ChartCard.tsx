@@ -1,6 +1,10 @@
+'use client'
+
 import { Card } from '../ui/Card'
 import { cn } from '../ui/cn'
 import { MicroLabel } from '../ui/MicroLabel'
+
+import { DRAW_CLASS, useLineDraw } from './useLineDraw'
 
 import type { ReactNode } from 'react'
 
@@ -43,6 +47,20 @@ export function SparseValue({ parts }: { parts: SparsePart[] }) {
   )
 }
 
+function ChartCanvas({ label, children }: { label: string; children?: ReactNode }) {
+  const drawing = useLineDraw()
+
+  return (
+    <div
+      role="img"
+      aria-label={label}
+      className={cn('w-full min-w-0 overflow-hidden', drawing ? DRAW_CLASS : undefined)}
+    >
+      {children}
+    </div>
+  )
+}
+
 export function ChartCard({
   title,
   summary,
@@ -79,9 +97,7 @@ export function ChartCard({
 
       {empty || sparse !== undefined ? null : (
         <>
-          <div role="img" aria-label={label} className="w-full min-w-0 overflow-hidden">
-            {children}
-          </div>
+          <ChartCanvas label={label}>{children}</ChartCanvas>
           {legend === undefined ? null : (
             <ul className="flex flex-wrap gap-3">
               {legend.map((item) => (

@@ -150,6 +150,7 @@ export function HeartRateChart({ days, tab, className }: HeartRateChartProps) {
               stroke={colorTokens.danger}
               strokeWidth={3}
               dot={{ r: 2.5, fill: colorTokens.danger, stroke: colorTokens.danger }}
+              pathLength={1}
               connectNulls
               isAnimationActive={false}
             >
@@ -167,6 +168,7 @@ export function HeartRateChart({ days, tab, className }: HeartRateChartProps) {
               stroke={colorTokens['data-cyan']}
               strokeWidth={3}
               dot={{ r: 2.5, fill: colorTokens['data-cyan'], stroke: colorTokens['data-cyan'] }}
+              pathLength={1}
               connectNulls
               isAnimationActive={false}
             >

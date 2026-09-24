@@ -1,10 +1,12 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
+import { setReducedMotion } from '../../tests/fixtures/motion'
 import { AXIS_TICKS, RANGE_TICKS, svgTexts, VALUE_LABELS } from '../../tests/fixtures/recharts'
 
 import { analyse } from './rangeData'
+import { DRAW_CLASS, LABEL_FADE_MS, LINE_DRAW_MS } from './useLineDraw'
 import {
   daysInUnit,
   weightLabel,
@@ -30,7 +32,40 @@ const imperial = [entryOn('2026-09-22', { weight_kg: 71 }), entryOn(TODAY, { wei
 const inPounds = analyse(imperial, imperial, 'week', TODAY, NOW, 12000, 'imperial')
 const one = analyse([entryOn(TODAY, { weight_kg: 73.4 })], [], 'week', TODAY, NOW, 12000)
 
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
+
 describe('WeightChart', () => {
+  it('gives each line a unit path length, so the draw covers the whole line', () => {
+    const { container } = render(<WeightChart days={full.days} tab="week" />)
+    const curves = Array.from(container.querySelectorAll('.recharts-line-curve'))
+    expect(curves).toHaveLength(2)
+    for (const curve of curves) {
+      expect(curve).toHaveAttribute('pathLength', '1')
+    }
+  })
+
+  it('does not replay the line draw on a re-render', () => {
+    vi.useFakeTimers()
+    setReducedMotion(false)
+    const { rerender } = render(<WeightChart days={full.days} tab="week" />)
+    act(() => {
+      vi.advanceTimersByTime(LINE_DRAW_MS + LABEL_FADE_MS)
+    })
+    rerender(<WeightChart days={full.days} tab="week" unit="imperial" />)
+    expect(screen.getByRole('img')).not.toHaveClass(DRAW_CLASS)
+  })
+
+  it('puts every label in the document at once with reduced motion', () => {
+    setReducedMotion(true)
+    const { container } = render(<WeightChart days={full.days} tab="week" />)
+    expect(screen.getByRole('img')).not.toHaveClass(DRAW_CLASS)
+    expect(svgTexts(container, VALUE_LABELS)).toEqual(['73.4', '73.8'])
+    expect(svgTexts(container, RANGE_TICKS)).toEqual(['73.4', '74.1'])
+  })
+
   it('shows its empty state for an empty series, without throwing', () => {
     render(<WeightChart days={empty.days} tab="week" />)
     expect(screen.getByText('Log a weight to see the trend and its 7-day average.')).toBeVisible()

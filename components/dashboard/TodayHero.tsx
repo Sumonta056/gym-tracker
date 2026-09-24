@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { formatDuration } from '../../lib/duration'
+import { CountUp } from '../motion/CountUp'
 import { HeroCard } from '../ui/HeroCard'
 import { MicroLabel } from '../ui/MicroLabel'
 
@@ -62,8 +63,12 @@ function countOrNull(value: number | null): string | null {
   return value === null ? null : formatCount(value)
 }
 
+function clock(seconds: number): string {
+  return formatDuration(seconds, 'clock')
+}
+
 function clockOrNull(seconds: number | null): string | null {
-  return seconds === null ? null : formatDuration(seconds, 'clock')
+  return seconds === null ? null : clock(seconds)
 }
 
 export function TodayHero({ entry, streak, name = 'Today', className }: TodayHeroProps) {
@@ -92,7 +97,11 @@ export function TodayHero({ entry, streak, name = 'Today', className }: TodayHer
       ) : (
         <>
           <p className="mt-2.5 mb-1.5 text-[48px] leading-none font-extrabold tracking-[-2.4px]">
-            {clockOrNull(entry.gym_seconds) ?? <Missing />}
+            {entry.gym_seconds === null ? (
+              <Missing />
+            ) : (
+              <CountUp value={entry.gym_seconds} format={clock} />
+            )}
           </p>
           <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 md:grid-cols-4 md:gap-5">
             <Inline label="Avg HR" value={countOrNull(entry.avg_heart_rate)} />

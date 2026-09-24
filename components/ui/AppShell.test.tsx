@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AppShell } from './AppShell'
 
@@ -131,5 +132,49 @@ describe('AppShell', () => {
       </AppShell>,
     )
     expect(screen.queryByRole('link', { name: 'Log a set' })).not.toBeInTheDocument()
+  })
+
+  it('gives every tab bar link a short press feedback that only runs with motion allowed', () => {
+    setup()
+    const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
+    for (const link of within(bar).getAllByRole('link')) {
+      expect(link).toHaveClass('motion-safe:active:scale-95')
+      expect(link).toHaveClass('motion-safe:transition-transform')
+      expect(link).toHaveClass('motion-safe:duration-100')
+    }
+  })
+
+  it('keeps every tab bar target 44 px or taller with the press feedback', () => {
+    setup()
+    const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
+    for (const link of within(bar).getAllByRole('link')) {
+      expect(link.className).toMatch(/min-h-\[5[24]px\]/)
+    }
+  })
+
+  it('lets a tab bar link respond to a tap at once', async () => {
+    setup()
+    const onClick = vi.fn((event: MouseEvent) => {
+      event.preventDefault()
+    })
+    const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
+    const link = within(bar).getByRole('link', { name: 'History' })
+    link.addEventListener('click', onClick)
+    await userEvent.click(link)
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('wraps the page in a transition keyed by the route when given one', () => {
+    render(
+      <AppShell items={ITEMS} transitionKey="/">
+        <p>Page body</p>
+      </AppShell>,
+    )
+    expect(screen.getByTestId('page-transition')).toContainElement(screen.getByText('Page body'))
+  })
+
+  it('renders the page with no transition when no route key is given', () => {
+    setup()
+    expect(screen.queryByTestId('page-transition')).not.toBeInTheDocument()
   })
 })

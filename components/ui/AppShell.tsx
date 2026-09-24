@@ -1,5 +1,7 @@
 import Link from 'next/link'
 
+import { PageTransition } from '../motion/PageTransition'
+
 import { cn } from './cn'
 import { MicroLabel } from './MicroLabel'
 
@@ -24,11 +26,23 @@ export type AppShellProps = {
   action?: AppShellAction
   title?: string
   aside?: ReactNode
+  transitionKey?: string
   children: ReactNode
   className?: string
 }
 
-export function AppShell({ items, action, title, aside, children, className }: AppShellProps) {
+const PRESS =
+  'motion-safe:transition-transform motion-safe:duration-100 motion-safe:active:scale-95'
+
+export function AppShell({
+  items,
+  action,
+  title,
+  aside,
+  transitionKey,
+  children,
+  className,
+}: AppShellProps) {
   const half = Math.ceil(items.length / 2)
   const leftItems = items.slice(0, half)
   const rightItems = items.slice(half)
@@ -77,7 +91,11 @@ export function AppShell({ items, action, title, aside, children, className }: A
           {title === undefined ? null : (
             <h1 className="text-text mb-4 text-2xl font-extrabold">{title}</h1>
           )}
-          {children}
+          {transitionKey === undefined ? (
+            children
+          ) : (
+            <PageTransition routeKey={transitionKey}>{children}</PageTransition>
+          )}
         </main>
       </div>
 
@@ -94,6 +112,7 @@ export function AppShell({ items, action, title, aside, children, className }: A
             aria-current={action.current === true ? 'page' : undefined}
             className={cn(
               'bg-accent text-accent-ink flex min-h-[54px] items-center justify-center rounded-full text-lg font-extrabold',
+              PRESS,
               action.current === true ? 'border-accent-ink border-2' : '',
             )}
           >
@@ -125,6 +144,7 @@ function BottomLink({ item }: { item: AppShellNavItem }) {
       aria-current={item.current === true ? 'page' : undefined}
       className={cn(
         'flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-[14px] px-1',
+        PRESS,
         item.current === true ? 'text-accent' : 'text-muted',
       )}
     >

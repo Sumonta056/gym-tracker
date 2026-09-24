@@ -157,6 +157,7 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
             strokeOpacity={0.5}
             strokeWidth={2.5}
             dot={{ r: 2.5, fill: color, stroke: color, fillOpacity: 0.5, strokeOpacity: 0.5 }}
+            pathLength={1}
             connectNulls
             isAnimationActive={false}
           >
@@ -173,6 +174,7 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
               stroke={color}
               strokeWidth={3}
               dot={false}
+              pathLength={1}
               connectNulls
               isAnimationActive={false}
             >
