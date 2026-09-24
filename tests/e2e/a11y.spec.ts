@@ -1,6 +1,13 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+import {
+  openRoute,
+  openWithWeek,
+  SIGNED_IN_ROUTES as LIVE_ROUTES,
+  test as signedIn,
+} from './support/signedIn'
+
 import type { Page } from '@playwright/test'
 
 const PUBLIC_ROUTES = ['/sign-in', '/styleguide', '/~offline']
@@ -133,3 +140,26 @@ test('moves focus into the sheet, keeps it there and returns it to the opener', 
   await expect(dialog).toBeHidden()
   await expect(opener).toBeFocused()
 })
+
+for (const route of LIVE_ROUTES) {
+  signedIn.describe(`signed in on ${route}`, () => {
+    signedIn.beforeEach(async ({ page, account, day }) => {
+      await openWithWeek(page, account, day)
+      await openRoute(page, route)
+    })
+
+    signedIn('reports no serious or critical accessibility issue', async ({ page }) => {
+      expect(await blocking(page)).toEqual([])
+    })
+
+    signedIn('shows a focus ring on every tab stop', async ({ page, browserName }) => {
+      for (const width of FOCUS_WIDTHS) {
+        await page.setViewportSize({ width, height: 900 })
+        const { stops, bare } = await tabStopsWithNoRing(page, tabKey(browserName))
+
+        expect(stops, `tab stops at ${String(width)}px`).toBeGreaterThan(0)
+        expect(bare, `stops with no ring at ${String(width)}px`).toEqual([])
+      }
+    })
+  })
+}

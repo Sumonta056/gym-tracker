@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
 
+import {
+  openRoute,
+  openWithWeek,
+  SIGNED_IN_ROUTES as LIVE_ROUTES,
+  test as signedIn,
+} from './support/signedIn'
+
 import type { Page } from '@playwright/test'
 
 const PUBLIC_ROUTES = ['/sign-in', '/styleguide', '/~offline']
@@ -176,43 +183,88 @@ for (const route of SIGNED_IN_ROUTES) {
   })
 }
 
+async function navigationProblems(page: Page): Promise<string[]> {
+  const sidebar = page.getByRole('navigation', { name: 'Sidebar' })
+  const bottomBar = page.getByRole('navigation', { name: 'Bottom navigation' })
+  const found: string[] = []
+
+  for (const width of SCROLL_WIDTHS) {
+    await resizeAndSettle(page, width)
+    const sidebarVisible = await sidebar.isVisible()
+    const bottomBarVisible = await bottomBar.isVisible()
+
+    if (sidebarVisible !== width >= SIDEBAR_BREAKPOINT) {
+      found.push(`${String(width)}px: sidebar ${sidebarVisible ? 'shown' : 'hidden'}`)
+    }
+    if (bottomBarVisible !== width < SIDEBAR_BREAKPOINT) {
+      found.push(`${String(width)}px: bottom bar ${bottomBarVisible ? 'shown' : 'hidden'}`)
+    }
+  }
+
+  return found
+}
+
+async function navigationOutOfView(page: Page): Promise<string[]> {
+  const found: string[] = []
+
+  for (const width of STEP_WIDTHS) {
+    await resizeAndSettle(page, width)
+    await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight)
+    })
+    const name = width >= SIDEBAR_BREAKPOINT ? 'Sidebar' : 'Bottom navigation'
+    const box = await page.getByRole('navigation', { name }).boundingBox()
+
+    if (box === null || box.y < -1 || box.y >= 900) {
+      found.push(`${String(width)}px: ${name} top at ${box === null ? 'none' : String(box.y)}`)
+    }
+  }
+
+  return found
+}
+
 for (const route of SHELL_ROUTES) {
   test(`shows exactly one navigation at every width on ${route}`, async ({ page }) => {
     await page.goto(route)
 
-    const sidebar = page.getByRole('navigation', { name: 'Sidebar' })
-    const bottomBar = page.getByRole('navigation', { name: 'Bottom navigation' })
-
-    for (const width of SCROLL_WIDTHS) {
-      await resizeAndSettle(page, width)
-      const sidebarVisible = await sidebar.isVisible()
-      const bottomBarVisible = await bottomBar.isVisible()
-
-      expect(
-        { width, sidebarVisible, bottomBarVisible },
-        `at ${String(width)}px exactly one navigation must be visible`,
-      ).toEqual({
-        width,
-        sidebarVisible: width >= SIDEBAR_BREAKPOINT,
-        bottomBarVisible: width < SIDEBAR_BREAKPOINT,
-      })
-    }
+    expect(await navigationProblems(page)).toEqual([])
   })
 
   test(`keeps the navigation in view at the foot of a long page on ${route}`, async ({ page }) => {
     await page.goto(route)
 
-    for (const width of STEP_WIDTHS) {
-      await resizeAndSettle(page, width)
-      await page.evaluate(() => {
-        window.scrollTo(0, document.documentElement.scrollHeight)
-      })
-      const name = width >= SIDEBAR_BREAKPOINT ? 'Sidebar' : 'Bottom navigation'
-      const box = await page.getByRole('navigation', { name }).boundingBox()
+    expect(await navigationOutOfView(page)).toEqual([])
+  })
+}
 
-      expect(box, `${name} at ${String(width)}px`).not.toBeNull()
-      expect(box?.y ?? -2, `${name} top at ${String(width)}px`).toBeGreaterThanOrEqual(-1)
-      expect(box?.y ?? 901, `${name} top at ${String(width)}px`).toBeLessThan(900)
-    }
+for (const route of LIVE_ROUTES) {
+  signedIn.describe(`signed in on ${route}`, () => {
+    signedIn.beforeEach(async ({ page, account, day }) => {
+      await openWithWeek(page, account, day)
+      await openRoute(page, route)
+    })
+
+    signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+      expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+    })
+
+    signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+      expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+    })
+
+    signedIn('clips no text, at all seven widths', async ({ page }) => {
+      expect(await atEachWidth(page, STEP_WIDTHS, () => clippedText(page))).toEqual([])
+    })
+
+    signedIn('shows exactly one navigation at every width', async ({ page }) => {
+      expect(await navigationProblems(page)).toEqual([])
+    })
+
+    signedIn(
+      'keeps the navigation in view at the foot of the page, at all seven widths',
+      async ({ page }) => {
+        expect(await navigationOutOfView(page)).toEqual([])
+      },
+    )
   })
 }

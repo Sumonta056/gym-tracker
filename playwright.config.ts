@@ -1,4 +1,12 @@
+import { existsSync } from 'node:fs'
+
 import { defineConfig, devices } from '@playwright/test'
+
+for (const file of ['.env.test.local', '.env.local']) {
+  if (existsSync(file)) {
+    process.loadEnvFile(file)
+  }
+}
 
 const port = 3100
 const baseURL = `http://127.0.0.1:${String(port)}`
@@ -16,16 +24,23 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: 'auth.setup.ts',
+    },
+    {
       name: 'mobile-safari',
       use: { ...devices['iPhone 14'] },
+      dependencies: ['setup'],
     },
     {
       name: 'mobile-chrome',
       use: { ...devices['Pixel 7'] },
+      dependencies: ['setup'],
     },
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+      dependencies: ['setup'],
     },
   ],
   webServer: {

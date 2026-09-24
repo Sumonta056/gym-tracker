@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { navLink, openWithWeek, test as signedIn } from './support/signedIn'
+
 import type { Page } from '@playwright/test'
 
 type Box = { x: number; y: number; width: number; height: number }
@@ -147,11 +149,13 @@ test('shows the not enough data state on the one logged day sample', async ({ pa
   await expect(grid.getByText('Log one more day to see a trend.')).toHaveCount(2)
 })
 
-test.fixme('switches the /analytics range from week to month (needs the signed-in fixture from step 1.16)', async ({
-  page,
-}) => {
-  await page.goto('/analytics')
+signedIn('switches the /analytics range from week to month', async ({ page, account, day }) => {
+  await openWithWeek(page, account, day)
+  await navLink(page, 'Stats').click()
+  await expect(page.getByTestId('analytics-grid')).toBeVisible()
+
   await page.getByRole('button', { name: 'Month' }).click()
 
   await expect(page.getByRole('button', { name: 'Month' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Week' })).toHaveAttribute('aria-pressed', 'false')
 })

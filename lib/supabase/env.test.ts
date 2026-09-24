@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
-import { readSupabaseEnv } from './env'
+import { publicEnv, readSupabaseEnv } from './env'
 
 describe('readSupabaseEnv', () => {
   it('returns the url and the anon key', () => {
@@ -45,6 +47,26 @@ describe('readSupabaseEnv', () => {
     expect(readSupabaseEnv()).toEqual({
       url: 'https://from-process.supabase.co',
       anonKey: 'from-process',
+    })
+  })
+
+  it('names each public variable in full, so Next inlines it into the browser bundle', () => {
+    const source = readFileSync(new URL('./env.ts', import.meta.url), 'utf8')
+
+    expect(source).toContain('process.env.NEXT_PUBLIC_SUPABASE_URL')
+    expect(source).toContain('process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    expect(source).not.toMatch(/=\s*process\.env,/)
+  })
+})
+
+describe('publicEnv', () => {
+  it('holds only the two public Supabase variables', () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://from-process.supabase.co'
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'from-process'
+
+    expect(publicEnv()).toEqual({
+      NEXT_PUBLIC_SUPABASE_URL: 'https://from-process.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'from-process',
     })
   })
 })

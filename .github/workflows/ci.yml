@@ -87,10 +87,18 @@ jobs:
     name: Browser (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    concurrency:
+      group: e2e-test-account-${{ matrix.project }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
         project: [mobile-safari, mobile-chrome, desktop]
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4

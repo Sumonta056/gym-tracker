@@ -34,8 +34,8 @@ files, plus step 1.13b, added after 1.13. One step is one session. Never do two 
 | 1.13b | `S1.13b-sync-hardening.md`      | Sync hardening, dead letter | M    | 1.13       | done  |
 | 1.14  | `S1.14-motion-pass.md`          | The motion pass             | S    | 1.12       | done  |
 | 1.15  | `S1.15-responsive-a11y-pass.md` | Responsive and access pass  | M    | 1.13b      | done  |
-| 1.16  | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       | now   |
-| 1.16b | `S1.16b-sync-follow-ups.md`     | Sync follow-ups, sign-out   | M    | 1.16       | —     |
+| 1.16  | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       | done  |
+| 1.16b | `S1.16b-sync-follow-ups.md`     | Sync follow-ups, sign-out   | M    | 1.16       | now   |
 | 1.17  | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16b      | —     |
 
 ## Order
@@ -74,13 +74,13 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 ### Checkpoint C — after 1.12 · passed
 
 - [x] Every Phase 1 screen renders at 390 px, 768 px and 1440 px.
-      Proven on `/sign-in` and the `/styleguide` samples. The live signed-in routes,
-      `/log` included, run again at 1.16 with the signed-in fixture.
+      Proven on `/sign-in` and the `/styleguide` samples, and on the live signed-in
+      routes, `/log` included, at 1.16 with the signed-in fixture.
 - [x] Every chart has an empty state and a text alternative.
 
 ### Checkpoint D — after 1.17 · next
 
-Steps 1.1 to 1.15 are done. 1.16, 1.16b and 1.17 remain.
+Steps 1.1 to 1.16 are done. 1.16b and 1.17 remain.
 
 - [ ] Every item in the Phase 1 checklist of `docs/plan/01-phase-1.md` passes.
 

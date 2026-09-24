@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { heroValue, test as signedIn } from './support/signedIn'
+
 test('reads the heart rate zones outside the bar, on the style guide sample', async ({ page }) => {
   await page.goto('/styleguide')
 
@@ -22,13 +24,12 @@ test('points the empty hero at the daily log, on the style guide sample', async 
   await expect(empty.getByRole('link', { name: 'Log the day' })).toHaveAttribute('href', '/log')
 })
 
-test.fixme('shows on the dashboard the value saved by the /log test (needs the signed-in fixture from step 1.16)', async ({
-  page,
-}) => {
+signedIn('shows on the dashboard the value saved on /log', async ({ page }) => {
   await page.goto('/log')
   await page.getByLabel('Gym time').fill('1:12:05')
   await page.getByRole('button', { name: 'Save entry' }).click()
+  await expect(page.getByText('Saved on this device.')).toBeVisible()
   await page.goto('/')
 
-  await expect(page.getByText('1:12:05')).toBeVisible()
+  await expect(heroValue(page)).toHaveText('1:12:05')
 })

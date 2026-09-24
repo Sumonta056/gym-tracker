@@ -117,6 +117,7 @@ export default tseslint.config(
       'lib/supabase/**/*.{ts,tsx}',
       'lib/auth/**/*.{ts,tsx}',
       'middleware.ts',
+      'tests/e2e/support/**/*.ts',
     ],
     rules: {
       'no-restricted-imports': 'off',
