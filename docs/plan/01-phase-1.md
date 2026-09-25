@@ -50,6 +50,9 @@ Supabase SQL editor.
 
 ## 1.3 Auth: magic link, middleware, route groups
 
+> **Superseded on 2026-09-26.** Password sign-in is now the default and the magic link
+> is the fallback. See `feat/password-sign-in`.
+
 **Do**
 
 1. `middleware.ts` refreshes the session and redirects an anonymous visitor to

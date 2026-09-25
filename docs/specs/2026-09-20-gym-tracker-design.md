@@ -405,7 +405,7 @@ Two helpers carry most of the risk. Write them test-first:
 
 **End to end (Playwright)**
 
-1. Sign in with a magic link.
+1. Sign in with email and password. The magic link is the fallback.
 2. Record a day. Confirm the dashboard number changes.
 3. Set the browser context offline. Record a second day. Confirm it appears.
 4. Go online. Confirm the chip turns green and Supabase holds both rows.
@@ -416,4 +416,5 @@ Two helpers carry most of the risk. Write them test-first:
 
 - Open the deployed URL in Safari. Use Share, then Add to Home Screen.
 - Open it from the home screen. Confirm it runs with no browser chrome.
+- Sign in from the home screen app with the password. Confirm it opens the dashboard.
 - Turn on flight mode. Record a set. Turn flight mode off. Confirm it syncs.
