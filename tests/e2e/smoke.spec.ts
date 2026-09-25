@@ -5,7 +5,7 @@ const IGNORED_CONSOLE_MESSAGES = [
   'Viewport argument key "interactive-widget" not recognized and ignored.',
 ]
 
-test('the home page loads with no console error', async ({ page }, testInfo) => {
+test('the app boots at the sign in screen with no console error', async ({ page }, testInfo) => {
   const errors: string[] = []
 
   page.on('console', (msg) => {
@@ -22,7 +22,8 @@ test('the home page loads with no console error', async ({ page }, testInfo) => 
   expect(response?.status()).toBe(200)
   await page.waitForLoadState('load')
   await expect(page.locator('html')).toBeAttached()
-  await testInfo.attach('home', {
+  await expect(page).toHaveURL(/\/sign-in$/)
+  await testInfo.attach('sign-in', {
     body: await page.screenshot({ fullPage: true }),
     contentType: 'image/png',
   })

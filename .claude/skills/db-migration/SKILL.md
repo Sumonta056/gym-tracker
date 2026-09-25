@@ -33,11 +33,13 @@ whether existing rows need a backfill.
 
 ### 2. The Dexie version bump
 
-`lib/db/schema.ts`.
+`lib/db/dexie.ts`. It holds `DATABASE_VERSION`, the `STORES` map and the row
+interfaces. `lib/db/repository.ts` is the only caller.
 
 - Add a new `.version(n + 1).stores({ ... })`. Never change an existing version block.
 - Add an `.upgrade()` when existing rows need a new field filled in.
-- Index what a screen filters or sorts by, and always `deleted_at`.
+- Index what a screen filters or sorts by. `deleted_at` is not indexed: the
+  repository reads a date range and filters the soft-deleted rows in memory.
 
 ### 3. The zod schema
 

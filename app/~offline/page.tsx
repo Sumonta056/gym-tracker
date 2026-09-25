@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { Card } from '../../components/ui/Card'
 import { MicroLabel } from '../../components/ui/MicroLabel'
 
 import type { Metadata } from 'next'
@@ -11,9 +12,11 @@ export const metadata: Metadata = {
 export default function OfflinePage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-5 md:px-7">
-      <div className="border-border bg-surface rounded-card w-full max-w-md border p-6">
+      <Card className="w-full max-w-md">
         <MicroLabel as="p">No signal</MicroLabel>
-        <h1 className="mt-2 text-2xl font-extrabold">You are offline</h1>
+        <h1 className="mt-2 text-[23px] leading-tight font-bold tracking-[-0.6px]">
+          You are offline
+        </h1>
         <p className="text-muted mt-3 text-sm leading-relaxed">
           Your data is safe on this phone. Every entry you make now is stored here first.
         </p>
@@ -22,11 +25,11 @@ export default function OfflinePage() {
         </p>
         <Link
           href="/"
-          className="bg-accent text-accent-ink rounded-input mt-6 flex h-[54px] items-center justify-center text-base font-bold"
+          className="bg-accent text-accent-ink border-accent rounded-input mt-6 flex min-h-[54px] items-center justify-center gap-2 border px-4 text-[15px] font-bold tracking-[-0.2px]"
         >
           Back to today
         </Link>
-      </div>
+      </Card>
     </main>
   )
 }

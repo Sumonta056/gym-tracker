@@ -24,7 +24,12 @@ No commit is allowed until a report exists for exactly the staged change.
 2. Run the `commit-report` skill. It writes `reports/<YYYY-MM-DD>-<slug>.html` with
    five sections: what this commit does, improvements, fallbacks, things to consider,
    and evidence. It also writes `reports/.last-report-hash`.
-3. Then commit.
+3. **A UI change needs screenshots in the report.** A staged change under `app/`,
+   `components/` or `docs/design/prototype/` must add a Screenshots section to the
+   report: every changed page at 390 px, 768 px and 1440 px, and the matching
+   prototype screen. The user never has to ask for it. The `commit-report` skill says
+   how.
+4. Then commit.
 
 `.claude/hooks/commit-gate.sh` runs before every `git commit` in a Bash tool call. It
 blocks unless `sha256` of the staged diff equals the contents of

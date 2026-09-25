@@ -33,11 +33,46 @@
     color: var(--color-text);
     font-family: var(--font-sans);
     font-variant-numeric: tabular-nums;
-    overflow-x: hidden;
   }
 
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+  }
+}
+
+@keyframes chart-line-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chart-label-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    .chart-draw .recharts-line-curve {
+      stroke-dasharray: 1;
+      animation: chart-line-draw 400ms ease-out both;
+    }
+
+    .chart-draw .recharts-line-dots,
+    .chart-draw .recharts-label-list,
+    .chart-draw .recharts-reference-line,
+    .chart-draw .recharts-yAxis .recharts-cartesian-axis-ticks {
+      animation: chart-label-fade 160ms ease-out 400ms both;
+    }
   }
 }

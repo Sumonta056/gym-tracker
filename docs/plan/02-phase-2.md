@@ -7,15 +7,22 @@ Do not start Phase 2 before every Phase 1 checklist item passes.
 Exit condition: a full session is recorded offline, the old sheet is in the app, and
 the personal record chart is correct.
 
+**Step files:** `docs/plan/phase-2/index.md` splits this plan into 21 steps, one per
+session. Step 2.0 adds the missing prototype plates first. The index gives the run
+order.
+
 ---
 
 ## 2.1 Migration 0002 and the exercise seed
 
 **Do**
 
-1. `supabase/migrations/0002_phase2.sql`:
+1. `supabase/migrations/<YYYYMMDDHHMMSS>_phase2_workouts.sql`:
    - `exercises`, `workout_sessions` and `workout_sets` exactly as the specification
-     states.
+     states, plus `created_at` and `deleted_at` on all 3.
+   - Two new `profiles` columns for the rest timer: `rest_sound_muted` and
+     `rest_seconds_by_exercise jsonb`. A seed exercise is read only, so its rest time
+     cannot live on its own row.
    - `exercises.user_id` may be null. A null row is a global seed row.
    - Row Level Security. `exercises`: read where `user_id = auth.uid()` **or**
      `user_id is null`. Write only where `user_id = auth.uid()`.
@@ -24,7 +31,7 @@ the personal record chart is correct.
    - A partial unique index on `(user_id, status)` where `status = 'active'`, so only
      one session can run at a time.
    - Indexes on `workout_sets(session_id)` and `workout_sessions(user_id, entry_date)`.
-2. Seed about 40 global exercises across chest, back, legs, shoulders, arms, core and
+2. In a second migration, seed about 40 global exercises with fixed ids across chest, back, legs, shoulders, arms, core and
    cardio. Keep the names plain: `Bench Press`, `Lat Pulldown`, `Leg Press`.
 
 **Test by hand** Account A cannot read a set of account B. A second active session is
@@ -32,32 +39,41 @@ rejected.
 
 ---
 
-## 2.2 Dexie version 2 and the repository extension
+## 2.2 Dexie version 3 and the repository extension
 
 **Do**
 
-1. Bump Dexie to version 2 and add `exercises`, `workoutSessions` and `workoutSets`.
-   Write the upgrade function. Never drop the version 1 tables.
-2. Extend the repository:
+1. Bump Dexie to version 3 and add `exercises`, `workoutSessions` and `workoutSets`.
+   Version 2 already holds `deadLetters` from step 1.13b. Never change the version 1
+   or version 2 block. This lands with the 2.1 migration, as the `db-migration` skill
+   requires.
+2. Write one zod schema per entity in `lib/schema/`: `exercise.ts`,
+   `workoutSession.ts`, `workoutSet.ts`.
+3. Extend the repository:
    ```ts
    listExercises(filter?: { muscleGroup?: string; query?: string }): Promise<Exercise[]>
    createExercise(input: ExerciseInput): Promise<Exercise>
+   renameExercise(id: string, name: string): Promise<Exercise>
    archiveExercise(id: string): Promise<void>
+   restoreExercise(id: string): Promise<void>
    getActiveSession(): Promise<WorkoutSession | undefined>
    startSession(date: string): Promise<WorkoutSession>
    finishSession(id: string): Promise<WorkoutSession>
+   discardSession(id: string): Promise<void>
    addSet(input: WorkoutSetInput): Promise<WorkoutSet>
    updateSet(id: string, patch: Partial<WorkoutSetInput>): Promise<WorkoutSet>
    deleteSet(id: string): Promise<void>
+   restoreSet(id: string): Promise<void>
    listSets(sessionId: string): Promise<WorkoutSet[]>
+   lastSetFor(exerciseId: string): Promise<WorkoutSet | undefined>
    ```
-3. Every write still lands in the outbox in the same transaction.
-4. Teach the sync worker the three new tables. Push a session before its sets, so a
-   foreign key never fails.
+4. Every write still lands in the outbox in the same transaction.
+5. Teach the sync worker the three new tables. Push a session before its sets, so a
+   foreign key never fails. Never push a global seed row.
 
 **Tests**
 
-- The version 1 to version 2 upgrade keeps every existing daily entry.
+- The version 2 to version 3 upgrade keeps every existing daily entry.
 - `startSession` fails when a session is already active.
 - `addSet` on an offline session queues the session and the set, in that order.
 - `deleteSet` soft deletes and queues.
@@ -188,7 +204,8 @@ Load the `design-system` skill first.
 
 **Do**
 
-Add to `/analytics`, using the same rules as Phase 1:
+Add to `/analytics`, using the same rules as Phase 1, written in
+`.claude/skills/design-system/references/charts.md`:
 
 1. Volume load per session, bars, with the change against the previous week.
 2. Estimated one-rep maximum per exercise, a line per selected exercise.
@@ -201,6 +218,7 @@ Add to `/analytics`, using the same rules as Phase 1:
 **Tests**
 
 - Component: each chart renders its empty state before any session exists.
+- Component: each chart renders with one session, with no lone dot.
 - Component: the muscle balance warning appears below the threshold and not above it.
 
 ---

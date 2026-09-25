@@ -30,7 +30,8 @@ grep -rnE "#[0-9a-fA-F]{3,8}\b" app components
 ```
 
 The only expected hits are inside `app/globals.css`. A hit anywhere else is a fail.
-Chart colours come from `lib/design/tokens.ts`, not from a literal. An `rgba()` with a
+Chart colours come from `lib/design/tokens.ts`, not from a literal. A chart also
+passes every rule in `references/charts.md`. An `rgba()` with a
 hand-mixed channel is the same failure wearing a different hat — use a token with an
 opacity modifier.
 

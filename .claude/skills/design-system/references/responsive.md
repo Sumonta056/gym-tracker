@@ -2,11 +2,11 @@
 
 Three ranges. One layout each. Nothing between them is invented on the spot.
 
-| Range          | Layout                                                                                                    |
-| -------------- | --------------------------------------------------------------------------------------------------------- |
-| Under 640 px   | One column. 20 px side gutters. Bottom tab bar with a centre action button.                               |
-| 640 to 1023 px | Two-column card grid. Bottom tab bar stays. Gutters grow to 28 px.                                        |
-| 1024 px and up | Left sidebar 240 px. Content column capped at 1100 px and centred. Three-column card grid. No bottom bar. |
+| Range          | Layout                                                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Under 640 px   | One column. 20 px side gutters. Bottom tab bar with a centre action button.                                                                 |
+| 640 to 1023 px | Two-column card grid. Bottom tab bar stays. Gutters grow to 28 px.                                                                          |
+| 1024 px and up | Left sidebar 240 px. Content column capped at 1100 px and centred. Three-column card grid, except chart screens (see below). No bottom bar. |
 
 `md:` is 640 px. `lg:` is 1024 px.
 
@@ -44,6 +44,31 @@ Three ranges. One layout each. Nothing between them is invented on the spot.
 A card that must stay full width across the grid takes `md:col-span-2 lg:col-span-3` —
 the hero card usually does.
 
+### Named exception: chart screens
+
+A chart screen, such as `/analytics`, keeps **two columns at 1024 px and up**, not three.
+One chart card fills one cell. The content column stays capped at 1100 px by `AppShell`.
+A chart in a third of 1100 px is too narrow to read a month of bars.
+
+```tsx
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2">{chartCards}</div>
+```
+
+- One chart per row under 640 px. Two from 640 px up, including at 1024 px and up.
+- No `lg:grid-cols-3` on a chart grid. A chart card that must span the row takes
+  `md:col-span-2`.
+- `tests/e2e/analytics.spec.ts` proves one per row at 390 px and two per row at 1440 px.
+
+### Named exception: the `/log` form
+
+The daily log form keeps **two columns at 1024 px and up**, not three. Step 1.9 asks for
+two, and a three-column form breaks the field pairs (gym and walk time, the two heart
+rates, calories and steps), which the user reads across as one row.
+
+```tsx
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2">{fieldPairs}</div>
+```
+
 ## The tab bar and the sidebar
 
 They are the same five destinations, rendered two ways by `AppShell`.
@@ -54,6 +79,19 @@ They are the same five destinations, rendered two ways by `AppShell`.
   so the state is not colour alone.
 - The tab bar is `lg:hidden`. The sidebar is `hidden lg:flex`. **Never both at once,
   never neither.**
+
+### Named exception: the Phase 1 tab bar
+
+Until the Phase 2 live log exists, the tab bar and the sidebar differ from the prototype.
+
+- **Prototype:** Today, Log, a centre ▶ that starts a live workout, Stats, Profile.
+- **Phase 1:** Today, Stats, a centre ✎ that goes to `/log`, Workouts, Profile.
+- **Why:** there is no live session to start yet, so the daily log takes the centre
+  slot, and Workouts holds the place of the Phase 2 screen.
+- **The current centre action:** when `/log` is the current page, the centre action
+  carries an `accent-ink` border as well as `aria-current="page"`. The prototype's
+  centre has no current state, because a live workout is never a place you are on.
+- The prototype stays the Phase 2 target. The Phase 2 live log step restores it.
 
 ## Finding horizontal scroll
 

@@ -14,8 +14,8 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
-if [ "$NODE_MAJOR" -lt 25 ]; then
-  echo "husky: this repository needs Node 25, found $(node -v)."
-  echo "husky: run 'nvm install 25 && nvm use 25', then try again."
+if [ "$NODE_MAJOR" -lt 24 ]; then
+  echo "husky: this repository needs Node 24 or newer, found $(node -v)."
+  echo "husky: run 'nvm install 24 && nvm use 24', then try again."
   exit 1
 fi

@@ -41,6 +41,7 @@ one of them is a bug. Say which, do not guess and do not silently change the oth
 | `references/components.md` | All eleven primitives, each with its markup recipe |
 | `references/responsive.md` | The three-range layout table and the fixed rules   |
 | `references/checklist.md`  | The nine-point pass-or-fail list, in full          |
+| `references/charts.md`     | Chart labels, reference lines and sparse data      |
 
 ## The nine-point checklist
 
@@ -74,6 +75,26 @@ drift, so it is not done.
 The route is guarded behind the `NEXT_PUBLIC_ENABLE_STYLEGUIDE` environment flag. When
 the flag is absent the route calls `notFound()`, so it never reaches the live app. Set
 `NEXT_PUBLIC_ENABLE_STYLEGUIDE=1` in `.env.local` to see it in development.
+
+## Motion
+
+Motion is decoration. It never holds back a value, a label or a tap.
+
+| What            | How                                             | Where                                  |
+| --------------- | ----------------------------------------------- | -------------------------------------- |
+| Hero count-up   | 0 to the value, 0.7 s, ease out, once per mount | `components/motion/CountUp.tsx`        |
+| Chart line draw | 400 ms, first paint only, never on a re-render  | `components/charts/useLineDraw.ts`     |
+| Chart labels    | Fade in 160 ms after the draw. They never move. | `app/globals.css`                      |
+| Page transition | Fade and 8 px slide, 180 ms, after a navigation | `components/motion/PageTransition.tsx` |
+| Tab bar press   | Scale 0.95, 100 ms                              | `components/ui/AppShell.tsx`           |
+
+- Animate `opacity`, `transform` and `stroke-dashoffset` only. Never a size or a
+  position, so no layout shift.
+- With `prefers-reduced-motion`, show the end state at once. Check it twice: in JS
+  with `prefersReducedMotion()`, and in CSS with a `motion-safe:` or
+  `prefers-reduced-motion: no-preference` guard.
+- The real value is in the document from the first render. A count-up only paints a
+  layer over it.
 
 ## The three habits that cause most drift
 

@@ -19,6 +19,13 @@ describe('HeroCard', () => {
     expect(screen.queryByText('Gym time')).not.toBeInTheDocument()
   })
 
+  it('pads at the recipe: 16 px on top and the sides, 20 px at the foot', () => {
+    render(<HeroCard data-testid="hero">1h 12m</HeroCard>)
+    const hero = screen.getByTestId('hero')
+    expect(hero).toHaveClass('p-4', 'pb-5')
+    expect(hero).not.toHaveClass('p-5')
+  })
+
   it('uses the accent fill, accent ink and hero radius tokens', () => {
     render(<HeroCard data-testid="hero">1h 12m</HeroCard>)
     const hero = screen.getByTestId('hero')

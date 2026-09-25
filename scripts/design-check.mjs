@@ -20,6 +20,10 @@ const ALLOWED_MICRO_LABEL = [
 const ALLOWED_OWN_FRAME = [
   { file: 'components/ui/AppShell.tsx', reason: 'the shell is the frame' },
   { file: 'app/~offline/page.tsx', reason: 'the offline fallback renders with no navigation' },
+  {
+    file: 'app/(auth)/layout.tsx',
+    reason: 'the auth route group frame: sign-in renders before there is a user, so no navigation',
+  },
 ]
 
 const CHECKS = [

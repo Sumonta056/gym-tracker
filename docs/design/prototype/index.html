@@ -194,7 +194,7 @@
         background: var(--color-surface);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-card);
-        padding: 14px;
+        padding: 16px;
       }
 
       .card.selected {
@@ -206,7 +206,7 @@
         color: var(--color-accent-ink);
         border: 1px solid var(--color-accent);
         border-radius: var(--radius-hero);
-        padding: 16px 18px 18px;
+        padding: 16px 16px 20px;
       }
 
       .hero .micro {
@@ -368,7 +368,7 @@
         cursor: pointer;
       }
 
-      .seg button[aria-selected='true'] {
+      .seg button[aria-pressed='true'] {
         background: var(--color-accent);
         color: var(--color-accent-ink);
       }
@@ -397,6 +397,18 @@
       .muted {
         color: var(--color-muted);
         font-size: 13px;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
 
       .dim {
@@ -477,6 +489,80 @@
         color: var(--color-muted);
       }
 
+      .frame.frame-tall {
+        height: auto;
+      }
+
+      .frame.frame-tall .body {
+        overflow: visible;
+      }
+
+      .chart .axis {
+        font-size: 11px;
+        font-weight: 600;
+        fill: var(--color-muted);
+      }
+
+      .chart .val,
+      .chart .end-label {
+        font-size: 11px;
+        font-weight: 700;
+        paint-order: stroke;
+        stroke: var(--color-surface);
+        stroke-width: 3px;
+        stroke-linejoin: round;
+      }
+
+      .chart .val {
+        fill: var(--color-text);
+      }
+
+      .chart .ref-line {
+        stroke: var(--color-muted);
+        stroke-width: 1;
+        stroke-dasharray: 4 3;
+      }
+
+      .chart .ref-label {
+        font-size: 11px;
+        font-weight: 600;
+        fill: var(--color-muted);
+        paint-order: stroke;
+        stroke: var(--color-surface);
+        stroke-width: 3px;
+        stroke-linejoin: round;
+      }
+
+      .chart .range-label {
+        font-size: 10px;
+        font-weight: 600;
+        fill: var(--color-muted);
+      }
+
+      .chart .ghost {
+        fill: var(--color-surface-2);
+      }
+
+      .sparse-value {
+        margin: 10px 0 0;
+        font-size: 25px;
+        font-weight: 700;
+        letter-spacing: -0.9px;
+      }
+
+      .sparse-value span {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: var(--color-muted);
+      }
+
+      .sparse-hint {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: var(--color-muted);
+      }
+
       .zonebar {
         display: flex;
         height: 14px;
@@ -491,26 +577,105 @@
         height: 100%;
       }
 
-      .heat {
+      .topbar-end {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+      }
+
+      .avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+        color: var(--color-accent);
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .row-tight {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      h3.micro {
+        margin: 0;
+      }
+
+      .streak-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: var(--radius-pill);
+        background: color-mix(in srgb, var(--color-accent-ink) 15%, transparent);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .streak-pill svg {
+        width: 12px;
+        height: 12px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .hero-inline {
         display: grid;
-        grid-template-columns: repeat(14, 1fr);
-        gap: 4px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 12px;
         margin-top: 12px;
       }
 
-      .heat i {
+      .hero-inline p {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      .spark {
         display: block;
-        aspect-ratio: 1;
-        border-radius: 4px;
-        background: var(--color-surface-2);
+        width: 100%;
+        height: 32px;
+        margin-top: 8px;
       }
 
-      .heat i.on {
-        background: var(--color-accent);
+      .week-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin: 10px 0 0;
       }
 
-      .heat i.half {
-        background: var(--color-data-violet);
+      .week-grid div {
+        display: flex;
+        flex-direction: column-reverse;
+        min-width: 0;
+      }
+
+      .week-grid dt {
+        font-size: 12px;
+        color: var(--color-muted);
+      }
+
+      .week-grid dd {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: -0.6px;
+        line-height: 1.25;
       }
 
       /* ---------- set rows ---------- */
@@ -741,90 +906,107 @@
           <div class="screen">
             <div class="topbar">
               <div>
-                <h2>Today</h2>
-                <p class="sub">Saturday, 20 September</p>
+                <span class="micro">Sunday</span>
+                <h2>13 September</h2>
               </div>
-              <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+              <div class="topbar-end">
+                <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+                <a class="avatar" href="#" aria-label="Profile"><span aria-hidden="true">S</span></a>
+              </div>
             </div>
 
             <div class="body">
-              <div class="hero">
-                <span class="micro">Gym time today</span>
-                <p class="hero-num">1:12:05</p>
-                <p class="hero-foot">Session finished 18:42 · 4,820 kg moved</p>
-              </div>
-
-              <div class="card">
-                <div class="row">
-                  <span class="micro">Current streak</span>
-                  <span style="font-size: 25px; font-weight: 700; letter-spacing: -0.9px">
-                    14 <span class="muted" style="font-size: 13px; font-weight: 600">days</span>
+              <section class="hero" aria-label="Today">
+                <div class="row-tight">
+                  <span class="micro">Gym time today</span>
+                  <span class="streak-pill">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M12 2c1 4 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 2 2 2 0 0-2-1-4 0-5z" />
+                    </svg>
+                    4 day streak
                   </span>
                 </div>
-                <div class="heat" role="img" aria-label="Last 14 days: 12 logged, 2 missed">
-                  <i class="on"></i><i class="on"></i><i class="half"></i><i class="on"></i>
-                  <i class="on"></i><i class="on"></i><i></i><i class="on"></i>
-                  <i class="on"></i><i class="half"></i><i class="on"></i><i class="on"></i>
-                  <i></i><i class="on"></i>
+                <p class="hero-num">1:12:05</p>
+                <div class="hero-inline">
+                  <div><span class="micro">Avg HR</span><p>117</p></div>
+                  <div><span class="micro">Peak</span><p>174</p></div>
+                  <div><span class="micro">Kcal</span><p>963</p></div>
+                  <div><span class="micro">Walk</span><p>55:24</p></div>
                 </div>
-              </div>
+              </section>
 
               <div class="grid-2">
                 <div class="card">
-                  <span class="micro">Walk</span>
-                  <p class="stat-num">42:18</p>
-                  <p class="dim" style="margin: 6px 0 0">70% of 60 min</p>
+                  <span class="micro">Steps</span>
+                  <p class="stat-num">5,909</p>
+                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">49% of 12,000</p>
                   <div class="bar">
-                    <span style="width: 70%; background: var(--color-data-cyan)"></span>
+                    <span style="width: 49%; background: var(--color-data-cyan)"></span>
                   </div>
                 </div>
                 <div class="card">
-                  <span class="micro">Steps</span>
-                  <p class="stat-num">12,480</p>
-                  <p class="dim" style="margin: 6px 0 0">104% of 12,000</p>
-                  <div class="bar">
-                    <span style="width: 100%; background: var(--color-data-cyan)"></span>
-                  </div>
+                  <span class="micro">Weight</span>
+                  <p class="stat-num">
+                    73.65 <span class="muted" style="font-size: 12px; font-weight: 600">kg</span>
+                  </p>
+                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">Latest entry</p>
+                  <svg
+                    class="spark"
+                    viewBox="0 0 100 32"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <polyline
+                      points="0,16 11,6 22,4 33,10 44,19 56,26 67,25 78,21 89,28 100,15"
+                      fill="none"
+                      stroke="var(--color-data-violet)"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      vector-effect="non-scaling-stroke"
+                    />
+                  </svg>
+                  <p class="visually-hidden">
+                    Weight series: 74.1, 74.6, 74.7, 74.4, 73.9, 73.6, 73.6, 73.9, 73.5, 73.65
+                  </p>
                 </div>
               </div>
 
               <div class="card">
-                <div class="row">
-                  <span class="micro">Heart rate zones</span>
-                  <span class="muted">avg 118 · max 164</span>
+                <div class="row-tight">
+                  <h3 class="micro">Heart rate zones</h3>
+                  <span class="muted" style="font-size: 12px">21m in cardio</span>
                 </div>
                 <div
                   class="zonebar"
                   role="img"
-                  aria-label="Fat burn 46 minutes, cardio 21 minutes, peak 5 minutes"
+                  aria-label="Heart rate zones: Warm 8m, Fat burn 38m, Cardio 21m, Peak 5m"
                 >
-                  <span style="width: 64%; background: var(--color-ok)"></span>
+                  <span style="width: 11%; background: var(--color-data-cyan)"></span>
+                  <span style="width: 53%; background: var(--color-ok)"></span>
                   <span style="width: 29%; background: var(--color-warn)"></span>
                   <span style="width: 7%; background: var(--color-danger)"></span>
                 </div>
                 <div class="legend">
-                  <span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 46 min</span>
-                  <span><i class="dot" style="background: var(--color-warn)"></i>Cardio 21 min</span>
-                  <span><i class="dot" style="background: var(--color-danger)"></i>Peak 5 min</span>
+                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 8m</span>
+                  <span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 38m</span>
+                  <span><i class="dot" style="background: var(--color-warn)"></i>Cardio 21m</span>
+                  <span><i class="dot" style="background: var(--color-danger)"></i>Peak 5m</span>
                 </div>
+                <p class="muted" style="margin: 10px 0 0; font-size: 12px">
+                  Modelled from the session average and peak.
+                </p>
               </div>
 
               <div class="card">
-                <span class="micro">This week</span>
-                <ul class="list" style="margin-top: 6px">
-                  <li class="row">
-                    <span class="muted">Sessions</span><strong>4</strong>
-                  </li>
-                  <li class="row">
-                    <span class="muted">Gym minutes</span><strong>268</strong>
-                  </li>
-                  <li class="row">
-                    <span class="muted">Calories</span><strong>3,940</strong>
-                  </li>
-                  <li class="row">
-                    <span class="muted">Steps</span><strong>71,204</strong>
-                  </li>
-                </ul>
+                <h3 class="micro">This week</h3>
+                <dl class="week-grid">
+                  <div><dt>sessions</dt><dd>3</dd></div>
+                  <div><dt>gym time</dt><dd>2h 32m</dd></div>
+                  <div><dt>kcal</dt><dd>2,627</dd></div>
+                  <div><dt>steps</dt><dd>21,480</dd></div>
+                </dl>
               </div>
             </div>
 
@@ -860,13 +1042,13 @@
 
             <div class="body">
               <div class="grid-2">
-                <label class="field" for="log-walk">
-                  <span class="micro">Walk time</span>
-                  <input class="input" id="log-walk" inputmode="numeric" value="42:18" />
-                </label>
                 <label class="field" for="log-gym">
                   <span class="micro">Gym time</span>
-                  <input class="input" id="log-gym" inputmode="numeric" value="1:12:05" />
+                  <input class="input" id="log-gym" inputmode="text" value="1:12:05" />
+                </label>
+                <label class="field" for="log-walk">
+                  <span class="micro">Walk time</span>
+                  <input class="input" id="log-walk" inputmode="text" value="42:18" />
                 </label>
               </div>
 
@@ -885,21 +1067,29 @@
                 </label>
               </div>
 
+              <label class="field" for="log-weight">
+                <span class="micro">Weight (kg)</span>
+                <input class="input" id="log-weight" inputmode="decimal" value="73.40" />
+              </label>
+              <div class="grid-2" style="gap: 8px">
+                <button class="btn btn-secondary" type="button">
+                  −0.05 <span class="sr-only">kg, decrease the weight</span>
+                </button>
+                <button class="btn btn-secondary" type="button">
+                  +0.05 <span class="sr-only">kg, increase the weight</span>
+                </button>
+              </div>
+
               <div class="grid-2">
-                <label class="field" for="log-weight">
-                  <span class="micro">Weight (kg)</span>
-                  <input class="input" id="log-weight" inputmode="decimal" value="73.40" />
-                </label>
                 <label class="field" for="log-calories">
                   <span class="micro">Calories</span>
                   <input class="input" id="log-calories" inputmode="numeric" value="985" />
                 </label>
+                <label class="field" for="log-steps">
+                  <span class="micro">Steps</span>
+                  <input class="input" id="log-steps" inputmode="numeric" value="12480" />
+                </label>
               </div>
-
-              <label class="field" for="log-steps">
-                <span class="micro">Steps</span>
-                <input class="input" id="log-steps" inputmode="numeric" value="12480" />
-              </label>
 
               <label class="field" for="log-note">
                 <span class="micro">Note</span>
@@ -910,8 +1100,9 @@
                 />
               </label>
 
-              <p class="dim" style="margin: 0">
-                Saved on this phone first. It uploads when the signal comes back.
+              <p class="muted" style="margin: 0">
+                Saved on this phone first. It uploads when the signal comes back, so nothing is
+                lost with no network.
               </p>
 
               <button class="btn" type="button">Save entry</button>
@@ -1109,37 +1300,38 @@
           <span class="name" id="p5">Analytics</span>
           <span class="route">/analytics</span>
         </div>
-        <div class="frame">
+        <div class="frame frame-tall">
           <div class="screen">
             <div class="topbar">
               <div>
                 <h2>Stats</h2>
                 <p class="sub">14 – 20 September</p>
               </div>
-              <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+              <span class="chip"
+                ><span class="dot dot-ok" aria-hidden="true"></span>Synced</span
+              >
             </div>
 
             <div class="body">
-              <div class="seg" role="tablist" aria-label="Range">
-                <button role="tab" type="button" aria-selected="false">Day</button>
-                <button role="tab" type="button" aria-selected="true">Week</button>
-                <button role="tab" type="button" aria-selected="false">Month</button>
+              <div class="seg" role="group" aria-label="Range">
+                <button type="button" aria-pressed="false">Day</button>
+                <button type="button" aria-pressed="true">Week</button>
+                <button type="button" aria-pressed="false">Month</button>
               </div>
 
               <div class="card">
                 <div class="row">
                   <span class="micro">Weight</span>
-                  <span class="muted">73.4 kg · −0.6 this week</span>
+                  <span class="muted">73.4 kg · −0.7 this week</span>
                 </div>
                 <svg
                   class="chart"
-                  viewBox="0 0 320 96"
-                  preserveAspectRatio="none"
+                  viewBox="0 0 320 120"
                   role="img"
-                  aria-label="Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling."
+                  aria-label="Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling, 73.8 on the last day."
                 >
                   <polyline
-                    points="10,26 60,32 110,20 160,44 210,50 260,56 310,60"
+                    points="34,36.3 75.7,50.3 117.3,29.4 159,64.2 200.7,71.1 242.3,78.1 284,85"
                     fill="none"
                     stroke="var(--color-data-violet)"
                     stroke-width="2.5"
@@ -1147,41 +1339,234 @@
                     stroke-linecap="round"
                     opacity="0.5"
                   />
+                  <circle
+                    cx="34"
+                    cy="36.3"
+                    r="2.5"
+                    fill="var(--color-data-violet)"
+                    opacity="0.5"
+                  />
+                  <circle
+                    cx="75.7"
+                    cy="50.3"
+                    r="2.5"
+                    fill="var(--color-data-violet)"
+                    opacity="0.5"
+                  />
+                  <circle
+                    cx="117.3"
+                    cy="29.4"
+                    r="2.5"
+                    fill="var(--color-data-violet)"
+                    opacity="0.5"
+                  />
+                  <circle
+                    cx="159"
+                    cy="64.2"
+                    r="2.5"
+                    fill="var(--color-data-violet)"
+                    opacity="0.5"
+                  />
+                  <circle
+                    cx="200.7"
+                    cy="71.1"
+                    r="2.5"
+                    fill="var(--color-data-violet)"
+                    opacity="0.5"
+                  />
+                  <circle
+                    cx="242.3"
+                    cy="78.1"
+                    r="2.5"
+                    fill="var(--color-data-violet)"
+                    opacity="0.5"
+                  />
+                  <circle
+                    cx="284"
+                    cy="85"
+                    r="2.5"
+                    fill="var(--color-data-violet)"
+                    opacity="0.5"
+                  />
                   <polyline
-                    points="10,30 60,31 110,30 160,36 210,42 260,48 310,53"
+                    points="34,19 75.7,23.4 117.3,27.4 159,34.3 200.7,43.3 242.3,51.2 284,59.2"
                     fill="none"
                     stroke="var(--color-data-violet)"
                     stroke-width="3"
                     stroke-linejoin="round"
                     stroke-linecap="round"
                   />
+                  <text class="range-label" x="0" y="32.9">74.2</text>
+                  <text class="range-label" x="0" y="88.5">73.4</text>
+                  <text
+                    class="end-label"
+                    x="292"
+                    y="89"
+                    fill="var(--color-muted)"
+                  >
+                    73.4
+                  </text>
+                  <text
+                    class="end-label"
+                    x="292"
+                    y="63.2"
+                    fill="var(--color-data-violet)"
+                  >
+                    73.8
+                  </text>
+                  <text class="axis" x="34" y="110" text-anchor="middle">
+                    M
+                  </text>
+                  <text class="axis" x="75.7" y="110" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="117.3" y="110" text-anchor="middle">
+                    W
+                  </text>
+                  <text class="axis" x="159" y="110" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="200.7" y="110" text-anchor="middle">
+                    F
+                  </text>
+                  <text class="axis" x="242.3" y="110" text-anchor="middle">
+                    S
+                  </text>
+                  <text class="axis" x="284" y="110" text-anchor="middle">
+                    S
+                  </text>
                 </svg>
                 <div class="legend">
-                  <span><i class="dot" style="background: var(--color-data-violet)"></i>Weight</span>
-                  <span><i class="dot" style="background: var(--color-data-violet); opacity: 0.5"></i>7-day average</span>
+                  <span
+                    ><i
+                      class="dot"
+                      style="background: var(--color-data-violet); opacity: 0.5"
+                    ></i
+                    >Weight</span
+                  >
+                  <span
+                    ><i
+                      class="dot"
+                      style="background: var(--color-data-violet)"
+                    ></i
+                    >7-day average</span
+                  >
                 </div>
               </div>
 
               <div class="card">
                 <div class="row">
                   <span class="micro">Calories burnt</span>
-                  <span class="muted">3,940 total</span>
+                  <span class="muted">4,940 total</span>
                 </div>
                 <svg
                   class="chart"
-                  viewBox="0 0 320 84"
+                  viewBox="0 0 320 112"
                   role="img"
-                  aria-label="Calories per day: 620, 780, 410, 985, 540, 900, 705"
+                  aria-label="Calories per day, rising: 620, 780, 410, 985, 540, 900, 705 kcal. Total 4,940 kcal. Average 706 kcal a day."
                 >
-                  <g fill="var(--color-warn)">
-                    <rect x="6" y="36" width="34" height="48" rx="6" />
-                    <rect x="50" y="22" width="34" height="62" rx="6" />
-                    <rect x="94" y="52" width="34" height="32" rx="6" />
-                    <rect x="138" y="8" width="34" height="76" rx="6" />
-                    <rect x="182" y="44" width="34" height="40" rx="6" />
-                    <rect x="226" y="16" width="34" height="68" rx="6" />
-                    <rect x="270" y="30" width="34" height="54" rx="6" />
-                  </g>
+                  <rect
+                    x="8.8"
+                    y="43.4"
+                    width="28"
+                    height="46.6"
+                    rx="6"
+                    fill="var(--color-warn)"
+                  />
+                  <rect
+                    x="54.5"
+                    y="31.4"
+                    width="28"
+                    height="58.6"
+                    rx="6"
+                    fill="var(--color-warn)"
+                  />
+                  <rect
+                    x="100.3"
+                    y="59.2"
+                    width="28"
+                    height="30.8"
+                    rx="6"
+                    fill="var(--color-warn)"
+                  />
+                  <rect
+                    x="146"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-warn)"
+                  />
+                  <rect
+                    x="191.7"
+                    y="49.4"
+                    width="28"
+                    height="40.6"
+                    rx="6"
+                    fill="var(--color-warn)"
+                  />
+                  <rect
+                    x="237.5"
+                    y="22.4"
+                    width="28"
+                    height="67.6"
+                    rx="6"
+                    fill="var(--color-warn)"
+                  />
+                  <rect
+                    x="283.2"
+                    y="37"
+                    width="28"
+                    height="53"
+                    rx="6"
+                    fill="var(--color-warn)"
+                  />
+                  <line class="ref-line" x1="0" x2="320" y1="37" y2="37" />
+                  <text class="ref-label" x="320" y="40" dy="0.8em" text-anchor="end">
+                    avg 706
+                  </text>
+                  <text class="val" x="22.8" y="39.4" text-anchor="middle">
+                    620
+                  </text>
+                  <text class="val" x="68.5" y="27.4" text-anchor="middle">
+                    780
+                  </text>
+                  <text class="val" x="114.3" y="55.2" text-anchor="middle">
+                    410
+                  </text>
+                  <text class="val" x="160" y="12" text-anchor="middle">
+                    985
+                  </text>
+                  <text class="val" x="205.7" y="45.4" text-anchor="middle">
+                    540
+                  </text>
+                  <text class="val" x="251.5" y="18.4" text-anchor="middle">
+                    900
+                  </text>
+                  <text class="val" x="297.2" y="33" text-anchor="middle">
+                    705
+                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">
+                    M
+                  </text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">
+                    W
+                  </text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">
+                    F
+                  </text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">
+                    S
+                  </text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">
+                    S
+                  </text>
                 </svg>
               </div>
 
@@ -1192,64 +1577,2573 @@
                 </div>
                 <svg
                   class="chart"
-                  viewBox="0 0 320 84"
+                  viewBox="0 0 320 112"
                   role="img"
-                  aria-label="Steps per day: 9,120, 11,400, 6,900, 12,480, 8,300, 13,100, 9,904"
+                  aria-label="Steps per day, rising: 9,120, 11,400, 6,900, 12,480, 8,300, 13,100, 9,904. Total 71,204. Goal 12,000 a day."
                 >
-                  <g fill="var(--color-data-cyan)">
-                    <rect x="6" y="30" width="34" height="54" rx="6" />
-                    <rect x="50" y="18" width="34" height="66" rx="6" />
-                    <rect x="94" y="48" width="34" height="36" rx="6" />
-                    <rect x="138" y="12" width="34" height="72" rx="6" />
-                    <rect x="182" y="38" width="34" height="46" rx="6" />
-                    <rect x="226" y="6" width="34" height="78" rx="6" />
-                    <rect x="270" y="26" width="34" height="58" rx="6" />
-                  </g>
+                  <rect
+                    x="8.8"
+                    y="48.5"
+                    width="28"
+                    height="41.5"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="54.5"
+                    y="38.1"
+                    width="28"
+                    height="51.9"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="100.3"
+                    y="58.6"
+                    width="28"
+                    height="31.4"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="146"
+                    y="33.2"
+                    width="28"
+                    height="56.8"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="191.7"
+                    y="52.2"
+                    width="28"
+                    height="37.8"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="237.5"
+                    y="30.4"
+                    width="28"
+                    height="59.6"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="283.2"
+                    y="45"
+                    width="28"
+                    height="45"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <line class="ref-line" x1="0" x2="320" y1="35.4" y2="35.4" />
+                  <text class="ref-label" x="320" y="11" text-anchor="end">
+                    goal 12k
+                  </text>
+                  <text class="val" x="22.8" y="44.5" text-anchor="middle">
+                    9.1k
+                  </text>
+                  <text class="val" x="68.5" y="34.1" text-anchor="middle">
+                    11.4k
+                  </text>
+                  <text class="val" x="114.3" y="54.6" text-anchor="middle">
+                    6.9k
+                  </text>
+                  <text class="val" x="160" y="29.2" text-anchor="middle">
+                    12.5k
+                  </text>
+                  <text class="val" x="205.7" y="48.2" text-anchor="middle">
+                    8.3k
+                  </text>
+                  <text class="val" x="251.5" y="26.4" text-anchor="middle">
+                    13.1k
+                  </text>
+                  <text class="val" x="297.2" y="41" text-anchor="middle">
+                    9.9k
+                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">
+                    M
+                  </text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">
+                    W
+                  </text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">
+                    F
+                  </text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">
+                    S
+                  </text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">
+                    S
+                  </text>
                 </svg>
               </div>
 
               <div class="card">
                 <div class="row">
                   <span class="micro">Heart rate</span>
-                  <span class="muted">avg 116 · max 171</span>
+                  <span class="muted">avg 115 · max 171</span>
                 </div>
                 <svg
                   class="chart"
-                  viewBox="0 0 320 76"
-                  preserveAspectRatio="none"
+                  viewBox="0 0 320 104"
                   role="img"
-                  aria-label="Average heart rate 112 to 118, highest heart rate 158 to 171 across the week"
+                  aria-label="Average heart rate 112 to 118 bpm, falling, 113 on the last day. Highest heart rate 158 to 171 bpm, rising, 168 on the last day."
                 >
                   <polyline
-                    points="10,14 60,20 110,10 160,18 210,12 260,22 310,16"
+                    points="10,21.8 55.7,25.7 101.3,12.9 147,23.8 192.7,18.8 238.3,24.8 284,15.9"
                     fill="none"
                     stroke="var(--color-danger)"
                     stroke-width="3"
                     stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle
+                    cx="10"
+                    cy="21.8"
+                    r="2.5"
+                    fill="var(--color-danger)"
+                  />
+                  <circle
+                    cx="55.7"
+                    cy="25.7"
+                    r="2.5"
+                    fill="var(--color-danger)"
+                  />
+                  <circle
+                    cx="101.3"
+                    cy="12.9"
+                    r="2.5"
+                    fill="var(--color-danger)"
+                  />
+                  <circle
+                    cx="147"
+                    cy="23.8"
+                    r="2.5"
+                    fill="var(--color-danger)"
+                  />
+                  <circle
+                    cx="192.7"
+                    cy="18.8"
+                    r="2.5"
+                    fill="var(--color-danger)"
+                  />
+                  <circle
+                    cx="238.3"
+                    cy="24.8"
+                    r="2.5"
+                    fill="var(--color-danger)"
+                  />
+                  <circle
+                    cx="284"
+                    cy="15.9"
+                    r="2.5"
+                    fill="var(--color-danger)"
                   />
                   <polyline
-                    points="10,54 60,50 110,58 160,48 210,56 260,46 310,52"
+                    points="10,69.1 55.7,67.1 101.3,71.1 147,65.2 192.7,68.1 238.3,66.1 284,70.1"
                     fill="none"
                     stroke="var(--color-data-cyan)"
                     stroke-width="3"
                     stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle
+                    cx="10"
+                    cy="69.1"
+                    r="2.5"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <circle
+                    cx="55.7"
+                    cy="67.1"
+                    r="2.5"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <circle
+                    cx="101.3"
+                    cy="71.1"
+                    r="2.5"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <circle
+                    cx="147"
+                    cy="65.2"
+                    r="2.5"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <circle
+                    cx="192.7"
+                    cy="68.1"
+                    r="2.5"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <circle
+                    cx="238.3"
+                    cy="66.1"
+                    r="2.5"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <circle
+                    cx="284"
+                    cy="70.1"
+                    r="2.5"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <text
+                    class="end-label"
+                    x="292"
+                    y="19.9"
+                    fill="var(--color-danger)"
+                  >
+                    168
+                  </text>
+                  <text
+                    class="end-label"
+                    x="292"
+                    y="74.1"
+                    fill="var(--color-data-cyan)"
+                  >
+                    113
+                  </text>
+                  <text class="axis" x="10" y="96" text-anchor="middle">M</text>
+                  <text class="axis" x="55.7" y="96" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="101.3" y="96" text-anchor="middle">
+                    W
+                  </text>
+                  <text class="axis" x="147" y="96" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="192.7" y="96" text-anchor="middle">
+                    F
+                  </text>
+                  <text class="axis" x="238.3" y="96" text-anchor="middle">
+                    S
+                  </text>
+                  <text class="axis" x="284" y="96" text-anchor="middle">
+                    S
+                  </text>
+                </svg>
+                <div class="legend">
+                  <span
+                    ><i class="dot" style="background: var(--color-danger)"></i
+                    >Highest</span
+                  >
+                  <span
+                    ><i
+                      class="dot"
+                      style="background: var(--color-data-cyan)"
+                    ></i
+                    >Average</span
+                  >
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Heart rate zones</span>
+                  <span class="muted">20 September</span>
+                </div>
+                <div
+                  class="zonebar"
+                  role="img"
+                  aria-label="Heart rate zones on 20 September: Warm 28m, Fat burn 11m, Cardio 16m, Peak 16m"
+                >
+                  <span
+                    style="width: 38.9%; background: var(--color-data-cyan)"
+                  ></span>
+                  <span
+                    style="width: 15.3%; background: var(--color-ok)"
+                  ></span>
+                  <span
+                    style="width: 22.9%; background: var(--color-warn)"
+                  ></span>
+                  <span
+                    style="width: 22.9%; background: var(--color-danger)"
+                  ></span>
+                </div>
+                <div class="legend">
+                  <span
+                    ><i
+                      class="dot"
+                      style="background: var(--color-data-cyan)"
+                    ></i
+                    >Warm 28m</span
+                  >
+                  <span
+                    ><i class="dot" style="background: var(--color-ok)"></i>Fat
+                    burn 11m</span
+                  >
+                  <span
+                    ><i class="dot" style="background: var(--color-warn)"></i
+                    >Cardio 16m</span
+                  >
+                  <span
+                    ><i class="dot" style="background: var(--color-danger)"></i
+                    >Peak 16m</span
+                  >
+                </div>
+                <p class="muted" style="margin: 10px 0 0; font-size: 12px">
+                  Modelled from the session average and peak.
+                </p>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Streak</span>
+                  <span class="muted">12 days · longest 12 days</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 140"
+                  role="img"
+                  aria-label="Streak over the last 12 weeks: logged 12 of 84 days. Current streak 12 days, longest 12 days."
+                >
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
                   />
                 </svg>
                 <div class="legend">
-                  <span><i class="dot" style="background: var(--color-danger)"></i>Highest</span>
-                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Average</span>
+                  <span
+                    ><i class="dot" style="background: var(--color-accent)"></i
+                    >Logged</span
+                  >
+                  <span
+                    ><i class="dot" style="background: var(--color-dim)"></i>Not
+                    logged</span
+                  >
                 </div>
+                <p class="muted" style="margin: 10px 0 0; font-size: 12px">
+                  Each column is a week, Monday at the top.
+                </p>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Week totals</span>
+                  <span class="muted">Gym time per day</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 112"
+                  role="img"
+                  aria-label="Time in the gym per day this week. Totals: 6 sessions, 7h 12m in the gym, 4,940 kcal, 71,204 steps. Average 62m a logged day."
+                >
+                  <rect
+                    class="ghost"
+                    x="100.3"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    x="8.8"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="54.5"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="146"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="191.7"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="237.5"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-accent)"
+                  />
+                  <rect
+                    x="283.2"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-accent)"
+                  />
+                  <line class="ref-line" x1="0" x2="320" y1="26.6" y2="26.6" />
+                  <text class="ref-label" x="320" y="29.6" dy="0.8em" text-anchor="end">
+                    avg 62m
+                  </text>
+                  <text class="val" x="22.8" y="12" text-anchor="middle">
+                    72m
+                  </text>
+                  <text class="val" x="68.5" y="12" text-anchor="middle">
+                    72m
+                  </text>
+                  <text class="val" x="160" y="12" text-anchor="middle">
+                    72m
+                  </text>
+                  <text class="val" x="205.7" y="12" text-anchor="middle">
+                    72m
+                  </text>
+                  <text class="val" x="251.5" y="12" text-anchor="middle">
+                    72m
+                  </text>
+                  <text class="val" x="297.2" y="12" text-anchor="middle">
+                    72m
+                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">
+                    M
+                  </text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">
+                    W
+                  </text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">
+                    F
+                  </text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">
+                    S
+                  </text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">
+                    S
+                  </text>
+                </svg>
+                <dl class="week-grid">
+                  <div>
+                    <dt>sessions</dt>
+                    <dd>6</dd>
+                  </div>
+                  <div>
+                    <dt>gym time</dt>
+                    <dd>7h 12m</dd>
+                  </div>
+                  <div>
+                    <dt>kcal</dt>
+                    <dd>4,940</dd>
+                  </div>
+                  <div>
+                    <dt>steps</dt>
+                    <dd>71,204</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Steps · Month tab</span>
+                  <span class="muted">71,204 total</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 112"
+                  role="img"
+                  aria-label="Steps per day this month, rising: 9,120, 11,400, 6,900, 12,480, 8,300, 13,100, 9,904. Total 71,204. Highest 13,100. Goal 12,000 a day."
+                >
+                  <rect
+                    class="ghost"
+                    x="2.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="13"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="23.6"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="34.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="45"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="55.6"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="66.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="77"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="87.6"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="98.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="109"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="119.6"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="130.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="215.6"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="226.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="237"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="247.6"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="258.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="269"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="279.6"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="290.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="301"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    class="ghost"
+                    x="311.6"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                  />
+                  <rect
+                    x="141"
+                    y="38.5"
+                    width="6"
+                    height="51.5"
+                    rx="3"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="151.6"
+                    y="25.6"
+                    width="6"
+                    height="64.4"
+                    rx="3"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="162.4"
+                    y="51"
+                    width="6"
+                    height="39"
+                    rx="3"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="173"
+                    y="19.5"
+                    width="6"
+                    height="70.5"
+                    rx="3"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="183.6"
+                    y="43.1"
+                    width="6"
+                    height="46.9"
+                    rx="3"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="194.4"
+                    y="16"
+                    width="6"
+                    height="74"
+                    rx="3"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="205"
+                    y="34.1"
+                    width="6"
+                    height="55.9"
+                    rx="3"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <line class="ref-line" x1="0" x2="320" y1="22.2" y2="22.2" />
+                  <text class="ref-label" x="320" y="19.2" text-anchor="end">
+                    goal 12k
+                  </text>
+                  <text class="val" x="197.4" y="12" text-anchor="middle">
+                    13.1k
+                  </text>
+                  <text class="axis" x="5.4" y="106" text-anchor="middle">
+                    1
+                  </text>
+                  <text class="axis" x="80" y="106" text-anchor="middle">
+                    8
+                  </text>
+                  <text class="axis" x="154.6" y="106" text-anchor="middle">
+                    15
+                  </text>
+                  <text class="axis" x="229.4" y="106" text-anchor="middle">
+                    22
+                  </text>
+                  <text class="axis" x="304" y="106" text-anchor="middle">
+                    29
+                  </text>
+                </svg>
               </div>
             </div>
 
             <nav class="tabbar" aria-label="Main">
-              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"
+                ><span class="glyph" aria-hidden="true">◧</span>Today</a
+              >
               <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
-              <button class="center" type="button" aria-label="Start a live workout">
+              <button
+                class="center"
+                type="button"
+                aria-label="Start a live workout"
+              >
                 <span class="glyph" aria-hidden="true">▶</span>
               </button>
-              <a href="#" aria-current="page"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
-              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+              <a href="#" aria-current="page"
+                ><span class="glyph" aria-hidden="true">◔</span>Stats</a
+              >
+              <a href="#"
+                ><span class="glyph" aria-hidden="true">☰</span>Profile</a
+              >
+            </nav>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 5b · analytics, one logged day ============ -->
+      <section class="plate" aria-labelledby="p5-one-day">
+        <div class="plate-label">
+          <span class="n">05b</span>
+          <span class="name" id="p5-one-day">Analytics, one logged day</span>
+          <span class="route">/analytics</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <h2>Stats</h2>
+                <p class="sub">14 – 20 September</p>
+              </div>
+              <span class="chip"
+                ><span class="dot dot-ok" aria-hidden="true"></span>Synced</span
+              >
+            </div>
+
+            <div class="body">
+              <div class="seg" role="group" aria-label="Range">
+                <button type="button" aria-pressed="false">Day</button>
+                <button type="button" aria-pressed="true">Week</button>
+                <button type="button" aria-pressed="false">Month</button>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Weight</span>
+                  <span class="muted">73.4 kg</span>
+                </div>
+                <p class="sparse-value">73.4<span> kg</span></p>
+                <p class="sparse-hint">Log one more day to see a trend.</p>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Calories burnt</span>
+                  <span class="muted">705 total</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 112"
+                  role="img"
+                  aria-label="Calories per day, one day logged: 705 kcal. Total 705 kcal."
+                >
+                  <rect
+                    class="ghost"
+                    x="5.1"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="43.4"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="81.7"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="120"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="158.3"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="196.6"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    x="234.9"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-warn)"
+                  />
+                  <text class="val" x="248.9" y="12" text-anchor="middle">
+                    705
+                  </text>
+                  <text class="axis" x="19.1" y="106" text-anchor="middle">
+                    M
+                  </text>
+                  <text class="axis" x="57.4" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="95.7" y="106" text-anchor="middle">
+                    W
+                  </text>
+                  <text class="axis" x="134" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="172.3" y="106" text-anchor="middle">
+                    F
+                  </text>
+                  <text class="axis" x="210.6" y="106" text-anchor="middle">
+                    S
+                  </text>
+                  <text class="axis" x="248.9" y="106" text-anchor="middle">
+                    S
+                  </text>
+                </svg>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Steps</span>
+                  <span class="muted">9,904 total</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 112"
+                  role="img"
+                  aria-label="Steps per day, one day logged: 9,904. Total 9,904. Goal 12,000 a day."
+                >
+                  <rect
+                    class="ghost"
+                    x="8.8"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="54.5"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="100.3"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="146"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="191.7"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="237.5"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    x="283.2"
+                    y="28.9"
+                    width="28"
+                    height="61.1"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <line class="ref-line" x1="0" x2="320" y1="16" y2="16" />
+                  <text class="ref-label" x="320" y="13" text-anchor="end">
+                    goal 12k
+                  </text>
+                  <text class="val" x="297.2" y="24.9" text-anchor="middle">
+                    9.9k
+                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">
+                    M
+                  </text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">
+                    W
+                  </text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">
+                    F
+                  </text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">
+                    S
+                  </text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">
+                    S
+                  </text>
+                </svg>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Heart rate</span>
+                  <span class="muted">avg 113 · max 168</span>
+                </div>
+                <p class="sparse-value">
+                  113<span> avg</span> · 168<span> max</span>
+                </p>
+                <p class="sparse-hint">Log one more day to see a trend.</p>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Heart rate zones</span>
+                  <span class="muted">20 September</span>
+                </div>
+                <div
+                  class="zonebar"
+                  role="img"
+                  aria-label="Heart rate zones on 20 September: Warm 28m, Fat burn 11m, Cardio 16m, Peak 16m"
+                >
+                  <span
+                    style="width: 38.9%; background: var(--color-data-cyan)"
+                  ></span>
+                  <span
+                    style="width: 15.3%; background: var(--color-ok)"
+                  ></span>
+                  <span
+                    style="width: 22.9%; background: var(--color-warn)"
+                  ></span>
+                  <span
+                    style="width: 22.9%; background: var(--color-danger)"
+                  ></span>
+                </div>
+                <div class="legend">
+                  <span
+                    ><i
+                      class="dot"
+                      style="background: var(--color-data-cyan)"
+                    ></i
+                    >Warm 28m</span
+                  >
+                  <span
+                    ><i class="dot" style="background: var(--color-ok)"></i>Fat
+                    burn 11m</span
+                  >
+                  <span
+                    ><i class="dot" style="background: var(--color-warn)"></i
+                    >Cardio 16m</span
+                  >
+                  <span
+                    ><i class="dot" style="background: var(--color-danger)"></i
+                    >Peak 16m</span
+                  >
+                </div>
+                <p class="muted" style="margin: 10px 0 0; font-size: 12px">
+                  Modelled from the session average and peak.
+                </p>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Streak</span>
+                  <span class="muted">1 day · longest 1 day</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 140"
+                  role="img"
+                  aria-label="Streak over the last 12 weeks: logged 1 of 84 days. Current streak 1 day, longest 1 day."
+                >
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="1.5"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="28.2"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="54.8"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="81.5"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="108.2"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="134.8"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="161.5"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="188.2"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="214.8"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="241.5"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="268.2"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="1.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="21.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="41.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="61.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="81.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="101.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-dim)"
+                  />
+                  <rect
+                    x="294.8"
+                    y="121.5"
+                    width="23.7"
+                    height="17"
+                    rx="3"
+                    fill="var(--color-accent)"
+                  />
+                </svg>
+                <div class="legend">
+                  <span
+                    ><i class="dot" style="background: var(--color-accent)"></i
+                    >Logged</span
+                  >
+                  <span
+                    ><i class="dot" style="background: var(--color-dim)"></i>Not
+                    logged</span
+                  >
+                </div>
+                <p class="muted" style="margin: 10px 0 0; font-size: 12px">
+                  Each column is a week, Monday at the top.
+                </p>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Week totals</span>
+                  <span class="muted">Gym time per day</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 112"
+                  role="img"
+                  aria-label="Time in the gym per day this week. Totals: 1 session, 1h 12m in the gym, 705 kcal, 9,904 steps."
+                >
+                  <rect
+                    class="ghost"
+                    x="5.1"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="43.4"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="81.7"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="120"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="158.3"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    class="ghost"
+                    x="196.6"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                  />
+                  <rect
+                    x="234.9"
+                    y="16"
+                    width="28"
+                    height="74"
+                    rx="6"
+                    fill="var(--color-accent)"
+                  />
+                  <text class="val" x="248.9" y="12" text-anchor="middle">
+                    72m
+                  </text>
+                  <text class="axis" x="19.1" y="106" text-anchor="middle">
+                    M
+                  </text>
+                  <text class="axis" x="57.4" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="95.7" y="106" text-anchor="middle">
+                    W
+                  </text>
+                  <text class="axis" x="134" y="106" text-anchor="middle">
+                    T
+                  </text>
+                  <text class="axis" x="172.3" y="106" text-anchor="middle">
+                    F
+                  </text>
+                  <text class="axis" x="210.6" y="106" text-anchor="middle">
+                    S
+                  </text>
+                  <text class="axis" x="248.9" y="106" text-anchor="middle">
+                    S
+                  </text>
+                </svg>
+                <dl class="week-grid">
+                  <div>
+                    <dt>sessions</dt>
+                    <dd>1</dd>
+                  </div>
+                  <div>
+                    <dt>gym time</dt>
+                    <dd>1h 12m</dd>
+                  </div>
+                  <div>
+                    <dt>kcal</dt>
+                    <dd>705</dd>
+                  </div>
+                  <div>
+                    <dt>steps</dt>
+                    <dd>9,904</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"
+                ><span class="glyph" aria-hidden="true">◧</span>Today</a
+              >
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button
+                class="center"
+                type="button"
+                aria-label="Start a live workout"
+              >
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#" aria-current="page"
+                ><span class="glyph" aria-hidden="true">◔</span>Stats</a
+              >
+              <a href="#"
+                ><span class="glyph" aria-hidden="true">☰</span>Profile</a
+              >
             </nav>
           </div>
         </div>
@@ -1275,11 +4169,14 @@
             <div class="body">
               <div class="card">
                 <span class="micro">Units</span>
-                <div class="seg" style="margin-top: 10px" role="tablist" aria-label="Unit system">
-                  <button role="tab" type="button" aria-selected="true">Metric</button>
-                  <button role="tab" type="button" aria-selected="false">Imperial</button>
+                <div class="seg" style="margin-top: 10px" role="group" aria-label="Unit system">
+                  <button type="button" aria-pressed="true">Metric</button>
+                  <button type="button" aria-pressed="false">Imperial</button>
                 </div>
-                <p class="dim" style="margin: 10px 0 0">
+                <p style="margin: 10px 0 0; font-size: 14px; font-weight: 600">
+                  Weight shows in kilograms (kg).
+                </p>
+                <p class="muted" style="margin: 4px 0 0; font-size: 12px">
                   Display only. Weight is always stored in kilograms.
                 </p>
               </div>
@@ -1303,28 +4200,24 @@
               </div>
 
               <div class="card">
-                <span class="micro">Data</span>
-                <div style="display: grid; gap: 10px; margin-top: 10px">
-                  <button class="btn btn-secondary" type="button">Import the Excel CSV</button>
-                  <button class="btn btn-secondary" type="button">Export everything as CSV</button>
-                </div>
-                <p class="dim" style="margin: 10px 0 0">
-                  Last import 12 Sep · 318 rows · 0 skipped
-                </p>
-              </div>
-
-              <div class="card">
                 <div class="row">
                   <span class="micro">Sync</span>
                   <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
                 </div>
                 <ul class="list" style="margin-top: 6px">
                   <li class="row"><span class="muted">Pending writes</span><strong>0</strong></li>
-                  <li class="row"><span class="muted">Last push</span><strong>18:44</strong></li>
                 </ul>
+                <button class="btn btn-secondary" type="button" style="margin-top: 12px">
+                  Sync now
+                </button>
               </div>
 
-              <button class="btn btn-danger" type="button">Sign out</button>
+              <div>
+                <button class="btn btn-danger" type="button">Sign out</button>
+                <p class="muted" style="margin: 8px 0 0; font-size: 12px">
+                  Signing out clears every entry on this device.
+                </p>
+              </div>
             </div>
 
             <nav class="tabbar" aria-label="Main">
@@ -1337,6 +4230,20 @@
               <a href="#" aria-current="page"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
             </nav>
           </div>
+        </div>
+        <div
+          role="group"
+          aria-label="Sync chip states"
+          style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px"
+        >
+          <span class="micro">Chip states</span>
+          <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+          <span class="chip"><span class="dot dot-cyan" aria-hidden="true"></span>Syncing</span>
+          <span class="chip"
+            ><span class="dot" style="background: var(--color-muted)" aria-hidden="true"></span
+            >Pending</span
+          >
+          <span class="chip"><span class="dot dot-warn" aria-hidden="true"></span>Offline</span>
         </div>
       </section>
     </main>

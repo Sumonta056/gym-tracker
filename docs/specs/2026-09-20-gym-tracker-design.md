@@ -269,6 +269,10 @@ test keeps in step with `app/globals.css`.
 - Streak: a calendar heat map plus a current streak count.
 - Week totals: sessions, gym minutes, calories, steps.
 
+Every chart must read on the first day of use and with a full month: day labels, value
+labels, a goal or average line, and a clear state for sparse data. The rules are in
+`.claude/skills/design-system/references/charts.md`.
+
 **Phase 2**
 
 - Volume load per session: the sum of reps times weight. The single best number

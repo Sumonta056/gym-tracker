@@ -1,8 +1,8 @@
 import { cn } from './cn'
 
-import type { ComponentPropsWithoutRef } from 'react'
+import type { ComponentPropsWithRef } from 'react'
 
-export type CardProps = ComponentPropsWithoutRef<'div'> & {
+export type CardProps = ComponentPropsWithRef<'div'> & {
   selected?: boolean
 }
 

@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": ">=25 <26",
+    "node": ">=24 <26",
     "pnpm": ">=10"
   },
   "pnpm": {
@@ -26,6 +26,10 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "report": "node scripts/commit-report.ts",
+    "db:link": "supabase link",
+    "db:push": "supabase db push",
+    "db:diff": "supabase db diff --linked",
+    "types:db": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > lib/supabase/database.types.ts && prettier --write lib/supabase/database.types.ts",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "lighthouse": "lhci autorun --config=./lighthouserc.json",
@@ -38,10 +42,19 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "dexie": "^4.4.6",
+    "dexie-react-hooks": "^4.4.0",
+    "motion": "^13.4.3",
     "next": "15.5.25",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "serwist": "^9.5.12"
+    "react-hook-form": "^7.88.0",
+    "recharts": "^3.10.1",
+    "serwist": "^9.5.12",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -73,6 +86,7 @@
     "lint-staged": "^17.5.1",
     "prettier": "^3.9.8",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "supabase": "^2.117.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "typescript-eslint": "^8.70.0",

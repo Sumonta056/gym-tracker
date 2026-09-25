@@ -178,6 +178,12 @@ export function StatusChip({ state }: { state: keyof typeof chipTone }) {
 The word carries the meaning; the dot only repeats it. The dot is `aria-hidden`. The
 chip is not a button, so it is exempt from the 44 px rule.
 
+The live chip adds a fourth state, `pending`, with a `muted` dot and the word
+`Pending`: a write still waits in the outbox, a write the server refused waits in the
+dead-letter table for a Retry or a Discard, or the last drain failed. `Synced` shows
+only when both the outbox and the dead-letter table are empty. When a screen shows two chips, the second one passes
+`announce={false}`, so the state is read out once.
+
 ---
 
 ## 7. `NumberField`
@@ -185,7 +191,7 @@ chip is not a button, so it is exempt from the 44 px rule.
 52 px tall, `rounded-input`, with the right phone keypad.
 
 ```tsx
-export function NumberField({ id, label, decimal = false, ...rest }: NumberFieldProps) {
+export function NumberField({ id, label, inputMode = 'decimal', ...rest }: NumberFieldProps) {
   return (
     <div>
       <label htmlFor={id}>
@@ -193,7 +199,7 @@ export function NumberField({ id, label, decimal = false, ...rest }: NumberField
       </label>
       <input
         id={id}
-        inputMode={decimal ? 'decimal' : 'numeric'}
+        inputMode={inputMode}
         className="rounded-input border-border bg-surface text-text placeholder:text-dim h-13 w-full border px-3.5 text-base font-semibold"
         {...rest}
       />
@@ -202,8 +208,12 @@ export function NumberField({ id, label, decimal = false, ...rest }: NumberField
 }
 ```
 
-- `inputMode` decides the keypad. `decimal` for weight, `numeric` for steps and heart
-  rate.
+- `inputMode` decides the keypad, and it **defaults to `decimal`**. Weight needs a
+  decimal point, and the iOS `numeric` keypad has none, so the safe default is the one
+  that can type every value.
+- Pass `inputMode="numeric"` only on a field that holds whole numbers. Today that is
+  heart rate, calories and steps on `/log`, and the step goal and height on
+  `/profile`.
 - Font size is 16 px or larger, or iOS Safari zooms the page on focus.
 - On an error: `aria-invalid` on the input, `aria-describedby` pointing at the message,
   and the message in `text-danger` with words, not colour alone.
@@ -215,60 +225,77 @@ export function NumberField({ id, label, decimal = false, ...rest }: NumberField
 Accepts `1:12:05`, `72m`, `1h 12m`. **It never parses by hand** — it calls
 `lib/duration.ts`, which owns every parse and every format, and stores integer seconds.
 
+It is a **controlled text field**, the same shape as `NumberField`: `value`, `onChange`
+and `error`. It holds text, not seconds. The owning form parses the text once, on
+submit, and stores the seconds.
+
 ```tsx
-export function DurationField({ id, label, seconds, onChangeSeconds }: DurationFieldProps) {
-  const [draft, setDraft] = useState(() => formatDuration(seconds))
+export const DURATION_HINT = 'Accepts 1:12:05, 72m or 1h 12m.'
+
+export function durationPreview(text: string): string | null {
+  const raw = text.trim()
+  if (raw === '') return null
+  const parsed = parseInput(raw)
+  if (!parsed.ok) return null
+  return `${formatDuration(parsed.seconds, 'clock')} · ${formatDuration(parsed.seconds, 'short')}`
+}
+
+export function DurationField({ hint = DURATION_HINT, value, ...rest }: DurationFieldProps) {
+  const preview = durationPreview(typeof value === 'string' ? value : '')
   return (
-    <div>
-      <label htmlFor={id}>
-        <MicroLabel className="mb-1.5 block">{label}</MicroLabel>
-      </label>
-      <input
-        id={id}
-        inputMode="numeric"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          const parsed = parseDuration(draft)
-          if (parsed !== null) {
-            onChangeSeconds(parsed)
-            setDraft(formatDuration(parsed))
-          }
-        }}
-        className="rounded-input border-border bg-surface text-text h-13 w-full border px-3.5 text-base font-semibold"
-      />
-      <p className="text-dim mt-1.5 text-xs">Type 1:12:05, 72m or 1h 12m.</p>
-    </div>
+    <Field
+      type="text"
+      inputMode="text"
+      autoComplete="off"
+      placeholder="1:12:05"
+      value={value}
+      hint={
+        <>
+          {hint}
+          {preview === null ? null : (
+            <span className="text-text mt-1 block font-semibold">{preview}</span>
+          )}
+        </>
+      }
+      {...rest}
+    />
   )
 }
 ```
 
-The hint line is the only place the accepted formats are written. Keep it.
+- The hint line is the only place the accepted formats are written. Keep it.
+- The preview under the hint shows the parsed value as the user types, so a wrong guess
+  is visible before the save.
+- **`inputMode` is `text`, not `numeric`.** The hint promises `72m` and `1h 12m`, and an
+  iOS numeric keypad offers no `m` and no `h`. A numeric keypad would contradict the
+  field's own hint. This is the one duration field that is not a number pad.
+- The field never reports a silent `null`. Unreadable text stays in the field, and the
+  owning form blocks the save and names the problem.
 
 ---
 
 ## 9. `SegmentedTabs`
 
-Day / Week / Month. An accent pill marks the selected tab.
+Day / Week / Month. A toggle button group, not a tab list. An accent pill marks the
+pressed button.
 
 ```tsx
-export function SegmentedTabs({ options, value, onChange, label }: SegmentedTabsProps) {
+export function SegmentedTabs({ label, options, value, onValueChange }: SegmentedTabsProps) {
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label={label}
-      className="border-border bg-surface grid auto-cols-fr grid-flow-col gap-1 rounded-full border p-1"
+      className="bg-surface border-border inline-flex w-full gap-1 rounded-full border p-1"
     >
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
-          role="tab"
-          aria-selected={option.value === value}
-          onClick={() => onChange(option.value)}
+          aria-pressed={option.value === value}
+          onClick={() => onValueChange(option.value)}
           className={cn(
-            'min-h-11 rounded-full text-sm font-bold',
-            option.value === value ? 'bg-accent text-accent-ink' : 'text-dim',
+            'h-11 flex-1 rounded-full px-4 text-sm font-bold',
+            option.value === value ? 'bg-accent text-accent-ink' : 'text-muted',
           )}
         >
           {option.label}
@@ -279,8 +306,12 @@ export function SegmentedTabs({ options, value, onChange, label }: SegmentedTabs
 }
 ```
 
-`min-h-11` is 44 px. The selected state is the accent fill **and** `aria-selected`, so
-it is not carried by colour alone.
+`h-11` is 44 px. The selected state is the accent fill **and** `aria-pressed`, so it is
+not carried by colour alone.
+
+It is `role="group"` with `aria-pressed`, never `role="tablist"` with `aria-selected`.
+The buttons switch a value; they own no tab panels and no arrow key roving, so a tab
+role would promise a screen reader behaviour that is not there.
 
 ---
 
@@ -319,6 +350,7 @@ export function Button({
 
 - Something that **does** a thing is this button. Something that **goes** somewhere is
   a `next/link`, styled the same way.
+- In the live code the destructive shape is `SecondaryButton` with `tone="danger"`.
 - An icon-only button carries an `aria-label`.
 - Always set `type`. An unset button inside a form submits it.
 
