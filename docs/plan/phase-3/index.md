@@ -102,8 +102,7 @@ Do not build these again. Read them first.
 
 - The image licence. The owner answers at 3.4.
 - Whether the repository is public. It changes the licence answer.
-- `docs/plan/02-phase-2.md` step 2.2 says "Dexie version 2" and step 2.1 says
-  `0002_phase2.sql`. Dexie is already at 2, and migrations use a timestamp name.
-  Phase 2 must fix both before it starts.
+- Closed on 2026-09-25: `docs/plan/02-phase-2.md` now says Dexie version 3 and a
+  timestamp migration name. 3.3 still reads the live `DATABASE_VERSION`.
 
 &nbsp;

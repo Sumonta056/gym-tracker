@@ -4,9 +4,10 @@
 that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
-**Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 2.1 → `docs/plan/02-phase-2.md`
-**Branch:** `feat/phase-1-daily-tracker`
+**Step index:** `docs/plan/phase-2/index.md`
+**Next step:** 2.0 → `docs/plan/phase-2/S2.0-design-contract.md`
+**Branch:** `feat/phase-1-daily-tracker`. Phase 2 runs on `feat/phase-2-workout-log`,
+cut from `main` after the Phase 1 branch merges.
 **Last commit:** 1.17, Phase 1 complete, on top of `9c05582`.
 Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
 
@@ -14,7 +15,7 @@ Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
 
 - Stopped on 2026-09-25 after 1.17. The owner ran the device check.
 - The report is `reports/2026-09-25-sync-sign-out-follow-ups.html`.
-- Phase 1 is done. Checkpoint D passed. Do not start 2.1
+- Phase 1 is done. Checkpoint D passed. Do not start 2.0
   without owner approval.
 - Run each step in a fresh subagent. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
@@ -58,6 +59,7 @@ Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
 
 - [x] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
 - [x] Phase 1 — Daily tracker (19 steps) · `docs/plan/phase-1/index.md`
+- [ ] Phase 2 — Workout log and import (21 steps) · `docs/plan/phase-2/index.md`
 - [ ] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
 
 ## Rules that block you
