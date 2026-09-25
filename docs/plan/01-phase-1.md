@@ -409,17 +409,17 @@ Write these, on all three Playwright projects:
 
 ## Phase 1 checklist
 
-- [ ] `pnpm verify` passes.
-- [ ] `pnpm e2e` passes on all three projects.
-- [ ] `lib/duration.ts` coverage is 100 percent.
-- [ ] `lib/metrics/**` coverage is 100 percent for lines.
-- [ ] `lib/sync/**` coverage is 95 percent or higher.
-- [ ] Zero serious axe issues on every route.
-- [ ] No horizontal scroll from 320 px to 2560 px.
-- [ ] Installed on the iPhone home screen and tested with flight mode.
-- [ ] The laptop layout uses the sidebar and shows the same data.
-- [ ] `/styleguide` still matches the prototype.
-- [ ] Every chart reads with one logged day and with a full month.
+- [x] `pnpm verify` passes.
+- [x] `pnpm e2e` passes on all three projects.
+- [x] `lib/duration.ts` coverage is 100 percent.
+- [x] `lib/metrics/**` coverage is 100 percent for lines.
+- [x] `lib/sync/**` coverage is 95 percent or higher.
+- [x] Zero serious axe issues on every route.
+- [x] No horizontal scroll from 320 px to 2560 px.
+- [x] Installed on the iPhone home screen and tested with flight mode.
+- [x] The laptop layout uses the sidebar and shows the same data.
+- [x] `/styleguide` still matches the prototype.
+- [x] Every chart reads with one logged day and with a full month.
 
 **Commit** one report per step. The final one is
 `feat(ui): phase 1 daily tracker complete`.

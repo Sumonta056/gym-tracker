@@ -3,19 +3,19 @@
 **Start of every session:** read `CLAUDE.md`, then the step file named below, then do
 that one step only. Stop and report when the step is done.
 
-**Current phase:** 1 — Daily tracker · `docs/plan/01-phase-1.md`
+**Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-1/index.md`
-**Next step:** 1.17 → `docs/plan/phase-1/S1.17-*.md`
+**Next step:** 2.1 → `docs/plan/02-phase-2.md`
 **Branch:** `feat/phase-1-daily-tracker`
-**Last commit:** the 1.16b sign-out follow-ups, on top of `ae3e950`.
-Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
+**Last commit:** 1.17, Phase 1 complete, on top of `9c05582`.
+Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
 
 ## Resume here
 
-- Stopped on 2026-09-25 after 1.16b. Start 1.17 in a new session.
+- Stopped on 2026-09-25 after 1.17. The owner ran the device check.
 - The report is `reports/2026-09-25-sync-sign-out-follow-ups.html`.
-- Left in Phase 1: 1.17. The next stop is Checkpoint D,
-  after 1.17. It needs a real iPhone and a Vercel account.
+- Phase 1 is done. Checkpoint D passed. Do not start 2.1
+  without owner approval.
 - Run each step in a fresh subagent. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
 - Stop any `next dev` before `pnpm verify`. A shared `.next` breaks the build.
@@ -47,8 +47,6 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 
 ## Open, with the step that closes each one
 
-- **1.17** — WebKit in Playwright cannot boot offline from the service worker, so test 6
-  proves only the IndexedDB write there. The real iPhone proves the offline boot. From 1.16.
 - **Owner** — add four CI secrets: `E2E_EMAIL`, `E2E_PASSWORD`,
   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. From 1.16.
 - **Owner** — the prototype sync card lacks the failed-writes rows. From 1.13b.
@@ -59,7 +57,7 @@ Checkpoints A, B and C are ticked. The iPhone half of A is open until step 1.17.
 ## Phases
 
 - [x] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
-- [ ] Phase 1 — Daily tracker (19 steps, 18 done) · `docs/plan/phase-1/index.md`
+- [x] Phase 1 — Daily tracker (19 steps) · `docs/plan/phase-1/index.md`
 - [ ] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
 
 ## Rules that block you

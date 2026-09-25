@@ -36,7 +36,7 @@ files, plus step 1.13b, added after 1.13. One step is one session. Never do two 
 | 1.15  | `S1.15-responsive-a11y-pass.md` | Responsive and access pass  | M    | 1.13b      | done  |
 | 1.16  | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       | done  |
 | 1.16b | `S1.16b-sync-follow-ups.md`     | Sync follow-ups, sign-out   | M    | 1.16       | done  |
-| 1.17  | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16b      | now   |
+| 1.17  | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16b      | done  |
 
 ## Order
 
@@ -63,7 +63,7 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 - [x] The migration applies on a fresh database.
 - [x] Account A cannot read a row of account B.
 - [x] A real magic link signs the user in on a phone and on a laptop.
-      Laptop confirmed. The iPhone half runs again at 1.17 on the deployed URL.
+      Laptop confirmed. The iPhone half passed at 1.17 on the deployed URL.
 
 ### Checkpoint B — after 1.7 · passed
 
@@ -78,11 +78,11 @@ Stop and report to the user at each checkpoint. Do not continue without approval
       routes, `/log` included, at 1.16 with the signed-in fixture.
 - [x] Every chart has an empty state and a text alternative.
 
-### Checkpoint D — after 1.17 · next
+### Checkpoint D — after 1.17 · passed
 
-Steps 1.1 to 1.16b are done. 1.17 remains.
+Steps 1.1 to 1.17 are done.
 
-- [ ] Every item in the Phase 1 checklist of `docs/plan/01-phase-1.md` passes.
+- [x] Every item in the Phase 1 checklist of `docs/plan/01-phase-1.md` passes.
 
 ## What Phase 0 already built
 
