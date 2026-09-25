@@ -23,6 +23,7 @@ import { EmailField } from '../../components/ui/EmailField'
 import { HeroCard } from '../../components/ui/HeroCard'
 import { MicroLabel } from '../../components/ui/MicroLabel'
 import { NumberField } from '../../components/ui/NumberField'
+import { PasswordField } from '../../components/ui/PasswordField'
 import { PrimaryButton } from '../../components/ui/PrimaryButton'
 import { SecondaryButton } from '../../components/ui/SecondaryButton'
 import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
@@ -558,6 +559,7 @@ function Styleguide() {
           </Card>
           <Card className="flex flex-col gap-4">
             <EmailField label="Email" placeholder="you@example.com" />
+            <PasswordField label="Password" placeholder="Your password" />
             <EmailField
               label="Email, rejected"
               defaultValue="not-an-email"

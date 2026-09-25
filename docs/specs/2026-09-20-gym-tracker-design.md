@@ -248,7 +248,7 @@ test keeps in step with `app/globals.css`.
 
 | #   | Route            | Purpose                                                                       |
 | --- | ---------------- | ----------------------------------------------------------------------------- |
-| 0   | `/sign-in`       | Supabase magic link. Plus the iPhone install hint.                            |
+| 0   | `/sign-in`       | Email and password, magic link fallback. Plus the iPhone install hint.        |
 | 1   | `/`              | Dashboard: hero gym time, streak, 2 stat cards, heart rate zones, week totals |
 | 2   | `/log`           | The 8-column daily form. It offers the finished session length for Gym Time.  |
 | 3   | `/workout`       | Live session: timer, set rows, rest timer, running volume                     |

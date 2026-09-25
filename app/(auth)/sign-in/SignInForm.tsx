@@ -1,23 +1,148 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { BrandMark } from '../../../components/ui/BrandMark'
 import { Card } from '../../../components/ui/Card'
 import { EmailField } from '../../../components/ui/EmailField'
 import { MicroLabel } from '../../../components/ui/MicroLabel'
+import { PasswordField } from '../../../components/ui/PasswordField'
 import { PrimaryButton } from '../../../components/ui/PrimaryButton'
 import { SecondaryButton } from '../../../components/ui/SecondaryButton'
-import { sendMagicLink } from '../../../lib/auth/actions'
+import { sendMagicLink, signInWithPassword } from '../../../lib/auth/actions'
 import { isValidEmail } from '../../../lib/auth/email'
+
+type Mode = 'password' | 'link'
 
 type Status = 'idle' | 'sending' | 'sent'
 
+type PasswordStatus = 'idle' | 'signing-in'
+
 const INVALID_EMAIL = 'Enter an email address like you@example.com.'
+const EMPTY_PASSWORD = 'Enter your password.'
 
 export function SignInForm() {
-  const confirmation = useRef<HTMLDivElement>(null)
+  const [mode, setMode] = useState<Mode>('password')
   const [email, setEmail] = useState('')
+
+  if (mode === 'password') {
+    return (
+      <PasswordSignIn
+        email={email}
+        onEmailChange={setEmail}
+        onUseLink={() => {
+          setMode('link')
+        }}
+      />
+    )
+  }
+
+  return (
+    <MagicLinkSignIn
+      email={email}
+      onEmailChange={setEmail}
+      onUsePassword={() => {
+        setMode('password')
+      }}
+    />
+  )
+}
+
+type PasswordSignInProps = {
+  email: string
+  onEmailChange: (email: string) => void
+  onUseLink: () => void
+}
+
+function PasswordSignIn({ email, onEmailChange, onUseLink }: PasswordSignInProps) {
+  const router = useRouter()
+  const [password, setPassword] = useState('')
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [status, setStatus] = useState<PasswordStatus>('idle')
+
+  async function submit(): Promise<void> {
+    const badEmail = !isValidEmail(email)
+    const noPassword = password === ''
+    setEmailError(badEmail ? INVALID_EMAIL : null)
+    setPasswordError(noPassword ? EMPTY_PASSWORD : null)
+    if (badEmail || noPassword) return
+
+    setStatus('signing-in')
+
+    const result = await signInWithPassword(email, password)
+
+    if (result.status === 'error') {
+      setPasswordError(result.message)
+      setStatus('idle')
+      return
+    }
+
+    router.replace('/')
+    router.refresh()
+  }
+
+  const signingIn = status === 'signing-in'
+
+  return (
+    <div className="flex flex-col gap-3">
+      <SignInHeader />
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void submit()
+        }}
+      >
+        <EmailField
+          label="Email"
+          placeholder="you@example.com"
+          autoComplete="username"
+          value={email}
+          disabled={signingIn}
+          error={emailError ?? undefined}
+          onChange={(event) => {
+            onEmailChange(event.target.value)
+            setEmailError(null)
+          }}
+        />
+
+        <PasswordField
+          label="Password"
+          placeholder="Your password"
+          value={password}
+          disabled={signingIn}
+          error={passwordError ?? undefined}
+          onChange={(event) => {
+            setPassword(event.target.value)
+            setPasswordError(null)
+          }}
+        />
+
+        <PrimaryButton type="submit" disabled={signingIn} aria-busy={signingIn}>
+          {signingIn ? 'Signing in…' : 'Sign in'}
+        </PrimaryButton>
+      </form>
+
+      <SecondaryButton type="button" disabled={signingIn} onClick={onUseLink}>
+        Email me a link instead
+      </SecondaryButton>
+
+      <InstallCard />
+    </div>
+  )
+}
+
+type MagicLinkSignInProps = {
+  email: string
+  onEmailChange: (email: string) => void
+  onUsePassword: () => void
+}
+
+function MagicLinkSignIn({ email, onEmailChange, onUsePassword }: MagicLinkSignInProps) {
+  const confirmation = useRef<HTMLDivElement>(null)
   const [sentTo, setSentTo] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<Status>('idle')
@@ -66,6 +191,7 @@ export function SignInForm() {
           </p>
         </Card>
         <SecondaryButton
+          type="button"
           onClick={() => {
             setStatus('idle')
             setSentTo('')
@@ -97,7 +223,7 @@ export function SignInForm() {
           disabled={sending}
           error={error ?? undefined}
           onChange={(event) => {
-            setEmail(event.target.value)
+            onEmailChange(event.target.value)
             setError(null)
           }}
         />
@@ -111,15 +237,25 @@ export function SignInForm() {
         No password. The link signs you in for 30 days.
       </p>
 
-      <Card className="mt-2 flex flex-col gap-2">
-        <MicroLabel as="p">Install on iPhone</MicroLabel>
-        <p className="text-muted text-[13px] leading-relaxed">
-          Open in Safari, tap <span className="text-text font-semibold">Share</span>, then{' '}
-          <span className="text-text font-semibold">Add to Home Screen</span>. The app then opens
-          full screen and logs offline.
-        </p>
-      </Card>
+      <SecondaryButton type="button" disabled={sending} onClick={onUsePassword}>
+        Use password instead
+      </SecondaryButton>
+
+      <InstallCard />
     </div>
+  )
+}
+
+function InstallCard() {
+  return (
+    <Card className="mt-2 flex flex-col gap-2">
+      <MicroLabel as="p">Install on iPhone</MicroLabel>
+      <p className="text-muted text-[13px] leading-relaxed">
+        Open in Safari, tap <span className="text-text font-semibold">Share</span>, then{' '}
+        <span className="text-text font-semibold">Add to Home Screen</span>. The app then opens full
+        screen and logs offline.
+      </p>
+    </Card>
   )
 }
 

@@ -17,7 +17,7 @@ anonymous('sends an anonymous visit to the sign in screen', async ({ page }) => 
   await page.goto('/')
 
   await expect(page).toHaveURL(/\/sign-in$/)
-  await expect(page.getByRole('button', { name: 'Send magic link' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
 })
 
 test('lands a signed-in visitor on the dashboard, even from the sign in screen', async ({

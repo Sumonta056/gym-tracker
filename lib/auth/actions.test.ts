@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { sendMagicLink } from './actions'
+import { sendMagicLink, signInWithPassword } from './actions'
 
 type OtpArgs = {
   email: string
   options?: { emailRedirectTo?: string }
 }
 
+type PasswordArgs = {
+  email: string
+  password: string
+}
+
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   signInWithOtp: vi.fn<(args: OtpArgs) => Promise<{ error: { message: string } | null }>>(),
+  signInWithPassword:
+    vi.fn<(args: PasswordArgs) => Promise<{ error: { message: string } | null }>>(),
   get: vi.fn<(name: string) => string | null>(),
 }))
 
@@ -73,6 +80,59 @@ describe('sendMagicLink', () => {
     expect(result).toEqual({
       status: 'error',
       message: 'The link could not be sent. Check the address and try again.',
+    })
+  })
+})
+
+describe('signInWithPassword', () => {
+  beforeEach(() => {
+    mocks.signInWithPassword.mockReset()
+    mocks.signInWithPassword.mockResolvedValue({ error: null })
+    mocks.createClient.mockReset()
+    mocks.createClient.mockResolvedValue({
+      auth: { signInWithPassword: mocks.signInWithPassword },
+    })
+  })
+
+  it('signs in with the normalised address and the password as typed', async () => {
+    const result = await signInWithPassword('  You@Example.com ', ' Secret 1 ')
+    expect(result).toEqual({ status: 'signed-in' })
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
+      email: 'you@example.com',
+      password: ' Secret 1 ',
+    })
+  })
+
+  it('reports an error and never calls supabase for an invalid address', async () => {
+    const result = await signInWithPassword('not-an-email', 'secret')
+    expect(result).toEqual({
+      status: 'error',
+      message: 'Enter an email address like you@example.com.',
+    })
+    expect(mocks.createClient).not.toHaveBeenCalled()
+  })
+
+  it('reports an error and never calls supabase for an empty password', async () => {
+    const result = await signInWithPassword('you@example.com', '')
+    expect(result).toEqual({ status: 'error', message: 'Enter your password.' })
+    expect(mocks.createClient).not.toHaveBeenCalled()
+  })
+
+  it('reports one generic message when supabase refuses the credentials', async () => {
+    mocks.signInWithPassword.mockResolvedValue({ error: { message: 'Invalid login credentials' } })
+    const result = await signInWithPassword('you@example.com', 'wrong')
+    expect(result).toEqual({
+      status: 'error',
+      message: 'That email and password do not match.',
+    })
+  })
+
+  it('reports an error instead of throwing when the supabase keys are missing', async () => {
+    mocks.createClient.mockRejectedValue(new Error('NEXT_PUBLIC_SUPABASE_URL is missing'))
+    const result = await signInWithPassword('you@example.com', 'secret')
+    expect(result).toEqual({
+      status: 'error',
+      message: 'That email and password do not match.',
     })
   })
 })
