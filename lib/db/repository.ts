@@ -2,9 +2,17 @@ import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { profileSchema } from '../schema/profile'
 import { append as enqueue, lastSequence } from '../sync/outbox'
-import { endSigningOut, haltSync, markSigningOut, resumeSync, withDrainLock } from '../sync/worker'
+import {
+  endSigningOut,
+  haltSync,
+  LOCK_TIMEOUT_MS,
+  markClearedHere,
+  markSigningOut,
+  resumeSync,
+  withDrainLock,
+} from '../sync/worker'
 
-import { db, LOCAL_PROFILE_ID, NEVER_WRITTEN } from './dexie'
+import { db, LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY, SIGNED_OUT_KEY } from './dexie'
 
 import type { DailyEntry, Profile } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
@@ -16,7 +24,14 @@ export { useDeadLetters, useSyncStatus } from '../sync/useSyncStatus'
 
 export type { SyncStatus, SyncStatusReport } from '../sync/useSyncStatus'
 
-export { drainForSignOut, haltSync, resumeSync, startSync, sync as syncNow } from '../sync/worker'
+export {
+  DrainLockBusy,
+  drainForSignOut,
+  haltSync,
+  resumeSync,
+  startSync,
+  sync as syncNow,
+} from '../sync/worker'
 
 export { lastSequence as outboxSequence, pendingCount as pendingWrites } from '../sync/outbox'
 
@@ -37,8 +52,21 @@ const PROFILE_FIELDS = [
   'step_goal',
 ] as const
 
+export class SignedOutOnThisDevice extends Error {
+  constructor() {
+    super('This device is signed out. Sign in again to save.')
+    this.name = 'SignedOutOnThisDevice'
+  }
+}
+
 function nowIso(): string {
   return new Date().toISOString()
+}
+
+async function refuseWhenSignedOut(): Promise<void> {
+  if ((await db.syncMeta.get(SIGNED_OUT_KEY)) !== undefined) {
+    throw new SignedOutOnThisDevice()
+  }
 }
 
 function newerFirst(left: DailyEntry, right: DailyEntry): number {
@@ -113,6 +141,8 @@ export async function upsertDay(input: DailyEntryInput): Promise<DailyEntry> {
   const timestamp = nowIso()
 
   return db.transaction('rw', db.dailyEntries, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
     const existing = await keepOneLiveRow(parsed.entry_date, timestamp)
 
     const row: DailyEntry = {
@@ -134,6 +164,8 @@ export async function softDeleteDay(date: string): Promise<void> {
   const timestamp = nowIso()
 
   await db.transaction('rw', db.dailyEntries, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
     const existing = await keepOneLiveRow(date, timestamp)
 
     if (existing === undefined || existing.deleted_at !== null) {
@@ -179,6 +211,8 @@ export async function updateProfile(patch: Partial<Profile>): Promise<Profile> {
   profileSchema.partial().parse(patched)
 
   return db.transaction('rw', db.profiles, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
     const stored = await db.profiles.get(LOCAL_PROFILE_ID)
     const parsed = profileSchema.parse({
       ...profileValues(stored ?? defaultProfile()),
@@ -235,11 +269,21 @@ export async function clearAll<T>(
             db.deadLetters.clear(),
             db.syncMeta.clear(),
           ])
+          await db.syncMeta.bulkPut([
+            { key: OUTBOX_SEQUENCE_KEY, value: String(sequence) },
+            { key: SIGNED_OUT_KEY, value: nowIso() },
+          ])
         },
       )
 
-      return endSession()
-    })
+      markClearedHere()
+
+      const ended = await endSession()
+
+      endSigningOut()
+
+      return ended
+    }, LOCK_TIMEOUT_MS)
   } catch (cause) {
     if (cause instanceof UnsyncedWritesChanged) {
       endSigningOut()

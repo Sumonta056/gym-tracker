@@ -70,6 +70,45 @@ format. No component parses `mm:ss` by hand.
 
 Weight is metric in storage. The imperial toggle is display only.
 
+## The sign-out
+
+Sign-out drains, clears the device under `DRAIN_LOCK`, then ends the session while it
+still holds the lock.
+
+- **The lock wait has a limit.** `clearAll` waits at most `LOCK_TIMEOUT_MS`, 5 s, for
+  `DRAIN_LOCK`. If another tab still holds it, nothing is cleared, the user stays
+  signed in, and the sheet says so. A normal drain still waits with no limit.
+- **The refusal count survives a turn.** The run of dead-letter moves in a row lives
+  in `syncMeta` under `dead_letter_streak`. Once it reaches 3, a permanent error backs
+  off like a transient one, and the entry moves only at the 20-attempt ceiling. A
+  success sets the count to 0. Sign-out clears it. Nothing else lowers it, so a retried
+  dead letter that is refused again backs off too. The sign-out drain then stops at the
+  first refused write, and the confirm sheet counts every write behind it.
+- **A signed-out device takes no save.** The clear writes `signed_out` into `syncMeta`
+  in the same transaction. Every repository write checks it inside its own transaction
+  and refuses with `SignedOutOnThisDevice`. A drain that reads a signed-in user lifts
+  it. `resumeSync` lifts it only in the tab whose own clear wrote it, after a failed
+  sign-out. A cancel, an unmount or a busy lock in another tab never lifts it.
+- **The clear keeps the outbox sequence.** It writes the last issued sequence back, so
+  a write made after a failed sign-out always carries a higher sequence than any
+  confirm count taken before the clear.
+- **The marker ends with the sign-out.** `clearAll` lifts the 15 s marker once the
+  session has ended, still inside the lock. The 15 s limit only covers a tab that
+  closes halfway through a sign-out.
+
+Two known limits:
+
+- **A save right after a new sign-in can be refused.** `signed_out` stays until the
+  first drain after the new sign-in reads the user. If the device goes offline before
+  that drain runs, saves are refused until it comes back online.
+- **Kept on purpose: no Web Locks and no `localStorage`.** In a browser with neither,
+  for example Safari before 15.4 in a private window, another tab can drain during a
+  sign-out and fill the device again, or lift `signed_out` early. Closing this needs a
+  guard in IndexedDB that knows which session is signing out. That guard would compare
+  a device clock or a session id against the server, and a wrong answer leaves the
+  device stuck with no sync and no save. That risk is worse than the case it closes.
+  This app has one user on a current iPhone and a current laptop browser.
+
 ## Shapes
 
 One zod schema per entity in `lib/schema/`. The form, the outbox and the CSV importer

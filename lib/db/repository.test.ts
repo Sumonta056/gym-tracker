@@ -6,7 +6,7 @@ import { dailyEntrySchema } from '../schema/dailyEntry'
 import { moveToDeadLetters } from '../sync/deadLetters'
 import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
-import { db } from './dexie'
+import { db, SIGNED_OUT_KEY } from './dexie'
 import {
   clearAll,
   discardDeadLetter,
@@ -23,6 +23,7 @@ import {
   pendingWrites,
   resumeSync as resumeFromRepository,
   retryDeadLetter,
+  SignedOutOnThisDevice,
   softDeleteDay,
   syncNow,
   updateProfile,
@@ -653,10 +654,18 @@ describe('clearAll', () => {
     Object.defineProperty(globalThis.navigator, 'locks', {
       configurable: true,
       value: {
-        request: async (_name: string, callback: () => Promise<unknown>) => {
+        request: async (
+          _name: string,
+          optionsOrCallback: object,
+          maybeCallback?: () => Promise<unknown>,
+        ) => {
+          const callback =
+            typeof optionsOrCallback === 'function'
+              ? (optionsOrCallback as () => Promise<unknown>)
+              : maybeCallback
           holding = true
           try {
-            return await callback()
+            return await callback?.()
           } finally {
             holding = false
           }
@@ -739,10 +748,93 @@ describe('clearAll', () => {
     await expect(clearAll({ count: 1, sequence }, endSession)).resolves.toBe('signed out')
   })
 
-  it('leaves the sign-out marker for the other tabs once the device is cleared', async () => {
+  it('keeps the sign-out marker while the session ends, and lifts it once the sign-out ends', async () => {
+    let markerWhileEnding: string | null = null
+
+    await clearAll(await counted(), () => {
+      markerWhileEnding = globalThis.localStorage.getItem(SIGN_OUT_MARKER)
+      return endSession()
+    })
+
+    expect(markerWhileEnding).not.toBeNull()
+    expect(globalThis.localStorage.getItem(SIGN_OUT_MARKER)).toBeNull()
+  })
+
+  it('refuses every save once the device is cleared for a sign-out, and stores nothing', async () => {
+    await updateProfile({ step_goal: 9000 })
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
     await clearAll(await counted(), endSession)
 
-    expect(globalThis.localStorage.getItem(SIGN_OUT_MARKER)).not.toBeNull()
+    const refusals = await Promise.all(
+      [
+        upsertDay(entry('2026-09-02', { steps: 5000 })),
+        softDeleteDay('2026-09-01'),
+        updateProfile({ step_goal: 8000 }),
+      ].map((write) =>
+        write.then(
+          () => null,
+          (cause: unknown) => cause,
+        ),
+      ),
+    )
+
+    expect(refusals.every((cause) => cause instanceof SignedOutOnThisDevice)).toBe(true)
+    expect(refusals[0]).toMatchObject({
+      message: 'This device is signed out. Sign in again to save.',
+    })
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.profiles.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('keeps refusing saves when another tab resumes after this tab signed out', async () => {
+    await clearAll(await counted(), endSession)
+    vi.resetModules()
+    const otherTab = await import('../sync/worker')
+
+    otherTab.resumeSync()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    const saved = await upsertDay(entry('2026-09-02', { steps: 5000 })).then(
+      () => 'saved',
+      (cause: unknown) => cause,
+    )
+
+    expect(saved).toBeInstanceOf(SignedOutOnThisDevice)
+    expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeDefined()
+  })
+
+  it('refuses a stale confirm count after a failed sign-out, so a later save is never cleared unseen', async () => {
+    const confirmed = await counted()
+    await upsertDay(entry('2026-09-01', { steps: 4000 }))
+    const stale = await counted()
+    await clearAll(stale, endSession)
+    resumeFromRepository()
+    await vi.waitFor(async () => {
+      expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeUndefined()
+    })
+    await upsertDay(entry('2026-09-02', { steps: 5000 }))
+
+    const refused = await clearAll(stale, endSession).then(
+      () => null,
+      (cause: unknown) => cause,
+    )
+
+    expect(confirmed.sequence).toBeLessThan(stale.sequence)
+    expect(refused).toBeInstanceOf(UnsyncedWritesChanged)
+    expect(await getDay('2026-09-02')).toMatchObject({ steps: 5000 })
+  })
+
+  it('takes saves again once a failed sign-out resumes the worker', async () => {
+    await clearAll(await counted(), endSession)
+
+    resumeFromRepository()
+    await vi.waitFor(async () => {
+      expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeUndefined()
+    })
+    const saved = await upsertDay(entry('2026-09-02', { steps: 5000 }))
+
+    expect(saved.steps).toBe(5000)
+    expect(await db.outbox.count()).toBe(1)
   })
 
   it('removes its sign-out marker when the clear fails', async () => {
@@ -770,7 +862,9 @@ describe('clearAll', () => {
     expect(await db.profiles.count()).toBe(0)
     expect(await db.outbox.count()).toBe(0)
     expect(await db.deadLetters.count()).toBe(0)
-    expect(await db.syncMeta.count()).toBe(0)
+    expect((await db.syncMeta.toArray()).map((record) => record.key).sort()).toEqual(
+      [OUTBOX_SEQUENCE_KEY, SIGNED_OUT_KEY].sort(),
+    )
   })
 
   it('halts the sync worker so it cannot write the old rows back', async () => {

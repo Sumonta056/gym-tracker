@@ -35,8 +35,8 @@ files, plus step 1.13b, added after 1.13. One step is one session. Never do two 
 | 1.14  | `S1.14-motion-pass.md`          | The motion pass             | S    | 1.12       | done  |
 | 1.15  | `S1.15-responsive-a11y-pass.md` | Responsive and access pass  | M    | 1.13b      | done  |
 | 1.16  | `S1.16-e2e-suite.md`            | The end-to-end suite        | M    | 1.15       | done  |
-| 1.16b | `S1.16b-sync-follow-ups.md`     | Sync follow-ups, sign-out   | M    | 1.16       | now   |
-| 1.17  | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16b      | —     |
+| 1.16b | `S1.16b-sync-follow-ups.md`     | Sync follow-ups, sign-out   | M    | 1.16       | done  |
+| 1.17  | `S1.17-deploy-device-check.md`  | Deploy and device check     | S    | 1.16b      | now   |
 
 ## Order
 
@@ -80,7 +80,7 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 
 ### Checkpoint D — after 1.17 · next
 
-Steps 1.1 to 1.16 are done. 1.16b and 1.17 remain.
+Steps 1.1 to 1.16b are done. 1.17 remains.
 
 - [ ] Every item in the Phase 1 checklist of `docs/plan/01-phase-1.md` passes.
 

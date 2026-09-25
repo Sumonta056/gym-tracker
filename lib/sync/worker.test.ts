@@ -2,8 +2,14 @@ import 'fake-indexeddb/auto'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { DAILY_CURSOR_KEY, db, PROFILE_CURSOR_KEY } from '../db/dexie'
-import { LOCAL_PROFILE_ID } from '../db/repository'
+import {
+  DAILY_CURSOR_KEY,
+  db,
+  DEAD_STREAK_KEY,
+  PROFILE_CURSOR_KEY,
+  SIGNED_OUT_KEY,
+} from '../db/dexie'
+import { clearAll, LOCAL_PROFILE_ID, SignedOutOnThisDevice, upsertDay } from '../db/repository'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { profileSchema } from '../schema/profile'
 
@@ -11,6 +17,7 @@ import { MAX_ATTEMPTS, MAX_CONSECUTIVE_DEAD, moveToDeadLetters } from './deadLet
 import { append, listPending, markFailed } from './outbox'
 import {
   DRAIN_LOCK,
+  DrainLockBusy,
   drainForSignOut,
   DUPLICATE_KEY,
   getSyncState,
@@ -18,6 +25,7 @@ import {
   HALT_LIMIT_MS,
   HALT_TIMEOUT_MS,
   haltSync,
+  LOCK_TIMEOUT_MS,
   pull,
   push,
   resumeSync,
@@ -27,6 +35,7 @@ import {
   SYNC_INTERVAL_MS,
   SYNC_STOPPED,
   sync,
+  withDrainLock,
 } from './worker'
 
 import type { SyncState } from './worker'
@@ -271,9 +280,19 @@ function hang(): Promise<void> {
   return new Promise(() => undefined)
 }
 
+interface LockRequestOptions {
+  signal?: AbortSignal
+}
+
+type LockCallback = () => Promise<unknown>
+
 interface FakeLocks {
   names: string[]
-  request: (name: string, callback: () => Promise<unknown>) => Promise<unknown>
+  request: (
+    name: string,
+    optionsOrCallback: LockRequestOptions | LockCallback,
+    maybeCallback?: LockCallback,
+  ) => Promise<unknown>
 }
 
 function fakeLocks(): FakeLocks {
@@ -282,12 +301,34 @@ function fakeLocks(): FakeLocks {
 
   return {
     names,
-    request: (name, callback) => {
+    request: (name, optionsOrCallback, maybeCallback) => {
       names.push(name)
-      const run = tail.then(() => callback())
-      tail = run.catch(() => undefined)
+      const options = typeof optionsOrCallback === 'function' ? {} : optionsOrCallback
+      const callback = typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback
+      let granted = false
+      const turn = tail.then(() => {
+        if (options.signal?.aborted === true) {
+          return undefined
+        }
 
-      return run
+        granted = true
+
+        return callback?.()
+      })
+      tail = turn.catch(() => undefined)
+
+      return new Promise((resolve, reject) => {
+        options.signal?.addEventListener(
+          'abort',
+          () => {
+            if (!granted) {
+              reject(new DOMException('The lock request was aborted.', 'AbortError'))
+            }
+          },
+          { once: true },
+        )
+        turn.then(resolve, reject)
+      })
     },
   }
 }
@@ -329,6 +370,19 @@ function anotherTabSignsOut(until: number = Date.now() + HALT_LIMIT_MS): void {
 
 function signedIn(): Promise<{ status: 'signed-out' }> {
   return Promise.resolve({ status: 'signed-out' })
+}
+
+function endSessionOnServer(): Promise<{ status: 'signed-out' }> {
+  mocks.createClient.mockReturnValue(fakeClient({ user: null }).client)
+
+  return signedIn()
+}
+
+async function drained(calls: number): Promise<void> {
+  await vi.waitFor(() => {
+    expect(mocks.createClient).toHaveBeenCalledTimes(calls)
+    expect(getSyncState()).not.toBe('syncing')
+  })
 }
 
 function installLocks(locks: FakeLocks): void {
@@ -550,6 +604,74 @@ describe('the dead-letter move', () => {
     expect(result).toEqual({ pushed: 1, error: null })
     expect(await db.deadLetters.count()).toBe(4)
     expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('keeps the refusal count across turns, so a server that refuses every write moves only three', async () => {
+    const entries = []
+    for (const id of [ROW_A, ROW_B, ROW_C, ROW_D, ROW_E]) {
+      entries.push(await append('daily_entries', 'upsert', localEntry(id)))
+    }
+    const fake = fakeClient({
+      upsertError: { daily_entries: { message: 'row level security', code: '42501' } },
+      upsertErrorAlways: true,
+    })
+    const nowMs = Date.parse('2026-09-01T10:00:00.000Z')
+
+    await push(fake.client, USER_ID, nowMs)
+    const second = await push(fake.client, USER_ID, nowMs + SYNC_INTERVAL_MS)
+
+    expect(second).toEqual({ pushed: 0, error: 'row level security' })
+    expect(await db.deadLetters.count()).toBe(MAX_CONSECUTIVE_DEAD)
+    expect((await listPending()).map((entry) => entry.id)).toEqual([entries[3]?.id, entries[4]?.id])
+    expect(await db.outbox.get(entries[3]?.id ?? '')).toMatchObject({
+      attempts: 1,
+      last_error: 'row level security',
+      next_attempt_at: new Date(nowMs + SYNC_INTERVAL_MS + 1000).toISOString(),
+    })
+  })
+
+  it('clears the refusal count on a success in a later turn', async () => {
+    for (const id of [ROW_A, ROW_B, ROW_C, ROW_D, ROW_E]) {
+      await append('daily_entries', 'upsert', localEntry(id))
+    }
+    const refused = { message: 'row level security', code: '42501' }
+    const fake = fakeClient({ failures: [refused, refused, refused, null, refused] })
+
+    await push(fake.client, USER_ID, Date.now())
+    const second = await push(fake.client, USER_ID, Date.now())
+
+    expect(second).toEqual({ pushed: 1, error: null })
+    expect(await db.deadLetters.count()).toBe(4)
+    expect(await db.outbox.count()).toBe(0)
+    expect(await cursor(DEAD_STREAK_KEY)).toBe('1')
+  })
+
+  it('still moves an entry at the attempt ceiling while the refusal count is at its cap', async () => {
+    await db.syncMeta.put({ key: DEAD_STREAK_KEY, value: String(MAX_CONSECUTIVE_DEAD) })
+    const entry = await append('daily_entries', 'upsert', localEntry(ROW_A))
+    await db.outbox.update(entry.id, { attempts: MAX_ATTEMPTS - 1 })
+    const fake = fakeClient({
+      upsertError: { daily_entries: { message: 'row level security', code: '42501' } },
+    })
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 0, error: 'row level security' })
+    expect(await db.deadLetters.get(entry.id)).toMatchObject({ attempts: MAX_ATTEMPTS })
+    expect(await cursor(DEAD_STREAK_KEY)).toBe(String(MAX_CONSECUTIVE_DEAD + 1))
+  })
+
+  it('reads a refusal count it cannot parse as none', async () => {
+    await db.syncMeta.put({ key: DEAD_STREAK_KEY, value: 'not a number' })
+    const entry = await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const fake = fakeClient({
+      upsertError: { daily_entries: { message: 'row level security', code: '42501' } },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(await db.deadLetters.get(entry.id)).toBeDefined()
+    expect(await cursor(DEAD_STREAK_KEY)).toBe('1')
   })
 
   it('keeps an entry with a transient error at the head, with the back-off', async () => {
@@ -1587,10 +1709,11 @@ describe('the cross-tab halt', () => {
     expect(mocks.createClient).not.toHaveBeenCalled()
   })
 
-  it('stops listening once every caller stopped', () => {
+  it('stops listening once every caller stopped', async () => {
     mocks.createClient.mockReturnValue(fakeClient().client)
 
     startSync()()
+    await drained(1)
 
     expect(FakeChannel.open.every((channel) => channel.closed)).toBe(true)
   })
@@ -1615,7 +1738,7 @@ describe('the cross-tab halt', () => {
     vi.resetModules()
     const signingOutTab = await import('../db/repository')
 
-    await signingOutTab.clearAll({ count: 0, sequence: 0 }, signedIn)
+    await signingOutTab.clearAll({ count: 0, sequence: 0 }, endSessionOnServer)
     release()
     const later = await sync()
     stop()
@@ -1623,23 +1746,24 @@ describe('the cross-tab halt', () => {
     expect(await db.dailyEntries.count()).toBe(0)
     expect(await cursor(DAILY_CURSOR_KEY)).toBeUndefined()
     expect(later.status).toBe('offline')
-    expect(mocks.createClient).toHaveBeenCalledTimes(1)
-    expect(locks.names).toEqual([DRAIN_LOCK, DRAIN_LOCK])
+    expect(fake.selected).toHaveLength(1)
+    expect(locks.names).toEqual([DRAIN_LOCK, DRAIN_LOCK, DRAIN_LOCK])
   })
 
   it('keeps every tab out of the cleared device until the sign-out ends, even a tab that loads or resumes meanwhile', async () => {
     const locks = fakeLocks()
     installLocks(locks)
     await db.dailyEntries.put(localEntry(ROW_A))
-    mocks.createClient.mockReturnValue(
-      fakeClient({ serverRows: { daily_entries: [serverEntry(ROW_B, SERVER_STAMP, 5)] } }).client,
-    )
+    const fake = fakeClient({
+      serverRows: { daily_entries: [serverEntry(ROW_B, SERVER_STAMP, 5)] },
+    })
+    mocks.createClient.mockReturnValue(fake.client)
     vi.resetModules()
     const signingOutTab = await import('../db/repository')
     let release: () => void = () => undefined
     const gate = new Promise<{ status: 'signed-out' }>((resolve) => {
       release = () => {
-        resolve({ status: 'signed-out' })
+        void endSessionOnServer().then(resolve)
       }
     })
 
@@ -1661,7 +1785,7 @@ describe('the cross-tab halt', () => {
     expect(after.map((outcome) => outcome.status)).toEqual(['offline', 'offline'])
     expect(await db.dailyEntries.count()).toBe(0)
     expect(await cursor(DAILY_CURSOR_KEY)).toBeUndefined()
-    expect(mocks.createClient).not.toHaveBeenCalled()
+    expect(fake.selected).toEqual([])
   })
 
   it('drops a drain that waited for the lock while another tab began to sign out', async () => {
@@ -1670,6 +1794,7 @@ describe('the cross-tab halt', () => {
     let release: () => void = () => undefined
     const otherTab = locks.request(
       DRAIN_LOCK,
+      {},
       () =>
         new Promise<void>((resolve) => {
           release = resolve
@@ -1690,13 +1815,11 @@ describe('the cross-tab halt', () => {
     expect(mocks.createClient).not.toHaveBeenCalled()
   })
 
-  it('lets the halt of another tab end on its own after its limit', async () => {
+  it('lets the halt of a tab that closed mid sign-out end on its own after its limit', async () => {
     mocks.createClient.mockReturnValue(fakeClient().client)
-    vi.resetModules()
-    const signingOutTab = await import('../db/repository')
     const before = Date.now()
 
-    await signingOutTab.clearAll({ count: 0, sequence: 0 }, signedIn)
+    anotherTabSignsOut()
     const marker = JSON.parse(globalThis.localStorage.getItem(SIGN_OUT_MARKER) ?? 'null') as {
       until: number
     }
@@ -1792,6 +1915,140 @@ describe('the cross-tab halt', () => {
   })
 })
 
+describe('the sign-out limits', () => {
+  function dayInput() {
+    return dailyEntrySchema.parse({ entry_date: '2026-09-02', steps: 4000 })
+  }
+
+  it('gives up on the drain lock after its timeout, so a frozen tab cannot hold the sign-out', async () => {
+    const locks = fakeLocks()
+    installLocks(locks)
+    void locks.request(DRAIN_LOCK, {}, hang)
+    await db.dailyEntries.put(localEntry(ROW_A))
+    const endSession = vi.fn(signedIn)
+    vi.useFakeTimers()
+    let settled: unknown = 'waiting'
+
+    void clearAll({ count: 0, sequence: 0 }, endSession).then(
+      () => {
+        settled = 'cleared'
+      },
+      (cause: unknown) => {
+        settled = cause
+      },
+    )
+    await vi.advanceTimersByTimeAsync(LOCK_TIMEOUT_MS - 1)
+    const beforeTimeout = settled
+    await vi.advanceTimersByTimeAsync(1)
+    vi.useRealTimers()
+
+    expect(beforeTimeout).toBe('waiting')
+    expect(settled).toBeInstanceOf(DrainLockBusy)
+    expect(endSession).not.toHaveBeenCalled()
+    expect(await db.dailyEntries.count()).toBe(1)
+    expect(globalThis.localStorage.getItem(SIGN_OUT_MARKER)).toBeNull()
+  })
+
+  it('lets work that got the lock run past the lock timeout', async () => {
+    installLocks(fakeLocks())
+    vi.useFakeTimers()
+
+    const work = withDrainLock(async () => {
+      await new Promise((resolve) => setTimeout(resolve, LOCK_TIMEOUT_MS * 2))
+      return 'done'
+    }, LOCK_TIMEOUT_MS)
+    await vi.advanceTimersByTimeAsync(LOCK_TIMEOUT_MS * 2)
+
+    await expect(work).resolves.toBe('done')
+  })
+
+  it('refuses a save from another tab that lands after the clear, before the sign-out ends', async () => {
+    installLocks(fakeLocks())
+    mocks.createClient.mockReturnValue(fakeClient().client)
+    vi.resetModules()
+    const signingOutTab = await import('../db/repository')
+    let ending = false
+    let release: () => void = () => undefined
+    const gate = new Promise<{ status: 'signed-out' }>((resolve) => {
+      release = () => {
+        void endSessionOnServer().then(resolve)
+      }
+    })
+
+    const signingOut = signingOutTab.clearAll({ count: 0, sequence: 0 }, () => {
+      ending = true
+      return gate
+    })
+    await vi.waitFor(() => {
+      expect(ending).toBe(true)
+    })
+    const saved = await upsertDay(dayInput()).then(
+      () => 'saved',
+      (cause: unknown) => cause,
+    )
+    release()
+    await signingOut
+
+    expect(saved).toBeInstanceOf(SignedOutOnThisDevice)
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('keeps refusing saves after the sign-out until a drain reads a new sign-in', async () => {
+    mocks.createClient.mockReturnValue(fakeClient().client)
+    vi.resetModules()
+    const signingOutTab = await import('../db/repository')
+
+    await signingOutTab.clearAll({ count: 0, sequence: 0 }, endSessionOnServer)
+    const signedOut = await sync()
+    const refused = await upsertDay(dayInput()).then(
+      () => 'saved',
+      (cause: unknown) => cause,
+    )
+    mocks.createClient.mockReturnValue(fakeClient().client)
+    const signedInAgain = await sync()
+    const saved = await upsertDay(dayInput())
+
+    expect(signedOut.status).toBe('offline')
+    expect(refused).toBeInstanceOf(SignedOutOnThisDevice)
+    expect(signedInAgain.status).toBe('synced')
+    expect(saved.steps).toBe(4000)
+    expect(await db.outbox.count()).toBe(1)
+    expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeUndefined()
+  })
+
+  it('resumes even when the device cannot lift its signed-out record', async () => {
+    const lift = vi
+      .spyOn(db.syncMeta, 'delete')
+      .mockRejectedValueOnce(new Error('the database closed'))
+    mocks.createClient.mockReturnValue(fakeClient().client)
+
+    await clearAll({ count: 0, sequence: 0 }, signedIn)
+    resumeSync()
+    await vi.waitFor(() => {
+      expect(lift).toHaveBeenCalledWith(SIGNED_OUT_KEY)
+    })
+    lift.mockRestore()
+
+    expect((await sync()).status).toBe('synced')
+  })
+
+  it('lifts the sign-out marker once the sign-out ends, so a sign-in right after syncs at once', async () => {
+    mocks.createClient.mockReturnValue(fakeClient().client)
+    vi.resetModules()
+    const signingOutTab = await import('../db/repository')
+
+    await signingOutTab.clearAll({ count: 0, sequence: 0 }, endSessionOnServer)
+    vi.resetModules()
+    const signedInTab = await import('./worker')
+    mocks.createClient.mockReturnValue(fakeClient().client)
+    const outcome = await signedInTab.sync()
+
+    expect(globalThis.localStorage.getItem(SIGN_OUT_MARKER)).toBeNull()
+    expect(outcome.status).toBe('synced')
+  })
+})
+
 describe('the drain lock', () => {
   it('drains inside the named lock where the browser offers one', async () => {
     const locks = fakeLocks()
@@ -1811,6 +2068,7 @@ describe('the drain lock', () => {
     let release: () => void = () => undefined
     const otherTab = locks.request(
       DRAIN_LOCK,
+      {},
       () =>
         new Promise<void>((resolve) => {
           release = resolve
@@ -1913,15 +2171,13 @@ describe('startSync', () => {
     mocks.createClient.mockReturnValue(fake.client)
 
     const stop = startSync()
-    await vi.advanceTimersByTimeAsync(0)
-    expect(mocks.createClient).toHaveBeenCalledTimes(1)
+    await drained(1)
 
     window.dispatchEvent(new Event('online'))
-    await vi.advanceTimersByTimeAsync(0)
-    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+    await drained(2)
 
     await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS)
-    expect(mocks.createClient).toHaveBeenCalledTimes(3)
+    await drained(3)
 
     stop()
     window.dispatchEvent(new Event('online'))
@@ -1936,21 +2192,18 @@ describe('startSync', () => {
 
     const stopFirst = startSync()
     const stopSecond = startSync()
-    await vi.advanceTimersByTimeAsync(1000)
-    expect(mocks.createClient).toHaveBeenCalledTimes(1)
+    await drained(1)
 
     window.dispatchEvent(new Event('online'))
-    await vi.advanceTimersByTimeAsync(1000)
-    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+    await drained(2)
 
     await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS - 1000)
     await vi.advanceTimersByTimeAsync(1000)
-    expect(mocks.createClient).toHaveBeenCalledTimes(3)
+    await drained(3)
 
     stopFirst()
     window.dispatchEvent(new Event('online'))
-    await vi.advanceTimersByTimeAsync(1000)
-    expect(mocks.createClient).toHaveBeenCalledTimes(4)
+    await drained(4)
 
     stopSecond()
     window.dispatchEvent(new Event('online'))
@@ -1965,14 +2218,15 @@ describe('startSync', () => {
 
     const stopFirst = startSync()
     const stopSecond = startSync()
-    await vi.advanceTimersByTimeAsync(1000)
+    await drained(1)
     stopFirst()
     stopFirst()
 
     window.dispatchEvent(new Event('online'))
-    await vi.advanceTimersByTimeAsync(1000)
-    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+    await drained(2)
     stopSecond()
+
+    expect(mocks.createClient).toHaveBeenCalledTimes(2)
   })
 
   it('starts afresh, with a tick, after every caller stopped', async () => {
@@ -1981,12 +2235,12 @@ describe('startSync', () => {
     mocks.createClient.mockReturnValue(fake.client)
 
     startSync()()
-    await vi.advanceTimersByTimeAsync(1000)
+    await drained(1)
     const stop = startSync()
-    await vi.advanceTimersByTimeAsync(1000)
+    await drained(2)
+    stop()
 
     expect(mocks.createClient).toHaveBeenCalledTimes(2)
-    stop()
   })
 
   it('touches no network from its triggers while halted', async () => {
@@ -2009,7 +2263,7 @@ describe('startSync', () => {
     mocks.createClient.mockReturnValue(fake.client)
 
     const stop = startSync()
-    await vi.advanceTimersByTimeAsync(0)
+    await drained(1)
     Object.defineProperty(globalThis.navigator, 'onLine', { value: false, configurable: true })
 
     await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS)

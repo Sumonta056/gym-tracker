@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { readSignedInEmail, SIGN_OUT_FAILED, signOut } from '../../lib/auth/browser'
-import { db } from '../../lib/db/dexie'
+import { db, OUTBOX_SEQUENCE_KEY, SIGNED_OUT_KEY } from '../../lib/db/dexie'
 import {
   clearAll,
   discardDeadLetter,
@@ -76,7 +76,9 @@ async function tableCounts(): Promise<number[]> {
     db.profiles.count(),
     db.outbox.count(),
     db.deadLetters.count(),
-    db.syncMeta.count(),
+    db.syncMeta
+      .filter((record) => record.key !== SIGNED_OUT_KEY && record.key !== OUTBOX_SEQUENCE_KEY)
+      .count(),
   ])
 }
 
@@ -328,6 +330,7 @@ describe('sign out', () => {
     expect(drainForSignOut).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(await tableCounts()).toEqual([0, 0, 0, 0, 0])
+    expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeDefined()
   })
 
   it('halts the worker before it counts and clears, so no drain writes rows back', async () => {

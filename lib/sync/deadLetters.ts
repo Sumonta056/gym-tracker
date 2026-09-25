@@ -1,4 +1,4 @@
-import { db } from '../db/dexie'
+import { db, DEAD_STREAK_KEY } from '../db/dexie'
 
 import type { DailyEntry, DeadLetter, OutboxEntry, Profile } from '../db/dexie'
 
@@ -22,6 +22,16 @@ export const MAX_CONSECUTIVE_DEAD = 3
 
 export function isPermanent(code: string | null): boolean {
   return code !== null && PERMANENT_CODES.includes(code)
+}
+
+export async function readDeadStreak(): Promise<number> {
+  const stored = Number((await db.syncMeta.get(DEAD_STREAK_KEY))?.value ?? 0)
+
+  return Number.isSafeInteger(stored) && stored > 0 ? stored : 0
+}
+
+export async function writeDeadStreak(streak: number): Promise<void> {
+  await db.syncMeta.put({ key: DEAD_STREAK_KEY, value: String(streak) })
 }
 
 export async function moveToDeadLetters(

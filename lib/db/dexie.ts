@@ -56,6 +56,10 @@ export const DAILY_CURSOR_KEY = 'pull_cursor_daily_entries'
 
 export const PROFILE_CURSOR_KEY = 'pull_cursor_profiles'
 
+export const DEAD_STREAK_KEY = 'dead_letter_streak'
+
+export const SIGNED_OUT_KEY = 'signed_out'
+
 export const LOCAL_PROFILE_ID = '00000000-0000-4000-8000-000000000000'
 
 export const NEVER_WRITTEN = new Date(0).toISOString()

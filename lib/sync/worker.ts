@@ -1,8 +1,21 @@
-import { DAILY_CURSOR_KEY, db, LOCAL_PROFILE_ID, PROFILE_CURSOR_KEY } from '../db/dexie'
+import {
+  DAILY_CURSOR_KEY,
+  db,
+  LOCAL_PROFILE_ID,
+  PROFILE_CURSOR_KEY,
+  SIGNED_OUT_KEY,
+} from '../db/dexie'
 import { newId } from '../id'
 import { createClient } from '../supabase/client'
 
-import { isPermanent, MAX_ATTEMPTS, MAX_CONSECUTIVE_DEAD, moveToDeadLetters } from './deadLetters'
+import {
+  isPermanent,
+  MAX_ATTEMPTS,
+  MAX_CONSECUTIVE_DEAD,
+  moveToDeadLetters,
+  readDeadStreak,
+  writeDeadStreak,
+} from './deadLetters'
 import { hasPending, isDue, markDone, markFailed, nextPending, pendingCount } from './outbox'
 
 import type { DailyEntry, OutboxEntry, Profile } from '../db/dexie'
@@ -17,6 +30,8 @@ export const DUPLICATE_KEY = '23505'
 
 export const HALT_TIMEOUT_MS = 5000
 
+export const LOCK_TIMEOUT_MS = 5000
+
 export const DRAIN_LOCK = 'gym-tracker-sync-drain'
 
 export const HALT_CHANNEL = 'gym-tracker-sync-halt'
@@ -26,6 +41,13 @@ export const SIGN_OUT_MARKER = 'gym-tracker-signing-out'
 export const HALT_LIMIT_MS = 15000
 
 export const SYNC_STOPPED = 'the sync was stopped'
+
+export class DrainLockBusy extends Error {
+  constructor() {
+    super('Another tab still holds the sync lock.')
+    this.name = 'DrainLockBusy'
+  }
+}
 
 export type SyncState = 'idle' | 'syncing' | 'synced' | 'error' | 'offline'
 
@@ -65,6 +87,8 @@ const listeners = new Set<() => void>()
 let draining: Promise<SyncOutcome> | null = null
 
 let halted = false
+
+let clearedHere = false
 
 let stop = new AbortController()
 
@@ -366,7 +390,7 @@ export async function push(
   const signal = options.signal ?? new AbortController().signal
   const ignoreBackoff = options.ignoreBackoff === true
   let pushed = 0
-  let dead = 0
+  let dead = await readDeadStreak()
   let remaining = await pendingCount()
   let entry = await nextPending()
 
@@ -382,10 +406,18 @@ export async function push(
     if (error === null) {
       await markDone(entry.id)
       pushed += 1
-      dead = 0
-    } else if (isPermanent(code) || entry.attempts + 1 >= MAX_ATTEMPTS) {
+
+      if (dead > 0) {
+        dead = 0
+        await writeDeadStreak(dead)
+      }
+    } else if (
+      entry.attempts + 1 >= MAX_ATTEMPTS ||
+      (isPermanent(code) && dead < MAX_CONSECUTIVE_DEAD)
+    ) {
       await moveToDeadLetters(entry.id, code, error, nowMs)
       dead += 1
+      await writeDeadStreak(dead)
 
       if (dead >= MAX_CONSECUTIVE_DEAD) {
         return { pushed, error }
@@ -581,6 +613,8 @@ async function runSync(
       return idle('offline')
     }
 
+    await db.syncMeta.delete(SIGNED_OUT_KEY)
+
     const pushed = await push(client, userId, Date.now(), { ...options, signal })
 
     if (pushed.error !== null) {
@@ -601,15 +635,39 @@ async function runSync(
   }
 }
 
-export function withDrainLock<T>(run: () => Promise<T>): Promise<T> {
+export function withDrainLock<T>(
+  run: () => Promise<T>,
+  timeoutMs: number | null = null,
+): Promise<T> {
   const { navigator } = globalThis
 
   if (!('locks' in navigator)) {
     return run()
   }
 
+  const waiting = new AbortController()
+  const timer =
+    timeoutMs === null
+      ? undefined
+      : setTimeout(() => {
+          waiting.abort()
+        }, timeoutMs)
+
   return new Promise<T>((resolve, reject) => {
-    navigator.locks.request(DRAIN_LOCK, () => run().then(resolve, reject)).catch(reject)
+    navigator.locks
+      .request(DRAIN_LOCK, { signal: waiting.signal }, () => {
+        clearTimeout(timer)
+
+        return run().then(resolve, reject)
+      })
+      .catch((cause: unknown) => {
+        clearTimeout(timer)
+        if (waiting.signal.aborted) {
+          reject(new DrainLockBusy())
+        } else {
+          reject(new Error(errorMessage(cause)))
+        }
+      })
   })
 }
 
@@ -735,9 +793,18 @@ export async function haltSync(timeoutMs: number = HALT_TIMEOUT_MS): Promise<voi
   }
 }
 
+export function markClearedHere(): void {
+  clearedHere = true
+}
+
 export function resumeSync(): void {
   halted = false
   endSigningOut()
+
+  if (clearedHere) {
+    clearedHere = false
+    db.syncMeta.delete(SIGNED_OUT_KEY).catch(() => undefined)
+  }
 }
 
 export function sync(): Promise<SyncOutcome> {

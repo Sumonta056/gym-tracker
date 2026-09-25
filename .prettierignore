@@ -11,3 +11,4 @@ public/swe-worker-*.js
 .lighthouseci
 .claude/settings.local.json
 .claude/commands/
+docs/My Gym Plan.html

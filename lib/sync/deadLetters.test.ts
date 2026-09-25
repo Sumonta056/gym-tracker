@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { db, LOCAL_PROFILE_ID } from '../db/dexie'
+import { db, DEAD_STREAK_KEY, LOCAL_PROFILE_ID } from '../db/dexie'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { profileSchema } from '../schema/profile'
 
@@ -10,6 +10,8 @@ import {
   deadLetterCount,
   discardDeadLetter,
   isPermanent,
+  readDeadStreak,
+  writeDeadStreak,
   listDeadLetters,
   MAX_ATTEMPTS,
   moveToDeadLetters,
@@ -92,6 +94,25 @@ describe('isPermanent', () => {
 
   it('treats a failure with no code, such as a dropped network, as transient', () => {
     expect(isPermanent(null)).toBe(false)
+  })
+})
+
+describe('the refusal count', () => {
+  it('reads none when nothing is stored', async () => {
+    expect(await readDeadStreak()).toBe(0)
+  })
+
+  it('reads back the count it wrote', async () => {
+    await writeDeadStreak(2)
+
+    expect(await readDeadStreak()).toBe(2)
+    expect(await db.syncMeta.get(DEAD_STREAK_KEY)).toEqual({ key: DEAD_STREAK_KEY, value: '2' })
+  })
+
+  it.each(['not a number', '-1', '1.5'])('reads a stored %s as none', async (value) => {
+    await db.syncMeta.put({ key: DEAD_STREAK_KEY, value })
+
+    expect(await readDeadStreak()).toBe(0)
   })
 })
 
