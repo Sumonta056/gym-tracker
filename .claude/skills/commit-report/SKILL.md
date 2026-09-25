@@ -115,7 +115,7 @@ It writes `reports/<YYYY-MM-DD>-<slug>.html`, then writes `reports/.last-report-
 last. It refuses to write anything when nothing is staged, and when the draft is
 missing or incomplete.
 
-It runs on Node 25 with no bundler and no `tsx`. It imports only `node:` built-ins and
+It runs on Node 24 or newer with no bundler and no `tsx`. It imports only `node:` built-ins and
 nothing from the project.
 
 ### 5. Add the screenshots for a UI change
