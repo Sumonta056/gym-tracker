@@ -194,20 +194,20 @@ describe('daysInUnit', () => {
 })
 
 describe('rangeAxisWidth', () => {
-  it('keeps the 30 px axis for a four character weight', () => {
-    expect(rangeAxisWidth(['73.4', '74.6'])).toBe(30)
+  it('keeps the 34 px axis for a four character weight', () => {
+    expect(rangeAxisWidth(['73.4', '74.6'])).toBe(34)
   })
 
   it('widens the axis for a five character weight, so its first digit is not cut off', () => {
-    expect(rangeAxisWidth(['223.3', '230.6'])).toBe(37)
+    expect(rangeAxisWidth(['223.3', '230.6'])).toBe(41)
   })
 
   it('widens the axis by the longest label only', () => {
-    expect(rangeAxisWidth(['99.5', '100.2'])).toBe(37)
+    expect(rangeAxisWidth(['99.5', '100.2'])).toBe(41)
   })
 
-  it('keeps the 30 px axis when there is no label', () => {
-    expect(rangeAxisWidth([])).toBe(30)
+  it('keeps the 34 px axis when there is no label', () => {
+    expect(rangeAxisWidth([])).toBe(34)
   })
 })
 

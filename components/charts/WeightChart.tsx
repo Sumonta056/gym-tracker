@@ -94,7 +94,7 @@ export function weightRows(days: readonly DayPoint[]): WeightRow[] {
   }))
 }
 
-const RANGE_AXIS_WIDTH = 30
+const RANGE_AXIS_WIDTH = 34
 
 const RANGE_AXIS_FITS = 4
 
