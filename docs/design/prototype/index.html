@@ -870,17 +870,27 @@
                   id="signin-email"
                   type="email"
                   inputmode="email"
-                  autocomplete="email"
+                  autocomplete="username"
                   placeholder="you@example.com"
                   value="sumonta@example.com"
                 />
               </label>
 
-              <button class="btn" type="button">Send magic link</button>
+              <label class="field" for="signin-password">
+                <span class="micro">Password</span>
+                <input
+                  class="input"
+                  id="signin-password"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="Your password"
+                  value="password"
+                />
+              </label>
 
-              <p class="muted" style="margin: 2px 0 0; text-align: center">
-                No password. The link signs you in for 30 days.
-              </p>
+              <button class="btn" type="button">Sign in</button>
+
+              <button class="btn btn-secondary" type="button">Email me a link instead</button>
 
               <div class="card" style="margin-top: 8px">
                 <span class="micro">Install on iPhone</span>

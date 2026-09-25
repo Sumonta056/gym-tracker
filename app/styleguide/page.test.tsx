@@ -317,6 +317,10 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(email).toHaveAccessibleDescription('Enter an email address like you@example.com.')
   })
 
+  it('shows the password field with its input masked', () => {
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
+  })
+
   it('renders the brand mark from the shared component', () => {
     expect(screen.getByText('GT')).toHaveAttribute('aria-hidden', 'true')
   })

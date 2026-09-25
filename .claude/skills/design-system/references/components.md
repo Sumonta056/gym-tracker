@@ -272,6 +272,24 @@ export function DurationField({ hint = DURATION_HINT, value, ...rest }: Duration
 - The field never reports a silent `null`. Unreadable text stays in the field, and the
   owning form blocks the save and names the problem.
 
+### Field wrappers: `EmailField` and `PasswordField`
+
+These are not primitives. Each one is a thin wrapper on `Field` that fixes `type` and a
+default `autoComplete`. The label, the hint, the error and the `aria` wiring all come
+from `Field`. Do not restyle them.
+
+```tsx
+export function PasswordField({ autoComplete = 'current-password', ...rest }: PasswordFieldProps) {
+  return <Field type="password" autoComplete={autoComplete} {...rest} />
+}
+```
+
+- `EmailField` sets `type="email"`, `inputMode="email"` and `autoComplete="email"`.
+- On the sign-in form, pass `autoComplete="username"` to `EmailField`. With
+  `current-password` on `PasswordField`, iOS Keychain then saves and fills the pair.
+- A new wrapper of this kind needs a test and a `/styleguide` entry, the same as a
+  primitive.
+
 ---
 
 ## 9. `SegmentedTabs`

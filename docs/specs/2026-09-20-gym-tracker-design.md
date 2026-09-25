@@ -248,7 +248,7 @@ test keeps in step with `app/globals.css`.
 
 | #   | Route            | Purpose                                                                       |
 | --- | ---------------- | ----------------------------------------------------------------------------- |
-| 0   | `/sign-in`       | Supabase magic link. Plus the iPhone install hint.                            |
+| 0   | `/sign-in`       | Email and password, magic link fallback. Plus the iPhone install hint.        |
 | 1   | `/`              | Dashboard: hero gym time, streak, 2 stat cards, heart rate zones, week totals |
 | 2   | `/log`           | The 8-column daily form. It offers the finished session length for Gym Time.  |
 | 3   | `/workout`       | Live session: timer, set rows, rest timer, running volume                     |
@@ -405,7 +405,7 @@ Two helpers carry most of the risk. Write them test-first:
 
 **End to end (Playwright)**
 
-1. Sign in with a magic link.
+1. Sign in with email and password. The magic link is the fallback.
 2. Record a day. Confirm the dashboard number changes.
 3. Set the browser context offline. Record a second day. Confirm it appears.
 4. Go online. Confirm the chip turns green and Supabase holds both rows.
@@ -416,4 +416,5 @@ Two helpers carry most of the risk. Write them test-first:
 
 - Open the deployed URL in Safari. Use Share, then Add to Home Screen.
 - Open it from the home screen. Confirm it runs with no browser chrome.
+- Sign in from the home screen app with the password. Confirm it opens the dashboard.
 - Turn on flight mode. Record a set. Turn flight mode off. Confirm it syncs.

@@ -20,6 +20,8 @@ Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
 - Run each step in a fresh subagent. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
 - Stop any `next dev` before `pnpm verify`. A shared `.next` breaks the build.
+- 2026-09-26: `feat/password-sign-in` adds password sign-in, commit `05813c8`. The report
+  is `reports/2026-09-26-password-sign-in.html`. Not pushed. It is not a Phase 2 step.
 
 ## Settled, do not reopen
 
@@ -45,6 +47,9 @@ Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
   named exceptions in `responsive.md`. A bar chart's goal label sits inside the plot. From 1.15.
 - **Signed-in e2e tests use the test account** `E2E_EMAIL` in `.env.test.local` and CI secrets.
   A setup project signs in with the password and the anon key. No service-role key. From 1.16.
+- **Password sign-in is the default, the magic link is the fallback.** The email is the
+  login name. No sign-up screen and no set-password screen. The owner sets the password
+  in the Supabase dashboard. One generic error for every refusal. From 2026-09-26.
 
 ## Open, with the step that closes each one
 
