@@ -27,7 +27,7 @@ Phase 1 branch merges.
 | 2.1a | `S2.1a-migration-dexie.md`     | Migration, Dexie version 3               | M    | Phase 1          | done  |
 | 2.1b | `S2.1b-exercise-seed.md`       | The global exercise seed                 | S    | 2.1a             | done  |
 | 2.2a | `S2.2a-schemas-exercises.md`   | Zod schemas, the exercise repository     | M    | 2.1a             | done  |
-| 2.2b | `S2.2b-session-repository.md`  | The session and set repository           | M    | 2.2a             | —     |
+| 2.2b | `S2.2b-session-repository.md`  | The session and set repository           | M    | 2.2a             | done  |
 | 2.2c | `S2.2c-sync-workout-tables.md` | The sync worker for the 3 new tables     | L    | 2.1b, 2.2b       | —     |
 | 2.7a | `S2.7a-lift-metrics.md`        | Volume load, Epley, personal records     | S    | 2.2a             | —     |
 | 2.7b | `S2.7b-week-metrics.md`        | Muscle balance, gaps, calories a minute  | S    | 2.2a             | —     |

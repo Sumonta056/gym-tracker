@@ -5,14 +5,14 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.2b → `docs/plan/phase-2/S2.2b-session-repository.md`
+**Next step:** 2.2c → `docs/plan/phase-2/S2.2c-sync-workout-tables.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.2a, the workout schemas and the exercise repository, on top of `8d5cc66`.
+**Last commit:** 2.2b, the session and set repository, on top of `54d6b8a`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-27 after 2.2a. The report is `reports/2026-09-27-workout-schemas-exercise-repository.html`.
+- Stopped on 2026-09-27 after 2.2b. The report is `reports/2026-09-27-session-set-repository.html`.
 - Migrations `20260927142258_phase2_workouts` and `20260927151153_phase2_exercise_seed` are
   applied to the live project. Never apply them again.
 - `apply_migration` records its own version. Rename the local file to the version that
@@ -65,6 +65,9 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   pending. Own exercises store `user_id` `LOCAL_PROFILE_ID`; `null` is a global row. The
   profile rest fields sync both ways. Limits: reps 1 to 1000 and required, name 1 to 80,
   rest 0 to 3600 s. From 2.2a.
+- **The session and set repository.** `addSet` takes the set without `set_index` and sets the
+  highest index plus 1, deleted sets included. A finished session still takes a set. `updateSet`
+  changes only `reps`, `weight_kg`, `rpe` and `completed_at`. From 2.2b.
 
 ## Open, with the step that closes each one
 
@@ -83,6 +86,10 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   back. After a sign-out clear, the pull brings the 40 global rows back. From 2.2a.
 - **Until 2.2c** — after an exercise write, every sign-out shows the "writes will be lost"
   sheet, and the chip counts held entries as pending. By design. From 2.2a.
+- **2.2c** — `startSession` sees only this device. The server index
+  `workout_sessions_one_active_idx` refuses a second active session. Handle it as a named case. From 2.2b.
+- **Owner** — `lastSetFor` reads every set, because `workoutSets` has no `exercise_id` index.
+  An index needs Dexie version 4. Acceptable for one user. From 2.2b.
 - **2.3a** — `listExercises` hides archived rows. Add `includeArchived` so a screen can restore
   one. From 2.2a.
 - **Owner** — `deadLetters.ts` at 93.1 % lines once passed `pnpm verify` in a subagent run. Check

@@ -10,8 +10,21 @@ import { db, SIGNED_OUT_KEY } from './dexie'
 import {
   archiveExercise,
   clearAll,
+  addSet,
   createExercise,
+  deleteSet,
   discardDeadLetter,
+  discardSession,
+  finishSession,
+  getActiveSession,
+  lastSetFor,
+  listSets,
+  restoreSet,
+  SessionAlreadyActive,
+  SessionNotFound,
+  SetNotFound,
+  startSession,
+  updateSet,
   ExerciseNotFound,
   GlobalExerciseIsReadOnly,
   listExercises,
@@ -38,9 +51,10 @@ import {
   upsertDay,
 } from './repository'
 
-import type { DailyEntry, Exercise } from './dexie'
+import type { DailyEntry, Exercise, OutboxEntry, WorkoutSet } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { MuscleGroup } from '../schema/exercise'
+import type { WorkoutSetDraft } from '../schema/workoutSet'
 
 vi.mock('../supabase/client', () => ({
   createClient: () => {
@@ -989,6 +1003,551 @@ describe('an exercise write on a signed-out device', () => {
     expect(refusals.every((cause) => cause instanceof SignedOutOnThisDevice)).toBe(true)
     expect(await db.exercises.toArray()).toEqual(before)
     expect(await db.outbox.count()).toBe(1)
+  })
+})
+
+function aSet(
+  sessionId: string,
+  overrides: Partial<WorkoutSetDraft> = {},
+): Omit<WorkoutSetDraft, 'set_index'> {
+  return { session_id: sessionId, exercise_id: BENCH_ID, reps: 8, weight_kg: 60, ...overrides }
+}
+
+async function queuedInOrder(): Promise<OutboxEntry[]> {
+  return db.outbox.orderBy('sequence').toArray()
+}
+
+function storedSet(overrides: Partial<WorkoutSet>): WorkoutSet {
+  return {
+    id: crypto.randomUUID(),
+    session_id: crypto.randomUUID(),
+    exercise_id: BENCH_ID,
+    set_index: 0,
+    reps: 5,
+    weight_kg: 100,
+    rpe: null,
+    completed_at: null,
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-01T10:00:00.000Z',
+    deleted_at: null,
+    ...overrides,
+  }
+}
+
+describe('startSession', () => {
+  it('starts an active session now and queues one upsert for it', async () => {
+    const before = Date.now()
+
+    const session = await startSession('2026-09-01')
+    const queued = await queuedInOrder()
+
+    expect(session).toMatchObject({
+      entry_date: '2026-09-01',
+      status: 'active',
+      ended_at: null,
+      deleted_at: null,
+    })
+    expect(Date.parse(session.started_at)).toBeGreaterThanOrEqual(before)
+    expect(session.id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(await db.workoutSessions.get(session.id)).toEqual(session)
+    expect(queued).toHaveLength(1)
+    expect(queued[0]).toMatchObject({
+      table_name: 'workout_sessions',
+      operation: 'upsert',
+      row_id: session.id,
+      payload: session,
+    })
+  })
+
+  it('throws SessionAlreadyActive when a session is already active', async () => {
+    const active = await startSession('2026-09-01')
+
+    const cause = await refusal(startSession('2026-09-02'))
+
+    expect(cause).toBeInstanceOf(SessionAlreadyActive)
+    expect(cause).toMatchObject({ name: 'SessionAlreadyActive' })
+    expect((await db.workoutSessions.toArray()).map((row) => row.id)).toEqual([active.id])
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('starts a new session once the active one is finished', async () => {
+    const first = await startSession('2026-09-01')
+    await finishSession(first.id)
+
+    const second = await startSession('2026-09-02')
+
+    expect(await getActiveSession()).toEqual(second)
+  })
+
+  it('rejects a date in the future and writes nothing', async () => {
+    await expect(startSession('2999-01-01')).rejects.toThrow()
+
+    expect(await db.workoutSessions.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+})
+
+describe('getActiveSession', () => {
+  it('returns undefined when no session is active', async () => {
+    expect(await getActiveSession()).toBeUndefined()
+  })
+
+  it('returns the active session and skips a finished or discarded one', async () => {
+    const finished = await startSession('2026-09-01')
+    await finishSession(finished.id)
+    const discarded = await startSession('2026-09-02')
+    await discardSession(discarded.id)
+    const active = await startSession('2026-09-03')
+
+    expect(await getActiveSession()).toEqual(active)
+  })
+  it('returns the newest when two active sessions reach the device', async () => {
+    const older = await startSession('2026-09-01')
+    const newer = {
+      ...older,
+      id: crypto.randomUUID(),
+      started_at: new Date(Date.parse(older.started_at) + 1000).toISOString(),
+    }
+    await db.workoutSessions.put(newer)
+
+    expect(await getActiveSession()).toEqual(newer)
+  })
+})
+
+describe('finishSession', () => {
+  it('sets ended_at and the finished status, and queues one upsert', async () => {
+    const session = await startSession('2026-09-01')
+
+    const finished = await finishSession(session.id)
+    const queued = await queuedInOrder()
+
+    expect(finished).toMatchObject({ id: session.id, status: 'finished' })
+    expect(Date.parse(finished.ended_at ?? '')).toBeGreaterThanOrEqual(
+      Date.parse(session.started_at),
+    )
+    expect(await db.workoutSessions.get(session.id)).toEqual(finished)
+    expect(queued).toHaveLength(2)
+    expect(queued[1]).toMatchObject({ operation: 'upsert', payload: finished })
+    expect(await getActiveSession()).toBeUndefined()
+  })
+
+  it('returns a finished session unchanged and queues nothing more', async () => {
+    const session = await startSession('2026-09-01')
+    const finished = await finishSession(session.id)
+
+    expect(await finishSession(session.id)).toEqual(finished)
+    expect(await db.outbox.count()).toBe(2)
+  })
+
+  it('throws SessionNotFound for a session the device does not hold', async () => {
+    const cause = await refusal(finishSession(crypto.randomUUID()))
+
+    expect(cause).toBeInstanceOf(SessionNotFound)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('throws SessionNotFound for a discarded session', async () => {
+    const session = await startSession('2026-09-01')
+    await discardSession(session.id)
+
+    expect(await refusal(finishSession(session.id))).toBeInstanceOf(SessionNotFound)
+  })
+})
+
+describe('addSet', () => {
+  it('queues the session and the set, the session first', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+    const queued = await db.outbox.toArray()
+    const sessionEntry = queued.find((item) => item.row_id === session.id)
+    const setEntry = queued.find((item) => item.row_id === set.id)
+
+    expect(queued).toHaveLength(2)
+    expect(sessionEntry).toMatchObject({ table_name: 'workout_sessions', operation: 'upsert' })
+    expect(setEntry).toMatchObject({
+      table_name: 'workout_sets',
+      operation: 'upsert',
+      payload: set,
+    })
+    expect(sessionEntry?.sequence).toBeLessThan(setEntry?.sequence ?? 0)
+  })
+
+  it('stores the set with a client uuid and the schema defaults', async () => {
+    const session = await startSession('2026-09-01')
+
+    const set = await addSet({ session_id: session.id, exercise_id: BENCH_ID, reps: 10 })
+
+    expect(set).toMatchObject({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      set_index: 0,
+      reps: 10,
+      weight_kg: null,
+      rpe: null,
+      completed_at: null,
+      deleted_at: null,
+    })
+    expect(set.id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(await db.workoutSets.get(set.id)).toEqual(set)
+  })
+
+  it('gives the next set_index for that exercise in that session', async () => {
+    const session = await startSession('2026-09-01')
+
+    const indexes = [
+      (await addSet(aSet(session.id))).set_index,
+      (await addSet(aSet(session.id))).set_index,
+      (await addSet(aSet(session.id, { exercise_id: SQUAT_ID }))).set_index,
+      (await addSet(aSet(session.id))).set_index,
+    ]
+
+    expect(indexes).toEqual([0, 1, 0, 2])
+  })
+
+  it('never repeats a set_index after a delete', async () => {
+    const session = await startSession('2026-09-01')
+    await addSet(aSet(session.id))
+    const last = await addSet(aSet(session.id))
+    await deleteSet(last.id)
+
+    const next = await addSet(aSet(session.id))
+
+    expect(next.set_index).toBe(2)
+  })
+
+  it('counts the set_index per session, not across sessions', async () => {
+    const first = await startSession('2026-09-01')
+    await addSet(aSet(first.id))
+    await finishSession(first.id)
+    const second = await startSession('2026-09-02')
+
+    expect((await addSet(aSet(second.id))).set_index).toBe(0)
+  })
+
+  it('throws SessionNotFound for a discarded session and writes nothing', async () => {
+    const session = await startSession('2026-09-01')
+    await discardSession(session.id)
+    const queued = await db.outbox.count()
+
+    expect(await refusal(addSet(aSet(session.id)))).toBeInstanceOf(SessionNotFound)
+    expect(await db.workoutSets.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(queued)
+  })
+
+  it('rejects a set that fails the schema and writes nothing', async () => {
+    const session = await startSession('2026-09-01')
+
+    await expect(addSet(aSet(session.id, { reps: 0 }))).rejects.toThrow()
+
+    expect(await db.workoutSets.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('rolls back the set when its outbox entry fails', async () => {
+    const session = await startSession('2026-09-01')
+    const append = db.outbox.add.bind(db.outbox)
+    vi.spyOn(db.outbox, 'add').mockImplementation((item) =>
+      append(item).then(() => {
+        throw new Error('the outbox is full')
+      }),
+    )
+
+    await expect(addSet(aSet(session.id))).rejects.toThrow('the outbox is full')
+
+    vi.restoreAllMocks()
+
+    expect(await db.workoutSets.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(1)
+  })
+})
+
+describe('updateSet', () => {
+  it('patches the set and queues one upsert for it', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+
+    const updated = await updateSet(set.id, { reps: 12, weight_kg: 62.5 })
+    const queued = await queuedInOrder()
+
+    expect(updated).toMatchObject({ id: set.id, reps: 12, weight_kg: 62.5, set_index: 0 })
+    expect(updated.created_at).toBe(set.created_at)
+    expect(await db.workoutSets.get(set.id)).toEqual(updated)
+    expect(queued).toHaveLength(3)
+    expect(queued[2]).toMatchObject({ operation: 'upsert', row_id: set.id, payload: updated })
+  })
+
+  it('rejects a patch that fails the schema and keeps the set', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+
+    await expect(updateSet(set.id, { reps: 0 })).rejects.toThrow()
+
+    expect(await db.workoutSets.get(set.id)).toEqual(set)
+    expect(await db.outbox.count()).toBe(2)
+  })
+
+  it('throws SetNotFound for a deleted set', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+    await deleteSet(set.id)
+
+    expect(await refusal(updateSet(set.id, { reps: 9 }))).toBeInstanceOf(SetNotFound)
+  })
+})
+
+describe('deleteSet', () => {
+  it('soft deletes and queues one entry, and listSets then hides the set', async () => {
+    const session = await startSession('2026-09-01')
+    const kept = await addSet(aSet(session.id))
+    const removed = await addSet(aSet(session.id))
+    const before = await db.outbox.count()
+
+    await deleteSet(removed.id)
+    const queued = await queuedInOrder()
+    const stored = await db.workoutSets.get(removed.id)
+
+    expect(stored?.deleted_at).not.toBeNull()
+    expect(stored?.updated_at).toBe(stored?.deleted_at)
+    expect(queued).toHaveLength(before + 1)
+    expect(queued[before]).toMatchObject({
+      table_name: 'workout_sets',
+      operation: 'delete',
+      row_id: removed.id,
+      payload: stored,
+    })
+    expect((await listSets(session.id)).map((row) => row.id)).toEqual([kept.id])
+  })
+
+  it('queues nothing for a set that is already deleted', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+    await deleteSet(set.id)
+    const before = await db.outbox.count()
+
+    await deleteSet(set.id)
+
+    expect(await db.outbox.count()).toBe(before)
+  })
+
+  it('throws SetNotFound for a set the device does not hold', async () => {
+    expect(await refusal(deleteSet(crypto.randomUUID()))).toBeInstanceOf(SetNotFound)
+  })
+})
+
+describe('restoreSet', () => {
+  it('brings the set back and queues one entry', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+    await deleteSet(set.id)
+    const before = await db.outbox.count()
+
+    await restoreSet(set.id)
+    const queued = await queuedInOrder()
+    const stored = await db.workoutSets.get(set.id)
+
+    expect(stored).toMatchObject({ id: set.id, set_index: 0, deleted_at: null })
+    expect(queued).toHaveLength(before + 1)
+    expect(queued[before]).toMatchObject({
+      table_name: 'workout_sets',
+      operation: 'upsert',
+      row_id: set.id,
+      payload: stored,
+    })
+    expect((await listSets(session.id)).map((row) => row.id)).toEqual([set.id])
+  })
+
+  it('queues nothing for a set that is not deleted', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+
+    await restoreSet(set.id)
+
+    expect(await db.outbox.count()).toBe(2)
+  })
+
+  it('throws SetNotFound for a set the device does not hold', async () => {
+    expect(await refusal(restoreSet(crypto.randomUUID()))).toBeInstanceOf(SetNotFound)
+  })
+
+  it('throws SessionNotFound for a set of a discarded session', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+    await discardSession(session.id)
+    const before = await db.outbox.count()
+
+    expect(await refusal(restoreSet(set.id))).toBeInstanceOf(SessionNotFound)
+    expect((await db.workoutSets.get(set.id))?.deleted_at).not.toBeNull()
+    expect(await db.outbox.count()).toBe(before)
+  })
+})
+
+describe('discardSession', () => {
+  it('soft deletes the session and all its sets in one transaction', async () => {
+    const session = await startSession('2026-09-01')
+    const sets = [
+      await addSet(aSet(session.id)),
+      await addSet(aSet(session.id, { exercise_id: SQUAT_ID })),
+    ]
+    await deleteSet(sets[0]?.id ?? '')
+    const before = await db.outbox.count()
+
+    await discardSession(session.id)
+    const discarded = await db.workoutSessions.get(session.id)
+    const stored = await db.workoutSets.where('session_id').equals(session.id).toArray()
+    const added = (await queuedInOrder()).slice(before)
+
+    expect(discarded?.deleted_at).not.toBeNull()
+    expect(stored.every((row) => row.deleted_at !== null)).toBe(true)
+    expect(added.map((item) => [item.table_name, item.operation, item.row_id])).toEqual([
+      ['workout_sessions', 'delete', session.id],
+      ['workout_sets', 'delete', sets[1]?.id],
+    ])
+    expect(await getActiveSession()).toBeUndefined()
+    expect(await listSets(session.id)).toEqual([])
+  })
+
+  it('changes nothing when one of its writes fails', async () => {
+    const session = await startSession('2026-09-01')
+    await addSet(aSet(session.id))
+    await addSet(aSet(session.id))
+    const sessionsBefore = await db.workoutSessions.toArray()
+    const setsBefore = await db.workoutSets.toArray()
+    const append = db.outbox.add.bind(db.outbox)
+    let calls = 0
+    vi.spyOn(db.outbox, 'add').mockImplementation((item) =>
+      append(item).then((key) => {
+        calls += 1
+
+        if (calls === 3) {
+          throw new Error('the outbox is full')
+        }
+
+        return key
+      }),
+    )
+
+    await expect(discardSession(session.id)).rejects.toThrow('the outbox is full')
+
+    vi.restoreAllMocks()
+
+    expect(await db.workoutSessions.toArray()).toEqual(sessionsBefore)
+    expect(await db.workoutSets.toArray()).toEqual(setsBefore)
+    expect(await db.outbox.count()).toBe(3)
+  })
+
+  it('queues nothing for a session that is already discarded', async () => {
+    const session = await startSession('2026-09-01')
+    await discardSession(session.id)
+    const before = await db.outbox.count()
+
+    await discardSession(session.id)
+
+    expect(await db.outbox.count()).toBe(before)
+  })
+
+  it('throws SessionNotFound for a session the device does not hold', async () => {
+    expect(await refusal(discardSession(crypto.randomUUID()))).toBeInstanceOf(SessionNotFound)
+  })
+})
+
+describe('listSets', () => {
+  it('returns the live sets of one session, oldest first', async () => {
+    await db.workoutSets.bulkPut([
+      storedSet({
+        id: '00000000-0000-4000-8000-000000000003',
+        session_id: SQUAT_ID,
+        created_at: '2026-09-01T10:02:00.000Z',
+      }),
+      storedSet({
+        id: '00000000-0000-4000-8000-000000000001',
+        session_id: SQUAT_ID,
+        created_at: '2026-09-01T10:00:00.000Z',
+      }),
+      storedSet({
+        id: '00000000-0000-4000-8000-000000000002',
+        session_id: SQUAT_ID,
+        created_at: '2026-09-01T10:01:00.000Z',
+      }),
+      storedSet({ id: '00000000-0000-4000-8000-000000000004', session_id: BENCH_ID }),
+      storedSet({
+        id: '00000000-0000-4000-8000-000000000005',
+        session_id: SQUAT_ID,
+        deleted_at: '2026-09-01T11:00:00.000Z',
+      }),
+    ])
+
+    expect((await listSets(SQUAT_ID)).map((row) => row.id.slice(-1))).toEqual(['1', '2', '3'])
+  })
+
+  it('orders sets written in the same millisecond by exercise and set_index', async () => {
+    await db.workoutSets.bulkPut([
+      storedSet({ id: '00000000-0000-4000-8000-000000000001', session_id: SQUAT_ID, set_index: 1 }),
+      storedSet({ id: '00000000-0000-4000-8000-000000000002', session_id: SQUAT_ID, set_index: 0 }),
+    ])
+
+    expect((await listSets(SQUAT_ID)).map((row) => row.set_index)).toEqual([0, 1])
+  })
+})
+
+describe('lastSetFor', () => {
+  it('returns undefined for an exercise with no set', async () => {
+    expect(await lastSetFor(BENCH_ID)).toBeUndefined()
+  })
+
+  it('returns the newest set of the exercise across all sessions', async () => {
+    const newest = storedSet({ created_at: '2026-09-03T10:00:00.000Z', reps: 3 })
+    await db.workoutSets.bulkPut([
+      storedSet({ created_at: '2026-09-01T10:00:00.000Z' }),
+      newest,
+      storedSet({ created_at: '2026-09-02T10:00:00.000Z' }),
+      storedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-04T10:00:00.000Z' }),
+    ])
+
+    expect(await lastSetFor(BENCH_ID)).toEqual(newest)
+  })
+
+  it('takes the higher set_index when two sets share a timestamp', async () => {
+    const later = storedSet({ set_index: 1 })
+    await db.workoutSets.bulkPut([storedSet({ set_index: 0 }), later])
+
+    expect(await lastSetFor(BENCH_ID)).toEqual(later)
+  })
+
+  it('skips a soft-deleted set', async () => {
+    const session = await startSession('2026-09-01')
+    const kept = await addSet(aSet(session.id, { reps: 5 }))
+    const removed = await addSet(aSet(session.id, { reps: 6 }))
+    await deleteSet(removed.id)
+
+    expect(await lastSetFor(BENCH_ID)).toEqual(kept)
+  })
+})
+
+describe('a workout write on a signed-out device', () => {
+  it('throws SignedOutOnThisDevice and stores nothing', async () => {
+    const session = await startSession('2026-09-01')
+    const set = await addSet(aSet(session.id))
+    const gone = await addSet(aSet(session.id))
+    await deleteSet(gone.id)
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-09-02T00:00:00.000Z' })
+    const sessionsBefore = await db.workoutSessions.toArray()
+    const setsBefore = await db.workoutSets.toArray()
+    const queued = await db.outbox.count()
+
+    const refusals = [
+      await refusal(startSession('2026-09-02')),
+      await refusal(finishSession(session.id)),
+      await refusal(discardSession(session.id)),
+      await refusal(addSet(aSet(session.id))),
+      await refusal(updateSet(set.id, { reps: 9 })),
+      await refusal(deleteSet(set.id)),
+      await refusal(restoreSet(gone.id)),
+    ]
+
+    expect(refusals.every((cause) => cause instanceof SignedOutOnThisDevice)).toBe(true)
+    expect(await db.workoutSessions.toArray()).toEqual(sessionsBefore)
+    expect(await db.workoutSets.toArray()).toEqual(setsBefore)
+    expect(await db.outbox.count()).toBe(queued)
   })
 })
 

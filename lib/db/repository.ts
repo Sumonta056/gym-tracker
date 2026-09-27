@@ -2,6 +2,8 @@ import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
+import { workoutSessionSchema } from '../schema/workoutSession'
+import { workoutSetSchema } from '../schema/workoutSet'
 import { append as enqueue, lastSequence } from '../sync/outbox'
 import {
   endSigningOut,
@@ -15,10 +17,11 @@ import {
 
 import { db, LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY, SIGNED_OUT_KEY } from './dexie'
 
-import type { DailyEntry, Exercise, Profile } from './dexie'
+import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { ExerciseInput, MuscleGroup } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
+import type { WorkoutSetDraft, WorkoutSetInput } from '../schema/workoutSet'
 
 export { LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY } from './dexie'
 
@@ -74,6 +77,27 @@ export class ExerciseNotFound extends Error {
   constructor() {
     super('This exercise is not on this device.')
     this.name = 'ExerciseNotFound'
+  }
+}
+
+export class SessionAlreadyActive extends Error {
+  constructor() {
+    super('A session is already running. Finish it before you start another.')
+    this.name = 'SessionAlreadyActive'
+  }
+}
+
+export class SessionNotFound extends Error {
+  constructor() {
+    super('This session is not on this device.')
+    this.name = 'SessionNotFound'
+  }
+}
+
+export class SetNotFound extends Error {
+  constructor() {
+    super('This set is not on this device.')
+    this.name = 'SetNotFound'
   }
 }
 
@@ -328,6 +352,264 @@ export async function archiveExercise(id: string): Promise<void> {
 
 export async function restoreExercise(id: string): Promise<void> {
   await changeOwnExercise(id, { is_archived: false })
+}
+
+async function activeSessions(): Promise<WorkoutSession[]> {
+  const rows = await db.workoutSessions.where('status').equals('active').toArray()
+
+  return rows
+    .filter((row) => row.deleted_at === null)
+    .sort(
+      (left, right) =>
+        right.started_at.localeCompare(left.started_at) || left.id.localeCompare(right.id),
+    )
+}
+
+async function liveSession(id: string): Promise<WorkoutSession> {
+  const session = await db.workoutSessions.get(id)
+
+  if (session === undefined || session.deleted_at !== null) {
+    throw new SessionNotFound()
+  }
+
+  return session
+}
+
+async function storedSet(id: string): Promise<WorkoutSet> {
+  const set = await db.workoutSets.get(id)
+
+  if (set === undefined) {
+    throw new SetNotFound()
+  }
+
+  return set
+}
+
+function setFields(set: WorkoutSet): WorkoutSetInput {
+  return {
+    session_id: set.session_id,
+    exercise_id: set.exercise_id,
+    set_index: set.set_index,
+    reps: set.reps,
+    weight_kg: set.weight_kg,
+    rpe: set.rpe,
+    completed_at: set.completed_at,
+  }
+}
+
+function inWriteOrder(left: WorkoutSet, right: WorkoutSet): number {
+  return (
+    left.created_at.localeCompare(right.created_at) ||
+    left.exercise_id.localeCompare(right.exercise_id) ||
+    left.set_index - right.set_index ||
+    left.id.localeCompare(right.id)
+  )
+}
+
+export async function getActiveSession(): Promise<WorkoutSession | undefined> {
+  return (await activeSessions())[0]
+}
+
+export async function startSession(date: string): Promise<WorkoutSession> {
+  const timestamp = nowIso()
+  const parsed = workoutSessionSchema.parse({
+    entry_date: date,
+    started_at: timestamp,
+    ended_at: null,
+    status: 'active',
+  })
+
+  return db.transaction('rw', db.workoutSessions, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
+    if ((await activeSessions()).length > 0) {
+      throw new SessionAlreadyActive()
+    }
+
+    const row: WorkoutSession = {
+      ...parsed,
+      id: newId(),
+      created_at: timestamp,
+      updated_at: timestamp,
+      deleted_at: null,
+    }
+
+    await db.workoutSessions.put(row)
+    await enqueue('workout_sessions', 'upsert', row)
+
+    return row
+  })
+}
+
+export async function finishSession(id: string): Promise<WorkoutSession> {
+  return db.transaction('rw', db.workoutSessions, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
+    const session = await liveSession(id)
+
+    if (session.status === 'finished') {
+      return session
+    }
+
+    const timestamp = nowIso()
+    const parsed = workoutSessionSchema.parse({
+      entry_date: session.entry_date,
+      started_at: session.started_at,
+      ended_at: timestamp,
+      status: 'finished',
+    })
+    const row: WorkoutSession = { ...session, ...parsed, updated_at: timestamp }
+
+    await db.workoutSessions.put(row)
+    await enqueue('workout_sessions', 'upsert', row)
+
+    return row
+  })
+}
+
+export async function discardSession(id: string): Promise<void> {
+  await db.transaction(
+    'rw',
+    [db.workoutSessions, db.workoutSets, db.outbox, db.syncMeta],
+    async () => {
+      await refuseWhenSignedOut()
+
+      const session = await db.workoutSessions.get(id)
+
+      if (session === undefined) {
+        throw new SessionNotFound()
+      }
+
+      if (session.deleted_at !== null) {
+        return
+      }
+
+      const timestamp = nowIso()
+      const row: WorkoutSession = { ...session, updated_at: timestamp, deleted_at: timestamp }
+
+      await db.workoutSessions.put(row)
+      await enqueue('workout_sessions', 'delete', row)
+
+      const sets = await db.workoutSets.where('session_id').equals(id).toArray()
+
+      for (const set of sets.filter((item) => item.deleted_at === null).sort(inWriteOrder)) {
+        const deleted: WorkoutSet = { ...set, updated_at: timestamp, deleted_at: timestamp }
+
+        await db.workoutSets.put(deleted)
+        await enqueue('workout_sets', 'delete', deleted)
+      }
+    },
+  )
+}
+
+export async function addSet(input: Omit<WorkoutSetDraft, 'set_index'>): Promise<WorkoutSet> {
+  return db.transaction(
+    'rw',
+    [db.workoutSessions, db.workoutSets, db.outbox, db.syncMeta],
+    async () => {
+      await refuseWhenSignedOut()
+      await liveSession(input.session_id)
+
+      const sets = await db.workoutSets.where('session_id').equals(input.session_id).toArray()
+      const highest = Math.max(
+        -1,
+        ...sets.filter((set) => set.exercise_id === input.exercise_id).map((set) => set.set_index),
+      )
+      const parsed = workoutSetSchema.parse({ ...input, set_index: highest + 1 })
+      const timestamp = nowIso()
+      const row: WorkoutSet = {
+        ...parsed,
+        id: newId(),
+        created_at: timestamp,
+        updated_at: timestamp,
+        deleted_at: null,
+      }
+
+      await db.workoutSets.put(row)
+      await enqueue('workout_sets', 'upsert', row)
+
+      return row
+    },
+  )
+}
+
+export type WorkoutSetPatch = Partial<
+  Pick<WorkoutSetInput, 'reps' | 'weight_kg' | 'rpe' | 'completed_at'>
+>
+
+export async function updateSet(id: string, patch: WorkoutSetPatch): Promise<WorkoutSet> {
+  return db.transaction('rw', db.workoutSets, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
+    const existing = await storedSet(id)
+
+    if (existing.deleted_at !== null) {
+      throw new SetNotFound()
+    }
+
+    const parsed = workoutSetSchema.parse({ ...setFields(existing), ...patch })
+    const row: WorkoutSet = { ...existing, ...parsed, updated_at: nowIso() }
+
+    await db.workoutSets.put(row)
+    await enqueue('workout_sets', 'upsert', row)
+
+    return row
+  })
+}
+
+export async function deleteSet(id: string): Promise<void> {
+  await db.transaction('rw', db.workoutSets, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
+    const existing = await storedSet(id)
+
+    if (existing.deleted_at !== null) {
+      return
+    }
+
+    const timestamp = nowIso()
+    const row: WorkoutSet = { ...existing, updated_at: timestamp, deleted_at: timestamp }
+
+    await db.workoutSets.put(row)
+    await enqueue('workout_sets', 'delete', row)
+  })
+}
+
+export async function restoreSet(id: string): Promise<void> {
+  await db.transaction(
+    'rw',
+    [db.workoutSessions, db.workoutSets, db.outbox, db.syncMeta],
+    async () => {
+      await refuseWhenSignedOut()
+
+      const existing = await storedSet(id)
+
+      if (existing.deleted_at === null) {
+        return
+      }
+
+      await liveSession(existing.session_id)
+
+      const row: WorkoutSet = { ...existing, updated_at: nowIso(), deleted_at: null }
+
+      await db.workoutSets.put(row)
+      await enqueue('workout_sets', 'upsert', row)
+    },
+  )
+}
+
+export async function listSets(sessionId: string): Promise<WorkoutSet[]> {
+  const rows = await db.workoutSets.where('session_id').equals(sessionId).toArray()
+
+  return rows.filter((row) => row.deleted_at === null).sort(inWriteOrder)
+}
+
+export async function lastSetFor(exerciseId: string): Promise<WorkoutSet | undefined> {
+  const rows = await db.workoutSets
+    .filter((row) => row.exercise_id === exerciseId && row.deleted_at === null)
+    .toArray()
+
+  return rows.sort((left, right) => inWriteOrder(right, left))[0]
 }
 
 export interface ConfirmedWrites {
