@@ -5,14 +5,15 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.1a → `docs/plan/phase-2/S2.1a-migration-dexie.md`
+**Next step:** 2.1b → `docs/plan/phase-2/S2.1b-exercise-seed.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.0, the Phase 2 prototype plates, on top of `839ee97`.
+**Last commit:** 2.1a, the workout tables and Dexie version 3, on top of `aa0bb4c`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-27 after 2.0. The report is `reports/2026-09-27-phase-2-prototype-plates.html`.
+- Stopped on 2026-09-27 after 2.1a. The report is `reports/2026-09-27-workout-tables-dexie-v3.html`.
+- Migration `20260927142258_phase2_workouts` is applied to the live project. Never apply it again.
 - Run each step in a fresh subagent on Node 24. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
 - Stop any `next dev` before `pnpm verify`. A shared `.next` breaks the build.
@@ -50,6 +51,10 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   has +30 s and Change. The p8 card, with both values, is the gym time offer on `/log`
   and on p2. `15.54` reads `15m 54s` or `15m 32s`. The Month volume chart labels its
   highest bar only, its average label in the band. The one-rep max and gap charts show no average line. From 2.0.
+- **The workout tables carry `created_at`, `updated_at` and `deleted_at`**, as the step file and
+  the skill say. Spec section 5 is behind. `workout_sets` has no `user_id` and uses an `exists`
+  policy on its session. `exercises.user_id` null is a global, read-only row. Dexie keeps
+  `STORES_V2` as the frozen version 2 block. From 2.1a.
 
 ## Open, with the step that closes each one
 
@@ -61,6 +66,15 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   From 1.13.
 - **2.4a** — the live workout plate has no current Workouts tab. From 2.0.
 - **2.9b** — import review has no plate at 1024 px and up. From 2.0.
+- **2.2a** — `MuscleGroup` and `WorkoutSessionStatus` live in `lib/db/dexie.ts` for now. The zod
+  schema must own them, and `dexie.ts` imports them. From 2.1a.
+- **2.2a / 2.5** — the Dexie `Profile` lacks `rest_sound_muted` and `rest_seconds_by_exercise`.
+  Existing device rows need defaults. From 2.1a.
+- **2.2c** — decide what `Exercise.user_id` holds on the device: the session id,
+  `LOCAL_PROFILE_ID` or a flag. From 2.1a.
+- **2.2c** — the `workout_sets` policies do not check that `exercise_id` is the user's own or a
+  global row. Only the foreign key applies. Needs a new migration if closed. From 2.1a.
+- **Owner** — `get_advisors` warns that leaked password protection is off. An Auth setting. From 2.1a.
 
 ## Phases
 

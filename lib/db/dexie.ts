@@ -15,6 +15,46 @@ export interface Profile extends ProfileInput {
   updated_at: string
 }
 
+export type MuscleGroup = 'chest' | 'back' | 'legs' | 'shoulders' | 'arms' | 'core' | 'cardio'
+
+export interface Exercise {
+  id: string
+  user_id: string | null
+  name: string
+  muscle_group: MuscleGroup
+  is_archived: boolean
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export type WorkoutSessionStatus = 'active' | 'finished'
+
+export interface WorkoutSession {
+  id: string
+  entry_date: string
+  started_at: string
+  ended_at: string | null
+  status: WorkoutSessionStatus
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface WorkoutSet {
+  id: string
+  session_id: string
+  exercise_id: string
+  set_index: number
+  reps: number | null
+  weight_kg: number | null
+  rpe: number | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
 export type OutboxTableName = 'daily_entries' | 'profiles'
 
 export type OutboxOperation = 'upsert' | 'delete'
@@ -48,6 +88,9 @@ export type GymDatabase = Dexie & {
   outbox: EntityTable<OutboxEntry, 'id'>
   deadLetters: EntityTable<DeadLetter, 'id'>
   syncMeta: EntityTable<SyncMetaRecord, 'key'>
+  exercises: EntityTable<Exercise, 'id'>
+  workoutSessions: EntityTable<WorkoutSession, 'id'>
+  workoutSets: EntityTable<WorkoutSet, 'id'>
 }
 
 export const OUTBOX_SEQUENCE_KEY = 'outbox_sequence'
@@ -66,7 +109,7 @@ export const NEVER_WRITTEN = new Date(0).toISOString()
 
 export const DATABASE_NAME = 'gym-tracker'
 
-export const DATABASE_VERSION = 2
+export const DATABASE_VERSION = 3
 
 export const STORES_V1 = {
   dailyEntries: '&id, entry_date, updated_at',
@@ -75,15 +118,23 @@ export const STORES_V1 = {
   syncMeta: '&key',
 } as const
 
-export const STORES = {
+export const STORES_V2 = {
   ...STORES_V1,
   deadLetters: '&id, sequence',
+} as const
+
+export const STORES = {
+  ...STORES_V2,
+  exercises: '&id, muscle_group, updated_at',
+  workoutSessions: '&id, entry_date, status, updated_at',
+  workoutSets: '&id, session_id, updated_at',
 } as const
 
 export function createDatabase(name: string = DATABASE_NAME): GymDatabase {
   const instance = new Dexie(name) as GymDatabase
 
   instance.version(1).stores(STORES_V1)
+  instance.version(2).stores(STORES_V2)
   instance.version(DATABASE_VERSION).stores(STORES)
 
   return instance
