@@ -5,15 +5,18 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.1b → `docs/plan/phase-2/S2.1b-exercise-seed.md`
+**Next step:** 2.2a → `docs/plan/phase-2/S2.2a-schemas-exercises.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.1a, the workout tables and Dexie version 3, on top of `aa0bb4c`.
+**Last commit:** 2.1b, the global exercise seed, on top of `be9fc8c`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-27 after 2.1a. The report is `reports/2026-09-27-workout-tables-dexie-v3.html`.
-- Migration `20260927142258_phase2_workouts` is applied to the live project. Never apply it again.
+- Stopped on 2026-09-27 after 2.1b. The report is `reports/2026-09-27-global-exercise-seed.html`.
+- Migrations `20260927142258_phase2_workouts` and `20260927151153_phase2_exercise_seed` are
+  applied to the live project. Never apply them again.
+- `apply_migration` records its own version. Rename the local file to the version that
+  `list_migrations` shows.
 - Run each step in a fresh subagent on Node 24. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
 - Stop any `next dev` before `pnpm verify`. A shared `.next` breaks the build.
@@ -55,6 +58,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   the skill say. Spec section 5 is behind. `workout_sets` has no `user_id` and uses an `exists`
   policy on its session. `exercises.user_id` null is a global, read-only row. Dexie keeps
   `STORES_V2` as the frozen version 2 block. From 2.1a.
+- **The seed has 40 global exercises with permanent ids.** No `Plank`: a set holds reps and
+  weight only, so `Decline Sit-Up` replaces it. Cardio keeps its 5 rows. From 2.1b.
 
 ## Open, with the step that closes each one
 
@@ -75,6 +80,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **2.2c** — the `workout_sets` policies do not check that `exercise_id` is the user's own or a
   global row. Only the foreign key applies. Needs a new migration if closed. From 2.1a.
 - **Owner** — `get_advisors` warns that leaked password protection is off. An Auth setting. From 2.1a.
+- **2.3b** — no unique index on global exercise names. Only the seed adds global rows. The owner
+  deferred it. From 2.1b.
 
 ## Phases
 
