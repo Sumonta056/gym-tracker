@@ -2,15 +2,20 @@ import { db, OUTBOX_SEQUENCE_KEY } from '../db/dexie'
 import { newId } from '../id'
 
 import type {
-  DailyEntry,
   OutboxEntry,
   OutboxOperation,
+  OutboxPayload,
   OutboxTableName,
-  Profile,
   SyncMetaRecord,
 } from '../db/dexie'
 
 export const BACKOFF_CEILING_MS = 60000
+
+export const SYNCED_TABLES: ReadonlySet<OutboxTableName> = new Set(['daily_entries', 'profiles'])
+
+function isSynced(entry: OutboxEntry): boolean {
+  return SYNCED_TABLES.has(entry.table_name)
+}
 
 function issuedSequence(marker: SyncMetaRecord | undefined): number {
   const issued = Number(marker?.value ?? 0)
@@ -49,7 +54,7 @@ export function isDue(entry: OutboxEntry, nowMs: number): boolean {
 export async function append(
   tableName: OutboxTableName,
   operation: OutboxOperation,
-  payload: DailyEntry | Profile,
+  payload: OutboxPayload,
 ): Promise<OutboxEntry> {
   const marker = await db.syncMeta.get(OUTBOX_SEQUENCE_KEY)
   const queued = await db.outbox.orderBy('sequence').last()
@@ -83,12 +88,16 @@ export async function listPending(): Promise<OutboxEntry[]> {
   return db.outbox.orderBy('sequence').toArray()
 }
 
-export async function nextPending(): Promise<OutboxEntry | undefined> {
-  return db.outbox.orderBy('sequence').first()
+export async function nextPending(after = 0): Promise<OutboxEntry | undefined> {
+  return db.outbox.where('sequence').above(after).filter(isSynced).first()
 }
 
 export async function pendingCount(): Promise<number> {
   return db.outbox.count()
+}
+
+export async function syncedCount(): Promise<number> {
+  return db.outbox.filter(isSynced).count()
 }
 
 export async function hasPending(rowId: string): Promise<boolean> {

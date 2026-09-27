@@ -7,6 +7,8 @@ import type { Tables } from '../supabase/database.types'
 
 type ProfileRow = Tables<'profiles'>
 
+const EXERCISE_ID = '22222222-2222-4222-8222-222222222222'
+
 type Assignable<A, B> = A extends B ? true : false
 
 const keysExistOnRow: Assignable<keyof ProfileInput, keyof ProfileRow> = true
@@ -56,6 +58,8 @@ describe('profileSchema', () => {
       height_cm: null,
       target_weight_kg: null,
       step_goal: 12000,
+      rest_sound_muted: false,
+      rest_seconds_by_exercise: {},
     })
   })
 
@@ -132,6 +136,66 @@ describe('profileSchema', () => {
 
   it('rejects a step_goal that is not whole', () => {
     expect(parse({ step_goal: 10500.5 }).success).toBe(false)
+  })
+
+  it('keeps a muted rest sound', () => {
+    expect(parse({ rest_sound_muted: true }).data?.rest_sound_muted).toBe(true)
+  })
+
+  it('rejects a rest_sound_muted that is not a boolean', () => {
+    const issue = firstIssue(parse({ rest_sound_muted: 'on' }))
+
+    expect(issue.message).toBe('Muted is either true or false.')
+    expect(issue.path).toEqual(['rest_sound_muted'])
+  })
+
+  it('keeps a rest length for an exercise', () => {
+    const rest = { [EXERCISE_ID]: 90 }
+
+    expect(parse({ rest_seconds_by_exercise: rest }).data?.rest_seconds_by_exercise).toEqual(rest)
+  })
+
+  it('accepts a rest length of 0 seconds', () => {
+    expect(parse({ rest_seconds_by_exercise: { [EXERCISE_ID]: 0 } }).success).toBe(true)
+  })
+
+  it('accepts a rest length of 3600 seconds', () => {
+    expect(parse({ rest_seconds_by_exercise: { [EXERCISE_ID]: 3600 } }).success).toBe(true)
+  })
+
+  it('rejects a rest length below 0 seconds', () => {
+    const issue = firstIssue(parse({ rest_seconds_by_exercise: { [EXERCISE_ID]: -1 } }))
+
+    expect(issue.message).toBe('A rest cannot be negative.')
+    expect(issue.path).toEqual(['rest_seconds_by_exercise', EXERCISE_ID])
+  })
+
+  it('rejects a rest length above 3600 seconds', () => {
+    const issue = firstIssue(parse({ rest_seconds_by_exercise: { [EXERCISE_ID]: 3601 } }))
+
+    expect(issue.message).toBe('A rest cannot be longer than 3600 seconds.')
+    expect(issue.path).toEqual(['rest_seconds_by_exercise', EXERCISE_ID])
+  })
+
+  it('rejects a rest length that is not whole seconds', () => {
+    const issue = firstIssue(parse({ rest_seconds_by_exercise: { [EXERCISE_ID]: 90.5 } }))
+
+    expect(issue.message).toBe('Enter a whole number of seconds.')
+    expect(issue.path).toEqual(['rest_seconds_by_exercise', EXERCISE_ID])
+  })
+
+  it('rejects a rest length keyed by something other than an exercise id', () => {
+    const issue = firstIssue(parse({ rest_seconds_by_exercise: { bench: 90 } }))
+
+    expect(issue.message).toBe('A rest length belongs to an exercise id.')
+    expect(issue.path).toEqual(['rest_seconds_by_exercise', 'bench'])
+  })
+
+  it('rejects rest lengths that are not an object', () => {
+    const issue = firstIssue(parse({ rest_seconds_by_exercise: 90 }))
+
+    expect(issue.message).toBe('Enter the rest lengths by exercise.')
+    expect(issue.path).toEqual(['rest_seconds_by_exercise'])
   })
 
   it('infers a type whose keys all exist on the generated profiles row', () => {

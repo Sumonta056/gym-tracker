@@ -16,6 +16,8 @@ import {
   markDone,
   markFailed,
   pendingCount,
+  syncedCount,
+  SYNCED_TABLES,
 } from './outbox'
 
 import type { DailyEntry, OutboxEntry } from '../db/dexie'
@@ -122,6 +124,27 @@ describe('nextPending', () => {
     expect((await nextPending())?.id).toBe(first.id)
   })
 
+  it('returns the next entry above the sequence it is given', async () => {
+    const first = await append('daily_entries', 'upsert', row())
+    const second = await append('daily_entries', 'delete', row())
+
+    expect((await nextPending(first.sequence))?.id).toBe(second.id)
+  })
+
+  it('skips an entry for a table the worker does not sync yet', async () => {
+    await append('exercises', 'upsert', row())
+    const daily = await append('daily_entries', 'upsert', row())
+
+    expect((await nextPending())?.id).toBe(daily.id)
+  })
+
+  it('returns nothing when only held entries are left', async () => {
+    await append('workout_sessions', 'upsert', row())
+    await append('workout_sets', 'upsert', row())
+
+    expect(await nextPending()).toBeUndefined()
+  })
+
   it('reads the entry again, so a re-keyed payload is never stale', async () => {
     const first = await append('daily_entries', 'upsert', row())
     await db.outbox.put({ ...first, row_id: 'moved' })
@@ -134,6 +157,31 @@ describe('pendingCount', () => {
   it('counts every queued entry', async () => {
     await append('daily_entries', 'upsert', row())
     await append('daily_entries', 'delete', row())
+
+    expect(await pendingCount()).toBe(2)
+  })
+})
+
+describe('SYNCED_TABLES', () => {
+  it('names the two tables the worker syncs today', () => {
+    expect([...SYNCED_TABLES]).toEqual(['daily_entries', 'profiles'])
+  })
+})
+
+describe('syncedCount', () => {
+  it('counts only the entries of a table the worker syncs', async () => {
+    await append('daily_entries', 'upsert', row())
+    await append('exercises', 'upsert', row())
+    await append('profiles', 'upsert', row())
+
+    expect(await syncedCount()).toBe(2)
+  })
+})
+
+describe('pendingCount with held entries', () => {
+  it('counts a held entry, so the sign-out sheet still warns about it', async () => {
+    await append('daily_entries', 'upsert', row())
+    await append('exercises', 'upsert', row())
 
     expect(await pendingCount()).toBe(2)
   })

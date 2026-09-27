@@ -1,7 +1,10 @@
 import Dexie, { type EntityTable } from 'dexie'
 
 import type { DailyEntryInput } from '../schema/dailyEntry'
+import type { ExerciseInput } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
+import type { WorkoutSessionInput } from '../schema/workoutSession'
+import type { WorkoutSetInput } from '../schema/workoutSet'
 
 export interface DailyEntry extends DailyEntryInput {
   id: string
@@ -10,52 +13,40 @@ export interface DailyEntry extends DailyEntryInput {
   deleted_at: string | null
 }
 
-export interface Profile extends ProfileInput {
+type RestSettings = 'rest_sound_muted' | 'rest_seconds_by_exercise'
+
+export interface Profile
+  extends Omit<ProfileInput, RestSettings>, Partial<Pick<ProfileInput, RestSettings>> {
   id: string
   updated_at: string
 }
 
-export type MuscleGroup = 'chest' | 'back' | 'legs' | 'shoulders' | 'arms' | 'core' | 'cardio'
-
-export interface Exercise {
+export interface Exercise extends ExerciseInput {
   id: string
   user_id: string | null
-  name: string
-  muscle_group: MuscleGroup
-  is_archived: boolean
   created_at: string
   updated_at: string
   deleted_at: string | null
 }
 
-export type WorkoutSessionStatus = 'active' | 'finished'
-
-export interface WorkoutSession {
+export interface WorkoutSession extends WorkoutSessionInput {
   id: string
-  entry_date: string
-  started_at: string
-  ended_at: string | null
-  status: WorkoutSessionStatus
   created_at: string
   updated_at: string
   deleted_at: string | null
 }
 
-export interface WorkoutSet {
+export interface WorkoutSet extends WorkoutSetInput {
   id: string
-  session_id: string
-  exercise_id: string
-  set_index: number
-  reps: number | null
-  weight_kg: number | null
-  rpe: number | null
-  completed_at: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
 }
 
-export type OutboxTableName = 'daily_entries' | 'profiles'
+export type OutboxTableName =
+  'daily_entries' | 'profiles' | 'exercises' | 'workout_sessions' | 'workout_sets'
+
+export type OutboxPayload = DailyEntry | Profile | Exercise | WorkoutSession | WorkoutSet
 
 export type OutboxOperation = 'upsert' | 'delete'
 
@@ -65,7 +56,7 @@ export interface OutboxEntry {
   table_name: OutboxTableName
   operation: OutboxOperation
   row_id: string
-  payload: DailyEntry | Profile
+  payload: OutboxPayload
   created_at: string
   attempts: number
   last_error: string | null

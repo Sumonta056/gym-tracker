@@ -1,6 +1,6 @@
 import { db, DEAD_STREAK_KEY } from '../db/dexie'
 
-import type { DailyEntry, DeadLetter, OutboxEntry, Profile } from '../db/dexie'
+import type { DeadLetter, OutboxEntry, OutboxPayload } from '../db/dexie'
 
 export const PERMANENT_CODES: readonly string[] = [
   '42501',
@@ -67,18 +67,33 @@ export async function deadLetterCount(): Promise<number> {
   return db.deadLetters.count()
 }
 
-async function currentRow(letter: DeadLetter): Promise<DailyEntry | Profile | undefined> {
-  if (letter.table_name === 'profiles') {
-    return db.profiles.get(letter.row_id)
+async function currentRow(letter: DeadLetter): Promise<OutboxPayload | undefined> {
+  switch (letter.table_name) {
+    case 'profiles':
+      return db.profiles.get(letter.row_id)
+    case 'exercises':
+      return db.exercises.get(letter.row_id)
+    case 'workout_sessions':
+      return db.workoutSessions.get(letter.row_id)
+    case 'workout_sets':
+      return db.workoutSets.get(letter.row_id)
+    case 'daily_entries':
+      return db.dailyEntries.get(letter.row_id)
   }
-
-  return db.dailyEntries.get(letter.row_id)
 }
 
 export async function retryDeadLetter(id: string): Promise<void> {
   await db.transaction(
     'rw',
-    [db.deadLetters, db.outbox, db.dailyEntries, db.profiles],
+    [
+      db.deadLetters,
+      db.outbox,
+      db.dailyEntries,
+      db.profiles,
+      db.exercises,
+      db.workoutSessions,
+      db.workoutSets,
+    ],
     async () => {
       const letter = await db.deadLetters.get(id)
 

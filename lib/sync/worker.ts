@@ -6,6 +6,7 @@ import {
   SIGNED_OUT_KEY,
 } from '../db/dexie'
 import { newId } from '../id'
+import { profileSchema } from '../schema/profile'
 import { createClient } from '../supabase/client'
 
 import {
@@ -16,7 +17,7 @@ import {
   readDeadStreak,
   writeDeadStreak,
 } from './deadLetters'
-import { hasPending, isDue, markDone, markFailed, nextPending, pendingCount } from './outbox'
+import { hasPending, isDue, markDone, markFailed, nextPending, syncedCount } from './outbox'
 
 import type { DailyEntry, OutboxEntry, Profile } from '../db/dexie'
 import type { Database, Tables, TablesInsert } from '../supabase/database.types'
@@ -184,6 +185,8 @@ function toServerProfile(payload: Profile, userId: string): TablesInsert<'profil
     height_cm: payload.height_cm,
     target_weight_kg: payload.target_weight_kg,
     step_goal: payload.step_goal,
+    rest_sound_muted: payload.rest_sound_muted,
+    rest_seconds_by_exercise: payload.rest_seconds_by_exercise,
   }
 }
 
@@ -213,6 +216,11 @@ function toLocalProfile(row: Tables<'profiles'>): Profile {
     height_cm: row.height_cm,
     target_weight_kg: row.target_weight_kg,
     step_goal: row.step_goal,
+    rest_sound_muted:
+      profileSchema.shape.rest_sound_muted.safeParse(row.rest_sound_muted).data ?? false,
+    rest_seconds_by_exercise:
+      profileSchema.shape.rest_seconds_by_exercise.safeParse(row.rest_seconds_by_exercise).data ??
+      {},
     updated_at: row.updated_at,
   }
 }
@@ -391,7 +399,7 @@ export async function push(
   const ignoreBackoff = options.ignoreBackoff === true
   let pushed = 0
   let dead = await readDeadStreak()
-  let remaining = await pendingCount()
+  let remaining = await syncedCount()
   let entry = await nextPending()
 
   while (entry !== undefined && remaining > 0 && (ignoreBackoff || isDue(entry, nowMs))) {
@@ -428,7 +436,7 @@ export async function push(
       return { pushed, error }
     }
 
-    entry = await nextPending()
+    entry = await nextPending(entry.sequence)
   }
 
   return { pushed, error: null }

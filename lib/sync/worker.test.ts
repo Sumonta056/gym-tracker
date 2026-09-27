@@ -11,10 +11,19 @@ import {
 } from '../db/dexie'
 import { clearAll, LOCAL_PROFILE_ID, SignedOutOnThisDevice, upsertDay } from '../db/repository'
 import { dailyEntrySchema } from '../schema/dailyEntry'
+import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
+import { workoutSessionSchema } from '../schema/workoutSession'
+import { workoutSetSchema } from '../schema/workoutSet'
 
-import { MAX_ATTEMPTS, MAX_CONSECUTIVE_DEAD, moveToDeadLetters } from './deadLetters'
-import { append, listPending, markFailed } from './outbox'
+import {
+  MAX_ATTEMPTS,
+  MAX_CONSECUTIVE_DEAD,
+  moveToDeadLetters,
+  readDeadStreak,
+  writeDeadStreak,
+} from './deadLetters'
+import { append, listPending, markFailed, pendingCount } from './outbox'
 import {
   DRAIN_LOCK,
   DrainLockBusy,
@@ -39,7 +48,14 @@ import {
 } from './worker'
 
 import type { SyncState } from './worker'
-import type { DailyEntry, Profile } from '../db/dexie'
+import type {
+  DailyEntry,
+  Exercise,
+  OutboxEntry,
+  Profile,
+  WorkoutSession,
+  WorkoutSet,
+} from '../db/dexie'
 import type { Database } from '../supabase/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -272,6 +288,48 @@ function localProfile(overrides: Partial<Profile> = {}): Profile {
   }
 }
 
+function localExercise(id: string): Exercise {
+  return {
+    ...exerciseSchema.parse({ name: 'Bench Press', muscle_group: 'chest' }),
+    id,
+    user_id: LOCAL_PROFILE_ID,
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-01T10:00:00.000Z',
+    deleted_at: null,
+  }
+}
+
+function localSession(id: string): WorkoutSession {
+  return {
+    ...workoutSessionSchema.parse({
+      entry_date: '2026-09-01',
+      started_at: '2026-09-01T10:00:00.000Z',
+    }),
+    id,
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-01T10:00:00.000Z',
+    deleted_at: null,
+  }
+}
+
+function localSet(id: string): WorkoutSet {
+  return {
+    ...workoutSetSchema.parse({ session_id: ROW_D, exercise_id: ROW_C, set_index: 0, reps: 8 }),
+    id,
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-01T10:00:00.000Z',
+    deleted_at: null,
+  }
+}
+
+async function heldEntries(): Promise<OutboxEntry[]> {
+  return [
+    await append('exercises', 'upsert', localExercise(ROW_C)),
+    await append('workout_sessions', 'upsert', localSession(ROW_D)),
+    await append('workout_sets', 'upsert', localSet(ROW_E)),
+  ]
+}
+
 async function cursor(key: string): Promise<string | null | undefined> {
   return (await db.syncMeta.get(key))?.value
 }
@@ -454,6 +512,41 @@ describe('push', () => {
     expect(firstUpsert(fake).row.id).toBe(USER_ID)
   })
 
+  it('sends the rest settings with the profile', async () => {
+    await append(
+      'profiles',
+      'upsert',
+      localProfile({ rest_sound_muted: true, rest_seconds_by_exercise: { [ROW_C]: 90 } }),
+    )
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(firstUpsert(fake).row).toMatchObject({
+      rest_sound_muted: true,
+      rest_seconds_by_exercise: { [ROW_C]: 90 },
+    })
+  })
+
+  it('leaves out the rest settings a device row never had, so the server keeps its own', async () => {
+    const older: Profile = {
+      id: LOCAL_PROFILE_ID,
+      display_name: null,
+      unit_system: 'metric',
+      height_cm: null,
+      target_weight_kg: null,
+      step_goal: 12000,
+      updated_at: '2026-09-01T10:00:00.000Z',
+    }
+    await append('profiles', 'upsert', older)
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(firstUpsert(fake).row.rest_sound_muted).toBeUndefined()
+    expect(firstUpsert(fake).row.rest_seconds_by_exercise).toBeUndefined()
+  })
+
   it('upserts on the client uuid so the same row never lands twice', async () => {
     await append('daily_entries', 'upsert', localEntry(ROW_A))
     await append('daily_entries', 'upsert', localEntry(ROW_A, { steps: 9000 }))
@@ -546,6 +639,89 @@ describe('push', () => {
     const due = fakeClient()
     await push(due.client, USER_ID, at + 1000)
     expect(due.upserted).toHaveLength(1)
+  })
+})
+
+describe('a table the worker does not sync yet', () => {
+  it('holds an entry for each new table and sends nothing for it', async () => {
+    const held = await heldEntries()
+    const fake = fakeClient()
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 0, error: null })
+    expect(fake.upserted).toEqual([])
+    expect(await listPending()).toEqual(held)
+  })
+
+  it('sends the daily entry and the profile queued behind a held entry in the same drain', async () => {
+    await append('exercises', 'upsert', localExercise(ROW_C))
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    await append('workout_sets', 'upsert', localSet(ROW_E))
+    await append('profiles', 'upsert', localProfile())
+    const fake = fakeClient()
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 2, error: null })
+    expect(fake.upserted.map((call) => call.table)).toEqual(['daily_entries', 'profiles'])
+    expect((await listPending()).map((entry) => entry.table_name)).toEqual([
+      'exercises',
+      'workout_sets',
+    ])
+  })
+
+  it('keeps a held entry at attempts 0 with no back-off and leaves the refusal count', async () => {
+    const [held] = await heldEntries()
+    await writeDeadStreak(2)
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(await db.outbox.get(held?.id ?? '')).toMatchObject({
+      attempts: 0,
+      last_error: null,
+      next_attempt_at: null,
+    })
+    expect(await readDeadStreak()).toBe(2)
+    expect(await db.deadLetters.count()).toBe(0)
+  })
+
+  it('returns from a drain whose queue holds only held entries', async () => {
+    await heldEntries()
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const outcome = await sync()
+
+    expect(outcome).toEqual({ status: 'synced', pushed: 0, pulled: 0, error: null })
+  })
+
+  it('ends a sign-out drain and still counts every held entry as pending', async () => {
+    await heldEntries()
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    await drainForSignOut()
+
+    expect(fake.upserted.map((call) => call.table)).toEqual(['daily_entries'])
+    expect(await pendingCount()).toBe(3)
+  })
+
+  it('never counts a held entry toward the queue length it started with', async () => {
+    await append('exercises', 'upsert', localExercise(ROW_C))
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const fake = fakeClient({
+      onUpsert: async () => {
+        await append('daily_entries', 'upsert', localEntry(ROW_B))
+      },
+    })
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 1, error: null })
+    expect(fake.upserted).toHaveLength(1)
   })
 })
 
@@ -1141,6 +1317,48 @@ describe('pull', () => {
       step_goal: 9000,
     })
     expect(stored).not.toHaveProperty('created_at')
+  })
+
+  it('keeps the rest settings of the server profile', async () => {
+    const fake = fakeClient({
+      serverRows: {
+        profiles: [
+          {
+            ...serverProfile('2026-09-01T12:00:00.000Z'),
+            rest_sound_muted: true,
+            rest_seconds_by_exercise: { [ROW_C]: 90 },
+          },
+        ],
+      },
+    })
+
+    await pull(fake.client)
+
+    expect(await db.profiles.get(LOCAL_PROFILE_ID)).toMatchObject({
+      rest_sound_muted: true,
+      rest_seconds_by_exercise: { [ROW_C]: 90 },
+    })
+  })
+
+  it('falls back to the rest defaults when the server holds rest values it cannot read', async () => {
+    const fake = fakeClient({
+      serverRows: {
+        profiles: [
+          {
+            ...serverProfile('2026-09-01T12:00:00.000Z'),
+            rest_sound_muted: 'yes',
+            rest_seconds_by_exercise: { bench: 'long' },
+          },
+        ],
+      },
+    })
+
+    await pull(fake.client)
+
+    expect(await db.profiles.get(LOCAL_PROFILE_ID)).toMatchObject({
+      rest_sound_muted: false,
+      rest_seconds_by_exercise: {},
+    })
   })
 
   it('falls back to metric when the server unit system is not a known value', async () => {

@@ -8,8 +8,15 @@ import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
 import { db, SIGNED_OUT_KEY } from './dexie'
 import {
+  archiveExercise,
   clearAll,
+  createExercise,
   discardDeadLetter,
+  ExerciseNotFound,
+  GlobalExerciseIsReadOnly,
+  listExercises,
+  renameExercise,
+  restoreExercise,
   outboxSequence,
   drainForSignOut,
   failedWrites,
@@ -31,14 +38,48 @@ import {
   upsertDay,
 } from './repository'
 
-import type { DailyEntry } from './dexie'
+import type { DailyEntry, Exercise } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
+import type { MuscleGroup } from '../schema/exercise'
 
 vi.mock('../supabase/client', () => ({
   createClient: () => {
     throw new Error('no network in a unit test')
   },
 }))
+
+const REST_EXERCISE_ID = '22222222-2222-4222-8222-222222222222'
+const BENCH_ID = '33333333-3333-4333-8333-333333333333'
+const SQUAT_ID = '44444444-4444-4444-8444-444444444444'
+const DEVELOPPE_ID = '55555555-5555-4555-8555-555555555555'
+
+function globalExercise(id: string, name: string, muscleGroup: MuscleGroup): Exercise {
+  return {
+    id,
+    user_id: null,
+    name,
+    muscle_group: muscleGroup,
+    is_archived: false,
+    created_at: '2026-09-01T00:00:00.000Z',
+    updated_at: '2026-09-01T00:00:00.000Z',
+    deleted_at: null,
+  }
+}
+
+async function seedGlobals(): Promise<void> {
+  await db.exercises.bulkPut([
+    globalExercise(BENCH_ID, 'Bench Press', 'chest'),
+    globalExercise(SQUAT_ID, 'Back Squat', 'legs'),
+    globalExercise(DEVELOPPE_ID, 'Développé Couché', 'chest'),
+  ])
+}
+
+async function refusal(write: Promise<unknown>): Promise<unknown> {
+  return write.then(
+    () => null,
+    (cause: unknown) => cause,
+  )
+}
 
 function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'clear'> {
   const values = new Map<string, string>()
@@ -72,6 +113,9 @@ beforeEach(async () => {
     db.outbox.clear(),
     db.deadLetters.clear(),
     db.syncMeta.clear(),
+    db.exercises.clear(),
+    db.workoutSessions.clear(),
+    db.workoutSets.clear(),
   ])
 })
 
@@ -322,7 +366,27 @@ describe('getProfile', () => {
       height_cm: null,
       target_weight_kg: null,
       step_goal: 12000,
+      rest_sound_muted: false,
+      rest_seconds_by_exercise: {},
     })
+  })
+
+  it('fills the rest settings of a row stored before they existed', async () => {
+    await db.profiles.put({
+      id: LOCAL_PROFILE_ID,
+      updated_at: '2026-09-01T00:00:00.000Z',
+      display_name: 'Sumonta',
+      unit_system: 'metric',
+      height_cm: null,
+      target_weight_kg: null,
+      step_goal: 9000,
+    })
+
+    const profile = await getProfile()
+
+    expect(profile.rest_sound_muted).toBe(false)
+    expect(profile.rest_seconds_by_exercise).toEqual({})
+    expect(profile.step_goal).toBe(9000)
   })
 
   it('writes nothing when no profile row exists yet', async () => {
@@ -402,6 +466,27 @@ describe('updateProfile', () => {
     const second = await updateProfile({ display_name: null })
 
     expect(second.display_name).toBeNull()
+  })
+
+  it('saves the rest settings the patch carries', async () => {
+    const saved = await updateProfile({
+      rest_sound_muted: true,
+      rest_seconds_by_exercise: { [REST_EXERCISE_ID]: 90 },
+    })
+
+    expect(saved.rest_sound_muted).toBe(true)
+    expect(saved.rest_seconds_by_exercise).toEqual({ [REST_EXERCISE_ID]: 90 })
+  })
+
+  it('keeps the stored rest settings when the patch changes another field', async () => {
+    await updateProfile({
+      rest_sound_muted: true,
+      rest_seconds_by_exercise: { [REST_EXERCISE_ID]: 90 },
+    })
+    const second = await updateProfile({ step_goal: 9000 })
+
+    expect(second.rest_sound_muted).toBe(true)
+    expect(second.rest_seconds_by_exercise).toEqual({ [REST_EXERCISE_ID]: 90 })
   })
 
   it('rejects a patch that fails the zod schema', async () => {
@@ -615,6 +700,295 @@ describe('two live rows for one date', () => {
 
     expect(stored.filter((row) => row.deleted_at === null)).toHaveLength(0)
     expect(await getDay('2026-09-01')).toBeUndefined()
+  })
+})
+
+describe('listExercises', () => {
+  it('returns the global rows and the own rows, sorted by name', async () => {
+    await seedGlobals()
+    const own = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+
+    const names = (await listExercises()).map((row) => row.name)
+
+    expect(names).toEqual(['Back Squat', 'Bench Press', 'Cable Fly', 'Développé Couché'])
+    expect((await listExercises()).find((row) => row.id === own.id)?.user_id).toBe(LOCAL_PROFILE_ID)
+  })
+
+  it('finds Bench Press for the query bench', async () => {
+    await seedGlobals()
+
+    const found = await listExercises({ query: 'bench' })
+
+    expect(found.map((row) => row.name)).toEqual(['Bench Press'])
+  })
+
+  it('finds Bench Press for the query BÉNCH, ignoring case and accents', async () => {
+    await seedGlobals()
+
+    const found = await listExercises({ query: 'BÉNCH' })
+
+    expect(found.map((row) => row.name)).toEqual(['Bench Press'])
+  })
+
+  it('finds an accented name from a plain query', async () => {
+    await seedGlobals()
+
+    const found = await listExercises({ query: 'developpe' })
+
+    expect(found.map((row) => row.name)).toEqual(['Développé Couché'])
+  })
+
+  it('treats a blank query as no filter', async () => {
+    await seedGlobals()
+
+    expect(await listExercises({ query: '   ' })).toHaveLength(3)
+  })
+
+  it('keeps only the muscle group it is given', async () => {
+    await seedGlobals()
+
+    const found = await listExercises({ muscleGroup: 'legs' })
+
+    expect(found.map((row) => row.name)).toEqual(['Back Squat'])
+  })
+
+  it('applies the muscle group and the query together', async () => {
+    await seedGlobals()
+
+    const found = await listExercises({ muscleGroup: 'chest', query: 'couché' })
+
+    expect(found.map((row) => row.name)).toEqual(['Développé Couché'])
+  })
+
+  it('orders two rows with the same name by id, so the list never shuffles', async () => {
+    await db.exercises.bulkPut([
+      globalExercise(SQUAT_ID, 'Bench Press', 'chest'),
+      globalExercise(BENCH_ID, 'Bench Press', 'chest'),
+    ])
+
+    expect((await listExercises()).map((row) => row.id)).toEqual([BENCH_ID, SQUAT_ID])
+  })
+
+  it('hides a soft-deleted row', async () => {
+    await db.exercises.put({
+      ...globalExercise(BENCH_ID, 'Bench Press', 'chest'),
+      deleted_at: '2026-09-02T00:00:00.000Z',
+    })
+
+    expect(await listExercises()).toEqual([])
+  })
+})
+
+describe('createExercise', () => {
+  it('writes the row and one outbox entry in one transaction', async () => {
+    const created = await createExercise({
+      name: '  Cable Fly  ',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+    const queued = await db.outbox.toArray()
+
+    expect(await db.exercises.get(created.id)).toEqual(created)
+    expect(queued).toHaveLength(1)
+    expect(queued[0]).toMatchObject({
+      table_name: 'exercises',
+      operation: 'upsert',
+      row_id: created.id,
+      payload: created,
+    })
+  })
+
+  it('stores an own row under the local profile id with a client uuid', async () => {
+    const created = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+
+    expect(created).toMatchObject({
+      name: 'Cable Fly',
+      user_id: LOCAL_PROFILE_ID,
+      is_archived: false,
+      deleted_at: null,
+    })
+    expect(created.id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(created.created_at).toBe(created.updated_at)
+  })
+
+  it('rolls back the row when its outbox entry fails', async () => {
+    const append = db.outbox.add.bind(db.outbox)
+    vi.spyOn(db.outbox, 'add').mockImplementation((item) =>
+      append(item).then(() => {
+        throw new Error('the outbox is full')
+      }),
+    )
+
+    await expect(
+      createExercise({ name: 'Cable Fly', muscle_group: 'chest', is_archived: false }),
+    ).rejects.toThrow('the outbox is full')
+
+    vi.restoreAllMocks()
+
+    expect(await db.exercises.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('rejects an input that fails the schema and writes nothing', async () => {
+    await expect(
+      createExercise({ name: '', muscle_group: 'chest', is_archived: false }),
+    ).rejects.toThrow()
+
+    expect(await db.exercises.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+})
+
+describe('renameExercise', () => {
+  it('renames an own row and queues one outbox entry for it', async () => {
+    const created = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+
+    const renamed = await renameExercise(created.id, '  Low Cable Fly ')
+
+    expect(renamed.name).toBe('Low Cable Fly')
+    expect(renamed.id).toBe(created.id)
+    expect(await db.exercises.get(created.id)).toEqual(renamed)
+    expect((await db.outbox.orderBy('sequence').last())?.payload).toEqual(renamed)
+    expect(await db.outbox.count()).toBe(2)
+  })
+
+  it('rejects an empty name and writes nothing', async () => {
+    const created = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+
+    await expect(renameExercise(created.id, '  ')).rejects.toThrow()
+
+    expect((await db.exercises.get(created.id))?.name).toBe('Cable Fly')
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('throws ExerciseNotFound for an id the device does not hold', async () => {
+    const cause = await refusal(renameExercise(BENCH_ID, 'Bench'))
+
+    expect(cause).toBeInstanceOf(ExerciseNotFound)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('throws ExerciseNotFound for a soft-deleted row', async () => {
+    const created = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+    await db.exercises.put({ ...created, deleted_at: '2026-09-02T00:00:00.000Z' })
+
+    expect(await refusal(renameExercise(created.id, 'Fly'))).toBeInstanceOf(ExerciseNotFound)
+  })
+})
+
+describe('archiveExercise and restoreExercise', () => {
+  it('hides an archived row from listExercises and shows it again once restored', async () => {
+    const created = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+
+    await archiveExercise(created.id)
+    const whileArchived = await listExercises()
+    await restoreExercise(created.id)
+    const afterRestore = await listExercises()
+
+    expect(whileArchived).toEqual([])
+    expect(afterRestore.map((row) => row.id)).toEqual([created.id])
+    expect(afterRestore[0]?.is_archived).toBe(false)
+  })
+
+  it('queues one upsert for the archive and one for the restore', async () => {
+    const created = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+
+    await archiveExercise(created.id)
+    await restoreExercise(created.id)
+    const queued = await db.outbox.orderBy('sequence').toArray()
+
+    expect(queued.map((item) => [item.operation, (item.payload as Exercise).is_archived])).toEqual([
+      ['upsert', false],
+      ['upsert', true],
+      ['upsert', false],
+    ])
+  })
+
+  it('keeps the archived row on the device, as a soft change', async () => {
+    const created = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+
+    await archiveExercise(created.id)
+
+    expect(await db.exercises.get(created.id)).toMatchObject({
+      is_archived: true,
+      deleted_at: null,
+    })
+  })
+})
+
+describe('a write to a global exercise', () => {
+  it('throws GlobalExerciseIsReadOnly and writes no outbox entry', async () => {
+    await seedGlobals()
+    const before = await db.exercises.toArray()
+
+    const refusals = [
+      await refusal(renameExercise(BENCH_ID, 'My Bench')),
+      await refusal(archiveExercise(BENCH_ID)),
+      await refusal(restoreExercise(BENCH_ID)),
+    ]
+
+    expect(refusals.every((cause) => cause instanceof GlobalExerciseIsReadOnly)).toBe(true)
+    expect(refusals[0]).toMatchObject({
+      name: 'GlobalExerciseIsReadOnly',
+      message: 'A built-in exercise cannot be changed.',
+    })
+    expect(await db.outbox.count()).toBe(0)
+    expect(await db.exercises.toArray()).toEqual(before)
+  })
+})
+
+describe('an exercise write on a signed-out device', () => {
+  it('throws SignedOutOnThisDevice and stores nothing', async () => {
+    const created = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-09-02T00:00:00.000Z' })
+    const before = await db.exercises.toArray()
+
+    const refusals = [
+      await refusal(createExercise({ name: 'Dip', muscle_group: 'arms', is_archived: false })),
+      await refusal(renameExercise(created.id, 'Fly')),
+      await refusal(archiveExercise(created.id)),
+      await refusal(restoreExercise(created.id)),
+    ]
+
+    expect(refusals.every((cause) => cause instanceof SignedOutOnThisDevice)).toBe(true)
+    expect(await db.exercises.toArray()).toEqual(before)
+    expect(await db.outbox.count()).toBe(1)
   })
 })
 
@@ -865,6 +1239,40 @@ describe('clearAll', () => {
     expect((await db.syncMeta.toArray()).map((record) => record.key).sort()).toEqual(
       [OUTBOX_SEQUENCE_KEY, SIGNED_OUT_KEY].sort(),
     )
+  })
+
+  it('empties the exercises, the workout sessions and the workout sets too', async () => {
+    await seedGlobals()
+    await createExercise({ name: 'Cable Fly', muscle_group: 'chest', is_archived: false })
+    await db.workoutSessions.put({
+      id: REST_EXERCISE_ID,
+      entry_date: '2026-09-01',
+      started_at: '2026-09-01T10:00:00.000Z',
+      ended_at: null,
+      status: 'active',
+      created_at: '2026-09-01T10:00:00.000Z',
+      updated_at: '2026-09-01T10:00:00.000Z',
+      deleted_at: null,
+    })
+    await db.workoutSets.put({
+      id: SQUAT_ID,
+      session_id: REST_EXERCISE_ID,
+      exercise_id: BENCH_ID,
+      set_index: 0,
+      reps: 8,
+      weight_kg: 60,
+      rpe: null,
+      completed_at: null,
+      created_at: '2026-09-01T10:00:00.000Z',
+      updated_at: '2026-09-01T10:00:00.000Z',
+      deleted_at: null,
+    })
+
+    await clearAll(await counted(), endSession)
+
+    expect(await db.exercises.count()).toBe(0)
+    expect(await db.workoutSessions.count()).toBe(0)
+    expect(await db.workoutSets.count()).toBe(0)
   })
 
   it('halts the sync worker so it cannot write the old rows back', async () => {

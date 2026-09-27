@@ -6,6 +6,7 @@ export const MIN_HEIGHT_CM = 50
 export const MAX_HEIGHT_CM = 260
 export const MAX_DISPLAY_NAME_LENGTH = 80
 export const DEFAULT_STEP_GOAL = 12000
+export const MAX_REST_SECONDS = 3600
 
 export const unitSystemSchema = z.enum(['metric', 'imperial'])
 
@@ -38,6 +39,24 @@ export const profileSchema = z.object({
     .min(1, { error: 'A step goal must be at least 1.' })
     .max(MAX_STEPS, { error: `A step goal cannot be above ${String(MAX_STEPS)}.` })
     .default(DEFAULT_STEP_GOAL),
+  rest_sound_muted: z.boolean({ error: 'Muted is either true or false.' }).default(false),
+  rest_seconds_by_exercise: z
+    .record(
+      z.uuid(),
+      z
+        .int({ error: 'Enter a whole number of seconds.' })
+        .min(0, { error: 'A rest cannot be negative.' })
+        .max(MAX_REST_SECONDS, {
+          error: `A rest cannot be longer than ${String(MAX_REST_SECONDS)} seconds.`,
+        }),
+      {
+        error: (issue) =>
+          issue.code === 'invalid_key'
+            ? 'A rest length belongs to an exercise id.'
+            : 'Enter the rest lengths by exercise.',
+      },
+    )
+    .default({}),
 })
 
 export type UnitSystem = z.infer<typeof unitSystemSchema>

@@ -1,5 +1,6 @@
 import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
+import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
 import { append as enqueue, lastSequence } from '../sync/outbox'
 import {
@@ -14,8 +15,9 @@ import {
 
 import { db, LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY, SIGNED_OUT_KEY } from './dexie'
 
-import type { DailyEntry, Profile } from './dexie'
+import type { DailyEntry, Exercise, Profile } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
+import type { ExerciseInput, MuscleGroup } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
 
 export { LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY } from './dexie'
@@ -50,12 +52,28 @@ const PROFILE_FIELDS = [
   'height_cm',
   'target_weight_kg',
   'step_goal',
+  'rest_sound_muted',
+  'rest_seconds_by_exercise',
 ] as const
 
 export class SignedOutOnThisDevice extends Error {
   constructor() {
     super('This device is signed out. Sign in again to save.')
     this.name = 'SignedOutOnThisDevice'
+  }
+}
+
+export class GlobalExerciseIsReadOnly extends Error {
+  constructor() {
+    super('A built-in exercise cannot be changed.')
+    this.name = 'GlobalExerciseIsReadOnly'
+  }
+}
+
+export class ExerciseNotFound extends Error {
+  constructor() {
+    super('This exercise is not on this device.')
+    this.name = 'ExerciseNotFound'
   }
 }
 
@@ -199,7 +217,7 @@ export async function getProfile(): Promise<Profile> {
   const row = await db.profiles.get(LOCAL_PROFILE_ID)
 
   if (row !== undefined) {
-    return row
+    return { ...defaultProfile(), ...row }
   }
 
   return defaultProfile()
@@ -225,6 +243,91 @@ export async function updateProfile(patch: Partial<Profile>): Promise<Profile> {
 
     return row
   })
+}
+
+export interface ExerciseFilter {
+  muscleGroup?: MuscleGroup
+  query?: string
+}
+
+function searchable(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+}
+
+function byName(left: Exercise, right: Exercise): number {
+  return left.name.localeCompare(right.name) || left.id.localeCompare(right.id)
+}
+
+export async function listExercises(filter: ExerciseFilter = {}): Promise<Exercise[]> {
+  const rows =
+    filter.muscleGroup === undefined
+      ? await db.exercises.toArray()
+      : await db.exercises.where('muscle_group').equals(filter.muscleGroup).toArray()
+  const query = searchable(filter.query?.trim() ?? '')
+
+  return rows
+    .filter(
+      (row) => row.deleted_at === null && !row.is_archived && searchable(row.name).includes(query),
+    )
+    .sort(byName)
+}
+
+export async function createExercise(input: ExerciseInput): Promise<Exercise> {
+  const parsed = exerciseSchema.parse(input)
+  const timestamp = nowIso()
+
+  return db.transaction('rw', db.exercises, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
+    const row: Exercise = {
+      ...parsed,
+      id: newId(),
+      user_id: LOCAL_PROFILE_ID,
+      created_at: timestamp,
+      updated_at: timestamp,
+      deleted_at: null,
+    }
+
+    await db.exercises.put(row)
+    await enqueue('exercises', 'upsert', row)
+
+    return row
+  })
+}
+
+async function changeOwnExercise(id: string, patch: Partial<ExerciseInput>): Promise<Exercise> {
+  return db.transaction('rw', db.exercises, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
+    const existing = await db.exercises.get(id)
+
+    if (existing === undefined || existing.deleted_at !== null) {
+      throw new ExerciseNotFound()
+    }
+
+    if (existing.user_id === null) {
+      throw new GlobalExerciseIsReadOnly()
+    }
+
+    const row: Exercise = { ...existing, ...patch, updated_at: nowIso() }
+
+    await db.exercises.put(row)
+    await enqueue('exercises', 'upsert', row)
+
+    return row
+  })
+}
+
+export async function renameExercise(id: string, name: string): Promise<Exercise> {
+  return changeOwnExercise(id, { name: exerciseSchema.shape.name.parse(name) })
+}
+
+export async function archiveExercise(id: string): Promise<void> {
+  await changeOwnExercise(id, { is_archived: true })
+}
+
+export async function restoreExercise(id: string): Promise<void> {
+  await changeOwnExercise(id, { is_archived: false })
 }
 
 export interface ConfirmedWrites {
@@ -253,7 +356,16 @@ export async function clearAll<T>(
     return await withDrainLock(async () => {
       await db.transaction(
         'rw',
-        [db.dailyEntries, db.profiles, db.outbox, db.deadLetters, db.syncMeta],
+        [
+          db.dailyEntries,
+          db.profiles,
+          db.outbox,
+          db.deadLetters,
+          db.syncMeta,
+          db.exercises,
+          db.workoutSessions,
+          db.workoutSets,
+        ],
         async () => {
           const count = (await db.outbox.count()) + (await db.deadLetters.count())
           const sequence = await lastSequence()
@@ -268,6 +380,9 @@ export async function clearAll<T>(
             db.outbox.clear(),
             db.deadLetters.clear(),
             db.syncMeta.clear(),
+            db.exercises.clear(),
+            db.workoutSessions.clear(),
+            db.workoutSets.clear(),
           ])
           await db.syncMeta.bulkPut([
             { key: OUTBOX_SEQUENCE_KEY, value: String(sequence) },

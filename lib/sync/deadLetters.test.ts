@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db, DEAD_STREAK_KEY, LOCAL_PROFILE_ID } from '../db/dexie'
 import { dailyEntrySchema } from '../schema/dailyEntry'
+import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
 
 import {
@@ -20,7 +21,7 @@ import {
 } from './deadLetters'
 import { append, listPending } from './outbox'
 
-import type { DailyEntry, Profile } from '../db/dexie'
+import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
 
 const ROW_A = '11111111-1111-4111-8111-111111111111'
 const ROW_B = '22222222-2222-4222-8222-222222222222'
@@ -46,6 +47,46 @@ function profile(overrides: Partial<Profile> = {}): Profile {
   }
 }
 
+function exercise(id: string, name: string): Exercise {
+  return {
+    ...exerciseSchema.parse({ name, muscle_group: 'chest' }),
+    id,
+    user_id: LOCAL_PROFILE_ID,
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-01T10:00:00.000Z',
+    deleted_at: null,
+  }
+}
+
+function session(id: string, endedAt: string | null): WorkoutSession {
+  return {
+    id,
+    entry_date: '2026-09-01',
+    started_at: '2026-09-01T10:00:00.000Z',
+    ended_at: endedAt,
+    status: endedAt === null ? 'active' : 'finished',
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-01T10:00:00.000Z',
+    deleted_at: null,
+  }
+}
+
+function set(id: string, reps: number): WorkoutSet {
+  return {
+    id,
+    session_id: ROW_B,
+    exercise_id: ROW_A,
+    set_index: 0,
+    reps,
+    weight_kg: 60,
+    rpe: null,
+    completed_at: null,
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-01T10:00:00.000Z',
+    deleted_at: null,
+  }
+}
+
 beforeEach(async () => {
   vi.restoreAllMocks()
   await db.open()
@@ -55,6 +96,9 @@ beforeEach(async () => {
     db.outbox.clear(),
     db.deadLetters.clear(),
     db.syncMeta.clear(),
+    db.exercises.clear(),
+    db.workoutSessions.clear(),
+    db.workoutSets.clear(),
   ])
 })
 
@@ -243,6 +287,49 @@ describe('retryDeadLetter', () => {
     await retryDeadLetter(entry.id)
 
     expect((await listPending())[0]?.payload).toEqual(row(ROW_A, { steps: 100 }))
+  })
+
+  it('sends the exercise as it stands now', async () => {
+    const entry = await append('exercises', 'upsert', exercise(ROW_A, 'Bench'))
+    await moveToDeadLetters(entry.id, null, 'gone', FAILED_AT)
+    const edited = exercise(ROW_A, 'Bench Press')
+    await db.exercises.put(edited)
+
+    await retryDeadLetter(entry.id)
+
+    expect((await listPending())[0]?.payload).toEqual(edited)
+  })
+
+  it('sends the workout session as it stands now', async () => {
+    const entry = await append('workout_sessions', 'upsert', session(ROW_A, null))
+    await moveToDeadLetters(entry.id, null, 'gone', FAILED_AT)
+    const edited = session(ROW_A, '2026-09-01T11:00:00.000Z')
+    await db.workoutSessions.put(edited)
+
+    await retryDeadLetter(entry.id)
+
+    expect((await listPending())[0]?.payload).toEqual(edited)
+  })
+
+  it('sends the workout set as it stands now', async () => {
+    const entry = await append('workout_sets', 'upsert', set(ROW_A, 8))
+    await moveToDeadLetters(entry.id, null, 'gone', FAILED_AT)
+    const edited = set(ROW_A, 10)
+    await db.workoutSets.put(edited)
+
+    await retryDeadLetter(entry.id)
+
+    expect((await listPending())[0]?.payload).toEqual(edited)
+  })
+
+  it('never takes a daily entry that shares the id of a new-table row', async () => {
+    const entry = await append('exercises', 'upsert', exercise(ROW_A, 'Bench'))
+    await moveToDeadLetters(entry.id, null, 'gone', FAILED_AT)
+    await db.dailyEntries.put(row(ROW_A))
+
+    await retryDeadLetter(entry.id)
+
+    expect((await listPending())[0]?.payload).toEqual(exercise(ROW_A, 'Bench'))
   })
 
   it('does nothing for an id that is not a dead letter', async () => {
