@@ -5,19 +5,15 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.0 → `docs/plan/phase-2/S2.0-design-contract.md`
-**Branch:** `feat/phase-1-daily-tracker`. Phase 2 runs on `feat/phase-2-workout-log`,
-cut from `main` after the Phase 1 branch merges.
-**Last commit:** 1.17, Phase 1 complete, on top of `9c05582`.
-Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
+**Next step:** 2.1a → `docs/plan/phase-2/S2.1a-migration-dexie.md`
+**Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
+**Last commit:** 2.0, the Phase 2 prototype plates, on top of `839ee97`.
+Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-25 after 1.17. The owner ran the device check.
-- The report is `reports/2026-09-25-sync-sign-out-follow-ups.html`.
-- Phase 1 is done. Checkpoint D passed. Do not start 2.0
-  without owner approval.
-- Run each step in a fresh subagent. It stages and stops. The owner runs the commit.
+- Stopped on 2026-09-27 after 2.0. The report is `reports/2026-09-27-phase-2-prototype-plates.html`.
+- Run each step in a fresh subagent on Node 24. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
 - Stop any `next dev` before `pnpm verify`. A shared `.next` breaks the build.
 - 2026-09-26: `feat/password-sign-in` adds password sign-in, commit `05813c8`. The report
@@ -50,6 +46,10 @@ Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
 - **Password sign-in is the default, the magic link is the fallback.** The email is the
   login name. No sign-up screen and no set-password screen. The owner sets the password
   in the Supabase dashboard. One generic error for every refusal. From 2026-09-26.
+- **The Phase 2 plates follow the plan for behaviour.** One muscle group warns. The rest card
+  has +30 s and Change. The p8 card, with both values, is the gym time offer on `/log`
+  and on p2. `15.54` reads `15m 54s` or `15m 32s`. The Month volume chart labels its
+  highest bar only, its average label in the band. The one-rep max and gap charts show no average line. From 2.0.
 
 ## Open, with the step that closes each one
 
@@ -59,6 +59,8 @@ Checkpoints A, B, C and D are ticked. Phase 2 needs owner approval to start.
 - **Owner** — `/log` shows its chip only when offline. The recipe wants `SyncChip`. From 1.15.
 - **Owner** — `/log` takes weight in kg only. The imperial setting is display only elsewhere.
   From 1.13.
+- **2.4a** — the live workout plate has no current Workouts tab. From 2.0.
+- **2.9b** — import review has no plate at 1024 px and up. From 2.0.
 
 ## Phases
 

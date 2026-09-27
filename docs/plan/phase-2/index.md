@@ -23,7 +23,7 @@ Phase 1 branch merges.
 
 | Step | File                           | Title                                    | Size | Depends on       | State |
 | ---- | ------------------------------ | ---------------------------------------- | ---- | ---------------- | ----- |
-| 2.0  | `S2.0-design-contract.md`      | The Phase 2 prototype plates             | M    | Phase 1          | —     |
+| 2.0  | `S2.0-design-contract.md`      | The Phase 2 prototype plates             | M    | Phase 1          | done  |
 | 2.1a | `S2.1a-migration-dexie.md`     | Migration, Dexie version 3               | M    | Phase 1          | —     |
 | 2.1b | `S2.1b-exercise-seed.md`       | The global exercise seed                 | S    | 2.1a             | —     |
 | 2.2a | `S2.2a-schemas-exercises.md`   | Zod schemas, the exercise repository     | M    | 2.1a             | —     |
@@ -80,7 +80,7 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 
 ### Checkpoint 0 — after 2.0
 
-- [ ] The owner opened the prototype and accepted the 5 new plates.
+- [x] The owner opened the prototype and accepted the 5 new plates.
 
 ### Checkpoint A — after 2.2c
 

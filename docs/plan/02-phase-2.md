@@ -237,7 +237,7 @@ Add to `/analytics`, using the same rules as Phase 1, written in
 2. The review screen on `/profile`:
    - A table of every row. Mark each `review` cell in the warning color.
    - For a `review` duration, show both readings and let the user pick one. For
-     `15.54` show `15m 54s` and `15.93 min` side by side.
+     `15.54` show `15m 54s (as mm.ss)` and `15.54 min · 15m 32s` side by side.
    - Show the true count of rows needing review. Do not guess a number.
    - "Apply to all similar" sets the same reading for every row with the same shape.
    - An existing date shows Skip, Overwrite or Merge.

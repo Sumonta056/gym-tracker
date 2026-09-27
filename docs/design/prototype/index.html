@@ -808,6 +808,165 @@
         white-space: nowrap;
         border: 0;
       }
+
+      /* ---------- phase 2 ---------- */
+
+      .rest-card {
+        background: color-mix(in srgb, var(--color-data-cyan) 7%, var(--color-surface));
+        border-color: color-mix(in srgb, var(--color-data-cyan) 34%, var(--color-border));
+      }
+
+      .rest-num {
+        margin: 6px 0 0;
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: -1.2px;
+        line-height: 1.05;
+        color: var(--color-data-cyan);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 7px;
+        border-radius: 6px;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+        color: var(--color-muted);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .badge-accent {
+        border-color: transparent;
+        background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+        color: var(--color-accent);
+      }
+
+      .badge-warn {
+        border-color: transparent;
+        background: color-mix(in srgb, var(--color-warn) 16%, transparent);
+        color: var(--color-warn);
+      }
+
+      .cell-review {
+        border-color: var(--color-warn);
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .warn-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 10px 0 0;
+        color: var(--color-warn);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .warn-note svg {
+        flex: 0 0 16px;
+        width: 16px;
+        height: 16px;
+        margin-top: 1px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .laptop {
+        padding: 0 var(--gutter) 56px;
+      }
+
+      .laptop-scroll {
+        position: relative;
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
+
+      .laptop-frame {
+        width: 1440px;
+        height: 900px;
+        display: flex;
+        overflow: hidden;
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        background: var(--color-ground);
+      }
+
+      .sidebar {
+        flex: 0 0 240px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 24px 14px;
+        background: var(--color-surface);
+        border-right: 1px solid var(--color-border);
+      }
+
+      .sidebar a,
+      .sidebar button {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 14px;
+        background: transparent;
+        color: var(--color-muted);
+        font-size: 14px;
+        font-weight: 700;
+        text-align: left;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .sidebar a[aria-current='page'] {
+        color: var(--color-accent);
+        background: var(--color-surface-2);
+      }
+
+      .sidebar .center {
+        margin: 6px 0;
+        background: var(--color-accent);
+        color: var(--color-accent-ink);
+      }
+
+      .laptop-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .laptop-col {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 28px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+        gap: var(--gap);
+        align-items: start;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+      }
     </style>
   </head>
 
@@ -815,13 +974,15 @@
     <header class="sheet-head">
       <h1>Gym Tracker — the visual contract</h1>
       <p>
-        Seven screens at 390 px. Every colour is a token declared once on
+        Thirteen plates at 390 px, and the live workout at 1440 px below them. Every colour is a
+        token declared once on
         <code>:root</code>. This file imports no project code, so it cannot drift by
         accident.
       </p>
       <p class="dim">
-        Built from the written specification and the token table only. It has never been
-        compared against the canvas mockups.
+        Plates 00 to 06 are built from the written specification and the token table only.
+        Plates 07 to 11 and the 1440 px plate take their look from the canvas mockup and their
+        behaviour from the Phase 2 plan.
       </p>
     </header>
 
@@ -1040,7 +1201,7 @@
           <span class="name" id="p2">Daily log</span>
           <span class="route">/log</span>
         </div>
-        <div class="frame">
+        <div class="frame frame-tall">
           <div class="screen">
             <div class="topbar">
               <div>
@@ -1054,7 +1215,7 @@
               <div class="grid-2">
                 <label class="field" for="log-gym">
                   <span class="micro">Gym time</span>
-                  <input class="input" id="log-gym" inputmode="text" value="1:12:05" />
+                  <input class="input" id="log-gym" inputmode="text" value="1:05:00" />
                 </label>
                 <label class="field" for="log-walk">
                   <span class="micro">Walk time</span>
@@ -1062,9 +1223,32 @@
                 </label>
               </div>
 
-              <button class="pill" type="button" aria-pressed="true" style="align-self: flex-start">
-                Use session 1:12:05
-              </button>
+              <div class="card" style="display: flex; align-items: center; gap: 12px">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--color-accent)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                  focusable="false"
+                  style="flex: 0 0 18px"
+                >
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 8v5"></path>
+                  <path d="M12 16h.01"></path>
+                </svg>
+                <p class="muted" style="margin: 0; flex: 1 1 auto">
+                  Today's session was <strong style="color: var(--color-text)">1:12:05</strong>.
+                  Your log says <strong style="color: var(--color-text)">1:05:00</strong>. Use the
+                  session for gym time?
+                </p>
+                <button class="pill" type="button" style="color: var(--color-accent)">
+                  Use <span class="visually-hidden">1:12:05 for gym time</span>
+                </button>
+              </div>
 
               <div class="grid-2">
                 <label class="field" for="log-avg-hr">
@@ -4256,6 +4440,915 @@
           <span class="chip"><span class="dot dot-warn" aria-hidden="true"></span>Offline</span>
         </div>
       </section>
+
+      <!-- ============ 7 · rest timer ============
+           New classes: rest-card, rest-num, badge, badge-accent. -->
+      <section class="plate" aria-labelledby="p7">
+        <div class="plate-label">
+          <span class="n">07</span>
+          <span class="name" id="p7">Rest timer</span>
+          <span class="route">/workout</span>
+        </div>
+        <div class="frame">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <h2>Session</h2>
+                <p class="sub">Started 17:30 · Push day</p>
+              </div>
+              <span class="chip"><span class="dot dot-cyan" aria-hidden="true"></span>Syncing</span>
+            </div>
+
+            <div class="body">
+              <div class="hero">
+                <span class="micro">Elapsed</span>
+                <p class="hero-num">00:44:02</p>
+                <p class="hero-foot">Volume 5,180 kg · 12 sets · 3 exercises</p>
+              </div>
+
+              <div class="card selected">
+                <div class="row">
+                  <strong>Bench press</strong>
+                  <span class="micro">Chest</span>
+                </div>
+                <hr class="rule" />
+                <div class="setrow">
+                  <span class="idx">2</span>
+                  <span class="cell">70 kg</span>
+                  <span class="cell">10 reps</span>
+                  <button class="tick" type="button" aria-pressed="true" aria-label="Set 2 done">
+                    ✓
+                  </button>
+                </div>
+                <div class="setrow">
+                  <span class="idx">3</span>
+                  <span class="cell">75 kg</span>
+                  <span class="cell">8 reps <span class="badge badge-accent" style="margin-left: auto">PR</span></span>
+                  <button class="tick" type="button" aria-pressed="true" aria-label="Set 3 done">
+                    ✓
+                  </button>
+                </div>
+              </div>
+
+              <section class="card rest-card" aria-label="Rest timer">
+                <div class="row-tight">
+                  <span class="micro">Rest</span>
+                  <span class="muted" style="font-size: 12px">of 1:30</span>
+                </div>
+                <p class="rest-num">01:24</p>
+                <div class="bar">
+                  <span style="width: 93%; background: var(--color-data-cyan)"></span>
+                </div>
+                <div class="grid-2" style="margin-top: 12px">
+                  <button class="pill" type="button">Skip</button>
+                  <button class="pill" type="button">+30 s</button>
+                </div>
+                <div class="row" style="margin-top: 8px">
+                  <span class="muted">Bench press rests 1:30</span>
+                  <button class="pill" type="button">
+                    Change <span class="visually-hidden">the rest time for Bench press</span>
+                  </button>
+                </div>
+                <p class="visually-hidden" aria-live="polite"></p>
+              </section>
+
+              <button class="btn btn-secondary" type="button">Add exercise</button>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Live workout in progress">
+                <span class="glyph" aria-hidden="true">■</span>
+              </button>
+              <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+        <div role="group" aria-label="Rest timer at zero" style="margin-top: 16px">
+          <span class="micro">At zero</span>
+          <div class="card rest-card" style="margin-top: 8px">
+            <div class="row-tight">
+              <span class="micro">Rest</span>
+              <span class="muted" style="font-size: 12px">vibrate, then a short sound</span>
+            </div>
+            <p class="rest-num">00:00</p>
+            <p style="margin: 6px 0 0; font-size: 14px; font-weight: 700">
+              Rest over. Start the next set.
+            </p>
+            <p class="muted" style="margin: 4px 0 0; font-size: 12px">
+              This line is the <code>aria-live="polite"</code> text. The sound stays off when
+              Profile has rest sound muted.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 8 · finish and the gym time offer ============
+           New classes: none. -->
+      <section class="plate" aria-labelledby="p8">
+        <div class="plate-label">
+          <span class="n">08</span>
+          <span class="name" id="p8">Finish and the gym time offer</span>
+          <span class="route">/workout · sheet</span>
+        </div>
+        <div class="frame">
+          <div class="screen" aria-hidden="true">
+            <div class="topbar">
+              <div>
+                <h2>Session</h2>
+                <p class="sub">Started 17:30 · Push day</p>
+              </div>
+              <span class="chip"><span class="dot dot-cyan"></span>Syncing</span>
+            </div>
+            <div class="body">
+              <div class="hero">
+                <span class="micro">Elapsed</span>
+                <p class="hero-num">01:12:05</p>
+                <p class="hero-foot">Volume 4,820 kg · 11 sets</p>
+              </div>
+              <div class="card"><span class="micro">Bench press</span></div>
+            </div>
+          </div>
+
+          <div class="scrim"></div>
+
+          <div
+            class="bottomsheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="finish-title"
+          >
+            <div class="grabber" aria-hidden="true"></div>
+
+            <div>
+              <span class="micro" id="finish-title">Session finished</span>
+              <p class="hero-num" style="margin: 8px 0 4px">1:12:05</p>
+              <p class="muted" style="margin: 0">
+                Sat 20 Sep · 17:30 to 18:42 · 11 sets · 4,820 kg
+              </p>
+            </div>
+
+            <div class="card">
+              <h3 class="micro">Gym time for Sat 20 Sep</h3>
+              <ul class="list" style="margin-top: 6px">
+                <li class="row"><span class="muted">In your log</span><strong>1:05:00</strong></li>
+                <li class="row">
+                  <span class="muted">This session</span
+                  ><strong style="color: var(--color-accent)">1:12:05</strong>
+                </li>
+              </ul>
+              <p class="muted" style="margin: 6px 0 0; font-size: 12px">
+                Your log already holds a different gym time. Nothing changes until you pick.
+              </p>
+            </div>
+
+            <button class="btn" type="button">Use 1:12:05 for gym time</button>
+            <button class="btn btn-secondary" type="button">Keep 1:05:00</button>
+          </div>
+        </div>
+        <div role="group" aria-label="The same offer on the daily log" style="margin-top: 16px">
+          <span class="micro">The same offer on /log</span>
+          <div class="card" style="margin-top: 8px; display: flex; align-items: center; gap: 12px">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-accent)"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+              focusable="false"
+              style="flex: 0 0 18px"
+            >
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 8v5"></path>
+              <path d="M12 16h.01"></path>
+            </svg>
+            <p class="muted" style="margin: 0; flex: 1 1 auto">
+              Today's session was <strong style="color: var(--color-text)">1:12:05</strong>.
+              Your log says <strong style="color: var(--color-text)">1:05:00</strong>. Use the
+              session for gym time?
+            </p>
+            <button class="pill" type="button" style="color: var(--color-accent)">
+              Use <span class="visually-hidden">1:12:05 for gym time</span>
+            </button>
+          </div>
+          <p class="dim" style="margin: 8px 0 0">
+            No log for the day yet: the sheet asks "Save 1:12:05 as gym time for Sat 20 Sep?"
+            and Use creates the day with gym time only. The same value already logged: no
+            offer. After Use, the /log card hides.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ 9 · manage exercises ============
+           New classes: badge. -->
+      <section class="plate" aria-labelledby="p9">
+        <div class="plate-label">
+          <span class="n">09</span>
+          <span class="name" id="p9">Manage exercises</span>
+          <span class="route">/profile · sheet</span>
+        </div>
+        <div class="frame">
+          <div class="screen" aria-hidden="true">
+            <div class="topbar">
+              <div>
+                <h2>Profile</h2>
+                <p class="sub">sumonta@example.com</p>
+              </div>
+              <span class="chip"><span class="dot dot-ok"></span>Synced</span>
+            </div>
+            <div class="body">
+              <div class="card">
+                <span class="micro">Data</span>
+                <ul class="list" style="margin-top: 6px">
+                  <li class="row"><span>Manage exercises</span><span class="muted">43</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="scrim"></div>
+
+          <div
+            class="bottomsheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manage-title"
+          >
+            <div class="grabber" aria-hidden="true"></div>
+
+            <div class="row">
+              <h3 id="manage-title" style="margin: 0; font-size: 18px; font-weight: 700">
+                Manage exercises
+              </h3>
+              <button class="pill" type="button">Close</button>
+            </div>
+
+            <span class="micro">Yours · 2 active</span>
+            <ul class="list">
+              <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 4px 0">
+                <span><strong>Cable fly</strong><br /><span class="dim">Chest</span></span>
+                <span style="display: flex; gap: 6px">
+                  <button class="pill" type="button" style="padding: 0 12px">
+                    Rename <span class="visually-hidden">Cable fly</span>
+                  </button>
+                  <button class="pill" type="button" style="padding: 0 12px">
+                    Archive <span class="visually-hidden">Cable fly</span>
+                  </button>
+                </span>
+              </li>
+              <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 4px 0">
+                <span><strong>Incline dumbbell</strong><br /><span class="dim">Chest</span></span>
+                <span style="display: flex; gap: 6px">
+                  <button class="pill" type="button" style="padding: 0 12px">
+                    Rename <span class="visually-hidden">Incline dumbbell</span>
+                  </button>
+                  <button class="pill" type="button" style="padding: 0 12px">
+                    Archive <span class="visually-hidden">Incline dumbbell</span>
+                  </button>
+                </span>
+              </li>
+            </ul>
+
+            <span class="micro">Archived · 1</span>
+            <ul class="list">
+              <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 4px 0">
+                <span
+                  ><strong class="muted" style="font-size: 15px">Hip thrust machine</strong><br /><span
+                    class="dim"
+                    >Legs · 4 past sets kept</span
+                  ></span
+                >
+                <button class="pill" type="button" style="padding: 0 12px">
+                  Restore <span class="visually-hidden">Hip thrust machine</span>
+                </button>
+              </li>
+            </ul>
+
+            <span class="micro">Built in · 40</span>
+            <ul class="list">
+              <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 4px 0">
+                <span><strong>Bench Press</strong><br /><span class="dim">Chest</span></span>
+                <span class="badge">Built in</span>
+              </li>
+              <li class="row" style="padding: 4px 0">
+                <span><strong>Lat Pulldown</strong><br /><span class="dim">Back</span></span>
+                <span class="badge">Built in</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 10 · import review ============
+           New classes: badge, badge-warn, cell-review. -->
+      <section class="plate" aria-labelledby="p10">
+        <div class="plate-label">
+          <span class="n">10</span>
+          <span class="name" id="p10">Import review</span>
+          <span class="route">/profile · import</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <h2>Import review</h2>
+                <p class="sub">gym-sheet.csv · 16 rows</p>
+              </div>
+              <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+            </div>
+
+            <div class="body">
+              <div class="card">
+                <div class="row-tight">
+                  <span class="micro">Still to check</span>
+                  <span class="badge badge-warn">2 left</span>
+                </div>
+                <p class="stat-num">2 of 5 cells</p>
+                <p class="muted" style="margin: 6px 0 0; font-size: 12px">
+                  5 durations can be read two ways. 3 are picked. 1 date is already logged. 1 row
+                  has an error.
+                </p>
+                <div class="row" style="margin-top: 8px">
+                  <span class="muted">Dates read as <strong style="color: var(--color-text)">2026</strong></span>
+                  <button class="pill" type="button">Change year</button>
+                </div>
+              </div>
+
+              <article class="card" aria-labelledby="imp-r1">
+                <div class="row-tight">
+                  <h3 class="micro" id="imp-r1">Row 1 · 12 Aug</h3>
+                  <span class="badge badge-warn">1 to check</span>
+                </div>
+                <div class="grid-2" style="margin-top: 10px">
+                  <div>
+                    <span class="dim">Gym time</span>
+                    <span class="cell" style="margin-top: 4px">1:03:13</span>
+                  </div>
+                  <div>
+                    <span class="dim">Walk time</span>
+                    <span class="cell cell-review" style="margin-top: 4px"
+                      >15.54 <span class="badge badge-warn">Check</span></span
+                    >
+                  </div>
+                </div>
+                <fieldset style="border: 0; margin: 12px 0 0; padding: 0">
+                  <legend class="muted" style="padding: 0; margin-bottom: 8px">
+                    Walk time 15.54 reads two ways. Pick one.
+                  </legend>
+                  <div class="grid-2" style="gap: 8px">
+                    <button class="pill" type="button" aria-pressed="false">
+                      15m 54s <span class="visually-hidden">, read as minutes and seconds</span>
+                    </button>
+                    <button class="pill" type="button" aria-pressed="false">
+                      15.54 min <span class="visually-hidden">, read as decimal minutes, 15m 32s</span>
+                    </button>
+                  </div>
+                  <div class="grid-2" style="gap: 8px; margin-top: 4px">
+                    <span class="dim" style="text-align: center">as mm.ss</span>
+                    <span class="dim" style="text-align: center">as minutes · 15m 32s</span>
+                  </div>
+                </fieldset>
+                <button class="btn btn-secondary" type="button" style="margin-top: 10px; min-height: 44px">
+                  Apply to all similar · 1 more
+                </button>
+                <p class="dim" style="margin: 8px 0 0">
+                  HR 117 / 174 · 73.65 kg · 963 kcal · 5,909 steps
+                </p>
+              </article>
+
+              <article class="card" aria-labelledby="imp-r4">
+                <div class="row-tight">
+                  <h3 class="micro" id="imp-r4">Row 4 · 15 Aug</h3>
+                  <span class="badge badge-warn">1 to check</span>
+                </div>
+                <div class="grid-2" style="margin-top: 10px">
+                  <div>
+                    <span class="dim">Gym time</span>
+                    <span class="cell" style="margin-top: 4px">1:15:37</span>
+                  </div>
+                  <div>
+                    <span class="dim">Walk time</span>
+                    <span class="cell cell-review" style="margin-top: 4px"
+                      >12.40 <span class="badge badge-warn">Check</span></span
+                    >
+                  </div>
+                </div>
+                <div class="grid-2" style="gap: 8px; margin-top: 12px" role="group" aria-label="Walk time 12.40 reads two ways">
+                  <button class="pill" type="button" aria-pressed="false">12m 40s</button>
+                  <button class="pill" type="button" aria-pressed="false">12.40 min</button>
+                </div>
+              </article>
+
+              <article class="card" aria-labelledby="imp-r7">
+                <div class="row-tight">
+                  <h3 class="micro" id="imp-r7">Row 7 · 20 Aug</h3>
+                  <span class="badge">Picked</span>
+                </div>
+                <div class="grid-2" style="margin-top: 10px">
+                  <div>
+                    <span class="dim">Gym time</span>
+                    <span class="cell" style="margin-top: 4px">1:44:50</span>
+                  </div>
+                  <div>
+                    <span class="dim">Walk time · 20.05</span>
+                    <span class="cell" style="margin-top: 4px">20m 5s</span>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card" aria-labelledby="imp-r9">
+                <div class="row-tight">
+                  <h3 class="micro" id="imp-r9">Row 9 · 18 Aug</h3>
+                  <span class="badge" style="color: var(--color-danger)">Error</span>
+                </div>
+                <p class="muted" style="margin: 8px 0 0">
+                  Steps "5.9k" is not a number. This row is left out of the import.
+                </p>
+              </article>
+
+              <p class="dim" style="margin: 0; text-align: center">11 other rows · 2 picked, the rest read cleanly</p>
+
+              <article class="card" aria-labelledby="imp-r16">
+                <div class="row-tight">
+                  <h3 class="micro" id="imp-r16">Row 16 · 13 Sep</h3>
+                  <span class="badge">Already logged</span>
+                </div>
+                <p class="muted" style="margin: 8px 0 10px">
+                  This date already has a day in the app. What should the import do?
+                </p>
+                <div class="seg" role="group" aria-label="Row 16, 13 September, already logged">
+                  <button type="button" aria-pressed="false">Skip</button>
+                  <button type="button" aria-pressed="false">Overwrite</button>
+                  <button type="button" aria-pressed="true">Merge</button>
+                </div>
+                <p class="dim" style="margin: 8px 0 0">Merge fills only the empty fields of that day.</p>
+              </article>
+
+
+              <button class="btn" type="button" disabled style="opacity: 0.45; cursor: not-allowed">
+                Apply import
+              </button>
+              <p class="muted" style="margin: 0; text-align: center; font-size: 12px">
+                Pick the 2 readings left to apply. Nothing is written until you confirm.
+              </p>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Start a live workout">
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#" aria-current="page"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 11 · analytics, phase 2 ============
+           New classes: warn-note. -->
+      <section class="plate" aria-labelledby="p11">
+        <div class="plate-label">
+          <span class="n">11</span>
+          <span class="name" id="p11">Analytics, Phase 2</span>
+          <span class="route">/analytics</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <h2>Stats</h2>
+                <p class="sub">1 – 13 September · 6 sessions</p>
+              </div>
+              <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+            </div>
+
+            <div class="body">
+              <div class="seg" role="group" aria-label="Range">
+                <button type="button" aria-pressed="false">Day</button>
+                <button type="button" aria-pressed="false">Week</button>
+                <button type="button" aria-pressed="true">Month</button>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Volume load per session</span>
+                  <span class="muted">avg 4,560 kg</span>
+                </div>
+                <p style="margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--color-data-cyan)">
+                  +18% vs last week
+                </p>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 126"
+                  role="img"
+                  aria-label="Volume load per session, rising: 3,240, 4,410, 3,910, 5,180, 4,670, 5,940 kg. Average 4,560 kg a session. Up 18 percent against last week."
+                >
+                  <rect x="12.7" y="63.6" width="28" height="40.4" rx="6" fill="var(--color-data-cyan)" />
+                  <rect x="66" y="49.1" width="28" height="54.9" rx="6" fill="var(--color-data-cyan)" />
+                  <rect x="119.3" y="55.3" width="28" height="48.7" rx="6" fill="var(--color-data-cyan)" />
+                  <rect x="172.7" y="39.5" width="28" height="64.5" rx="6" fill="var(--color-data-cyan)" />
+                  <rect x="226" y="45.8" width="28" height="58.2" rx="6" fill="var(--color-data-cyan)" />
+                  <rect x="279.3" y="30" width="28" height="74" rx="6" fill="var(--color-data-cyan)" />
+                  <line class="ref-line" x1="0" x2="320" y1="47.2" y2="47.2" />
+                  <text class="ref-label" x="320" y="11" text-anchor="end">avg 4.6k</text>
+                  <text class="val" x="293.3" y="26" text-anchor="middle">5.9k</text>
+                  <text class="axis" x="26.7" y="120" text-anchor="middle">Wed 2</text>
+                  <text class="axis" x="80" y="120" text-anchor="middle">Thu 3</text>
+                  <text class="axis" x="133.3" y="120" text-anchor="middle">Sun 6</text>
+                  <text class="axis" x="186.7" y="120" text-anchor="middle">Wed 9</text>
+                  <text class="axis" x="240" y="120" text-anchor="middle">Sat 12</text>
+                  <text class="axis" x="293.3" y="120" text-anchor="middle">Sun 13</text>
+                </svg>
+                <div class="legend">
+                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>kg lifted, reps × load</span>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Estimated one-rep max</span>
+                  <span class="muted">Epley</span>
+                </div>
+                <div class="pillrow" role="group" aria-label="Exercises on the chart, up to 3" style="margin-top: 6px; flex-wrap: wrap">
+                  <button class="pill" type="button" aria-pressed="true">Bench press</button>
+                  <button class="pill" type="button" aria-pressed="true">Lat pulldown</button>
+                  <button class="pill" type="button" aria-pressed="false">Leg press</button>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 120"
+                  role="img"
+                  aria-label="Estimated one-rep max per session. Bench press rising from 50.0 to 56.3 kg. Lat pulldown rising from 44.0 to 49.0 kg."
+                  style="margin-top: 8px"
+                >
+                  <polyline
+                    points="22,51 74.4,44.7 126.8,41.3 179.2,34.9 231.6,31.5 284,20.3"
+                    fill="none"
+                    stroke="var(--color-accent)"
+                    stroke-width="3"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="22" cy="51" r="2.5" fill="var(--color-accent)" />
+                  <circle cx="74.4" cy="44.7" r="2.5" fill="var(--color-accent)" />
+                  <circle cx="126.8" cy="41.3" r="2.5" fill="var(--color-accent)" />
+                  <circle cx="179.2" cy="34.9" r="2.5" fill="var(--color-accent)" />
+                  <circle cx="231.6" cy="31.5" r="2.5" fill="var(--color-accent)" />
+                  <circle cx="284" cy="20.3" r="2.5" fill="var(--color-accent)" />
+                  <polyline
+                    points="22,80.3 74.4,80.3 126.8,72.9 179.2,67.1 231.6,64.2 284,55.9"
+                    fill="none"
+                    stroke="var(--color-data-cyan)"
+                    stroke-width="3"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="22" cy="80.3" r="2.5" fill="var(--color-data-cyan)" />
+                  <circle cx="74.4" cy="80.3" r="2.5" fill="var(--color-data-cyan)" />
+                  <circle cx="126.8" cy="72.9" r="2.5" fill="var(--color-data-cyan)" />
+                  <circle cx="179.2" cy="67.1" r="2.5" fill="var(--color-data-cyan)" />
+                  <circle cx="231.6" cy="64.2" r="2.5" fill="var(--color-data-cyan)" />
+                  <circle cx="284" cy="55.9" r="2.5" fill="var(--color-data-cyan)" />
+                  <text class="end-label" x="292" y="24.3" fill="var(--color-accent)">56.3</text>
+                  <text class="end-label" x="292" y="59.9" fill="var(--color-data-cyan)">49.0</text>
+                  <text class="axis" x="22" y="110" text-anchor="middle">Wed 2</text>
+                  <text class="axis" x="74.4" y="110" text-anchor="middle">Thu 3</text>
+                  <text class="axis" x="126.8" y="110" text-anchor="middle">Sun 6</text>
+                  <text class="axis" x="179.2" y="110" text-anchor="middle">Wed 9</text>
+                  <text class="axis" x="231.6" y="110" text-anchor="middle">Sat 12</text>
+                  <text class="axis" x="284" y="110" text-anchor="middle">Sun 13</text>
+                </svg>
+                <div class="legend">
+                  <span><i class="dot" style="background: var(--color-accent)"></i>Bench press</span>
+                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Lat pulldown</span>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 class="micro">Personal records</h3>
+                <ul class="list" style="margin-top: 8px">
+                  <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 6px 0">
+                    <span>
+                      <strong>Bench press</strong><br />
+                      <span class="muted" style="font-size: 12px">est. 1RM 56.3 kg · best volume 1,860 kg</span>
+                    </span>
+                    <span style="text-align: right">
+                      <strong>45 × 8</strong><br />
+                      <span class="badge badge-accent">New today</span>
+                    </span>
+                  </li>
+                  <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 6px 0">
+                    <span>
+                      <strong>Lat pulldown</strong><br />
+                      <span class="muted" style="font-size: 12px">est. 1RM 49.0 kg · best volume 1,200 kg</span>
+                    </span>
+                    <span style="text-align: right">
+                      <strong>35 × 12</strong><br />
+                      <span class="muted" style="font-size: 12px">12 Sep</span>
+                    </span>
+                  </li>
+                  <li class="row" style="padding: 6px 0">
+                    <span>
+                      <strong>Leg press</strong><br />
+                      <span class="muted" style="font-size: 12px">est. 1RM 106.7 kg · best volume 2,400 kg</span>
+                    </span>
+                    <span style="text-align: right">
+                      <strong>80 × 10</strong><br />
+                      <span class="muted" style="font-size: 12px">8 Sep</span>
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="card">
+                <div class="row-tight">
+                  <h3 class="micro">Muscle group balance</h3>
+                  <span class="muted" style="font-size: 12px">this week</span>
+                </div>
+                <div
+                  class="zonebar"
+                  role="img"
+                  aria-label="Share of this week's volume: Chest 40 percent, Back 31 percent, Legs 12 percent, Arms 17 percent. Legs is under 15 percent."
+                >
+                  <span style="width: 40%; background: var(--color-accent)"></span>
+                  <span style="width: 31%; background: var(--color-data-cyan)"></span>
+                  <span style="width: 12%; background: var(--color-data-violet)"></span>
+                  <span style="width: 17%; background: var(--color-warn)"></span>
+                </div>
+                <div class="legend">
+                  <span><i class="dot" style="background: var(--color-accent)"></i>Chest 40%</span>
+                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Back 31%</span>
+                  <span><i class="dot" style="background: var(--color-data-violet)"></i>Legs 12%</span>
+                  <span><i class="dot" style="background: var(--color-warn)"></i>Arms 17%</span>
+                </div>
+                <p class="warn-note" role="note">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M12 3l10 18H2z" />
+                    <path d="M12 10v5" />
+                    <path d="M12 18h.01" />
+                  </svg>
+                  <span>Legs behind: 12% of this week's volume, under 15%.</span>
+                </p>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Days between sessions</span>
+                  <span class="muted">avg 2.2 days</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 112"
+                  role="img"
+                  aria-label="Days between sessions, 2 to 13 September: a gap of 1 day twice, 3 days three times, no gap of 2, 4 or 5 or more days. Average gap 2.2 days."
+                >
+                  <rect x="18" y="40.7" width="28" height="49.3" rx="6" fill="var(--color-data-violet)" />
+                  <rect class="ghost" x="82" y="16" width="28" height="74" rx="6" />
+                  <rect x="146" y="16" width="28" height="74" rx="6" fill="var(--color-data-violet)" />
+                  <rect class="ghost" x="210" y="16" width="28" height="74" rx="6" />
+                  <rect class="ghost" x="274" y="16" width="28" height="74" rx="6" />
+                  <text class="val" x="32" y="36.7" text-anchor="middle">2</text>
+                  <text class="val" x="160" y="12" text-anchor="middle">3</text>
+                  <text class="axis" x="32" y="106" text-anchor="middle">1 day</text>
+                  <text class="axis" x="96" y="106" text-anchor="middle">2 days</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">3 days</text>
+                  <text class="axis" x="224" y="106" text-anchor="middle">4 days</text>
+                  <text class="axis" x="288" y="106" text-anchor="middle">5+ days</text>
+                </svg>
+                <p class="muted" style="margin: 8px 0 0; font-size: 12px">
+                  Gaps 1, 3, 3, 3, 1 from 2 to 13 September.
+                </p>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Calories a gym minute</span>
+                  <span class="muted">14.2 last session</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 120"
+                  role="img"
+                  aria-label="Calories per gym minute per session, rising: 13.4, 12.1, 13.9, 12.8, 13.3, 14.2. Average 13.3."
+                >
+                  <line class="ref-line" x1="0" x2="320" y1="49.6" y2="49.6" />
+                  <text class="ref-label" x="320" y="62" text-anchor="end">avg 13.3</text>
+                  <polyline
+                    points="22,47.4 74.4,76.5 126.8,36.2 179.2,60.8 231.6,49.6 284,29.5"
+                    fill="none"
+                    stroke="var(--color-warn)"
+                    stroke-width="3"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="22" cy="47.4" r="2.5" fill="var(--color-warn)" />
+                  <circle cx="74.4" cy="76.5" r="2.5" fill="var(--color-warn)" />
+                  <circle cx="126.8" cy="36.2" r="2.5" fill="var(--color-warn)" />
+                  <circle cx="179.2" cy="60.8" r="2.5" fill="var(--color-warn)" />
+                  <circle cx="231.6" cy="49.6" r="2.5" fill="var(--color-warn)" />
+                  <circle cx="284" cy="29.5" r="2.5" fill="var(--color-warn)" />
+                  <text class="end-label" x="292" y="33.5" fill="var(--color-warn)">14.2</text>
+                  <text class="axis" x="22" y="110" text-anchor="middle">Wed 2</text>
+                  <text class="axis" x="74.4" y="110" text-anchor="middle">Thu 3</text>
+                  <text class="axis" x="126.8" y="110" text-anchor="middle">Sun 6</text>
+                  <text class="axis" x="179.2" y="110" text-anchor="middle">Wed 9</text>
+                  <text class="axis" x="231.6" y="110" text-anchor="middle">Sat 12</text>
+                  <text class="axis" x="284" y="110" text-anchor="middle">Sun 13</text>
+                </svg>
+                <div class="legend">
+                  <span><i class="dot" style="background: var(--color-warn)"></i>kcal ÷ gym minutes</span>
+                </div>
+              </div>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Start a live workout">
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#" aria-current="page"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <!-- ============ laptop · /workout at 1440 px ============
+         New classes: laptop, laptop-scroll, laptop-frame, sidebar, laptop-main, laptop-col,
+         split, stack. -->
+    <section class="laptop" aria-labelledby="pl-workout">
+      <div class="plate-label">
+        <span class="n">Laptop</span>
+        <span class="name" id="pl-workout">Live workout at 1440 px</span>
+        <span class="route">/workout</span>
+      </div>
+      <p class="muted" style="margin: 0 2px 12px">
+        At 1024 px and up: the 240 px sidebar, the content capped at 1100 px and centred, the
+        exercise list on the left and the active exercise on the right. This frame scrolls
+        inside itself on a narrow window.
+      </p>
+      <div class="laptop-scroll">
+        <div class="laptop-frame">
+          <nav class="sidebar" aria-label="Main">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 0 14px 18px">
+              <span
+                aria-hidden="true"
+                style="
+                  width: 32px;
+                  height: 32px;
+                  border-radius: 10px;
+                  background: var(--color-accent);
+                  color: var(--color-accent-ink);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 13px;
+                  font-weight: 800;
+                "
+                >GT</span
+              >
+              <strong>Gym Tracker</strong>
+            </div>
+            <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+            <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+            <button class="center" type="button" aria-label="Live workout in progress">
+              <span class="glyph" aria-hidden="true">■</span>Session running
+            </button>
+            <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+            <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+          </nav>
+
+          <div class="laptop-main">
+            <div class="laptop-col">
+              <div class="topbar" style="padding-left: 0; padding-right: 0; padding-top: 24px">
+                <div>
+                  <h2>Session</h2>
+                  <p class="sub">Started 17:30 · Push day</p>
+                </div>
+                <span class="chip"><span class="dot dot-cyan" aria-hidden="true"></span>Syncing</span>
+              </div>
+
+              <div class="split">
+                <div class="stack">
+                  <div class="hero">
+                    <span class="micro">Elapsed</span>
+                    <p class="hero-num">00:42:17</p>
+                    <p class="hero-foot">Volume 4,820 kg · 11 sets · 3 exercises</p>
+                  </div>
+
+                  <h3 class="micro" style="margin: 6px 2px 0">Exercises</h3>
+                  <ul class="list stack" style="gap: 8px">
+                    <li>
+                      <button
+                        class="card selected"
+                        type="button"
+                        aria-current="true"
+                        style="width: 100%; text-align: left; cursor: pointer; display: block"
+                      >
+                        <span class="row-tight">
+                          <strong>Bench press</strong><span class="micro">Chest</span>
+                        </span>
+                        <span class="muted" style="display: block; margin-top: 4px">3 sets · 2,020 kg</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="card"
+                        type="button"
+                        style="width: 100%; text-align: left; cursor: pointer; display: block"
+                      >
+                        <span class="row-tight">
+                          <strong>Incline dumbbell</strong><span class="micro">Chest</span>
+                        </span>
+                        <span class="muted" style="display: block; margin-top: 4px">4 × 10 · 1,120 kg</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="card"
+                        type="button"
+                        style="width: 100%; text-align: left; cursor: pointer; display: block"
+                      >
+                        <span class="row-tight">
+                          <strong>Cable fly</strong><span class="micro">Chest</span>
+                        </span>
+                        <span class="muted" style="display: block; margin-top: 4px">4 × 12 · 1,680 kg</span>
+                      </button>
+                    </li>
+                  </ul>
+
+                  <button class="btn btn-secondary" type="button">Add exercise</button>
+                  <button class="btn" type="button">Finish session</button>
+                </div>
+
+                <div class="stack">
+                  <div class="card selected">
+                    <div class="row">
+                      <strong style="font-size: 18px">Bench press</strong>
+                      <span class="micro">Chest</span>
+                    </div>
+                    <hr class="rule" />
+                    <div class="setrow">
+                      <span class="idx">1</span>
+                      <span class="cell">60 kg</span>
+                      <span class="cell">12 reps</span>
+                      <button class="tick" type="button" aria-pressed="true" aria-label="Set 1 done">✓</button>
+                    </div>
+                    <div class="setrow">
+                      <span class="idx">2</span>
+                      <span class="cell">70 kg</span>
+                      <span class="cell">10 reps</span>
+                      <button class="tick" type="button" aria-pressed="true" aria-label="Set 2 done">✓</button>
+                    </div>
+                    <div class="setrow">
+                      <span class="idx">3</span>
+                      <span class="cell">75 kg</span>
+                      <span class="cell">8 reps <span class="badge badge-accent" style="margin-left: auto">PR</span></span>
+                      <button class="tick" type="button" aria-pressed="true" aria-label="Set 3 done">✓</button>
+                    </div>
+                    <button class="btn btn-secondary" type="button" style="margin-top: 12px; color: var(--color-accent)">
+                      Add set <span class="visually-hidden">to Bench press</span>
+                    </button>
+                    <p class="dim" style="margin: 10px 0 0">
+                      Last time 72.5 kg × 8 · estimated 1RM 95 kg
+                    </p>
+                  </div>
+
+                  <section class="card rest-card" aria-label="Rest timer">
+                    <div class="row-tight">
+                      <span class="micro">Rest</span>
+                      <span class="muted" style="font-size: 12px">of 1:30</span>
+                    </div>
+                    <p class="rest-num">01:24</p>
+                    <div class="bar">
+                      <span style="width: 93%; background: var(--color-data-cyan)"></span>
+                    </div>
+                    <div class="row" style="margin-top: 12px">
+                      <span class="muted">Bench press rests 1:30</span>
+                      <span style="display: flex; gap: 8px">
+                        <button class="pill" type="button">Skip</button>
+                        <button class="pill" type="button">+30 s</button>
+                        <button class="pill" type="button">
+                          Change <span class="visually-hidden">the rest time for Bench press</span>
+                        </button>
+                      </span>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </body>
 </html>
