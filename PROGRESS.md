@@ -5,14 +5,14 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.7b → `docs/plan/phase-2/S2.7b-week-metrics.md`
+**Next step:** 2.3a → `docs/plan/phase-2/S2.3a-exercise-picker.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.7a, the volume, Epley and personal record metrics, on top of `13e1d9d`.
+**Last commit:** 2.7b, the muscle balance, gap and calorie rate metrics, on top of `0e89536`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-28 after 2.7a. The report is `reports/2026-09-28-lift-metrics.html`.
+- Stopped on 2026-09-28 after 2.7b. The report is `reports/2026-09-28-week-metrics.html`.
   The owner approved Checkpoint A on 2026-09-28.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
   `20260928084529_phase2_set_policy_reps` are applied to the live project. Never apply them again.
@@ -79,6 +79,9 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **The lift metrics.** `roundTo2` in `lib/metrics/round.ts` is the one rounding. A record carries
   the set `completed_at`, else `created_at`. Best load and best volume are per set; a load tie goes
   to the earlier set. A null-load set is never a record. One rep returns the load itself. From 2.7a.
+- **The week metrics.** `muscleBalance` shares are whole percents by the largest remainder; the
+  15 % warning tests the rounded share. `sessionGaps` counts every daily row date, gym time or
+  not, and its last bucket is 5 or more days. `caloriesPerMinute` gives one point per row. From 2.7b.
 
 ## Open, with the step that closes each one
 
@@ -111,6 +114,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **Owner** — the e2e suite fails 1 to 6 tests on some runs: WebKit timeouts and `fetch failed`
   in the Supabase cleanup helper. Each passes on rerun. From 2.2c.
 - **Owner** — `get_advisors` warns that leaked password protection is off. An Auth setting. From 2.1a.
+- **2.8b** — pass `sessionGaps` every daily row date, not only rows with gym time. The 1, 3, 3,
+  3, 1 target needs 9 September. From 2.7b.
 - **2.3b** — no unique index on global exercise names. Only the seed adds global rows. The owner
   deferred it. From 2.1b.
 
