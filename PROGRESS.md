@@ -5,15 +5,15 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.7a → `docs/plan/phase-2/S2.7a-lift-metrics.md`, after Checkpoint A
+**Next step:** 2.7b → `docs/plan/phase-2/S2.7b-week-metrics.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.2d, the set policy and the reps constraint, on top of `c4d46ec`.
+**Last commit:** 2.7a, the volume, Epley and personal record metrics, on top of `13e1d9d`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-28 after 2.2d, at Checkpoint A. The report is
-  `reports/2026-09-28-set-policy-reps.html`. The owner must approve Checkpoint A before 2.7a.
+- Stopped on 2026-09-28 after 2.7a. The report is `reports/2026-09-28-lift-metrics.html`.
+  The owner approved Checkpoint A on 2026-09-28.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
   `20260928084529_phase2_set_policy_reps` are applied to the live project. Never apply them again.
 - `apply_migration` records its own version. Rename the local file to the version that
@@ -76,6 +76,9 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   unknown `status` reads `finished`. The last push wins, in `architecture.md`. From 2.2c.
 - **The set policy.** A set insert or update needs the exercise to be the user's own or global.
   `reps` is `not null`, 1 to 1000, on the server. No Dexie bump: no Dexie table changed. From 2.2d.
+- **The lift metrics.** `roundTo2` in `lib/metrics/round.ts` is the one rounding. A record carries
+  the set `completed_at`, else `created_at`. Best load and best volume are per set; a load tie goes
+  to the earlier set. A null-load set is never a record. One rep returns the load itself. From 2.7a.
 
 ## Open, with the step that closes each one
 
@@ -97,6 +100,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   Supabase. No screen writes a set before `/workout`. Checkpoint A passes without it. From 2.2d.
 - **Owner** — `reps ?? MIN_REPS` in `lib/sync/mappings.ts` stays until the generated Supabase types
   say `reps: number`. Remove it with the type change. From 2.2d.
+- **2.4b** — `isNewRecord` compares with every set in `history`, later sets too. An edit of an old
+  set must pass only the earlier sets, or a later heavier set hides the badge. From 2.7a.
 - **2.4a** — discarding a refused session in the sync card also discards its held sets. Today
   the sets are released and fail again. From 2.2c.
 - **2.4a** — after an active session conflict, a pull can bring a second active session onto this
