@@ -30,13 +30,16 @@ import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
+import { ExercisePicker } from '../../components/workout/ExercisePicker'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
 
 import type { RangeTab } from '../../components/charts/rangeData'
 import type { DashboardSummary } from '../../components/dashboard/summary'
-import type { DailyEntry, DeadLetter, Profile } from '../../lib/db/dexie'
+import type { ExerciseSource } from '../../components/workout/ExercisePicker'
+import type { DailyEntry, DeadLetter, Exercise, Profile, WorkoutSet } from '../../lib/db/dexie'
+import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
 import type { ReactNode } from 'react'
 
@@ -222,6 +225,107 @@ const TYPE_STEPS = [
   { name: 'Caption', className: 'text-xs font-normal' },
 ]
 
+const SAMPLE_PICKER_NOW = new Date(2026, 8, 20, 18, 0, 0)
+
+const SAMPLE_EXERCISE_ROWS: [string, MuscleGroup][] = [
+  ['Bench Press', 'chest'],
+  ['Lat Pulldown', 'back'],
+  ['Back Squat', 'legs'],
+  ['Overhead Press', 'shoulders'],
+  ['Incline Dumbbell Press', 'chest'],
+  ['Seated Cable Row', 'back'],
+  ['Romanian Deadlift', 'legs'],
+  ['Lateral Raise', 'shoulders'],
+  ['Barbell Curl', 'arms'],
+  ['Cable Crunch', 'core'],
+  ['Rowing Machine', 'cardio'],
+]
+
+const SAMPLE_EXERCISES: Exercise[] = SAMPLE_EXERCISE_ROWS.map(([name, muscle_group], at) => ({
+  id: `30000000-0000-4000-8000-${String(at + 1).padStart(12, '0')}`,
+  name,
+  muscle_group,
+  is_archived: false,
+  user_id: null,
+  created_at: '2026-09-01T00:00:00.000Z',
+  updated_at: '2026-09-01T00:00:00.000Z',
+  deleted_at: null,
+}))
+
+const SAMPLE_LAST_SETS: [number, number, number, number][] = [
+  [0, 18, 75, 8],
+  [1, 16, 60, 10],
+  [2, 15, 90, 6],
+  [3, 13, 40, 10],
+]
+
+function sampleLastSet([at, day, weight_kg, reps]: [number, number, number, number]): WorkoutSet {
+  const exercise = SAMPLE_EXERCISES[at] as Exercise
+  const when = new Date(2026, 8, day, 18, 0, 0).toISOString()
+
+  return {
+    id: `40000000-0000-4000-8000-${String(at + 1).padStart(12, '0')}`,
+    session_id: '50000000-0000-4000-8000-000000000001',
+    exercise_id: exercise.id,
+    set_index: 0,
+    reps,
+    weight_kg,
+    rpe: null,
+    completed_at: when,
+    created_at: when,
+    updated_at: when,
+    deleted_at: null,
+  }
+}
+
+function plain(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+}
+
+function sampleExerciseSource(): ExerciseSource {
+  const rows = [...SAMPLE_EXERCISES]
+  const sets = new Map(
+    SAMPLE_LAST_SETS.map((entry) => {
+      const set = sampleLastSet(entry)
+      return [set.exercise_id, set] as const
+    }),
+  )
+
+  return {
+    listExercises: (filter) =>
+      Promise.resolve(
+        rows
+          .filter(
+            (row) =>
+              (filter.muscleGroup === undefined || row.muscle_group === filter.muscleGroup) &&
+              plain(row.name).includes(plain(filter.query ?? '')),
+          )
+          .sort((left, right) => left.name.localeCompare(right.name)),
+      ),
+    lastSetsFor: (exerciseIds) =>
+      Promise.resolve(
+        new Map(
+          exerciseIds.flatMap((id) => {
+            const set = sets.get(id)
+            return set === undefined ? [] : [[id, set] as const]
+          }),
+        ),
+      ),
+    createExercise: (input) => {
+      const row: Exercise = {
+        ...input,
+        id: `30000000-0000-4000-8000-${String(rows.length + 1).padStart(12, '0')}`,
+        user_id: 'local',
+        created_at: SAMPLE_PICKER_NOW.toISOString(),
+        updated_at: SAMPLE_PICKER_NOW.toISOString(),
+        deleted_at: null,
+      }
+      rows.push(row)
+      return Promise.resolve(row)
+    },
+  }
+}
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mb-8">
@@ -256,6 +360,9 @@ function Styleguide() {
   const [durationText, setDurationText] = useState(formatDuration(4325, 'clock'))
   const [nudgeWeight, setNudgeWeight] = useState(73.4)
   const [open, setOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [picked, setPicked] = useState<string | null>(null)
+  const [pickerSource] = useState(sampleExerciseSource)
   const [showFieldError, setShowFieldError] = useState(false)
   const [showEmailError, setShowEmailError] = useState(false)
   const [sampleProfile, setSampleProfile] = useState<Profile>(SAMPLE_PROFILE)
@@ -606,6 +713,30 @@ function Styleguide() {
             </PrimaryButton>
           </div>
         </SheetModal>
+      </Section>
+
+      <Section title="Exercise picker">
+        <Card className="flex flex-col gap-3" data-testid="picker-sample">
+          <PrimaryButton
+            onClick={() => {
+              setPickerOpen(true)
+            }}
+          >
+            Open the exercise picker
+          </PrimaryButton>
+          <p className="text-muted text-xs">{`Picked: ${picked ?? 'none'}`}</p>
+        </Card>
+        <ExercisePicker
+          open={pickerOpen}
+          onClose={() => {
+            setPickerOpen(false)
+          }}
+          onPick={(exercise) => {
+            setPicked(exercise.name)
+          }}
+          now={() => SAMPLE_PICKER_NOW}
+          source={pickerSource}
+        />
       </Section>
     </AppShell>
   )

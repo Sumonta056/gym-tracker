@@ -18,6 +18,7 @@ import {
   finishSession,
   getActiveSession,
   lastSetFor,
+  lastSetsFor,
   listSets,
   restoreSet,
   SessionAlreadyActive,
@@ -795,6 +796,40 @@ describe('listExercises', () => {
 
     expect(await listExercises()).toEqual([])
   })
+
+  it('hides an archived row by default', async () => {
+    const own = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+    await archiveExercise(own.id)
+
+    expect(await listExercises()).toEqual([])
+  })
+
+  it('returns an archived row when includeArchived is true', async () => {
+    const own = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+    await archiveExercise(own.id)
+
+    const found = await listExercises({ includeArchived: true })
+
+    expect(found.map((row) => [row.id, row.is_archived])).toEqual([[own.id, true]])
+  })
+
+  it('still hides a soft-deleted row when includeArchived is true', async () => {
+    await db.exercises.put({
+      ...globalExercise(BENCH_ID, 'Bench Press', 'chest'),
+      is_archived: true,
+      deleted_at: '2026-09-02T00:00:00.000Z',
+    })
+
+    expect(await listExercises({ includeArchived: true })).toEqual([])
+  })
 })
 
 describe('createExercise', () => {
@@ -1520,6 +1555,76 @@ describe('lastSetFor', () => {
     await deleteSet(removed.id)
 
     expect(await lastSetFor(BENCH_ID)).toEqual(kept)
+  })
+})
+
+describe('lastSetsFor', () => {
+  it('returns an empty map for no exercise ids', async () => {
+    await db.workoutSets.put(storedSet({}))
+
+    expect(await lastSetsFor([])).toEqual(new Map())
+  })
+
+  it('leaves out an exercise with no set', async () => {
+    expect(await lastSetsFor([BENCH_ID])).toEqual(new Map())
+  })
+
+  it('returns the newest set per exercise in one read', async () => {
+    const bench = storedSet({ created_at: '2026-09-03T10:00:00.000Z', reps: 3 })
+    const squat = storedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-02T10:00:00.000Z' })
+    await db.workoutSets.bulkPut([
+      storedSet({ created_at: '2026-09-01T10:00:00.000Z' }),
+      bench,
+      storedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-01T10:00:00.000Z' }),
+      squat,
+    ])
+
+    expect(await lastSetsFor([BENCH_ID, SQUAT_ID])).toEqual(
+      new Map([
+        [BENCH_ID, bench],
+        [SQUAT_ID, squat],
+      ]),
+    )
+  })
+
+  it('ignores a set of an exercise it was not asked about', async () => {
+    await db.workoutSets.put(storedSet({ exercise_id: SQUAT_ID }))
+
+    expect(await lastSetsFor([BENCH_ID])).toEqual(new Map())
+  })
+
+  it('takes the higher set_index when two sets share a timestamp', async () => {
+    const later = storedSet({ set_index: 1 })
+    await db.workoutSets.bulkPut([later, storedSet({ set_index: 0 })])
+
+    expect((await lastSetsFor([BENCH_ID])).get(BENCH_ID)).toEqual(later)
+  })
+
+  it('skips a soft-deleted set', async () => {
+    const session = await startSession('2026-09-01')
+    const kept = await addSet(aSet(session.id, { reps: 5 }))
+    const removed = await addSet(aSet(session.id, { reps: 6 }))
+    await deleteSet(removed.id)
+
+    expect((await lastSetsFor([BENCH_ID])).get(BENCH_ID)).toEqual(kept)
+  })
+
+  it('agrees with lastSetFor for every exercise', async () => {
+    await db.workoutSets.bulkPut([
+      storedSet({ created_at: '2026-09-01T10:00:00.000Z' }),
+      storedSet({ created_at: '2026-09-05T10:00:00.000Z', set_index: 2 }),
+      storedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-04T10:00:00.000Z' }),
+      storedSet({
+        exercise_id: SQUAT_ID,
+        deleted_at: '2026-09-06T10:00:00.000Z',
+        created_at: '2026-09-06T10:00:00.000Z',
+      }),
+    ])
+
+    const found = await lastSetsFor([BENCH_ID, SQUAT_ID])
+
+    expect(found.get(BENCH_ID)).toEqual(await lastSetFor(BENCH_ID))
+    expect(found.get(SQUAT_ID)).toEqual(await lastSetFor(SQUAT_ID))
   })
 })
 

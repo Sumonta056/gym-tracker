@@ -11,6 +11,7 @@ export type SheetModalProps = {
   title: string
   onClose: () => void
   children: ReactNode
+  footer?: ReactNode
   className?: string
 }
 
@@ -43,7 +44,7 @@ function trapTab(event: KeyboardEvent, dialog: HTMLElement): void {
   next.focus()
 }
 
-export function SheetModal({ open, title, onClose, children, className }: SheetModalProps) {
+export function SheetModal({ open, title, onClose, children, footer, className }: SheetModalProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -105,30 +106,52 @@ export function SheetModal({ open, title, onClose, children, className }: SheetM
         aria-labelledby={titleId}
         tabIndex={-1}
         className={cn(
-          'bg-surface border-border rounded-t-hero relative max-h-[78%] w-full overflow-y-auto border-t px-5 pt-2.5 pb-[calc(env(safe-area-inset-bottom)+20px)]',
-          'lg:rounded-hero lg:max-h-[80vh] lg:w-[520px] lg:border lg:pt-5 lg:pb-5',
+          'bg-surface border-border rounded-t-hero relative max-h-[78%] w-full border-t pt-2.5',
+          'lg:rounded-hero lg:max-h-[80vh] lg:w-[520px] lg:border lg:pt-5',
+          footer === undefined
+            ? 'overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] lg:pb-5'
+            : 'flex flex-col overflow-hidden',
           className,
         )}
       >
-        <div
-          data-testid="sheet-grabber"
-          aria-hidden="true"
-          className="bg-border mx-auto mt-1 mb-3 h-1 w-10 rounded-full lg:hidden"
-        />
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 id={titleId} className="text-text text-lg font-extrabold">
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={`Close ${title}`}
-            className="text-muted bg-surface-2 border-border inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-lg"
-          >
-            <span aria-hidden="true">×</span>
-          </button>
+        <div className={footer === undefined ? undefined : 'shrink-0 px-5'}>
+          <div
+            data-testid="sheet-grabber"
+            aria-hidden="true"
+            className="bg-border mx-auto mt-1 mb-3 h-1 w-10 rounded-full lg:hidden"
+          />
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 id={titleId} className="text-text text-lg font-extrabold">
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={`Close ${title}`}
+              className="text-muted bg-surface-2 border-border inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-lg"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
         </div>
-        {children}
+        {footer === undefined ? (
+          children
+        ) : (
+          <>
+            <div
+              data-testid="sheet-body"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-1"
+            >
+              {children}
+            </div>
+            <div
+              data-testid="sheet-footer"
+              className="shrink-0 px-5 pt-2 pb-[calc(env(safe-area-inset-bottom)+20px)] lg:pb-5"
+            >
+              {footer}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -74,6 +74,7 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       'Fields',
       'Sign in',
       'Buttons and the sheet',
+      'Exercise picker',
     ]) {
       expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
     }
@@ -323,5 +324,61 @@ describe('the styleguide page', { timeout: 15000 }, () => {
 
   it('renders the brand mark from the shared component', () => {
     expect(screen.getByText('GT')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('opens the exercise picker sample with its recent list', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the exercise picker' }))
+    const dialog = screen.getByRole('dialog', { name: 'Pick an exercise' })
+    const recent = await within(dialog).findByRole('region', { name: 'Recent' })
+    expect(within(recent).getAllByRole('button')[0]).toHaveTextContent('Chest · 75 kg × 8')
+    expect(within(recent).getAllByRole('button')[0]).toHaveTextContent('2d')
+  })
+
+  it('searches the picker sample and picks the match', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the exercise picker' }))
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search exercises' }), 'CURL')
+    const matches = await screen.findByRole('region', { name: 'Matches' })
+
+    await userEvent.click(within(matches).getByRole('button', { name: /Barbell Curl/ }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('picker-sample')).getByText('Picked: Barbell Curl'),
+    ).toBeInTheDocument()
+  })
+
+  it('filters the picker sample by a muscle group chip', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the exercise picker' }))
+    const dialog = screen.getByRole('dialog', { name: 'Pick an exercise' })
+    await within(dialog).findByRole('region', { name: 'Recent' })
+
+    await userEvent.click(
+      within(within(dialog).getByRole('group', { name: 'Muscle group' })).getByRole('button', {
+        name: 'Core',
+      }),
+    )
+
+    await waitFor(() => {
+      const all = within(dialog).getByRole('region', { name: 'All exercises' })
+      expect(within(all).getAllByRole('button')).toHaveLength(1)
+    })
+  })
+
+  it('creates an exercise in the picker sample and picks it', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the exercise picker' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Create a new exercise' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Hack Squat')
+    await userEvent.click(screen.getByRole('button', { name: 'Legs' }))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create and pick' }))
+
+    expect(await screen.findByText('Picked: Hack Squat')).toBeInTheDocument()
+  })
+
+  it('closes the picker sample on Escape', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the exercise picker' }))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByText('Picked: none')).toBeInTheDocument()
   })
 })

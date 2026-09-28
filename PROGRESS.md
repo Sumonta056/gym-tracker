@@ -5,14 +5,14 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.3a → `docs/plan/phase-2/S2.3a-exercise-picker.md`
+**Next step:** 2.3b → `docs/plan/phase-2/S2.3b-manage-exercises.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.7b, the muscle balance, gap and calorie rate metrics, on top of `0e89536`.
+**Last commit:** 2.3a, the exercise picker sheet, on top of `cc4630b`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-28 after 2.7b. The report is `reports/2026-09-28-week-metrics.html`.
+- Stopped on 2026-09-29 after 2.3a. The report is `reports/2026-09-29-exercise-picker.html`.
   The owner approved Checkpoint A on 2026-09-28.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
   `20260928084529_phase2_set_policy_reps` are applied to the live project. Never apply them again.
@@ -82,6 +82,10 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **The week metrics.** `muscleBalance` shares are whole percents by the largest remainder; the
   15 % warning tests the rounded share. `sessionGaps` counts every daily row date, gym time or
   not, and its last bucket is 5 or more days. `caloriesPerMinute` gives one point per row. From 2.7b.
+- **The exercise picker.** `SheetModal` takes an optional `footer`: header and footer stay fixed,
+  the body scrolls. The picker pins its create button there; search and chips scroll with the list.
+  Recent reads `lastSetsFor` once. `listExercises` takes `includeArchived`. Plate p4 is corrected:
+  title, close, full list, muted row text, scrolling chips, Title Case, a 20 px header gap. From 2.3a.
 
 ## Open, with the step that closes each one
 
@@ -95,8 +99,6 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **2.9b** — import review has no plate at 1024 px and up. From 2.0.
 - **Owner** — `lastSetFor` reads every set, because `workoutSets` has no `exercise_id` index.
   An index needs Dexie version 4. Acceptable for one user. From 2.2b.
-- **2.3a** — `listExercises` hides archived rows. Add `includeArchived` so a screen can restore
-  one. From 2.2a.
 - **Owner** — `deadLetters.ts` at 93.1 % lines once passed `pnpm verify` in a subagent run. Check
   that the `lib/sync/**` floor in `vitest.config` fails a single file. From 2.2a.
 - **2.4a** — the manual browser check: log a session offline, reload, go online, see the rows in
@@ -116,6 +118,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **Owner** — `get_advisors` warns that leaked password protection is off. An Auth setting. From 2.1a.
 - **2.8b** — pass `sessionGaps` every daily row date, not only rows with gym time. The 1, 3, 3,
   3, 1 target needs 9 September. From 2.7b.
+- **2.4a** — `lastSetFor` and `lastSetsFor` pick the last set by `created_at`; Recent sorts and
+  dates by `completed_at`. Choose one rule once real sets exist. From 2.3a.
 - **2.3b** — no unique index on global exercise names. Only the seed adds global rows. The owner
   deferred it. From 2.1b.
 

@@ -272,6 +272,7 @@ export async function updateProfile(patch: Partial<Profile>): Promise<Profile> {
 export interface ExerciseFilter {
   muscleGroup?: MuscleGroup
   query?: string
+  includeArchived?: boolean
 }
 
 function searchable(text: string): string {
@@ -288,10 +289,14 @@ export async function listExercises(filter: ExerciseFilter = {}): Promise<Exerci
       ? await db.exercises.toArray()
       : await db.exercises.where('muscle_group').equals(filter.muscleGroup).toArray()
   const query = searchable(filter.query?.trim() ?? '')
+  const includeArchived = filter.includeArchived ?? false
 
   return rows
     .filter(
-      (row) => row.deleted_at === null && !row.is_archived && searchable(row.name).includes(query),
+      (row) =>
+        row.deleted_at === null &&
+        (includeArchived || !row.is_archived) &&
+        searchable(row.name).includes(query),
     )
     .sort(byName)
 }
@@ -610,6 +615,29 @@ export async function lastSetFor(exerciseId: string): Promise<WorkoutSet | undef
     .toArray()
 
   return rows.sort((left, right) => inWriteOrder(right, left))[0]
+}
+
+export async function lastSetsFor(exerciseIds: string[]): Promise<Map<string, WorkoutSet>> {
+  const wanted = new Set(exerciseIds)
+  const last = new Map<string, WorkoutSet>()
+
+  if (wanted.size === 0) {
+    return last
+  }
+
+  const rows = await db.workoutSets
+    .filter((row) => wanted.has(row.exercise_id) && row.deleted_at === null)
+    .toArray()
+
+  for (const row of rows) {
+    const held = last.get(row.exercise_id)
+
+    if (held === undefined || inWriteOrder(row, held) > 0) {
+      last.set(row.exercise_id, row)
+    }
+  }
+
+  return last
 }
 
 export interface ConfirmedWrites {

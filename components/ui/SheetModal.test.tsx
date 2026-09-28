@@ -256,4 +256,63 @@ describe('SheetModal', () => {
     expect(close).toHaveClass('h-11')
     expect(close).toHaveClass('w-11')
   })
+
+  it('scrolls the whole sheet and draws no footer when none is given', () => {
+    setup()
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveClass('overflow-y-auto', 'px-5', 'lg:pb-5')
+    expect(dialog).not.toHaveClass('overflow-hidden')
+    expect(screen.queryByTestId('sheet-body')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('sheet-footer')).not.toBeInTheDocument()
+  })
+
+  function withFooter() {
+    render(
+      <SheetModal
+        open
+        title="Pick"
+        onClose={vi.fn()}
+        footer={<button type="button">Create</button>}
+      >
+        <button type="button">Row</button>
+      </SheetModal>,
+    )
+  }
+
+  it('pins a given footer below a body that scrolls on its own', () => {
+    withFooter()
+    const dialog = screen.getByRole('dialog')
+    const body = screen.getByTestId('sheet-body')
+    const footer = screen.getByTestId('sheet-footer')
+    expect(dialog).toHaveClass('flex', 'flex-col', 'overflow-hidden')
+    expect(dialog).not.toHaveClass('overflow-y-auto')
+    expect(body).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto', 'overscroll-contain')
+    expect(body).toContainElement(screen.getByRole('button', { name: 'Row' }))
+    expect(footer).toContainElement(screen.getByRole('button', { name: 'Create' }))
+    expect(footer).toHaveClass('shrink-0', 'pb-[calc(env(safe-area-inset-bottom)+20px)]')
+    expect(body.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('keeps the header outside the scrolling body when a footer is given', () => {
+    withFooter()
+    const body = screen.getByTestId('sheet-body')
+    expect(body).not.toContainElement(screen.getByRole('heading', { name: 'Pick' }))
+    expect(body).not.toContainElement(screen.getByRole('button', { name: 'Close Pick' }))
+  })
+
+  it('tabs from the body into the footer and back to the close button', async () => {
+    withFooter()
+    expect(screen.getByRole('button', { name: 'Close Pick' })).toHaveFocus()
+    await userEvent.tab()
+    expect(screen.getByRole('button', { name: 'Row' })).toHaveFocus()
+    await userEvent.tab()
+    expect(screen.getByRole('button', { name: 'Create' })).toHaveFocus()
+    await userEvent.tab()
+    expect(screen.getByRole('button', { name: 'Close Pick' })).toHaveFocus()
+  })
+
+  it('locks the page scroll with a footer too', () => {
+    withFooter()
+    expect(document.body.style.overflow).toBe('hidden')
+  })
 })

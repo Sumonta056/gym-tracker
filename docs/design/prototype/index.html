@@ -797,6 +797,74 @@
         cursor: pointer;
       }
 
+      .pick-sheet {
+        padding-bottom: 0;
+      }
+
+      .sheet-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+
+      .sheet-top h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .sheet-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+        color: var(--color-muted);
+        font-size: 18px;
+        cursor: pointer;
+      }
+
+      .pick-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .pillrow.pillrow-scroll {
+        overflow-x: auto;
+        flex: 0 0 auto;
+      }
+
+      .pill.pill-fixed {
+        flex: 0 0 auto;
+      }
+
+      .pickrow .pick-name {
+        color: var(--color-text);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .pickrow .pick-detail {
+        color: var(--color-muted);
+        font-size: 12px;
+      }
+
+      .pick-foot {
+        flex: 0 0 auto;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      }
+
       .visually-hidden {
         position: absolute;
         width: 1px;
@@ -1439,50 +1507,133 @@
 
           <div class="scrim"></div>
 
-          <div class="bottomsheet" role="dialog" aria-modal="true" aria-label="Pick an exercise">
+          <div
+            class="bottomsheet pick-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pick-title"
+          >
             <div class="grabber" aria-hidden="true"></div>
 
-            <label class="field" for="pick-search">
-              <span class="visually-hidden">Search exercises</span>
-              <input class="input" id="pick-search" type="search" placeholder="Search exercises" />
-            </label>
-
-            <div class="pillrow">
-              <button class="pill" type="button" aria-pressed="true">All</button>
-              <button class="pill" type="button" aria-pressed="false">Chest</button>
-              <button class="pill" type="button" aria-pressed="false">Back</button>
-              <button class="pill" type="button" aria-pressed="false">Legs</button>
+            <div class="sheet-top">
+              <h3 id="pick-title">Pick an exercise</h3>
+              <button class="sheet-close" type="button" aria-label="Close Pick an exercise">
+                <span aria-hidden="true">×</span>
+              </button>
             </div>
 
-            <span class="micro">Recent</span>
-            <ul class="list">
-              <li>
-                <button class="pickrow" type="button">
-                  <span><strong>Bench press</strong><br /><span class="dim">Chest · 75 kg × 8</span></span>
-                  <span class="dim">2d</span>
-                </button>
-              </li>
-              <li>
-                <button class="pickrow" type="button">
-                  <span><strong>Lat pulldown</strong><br /><span class="dim">Back · 60 kg × 10</span></span>
-                  <span class="dim">4d</span>
-                </button>
-              </li>
-              <li>
-                <button class="pickrow" type="button">
-                  <span><strong>Back squat</strong><br /><span class="dim">Legs · 90 kg × 6</span></span>
-                  <span class="dim">5d</span>
-                </button>
-              </li>
-              <li>
-                <button class="pickrow" type="button">
-                  <span><strong>Overhead press</strong><br /><span class="dim">Shoulders · 40 kg × 10</span></span>
-                  <span class="dim">7d</span>
-                </button>
-              </li>
-            </ul>
+            <div class="pick-body">
+              <label class="field" for="pick-search">
+                <span class="visually-hidden">Search exercises</span>
+                <input class="input" id="pick-search" type="search" placeholder="Search exercises" />
+              </label>
 
-            <button class="btn btn-secondary" type="button">Create a new exercise</button>
+              <div class="pillrow pillrow-scroll" role="group" aria-label="Muscle group">
+                <button class="pill pill-fixed" type="button" aria-pressed="true">All</button>
+                <button class="pill pill-fixed" type="button" aria-pressed="false">Chest</button>
+                <button class="pill pill-fixed" type="button" aria-pressed="false">Back</button>
+                <button class="pill pill-fixed" type="button" aria-pressed="false">Legs</button>
+                <button class="pill pill-fixed" type="button" aria-pressed="false">Shoulders</button>
+                <button class="pill pill-fixed" type="button" aria-pressed="false">Arms</button>
+                <button class="pill pill-fixed" type="button" aria-pressed="false">Core</button>
+                <button class="pill pill-fixed" type="button" aria-pressed="false">Cardio</button>
+              </div>
+
+              <section aria-labelledby="pick-recent">
+                <span class="micro" id="pick-recent">Recent</span>
+                <ul class="list">
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Bench Press</span><br /><span class="pick-detail">Chest · 75 kg × 8</span></span>
+                      <span class="pick-detail"><span aria-hidden="true">2d</span><span class="visually-hidden">, 2 days ago</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Lat Pulldown</span><br /><span class="pick-detail">Back · 60 kg × 10</span></span>
+                      <span class="pick-detail"><span aria-hidden="true">4d</span><span class="visually-hidden">, 4 days ago</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Back Squat</span><br /><span class="pick-detail">Legs · 90 kg × 6</span></span>
+                      <span class="pick-detail"><span aria-hidden="true">5d</span><span class="visually-hidden">, 5 days ago</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Overhead Press</span><br /><span class="pick-detail">Shoulders · 40 kg × 10</span></span>
+                      <span class="pick-detail"><span aria-hidden="true">7d</span><span class="visually-hidden">, 7 days ago</span></span>
+                    </button>
+                  </li>
+                </ul>
+              </section>
+
+              <section aria-labelledby="pick-all">
+                <span class="micro" id="pick-all">All exercises</span>
+                <ul class="list">
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Back Squat</span><br /><span class="pick-detail">Legs</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Barbell Curl</span><br /><span class="pick-detail">Arms</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Bench Press</span><br /><span class="pick-detail">Chest</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Cable Crunch</span><br /><span class="pick-detail">Core</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Incline Dumbbell Press</span><br /><span class="pick-detail">Chest</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Lat Pulldown</span><br /><span class="pick-detail">Back</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Lateral Raise</span><br /><span class="pick-detail">Shoulders</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Overhead Press</span><br /><span class="pick-detail">Shoulders</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Romanian Deadlift</span><br /><span class="pick-detail">Legs</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Rowing Machine</span><br /><span class="pick-detail">Cardio</span></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="pickrow" type="button">
+                      <span><span class="pick-name">Seated Cable Row</span><br /><span class="pick-detail">Back</span></span>
+                    </button>
+                  </li>
+                </ul>
+              </section>
+            </div>
+
+            <div class="pick-foot">
+              <button class="btn btn-secondary" type="button">Create a new exercise</button>
+            </div>
           </div>
         </div>
       </section>
