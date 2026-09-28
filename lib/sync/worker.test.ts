@@ -6,10 +6,21 @@ import {
   DAILY_CURSOR_KEY,
   db,
   DEAD_STREAK_KEY,
+  EXERCISE_CURSOR_KEY,
   PROFILE_CURSOR_KEY,
+  SESSION_CURSOR_KEY,
+  SET_CURSOR_KEY,
   SIGNED_OUT_KEY,
 } from '../db/dexie'
-import { clearAll, LOCAL_PROFILE_ID, SignedOutOnThisDevice, upsertDay } from '../db/repository'
+import {
+  addSet,
+  clearAll,
+  createExercise,
+  LOCAL_PROFILE_ID,
+  SignedOutOnThisDevice,
+  startSession,
+  upsertDay,
+} from '../db/repository'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
@@ -17,18 +28,26 @@ import { workoutSessionSchema } from '../schema/workoutSession'
 import { workoutSetSchema } from '../schema/workoutSet'
 
 import {
+  ACTIVE_SESSION_ELSEWHERE,
+  GLOBAL_ROW,
   MAX_ATTEMPTS,
   MAX_CONSECUTIVE_DEAD,
   moveToDeadLetters,
   readDeadStreak,
-  writeDeadStreak,
+  retryDeadLetter,
 } from './deadLetters'
 import { append, listPending, markFailed, pendingCount } from './outbox'
 import {
+  ACTIVE_SESSION_MESSAGE,
   DRAIN_LOCK,
   DrainLockBusy,
   drainForSignOut,
   DUPLICATE_KEY,
+  EPOCH,
+  FOREIGN_KEY,
+  GLOBAL_ROW_MESSAGE,
+  PARENT_NOT_SYNCED,
+  PARENT_NOT_SYNCED_MESSAGE,
   getSyncState,
   HALT_CHANNEL,
   HALT_LIMIT_MS,
@@ -48,14 +67,7 @@ import {
 } from './worker'
 
 import type { SyncState } from './worker'
-import type {
-  DailyEntry,
-  Exercise,
-  OutboxEntry,
-  Profile,
-  WorkoutSession,
-  WorkoutSet,
-} from '../db/dexie'
+import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
 import type { Database } from '../supabase/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -66,6 +78,8 @@ const ROW_C = '33333333-3333-4333-8333-333333333333'
 const ROW_D = '44444444-4444-4444-8444-444444444444'
 const ROW_E = '55555555-5555-4555-8555-555555555555'
 const SERVER_STAMP = '2026-09-01T11:00:00.000Z'
+const LATER = '2026-09-01T12:00:00.000Z'
+const GLOBAL_EXERCISE = 'c9fca3c0-08f3-4abe-aed2-50424b8342fc'
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -115,11 +129,13 @@ interface Fake {
   client: SupabaseClient<Database>
   upserted: Upserted[]
   selected: Selected[]
+  lookups: number
 }
 
 function fakeClient(options: FakeOptions = {}): Fake {
   const upserted: Upserted[] = []
   const selected: Selected[] = []
+  const fake: Fake = { client: {} as SupabaseClient<Database>, upserted, selected, lookups: 0 }
   const user = options.user === undefined ? USER_ID : options.user
   let attempt = 0
 
@@ -174,6 +190,8 @@ function fakeClient(options: FakeOptions = {}): Fake {
   }
 
   function lookupAnswer(): Promise<unknown> {
+    fake.lookups += 1
+
     if (options.lookupError !== undefined) {
       return Promise.resolve({ data: null, error: { message: options.lookupError } })
     }
@@ -225,7 +243,9 @@ function fakeClient(options: FakeOptions = {}): Fake {
     }),
   }
 
-  return { client: client as unknown as SupabaseClient<Database>, upserted, selected }
+  fake.client = client as unknown as SupabaseClient<Database>
+
+  return fake
 }
 
 function firstUpsert(fake: Fake): Upserted {
@@ -322,12 +342,20 @@ function localSet(id: string): WorkoutSet {
   }
 }
 
-async function heldEntries(): Promise<OutboxEntry[]> {
-  return [
-    await append('exercises', 'upsert', localExercise(ROW_C)),
-    await append('workout_sessions', 'upsert', localSession(ROW_D)),
-    await append('workout_sets', 'upsert', localSet(ROW_E)),
-  ]
+function serverExercise(
+  id: string,
+  userId: string | null,
+  updatedAt: string,
+): Record<string, unknown> {
+  return { ...localExercise(id), user_id: userId, updated_at: updatedAt }
+}
+
+function serverSession(id: string, updatedAt: string): Record<string, unknown> {
+  return { ...localSession(id), user_id: USER_ID, updated_at: updatedAt }
+}
+
+function serverSet(id: string, updatedAt: string, reps: number): Record<string, unknown> {
+  return { ...localSet(id), reps, updated_at: updatedAt }
 }
 
 async function cursor(key: string): Promise<string | null | undefined> {
@@ -456,6 +484,9 @@ beforeEach(async () => {
     db.outbox.clear(),
     db.deadLetters.clear(),
     db.syncMeta.clear(),
+    db.exercises.clear(),
+    db.workoutSessions.clear(),
+    db.workoutSets.clear(),
   ])
   Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true })
   FakeChannel.open = []
@@ -642,86 +673,552 @@ describe('push', () => {
   })
 })
 
-describe('a table the worker does not sync yet', () => {
-  it('holds an entry for each new table and sends nothing for it', async () => {
-    const held = await heldEntries()
+describe('the workout tables', () => {
+  function inTheGym(): void {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-01T10:00:00.000Z'))
+  }
+
+  it('drains an offline session with 3 sets in the order session, set, set, set', async () => {
+    inTheGym()
+    const session = await startSession('2026-09-01')
+    await addSet({ session_id: session.id, exercise_id: GLOBAL_EXERCISE, reps: 8 })
+    await addSet({ session_id: session.id, exercise_id: GLOBAL_EXERCISE, reps: 8 })
+    await addSet({ session_id: session.id, exercise_id: GLOBAL_EXERCISE, reps: 6 })
     const fake = fakeClient()
 
     const result = await push(fake.client, USER_ID, Date.now())
 
-    expect(result).toEqual({ pushed: 0, error: null })
-    expect(fake.upserted).toEqual([])
-    expect(await listPending()).toEqual(held)
-  })
-
-  it('sends the daily entry and the profile queued behind a held entry in the same drain', async () => {
-    await append('exercises', 'upsert', localExercise(ROW_C))
-    await append('daily_entries', 'upsert', localEntry(ROW_A))
-    await append('workout_sets', 'upsert', localSet(ROW_E))
-    await append('profiles', 'upsert', localProfile())
-    const fake = fakeClient()
-
-    const result = await push(fake.client, USER_ID, Date.now())
-
-    expect(result).toEqual({ pushed: 2, error: null })
-    expect(fake.upserted.map((call) => call.table)).toEqual(['daily_entries', 'profiles'])
-    expect((await listPending()).map((entry) => entry.table_name)).toEqual([
-      'exercises',
+    expect(result).toEqual({ pushed: 4, error: null })
+    expect(fake.upserted.map((call) => call.table)).toEqual([
+      'workout_sessions',
+      'workout_sets',
+      'workout_sets',
       'workout_sets',
     ])
+    expect(fake.upserted.slice(1).map((call) => call.row.set_index)).toEqual([0, 1, 2])
+    expect(fake.upserted.slice(1).every((call) => call.row.session_id === session.id)).toBe(true)
+    expect(await db.outbox.count()).toBe(0)
   })
 
-  it('keeps a held entry at attempts 0 with no back-off and leaves the refusal count', async () => {
-    const [held] = await heldEntries()
-    await writeDeadStreak(2)
+  it('pushes a custom exercise before the set that points to it', async () => {
+    inTheGym()
+    const exercise = await createExercise({
+      name: 'Cable Fly',
+      muscle_group: 'chest',
+      is_archived: false,
+    })
+    const session = await startSession('2026-09-01')
+    await addSet({ session_id: session.id, exercise_id: exercise.id, reps: 12 })
     const fake = fakeClient()
 
     await push(fake.client, USER_ID, Date.now())
 
-    expect(await db.outbox.get(held?.id ?? '')).toMatchObject({
-      attempts: 0,
-      last_error: null,
-      next_attempt_at: null,
-    })
-    expect(await readDeadStreak()).toBe(2)
+    expect(fake.upserted.map((call) => call.table)).toEqual([
+      'exercises',
+      'workout_sessions',
+      'workout_sets',
+    ])
+  })
+
+  it('keeps a set in the outbox, and out of the dead letters, when its session push fails', async () => {
+    await append('workout_sessions', 'upsert', localSession(ROW_D))
+    const set = await append('workout_sets', 'upsert', localSet(ROW_E))
+    const fake = fakeClient({ upsertError: { workout_sessions: { message: 'network down' } } })
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 0, error: 'network down' })
+    expect(fake.upserted.map((call) => call.table)).toEqual(['workout_sessions'])
+    expect(await db.outbox.get(set.id)).toEqual(set)
     expect(await db.deadLetters.count()).toBe(0)
   })
 
-  it('returns from a drain whose queue holds only held entries', async () => {
-    await heldEntries()
-    const fake = fakeClient()
-    mocks.createClient.mockReturnValue(fake.client)
+  it('treats a foreign key refusal on a set as transient, so the set waits for its parent', async () => {
+    const set = await append('workout_sets', 'upsert', localSet(ROW_E))
+    const fake = fakeClient({
+      upsertError: {
+        workout_sets: {
+          message: 'insert or update on table "workout_sets" violates foreign key constraint',
+          code: FOREIGN_KEY,
+        },
+      },
+    })
 
-    const outcome = await sync()
+    const result = await push(fake.client, USER_ID, Date.parse('2026-09-01T10:00:00.000Z'))
 
-    expect(outcome).toEqual({ status: 'synced', pushed: 0, pulled: 0, error: null })
+    expect(result.error).toBe(PARENT_NOT_SYNCED_MESSAGE)
+    expect(await db.outbox.get(set.id)).toMatchObject({
+      attempts: 1,
+      last_error: PARENT_NOT_SYNCED_MESSAGE,
+      next_attempt_at: '2026-09-01T10:00:01.000Z',
+    })
+    expect(await db.deadLetters.count()).toBe(0)
+    expect(await readDeadStreak()).toBe(0)
   })
 
-  it('ends a sign-out drain and still counts every held entry as pending', async () => {
-    await heldEntries()
+  it('moves a set that its parent never took once it reaches the attempt ceiling', async () => {
+    const set = await append('workout_sets', 'upsert', localSet(ROW_E))
+    await db.outbox.update(set.id, { attempts: MAX_ATTEMPTS - 1 })
+    const fake = fakeClient({
+      upsertError: {
+        workout_sets: { message: 'violates foreign key constraint', code: FOREIGN_KEY },
+      },
+    })
+
+    await push(fake.client, USER_ID, Date.now(), { ignoreBackoff: true })
+
+    expect(await db.deadLetters.get(set.id)).toMatchObject({
+      error_code: PARENT_NOT_SYNCED,
+      last_error: PARENT_NOT_SYNCED_MESSAGE,
+    })
+  })
+
+  it('moves a set the server refuses for any other permanent reason to the dead letters', async () => {
+    const set = await append('workout_sets', 'upsert', localSet(ROW_E))
+    const fake = fakeClient({
+      upsertError: {
+        workout_sets: {
+          message: 'new row violates row-level security policy for table "workout_sets"',
+          code: '42501',
+        },
+      },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(await db.deadLetters.get(set.id)).toMatchObject({ error_code: '42501' })
+  })
+
+  it('keeps a foreign key refusal on a session permanent, since a session has no parent to wait for', async () => {
+    const session = await append('workout_sessions', 'upsert', localSession(ROW_D))
+    const fake = fakeClient({
+      upsertError: {
+        workout_sessions: { message: 'violates foreign key constraint', code: FOREIGN_KEY },
+      },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(await db.deadLetters.get(session.id)).toMatchObject({ error_code: FOREIGN_KEY })
+  })
+
+  it('creates one row, not two, when the same set push is retried', async () => {
+    await append('workout_sets', 'upsert', localSet(ROW_E))
+    const flaky = fakeClient({ upsertThrows: ['workout_sets'] })
+    await push(flaky.client, USER_ID, Date.now())
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now(), { ignoreBackoff: true })
+
+    const server = new Map(
+      [...flaky.upserted, ...fake.upserted].map((call) => [call.row.id, call.row]),
+    )
+    expect(flaky.upserted).toHaveLength(1)
+    expect(fake.upserted).toHaveLength(1)
+    expect([...server.keys()]).toEqual([ROW_E])
+    expect([...flaky.upserted, ...fake.upserted].every((call) => call.onConflict === 'id')).toBe(
+      true,
+    )
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('sends no row with user_id null, for any table', async () => {
     await append('daily_entries', 'upsert', localEntry(ROW_A))
+    await append('profiles', 'upsert', localProfile())
+    await append('exercises', 'upsert', localExercise(ROW_C))
+    await append('workout_sessions', 'upsert', localSession(ROW_D))
+    await append('workout_sets', 'upsert', localSet(ROW_E))
     const fake = fakeClient()
-    mocks.createClient.mockReturnValue(fake.client)
 
-    await drainForSignOut()
+    await push(fake.client, USER_ID, Date.now())
 
-    expect(fake.upserted.map((call) => call.table)).toEqual(['daily_entries'])
-    expect(await pendingCount()).toBe(3)
+    const owners = Object.fromEntries(
+      fake.upserted.map((call) => [
+        call.table,
+        call.table === 'profiles' ? call.row.id : call.row.user_id,
+      ]),
+    )
+    expect(owners).toEqual({
+      daily_entries: USER_ID,
+      profiles: USER_ID,
+      exercises: USER_ID,
+      workout_sessions: USER_ID,
+      workout_sets: undefined,
+    })
+    expect(fake.upserted.every((call) => call.row.user_id !== null)).toBe(true)
+    expect('user_id' in (fake.upserted[4]?.row ?? { user_id: null })).toBe(false)
   })
 
-  it('never counts a held entry toward the queue length it started with', async () => {
-    await append('exercises', 'upsert', localExercise(ROW_C))
+  it('moves a queued global exercise to the dead letters and sends nothing for it', async () => {
+    const global = await append('exercises', 'upsert', {
+      ...localExercise(GLOBAL_EXERCISE),
+      user_id: null,
+    })
+    await append('workout_sessions', 'upsert', localSession(ROW_D))
+    const fake = fakeClient()
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 1, error: null })
+    expect(fake.upserted.map((call) => call.table)).toEqual(['workout_sessions'])
+    expect(await db.deadLetters.get(global.id)).toMatchObject({
+      error_code: GLOBAL_ROW,
+      last_error: GLOBAL_ROW_MESSAGE,
+    })
+  })
+
+  it('moves a second active session from another device to the dead letters, with a reason', async () => {
+    const mine = await append('workout_sessions', 'upsert', localSession(ROW_D))
+    await db.workoutSessions.put(localSession(ROW_D))
     await append('daily_entries', 'upsert', localEntry(ROW_A))
     const fake = fakeClient({
-      onUpsert: async () => {
-        await append('daily_entries', 'upsert', localEntry(ROW_B))
+      upsertError: {
+        workout_sessions: {
+          message:
+            'duplicate key value violates unique constraint "workout_sessions_one_active_idx"',
+          code: DUPLICATE_KEY,
+        },
       },
     })
 
     const result = await push(fake.client, USER_ID, Date.now())
 
     expect(result).toEqual({ pushed: 1, error: null })
+    expect(await db.deadLetters.get(mine.id)).toMatchObject({
+      error_code: ACTIVE_SESSION_ELSEWHERE,
+      last_error: ACTIVE_SESSION_MESSAGE,
+    })
+    expect(await db.workoutSessions.get(ROW_D)).toEqual(localSession(ROW_D))
+  })
+
+  it('holds the sets of a session the server refused, and still sends what comes after them', async () => {
+    const mine = await append('workout_sessions', 'upsert', localSession(ROW_D))
+    const first = await append('workout_sets', 'upsert', localSet(ROW_E))
+    const second = await append('workout_sets', 'upsert', { ...localSet(ROW_B), set_index: 1 })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const fake = fakeClient({
+      upsertError: { workout_sessions: { message: 'duplicate key', code: DUPLICATE_KEY } },
+    })
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 1, error: null })
+    expect(fake.upserted.map((call) => call.table)).toEqual(['workout_sessions', 'daily_entries'])
+    expect((await db.deadLetters.toArray()).map((letter) => letter.id)).toEqual([mine.id])
+    expect(await db.outbox.get(first.id)).toEqual(first)
+    expect(await db.outbox.get(second.id)).toEqual(second)
+    expect(await readDeadStreak()).toBe(0)
+  })
+
+  it('sends the held sets once the refused session is retried and lands', async () => {
+    const mine = await append('workout_sessions', 'upsert', localSession(ROW_D))
+    await append('workout_sets', 'upsert', localSet(ROW_E))
+    await push(
+      fakeClient({
+        upsertError: { workout_sessions: { message: 'duplicate key', code: DUPLICATE_KEY } },
+      }).client,
+      USER_ID,
+      Date.now(),
+    )
+    await retryDeadLetter(mine.id)
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(fake.upserted.map((call) => call.table)).toEqual(['workout_sessions', 'workout_sets'])
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('sends the held sets once a later write lands the refused session on the server', async () => {
+    await append('workout_sessions', 'upsert', localSession(ROW_D))
+    await append('workout_sets', 'upsert', localSet(ROW_E))
+    await append('workout_sessions', 'upsert', {
+      ...localSession(ROW_D),
+      status: 'finished',
+      ended_at: LATER,
+    })
+    const fake = fakeClient({
+      upsertError: { workout_sessions: { message: 'duplicate key', code: DUPLICATE_KEY } },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(fake.upserted.map((call) => call.table)).toEqual([
+      'workout_sessions',
+      'workout_sessions',
+      'workout_sets',
+    ])
+    expect(await db.outbox.count()).toBe(0)
+    expect(await db.deadLetters.count()).toBe(0)
+  })
+
+  it('holds a set whose custom exercise the server refused', async () => {
+    const exercise = await append('exercises', 'upsert', localExercise(ROW_C))
+    await moveToDeadLetters(exercise.id, '23514', 'check failed', Date.now())
+    const set = await append('workout_sets', 'upsert', localSet(ROW_E))
+    const fake = fakeClient()
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 0, error: null })
+    expect(fake.upserted).toEqual([])
+    expect(await db.outbox.get(set.id)).toEqual(set)
+    expect(await pendingCount()).toBe(1)
+  })
+
+  it('never writes to the server session of the other device', async () => {
+    await append('workout_sessions', 'upsert', localSession(ROW_D))
+    const fake = fakeClient({
+      upsertErrorAlways: true,
+      upsertError: { workout_sessions: { message: 'duplicate key', code: DUPLICATE_KEY } },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
     expect(fake.upserted).toHaveLength(1)
+    expect(firstUpsert(fake).row.id).toBe(ROW_D)
+    expect(fake.lookups).toBe(0)
+  })
+
+  it('stores the server updated_at on each workout row after a push', async () => {
+    await db.exercises.put(localExercise(ROW_C))
+    await db.workoutSessions.put(localSession(ROW_D))
+    await db.workoutSets.put(localSet(ROW_E))
+    await append('exercises', 'upsert', localExercise(ROW_C))
+    await append('workout_sessions', 'upsert', localSession(ROW_D))
+    await append('workout_sets', 'upsert', localSet(ROW_E))
+
+    await push(fakeClient().client, USER_ID, Date.now())
+
+    expect((await db.exercises.get(ROW_C))?.updated_at).toBe(SERVER_STAMP)
+    expect((await db.workoutSessions.get(ROW_D))?.updated_at).toBe(SERVER_STAMP)
+    expect((await db.workoutSets.get(ROW_E))?.updated_at).toBe(SERVER_STAMP)
+  })
+
+  it('leaves a set that changed while its push was in flight', async () => {
+    await db.workoutSets.put(localSet(ROW_E))
+    await append('workout_sets', 'upsert', localSet(ROW_E))
+    const fake = fakeClient({
+      onUpsert: async () => {
+        await db.workoutSets.put({ ...localSet(ROW_E), reps: 10, updated_at: LATER })
+      },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(await db.workoutSets.get(ROW_E)).toMatchObject({ reps: 10, updated_at: LATER })
+  })
+
+  it('drains an exercise write on sign-out, so nothing is left to lose', async () => {
+    inTheGym()
+    await createExercise({ name: 'Cable Fly', muscle_group: 'chest', is_archived: false })
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    await drainForSignOut()
+
+    expect(fake.upserted.map((call) => call.table)).toEqual(['exercises'])
+    expect(await pendingCount()).toBe(0)
+  })
+})
+
+describe('the workout pull', () => {
+  it('brings the global seed rows into Dexie with user_id null', async () => {
+    const fake = fakeClient({
+      serverRows: {
+        exercises: [
+          serverExercise(GLOBAL_EXERCISE, null, '2026-09-27T15:11:53.000Z'),
+          serverExercise(ROW_C, USER_ID, '2026-09-28T09:00:00.000Z'),
+        ],
+      },
+    })
+
+    const result = await pull(fake.client)
+
+    expect(result).toEqual({ pulled: 2, error: null })
+    expect((await db.exercises.get(GLOBAL_EXERCISE))?.user_id).toBeNull()
+    expect((await db.exercises.get(ROW_C))?.user_id).toBe(LOCAL_PROFILE_ID)
+  })
+
+  it('brings the global rows back after a sign-out clears the device', async () => {
+    await db.exercises.put({ ...localExercise(GLOBAL_EXERCISE), user_id: null })
+    await db.syncMeta.put({ key: EXERCISE_CURSOR_KEY, value: '2026-09-28T09:00:00.000Z' })
+    await clearAll({ count: 0, sequence: 0 }, signedIn)
+    expect(await db.exercises.count()).toBe(0)
+    const fake = fakeClient({
+      serverRows: {
+        exercises: [serverExercise(GLOBAL_EXERCISE, null, '2026-09-27T15:11:53.000Z')],
+      },
+    })
+
+    await pull(fake.client)
+
+    expect(fake.selected).toContainEqual({ table: 'exercises', cursor: EPOCH })
+    expect((await db.exercises.get(GLOBAL_EXERCISE))?.user_id).toBeNull()
+  })
+
+  it('writes a newer server set over an older local set', async () => {
+    await db.workoutSets.put(localSet(ROW_E))
+    const fake = fakeClient({
+      serverRows: { workout_sets: [serverSet(ROW_E, LATER, 12)] },
+    })
+
+    await pull(fake.client)
+
+    expect(await db.workoutSets.get(ROW_E)).toMatchObject({ reps: 12, updated_at: LATER })
+  })
+
+  it('keeps a newer local set when the server set is older', async () => {
+    await db.workoutSets.put({ ...localSet(ROW_E), reps: 5, updated_at: LATER })
+    const fake = fakeClient({
+      serverRows: { workout_sets: [serverSet(ROW_E, '2026-09-01T09:00:00.000Z', 12)] },
+    })
+
+    await pull(fake.client)
+
+    expect((await db.workoutSets.get(ROW_E))?.reps).toBe(5)
+  })
+
+  it('never overwrites a set whose write still waits in the outbox', async () => {
+    await db.workoutSets.put(localSet(ROW_E))
+    await append('workout_sets', 'upsert', { ...localSet(ROW_E), reps: 5 })
+    const fake = fakeClient({
+      serverRows: { workout_sets: [serverSet(ROW_E, LATER, 12)] },
+    })
+
+    await pull(fake.client)
+
+    expect((await db.workoutSets.get(ROW_E))?.reps).toBe(8)
+  })
+
+  it('drops the owner column of a pulled session', async () => {
+    const fake = fakeClient({
+      serverRows: { workout_sessions: [serverSession(ROW_D, LATER)] },
+    })
+
+    await pull(fake.client)
+
+    const stored = await db.workoutSessions.get(ROW_D)
+    expect(stored).toMatchObject({ id: ROW_D, status: 'active', updated_at: LATER })
+    expect(stored !== undefined && 'user_id' in stored).toBe(false)
+  })
+
+  it('keeps one cursor for each workout table', async () => {
+    const fake = fakeClient({
+      serverRows: {
+        exercises: [serverExercise(ROW_C, USER_ID, '2026-09-02T10:00:00.000Z')],
+        workout_sessions: [serverSession(ROW_D, '2026-09-03T10:00:00.000Z')],
+        workout_sets: [serverSet(ROW_E, '2026-09-04T10:00:00.000Z', 8)],
+      },
+    })
+
+    await pull(fake.client)
+
+    expect(await cursor(EXERCISE_CURSOR_KEY)).toBe('2026-09-02T10:00:00.000Z')
+    expect(await cursor(SESSION_CURSOR_KEY)).toBe('2026-09-03T10:00:00.000Z')
+    expect(await cursor(SET_CURSOR_KEY)).toBe('2026-09-04T10:00:00.000Z')
+  })
+
+  it('reads each workout table from its own cursor', async () => {
+    await db.syncMeta.bulkPut([
+      { key: EXERCISE_CURSOR_KEY, value: '2026-09-02T10:00:00.000Z' },
+      { key: SESSION_CURSOR_KEY, value: '2026-09-03T10:00:00.000Z' },
+      { key: SET_CURSOR_KEY, value: '2026-09-04T10:00:00.000Z' },
+    ])
+    const fake = fakeClient()
+
+    await pull(fake.client)
+
+    expect(fake.selected).toEqual([
+      { table: 'daily_entries', cursor: EPOCH },
+      { table: 'profiles', cursor: EPOCH },
+      { table: 'exercises', cursor: '2026-09-02T10:00:00.000Z' },
+      { table: 'workout_sessions', cursor: '2026-09-03T10:00:00.000Z' },
+      { table: 'workout_sets', cursor: '2026-09-04T10:00:00.000Z' },
+    ])
+  })
+
+  it('never moves a workout cursor past a row it refused', async () => {
+    await append('workout_sets', 'upsert', localSet(ROW_E))
+    const fake = fakeClient({
+      serverRows: {
+        workout_sets: [
+          serverSet(ROW_E, '2026-09-02T10:00:00.000Z', 12),
+          serverSet(ROW_A, '2026-09-03T10:00:00.000Z', 12),
+        ],
+      },
+    })
+
+    await pull(fake.client)
+
+    expect(await cursor(SET_CURSOR_KEY)).toBeUndefined()
+    expect((await db.workoutSets.get(ROW_A))?.reps).toBe(12)
+  })
+
+  it.each([['exercises'], ['workout_sessions'], ['workout_sets']])(
+    'reports a failed %s pull after the earlier tables landed',
+    async (table) => {
+      const fake = fakeClient({
+        serverRows: { daily_entries: [serverEntry(ROW_A, LATER, 1000)] },
+        selectError: { [table]: `${table} gone` },
+      })
+
+      const result = await pull(fake.client)
+
+      expect(result).toEqual({ pulled: 1, error: `${table} gone` })
+      expect(await db.dailyEntries.get(ROW_A)).toBeDefined()
+    },
+  )
+
+  it('stops a workout pull between two rows once the drain is stopped', async () => {
+    const stop = new AbortController()
+    const fake = fakeClient({
+      serverRows: {
+        workout_sets: [
+          serverSet(ROW_E, '2026-09-02T10:00:00.000Z', 12),
+          serverSet(ROW_A, '2026-09-03T10:00:00.000Z', 12),
+        ],
+      },
+    })
+    const put = db.workoutSets.put.bind(db.workoutSets)
+    const spy = vi.spyOn(db.workoutSets, 'put').mockImplementation((row) => {
+      stop.abort()
+      return put(row)
+    })
+
+    await expect(pull(fake.client, stop.signal)).rejects.toThrow(SYNC_STOPPED)
+    spy.mockRestore()
+
+    expect(await cursor(SET_CURSOR_KEY)).toBeUndefined()
+    expect(await db.workoutSets.get(ROW_A)).toBeUndefined()
+  })
+})
+
+describe('the rest settings round trip', () => {
+  it('carries rest_sound_muted and rest_seconds_by_exercise through a push and a pull', async () => {
+    const sent = localProfile({
+      rest_sound_muted: true,
+      rest_seconds_by_exercise: { [ROW_C]: 150, [GLOBAL_EXERCISE]: 60 },
+    })
+    await append('profiles', 'upsert', sent)
+    const pushing = fakeClient()
+    await push(pushing.client, USER_ID, Date.now())
+    await db.outbox.clear()
+    await db.profiles.clear()
+    const pulling = fakeClient({
+      serverRows: {
+        profiles: [{ ...firstUpsert(pushing).row, created_at: SERVER_STAMP, updated_at: LATER }],
+      },
+    })
+
+    await pull(pulling.client)
+
+    expect(await db.profiles.get(LOCAL_PROFILE_ID)).toMatchObject({
+      rest_sound_muted: true,
+      rest_seconds_by_exercise: { [ROW_C]: 150, [GLOBAL_EXERCISE]: 60 },
+    })
   })
 })
 
@@ -1433,10 +1930,11 @@ describe('pull', () => {
 
     await pull(fake.client)
 
-    expect(fake.selected.map((call) => call.cursor)).toEqual([
-      '1970-01-01T00:00:00.000Z',
-      '1970-01-01T00:00:00.000Z',
-    ])
+    expect(fake.selected).toEqual(
+      ['daily_entries', 'profiles', 'exercises', 'workout_sessions', 'workout_sets'].map(
+        (table) => ({ table, cursor: '1970-01-01T00:00:00.000Z' }),
+      ),
+    )
   })
 
   it('reads from the stored cursor on the next pull', async () => {

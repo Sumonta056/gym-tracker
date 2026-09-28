@@ -8,7 +8,13 @@ import { Card } from '../ui/Card'
 import { MicroLabel } from '../ui/MicroLabel'
 import { SecondaryButton } from '../ui/SecondaryButton'
 
-import type { DailyEntry, DeadLetter } from '../../lib/db/dexie'
+import type {
+  DailyEntry,
+  DeadLetter,
+  Exercise,
+  WorkoutSession,
+  WorkoutSet,
+} from '../../lib/db/dexie'
 import type { SyncStatusReport } from '../../lib/db/repository'
 
 export type SyncCardProps = {
@@ -32,14 +38,28 @@ export function failedHint(count: number): string {
   return `${writes} could not reach the server. Retry sends ${count === 1 ? 'it' : 'them'} again. Discard keeps the data on this device only.`
 }
 
-export function deadLetterName(letter: DeadLetter): string {
-  if (letter.table_name === 'profiles') {
-    return 'Profile settings'
-  }
-
-  const { weekday, dayMonth } = headerDate((letter.payload as DailyEntry).entry_date)
+function dayName(date: string): string {
+  const { weekday, dayMonth } = headerDate(date)
 
   return `${weekday} ${dayMonth}`
+}
+
+export function deadLetterName(letter: DeadLetter): string {
+  switch (letter.table_name) {
+    case 'profiles':
+      return 'Profile settings'
+    case 'exercises':
+      return `Exercise ${(letter.payload as Exercise).name}`
+    case 'workout_sessions':
+      return `Workout ${dayName((letter.payload as WorkoutSession).entry_date)}`
+    case 'workout_sets': {
+      const set = letter.payload as WorkoutSet
+
+      return `Set ${String(set.set_index + 1)}, ${dayName(set.created_at.slice(0, 10))}`
+    }
+    case 'daily_entries':
+      return dayName((letter.payload as DailyEntry).entry_date)
+  }
 }
 
 export function SyncCard({

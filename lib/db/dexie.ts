@@ -90,6 +90,12 @@ export const DAILY_CURSOR_KEY = 'pull_cursor_daily_entries'
 
 export const PROFILE_CURSOR_KEY = 'pull_cursor_profiles'
 
+export const EXERCISE_CURSOR_KEY = 'pull_cursor_exercises'
+
+export const SESSION_CURSOR_KEY = 'pull_cursor_workout_sessions'
+
+export const SET_CURSOR_KEY = 'pull_cursor_workout_sets'
+
 export const DEAD_STREAK_KEY = 'dead_letter_streak'
 
 export const SIGNED_OUT_KEY = 'signed_out'

@@ -7,14 +7,41 @@ import type {
   OutboxPayload,
   OutboxTableName,
   SyncMetaRecord,
+  WorkoutSet,
 } from '../db/dexie'
 
 export const BACKOFF_CEILING_MS = 60000
 
-export const SYNCED_TABLES: ReadonlySet<OutboxTableName> = new Set(['daily_entries', 'profiles'])
+export const SYNCED_TABLES: ReadonlySet<OutboxTableName> = new Set([
+  'daily_entries',
+  'profiles',
+  'exercises',
+  'workout_sessions',
+  'workout_sets',
+])
 
-function isSynced(entry: OutboxEntry): boolean {
-  return SYNCED_TABLES.has(entry.table_name)
+const PARENT_TABLES: ReadonlySet<OutboxTableName> = new Set(['exercises', 'workout_sessions'])
+
+async function refusedParents(): Promise<ReadonlySet<string>> {
+  const letters = await db.deadLetters
+    .filter((letter) => PARENT_TABLES.has(letter.table_name))
+    .toArray()
+
+  return new Set(letters.map((letter) => letter.row_id))
+}
+
+function waitsOnParent(entry: OutboxEntry, refused: ReadonlySet<string>): boolean {
+  if (entry.table_name !== 'workout_sets') {
+    return false
+  }
+
+  const set = entry.payload as WorkoutSet
+
+  return refused.has(set.session_id) || refused.has(set.exercise_id)
+}
+
+function sendable(refused: ReadonlySet<string>): (entry: OutboxEntry) => boolean {
+  return (entry) => SYNCED_TABLES.has(entry.table_name) && !waitsOnParent(entry, refused)
 }
 
 function issuedSequence(marker: SyncMetaRecord | undefined): number {
@@ -89,7 +116,9 @@ export async function listPending(): Promise<OutboxEntry[]> {
 }
 
 export async function nextPending(after = 0): Promise<OutboxEntry | undefined> {
-  return db.outbox.where('sequence').above(after).filter(isSynced).first()
+  const refused = await refusedParents()
+
+  return db.outbox.where('sequence').above(after).filter(sendable(refused)).first()
 }
 
 export async function pendingCount(): Promise<number> {
@@ -97,17 +126,30 @@ export async function pendingCount(): Promise<number> {
 }
 
 export async function syncedCount(): Promise<number> {
-  return db.outbox.filter(isSynced).count()
-}
+  const refused = await refusedParents()
 
-export async function hasPending(rowId: string): Promise<boolean> {
-  const queued = await db.outbox.filter((entry) => entry.row_id === rowId).first()
-
-  return queued !== undefined
+  return db.outbox.filter(sendable(refused)).count()
 }
 
 export async function markDone(id: string): Promise<void> {
-  await db.outbox.delete(id)
+  await db.transaction('rw', db.outbox, db.deadLetters, async () => {
+    const entry = await db.outbox.get(id)
+
+    await db.outbox.delete(id)
+
+    if (entry === undefined || !PARENT_TABLES.has(entry.table_name)) {
+      return
+    }
+
+    await db.deadLetters
+      .filter(
+        (letter) =>
+          letter.table_name === entry.table_name &&
+          letter.row_id === entry.row_id &&
+          letter.sequence < entry.sequence,
+      )
+      .delete()
+  })
 }
 
 export async function markFailed(id: string, message: string, nowMs: number): Promise<void> {

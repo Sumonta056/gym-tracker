@@ -8,7 +8,6 @@ import { dailyEntrySchema } from '../schema/dailyEntry'
 import {
   append,
   backoffMs,
-  hasPending,
   isDue,
   lastSequence,
   listPending,
@@ -20,9 +19,11 @@ import {
   SYNCED_TABLES,
 } from './outbox'
 
-import type { DailyEntry, OutboxEntry } from '../db/dexie'
+import type { DailyEntry, OutboxEntry, OutboxTableName } from '../db/dexie'
 
 const ROW_ID = '11111111-1111-4111-8111-111111111111'
+
+const UNSYNCED_TABLE = 'a_table_not_synced_yet' as OutboxTableName
 
 function row(overrides: Partial<DailyEntry> = {}): DailyEntry {
   return {
@@ -47,7 +48,7 @@ async function stored(id: string): Promise<OutboxEntry> {
 
 beforeEach(async () => {
   await db.open()
-  await Promise.all([db.outbox.clear(), db.syncMeta.clear()])
+  await Promise.all([db.outbox.clear(), db.deadLetters.clear(), db.syncMeta.clear()])
 })
 
 describe('append', () => {
@@ -131,16 +132,25 @@ describe('nextPending', () => {
     expect((await nextPending(first.sequence))?.id).toBe(second.id)
   })
 
-  it('skips an entry for a table the worker does not sync yet', async () => {
-    await append('exercises', 'upsert', row())
+  it('returns the entries of the workout tables in sequence order', async () => {
+    const exercise = await append('exercises', 'upsert', row())
+    const session = await append('workout_sessions', 'upsert', row())
+    const set = await append('workout_sets', 'upsert', row())
+
+    expect((await nextPending())?.id).toBe(exercise.id)
+    expect((await nextPending(exercise.sequence))?.id).toBe(session.id)
+    expect((await nextPending(session.sequence))?.id).toBe(set.id)
+  })
+
+  it('skips an entry for a table the worker does not sync', async () => {
+    await append(UNSYNCED_TABLE, 'upsert', row())
     const daily = await append('daily_entries', 'upsert', row())
 
     expect((await nextPending())?.id).toBe(daily.id)
   })
 
   it('returns nothing when only held entries are left', async () => {
-    await append('workout_sessions', 'upsert', row())
-    await append('workout_sets', 'upsert', row())
+    await append(UNSYNCED_TABLE, 'upsert', row())
 
     expect(await nextPending()).toBeUndefined()
   })
@@ -163,41 +173,76 @@ describe('pendingCount', () => {
 })
 
 describe('SYNCED_TABLES', () => {
-  it('names the two tables the worker syncs today', () => {
-    expect([...SYNCED_TABLES]).toEqual(['daily_entries', 'profiles'])
+  it('names every table the repository queues writes for', () => {
+    expect([...SYNCED_TABLES]).toEqual([
+      'daily_entries',
+      'profiles',
+      'exercises',
+      'workout_sessions',
+      'workout_sets',
+    ])
   })
 })
 
 describe('syncedCount', () => {
-  it('counts only the entries of a table the worker syncs', async () => {
+  it('counts the entries of every synced table', async () => {
     await append('daily_entries', 'upsert', row())
     await append('exercises', 'upsert', row())
+    await append('workout_sessions', 'upsert', row())
+    await append('workout_sets', 'upsert', row())
     await append('profiles', 'upsert', row())
 
-    expect(await syncedCount()).toBe(2)
+    expect(await syncedCount()).toBe(5)
+  })
+
+  it('leaves out an entry for a table the worker does not sync', async () => {
+    await append('daily_entries', 'upsert', row())
+    await append(UNSYNCED_TABLE, 'upsert', row())
+
+    expect(await syncedCount()).toBe(1)
   })
 })
 
 describe('pendingCount with held entries', () => {
   it('counts a held entry, so the sign-out sheet still warns about it', async () => {
     await append('daily_entries', 'upsert', row())
-    await append('exercises', 'upsert', row())
+    await append(UNSYNCED_TABLE, 'upsert', row())
 
     expect(await pendingCount()).toBe(2)
   })
 })
 
-describe('hasPending', () => {
-  it('reports true while a write for the row waits in the queue', async () => {
-    await append('daily_entries', 'upsert', row())
+describe('markDone after a refused parent write', () => {
+  it('clears the older dead letter of a session once a later write for it lands', async () => {
+    const refused = await append('workout_sessions', 'upsert', row())
+    await db.transaction('rw', db.outbox, db.deadLetters, async () => {
+      await db.deadLetters.put({ ...refused, error_code: '23505', failed_at: refused.created_at })
+      await db.outbox.delete(refused.id)
+    })
+    const later = await append('workout_sessions', 'upsert', row())
 
-    expect(await hasPending(ROW_ID)).toBe(true)
+    await markDone(later.id)
+
+    expect(await db.deadLetters.count()).toBe(0)
   })
 
-  it('reports false for a row with nothing queued', async () => {
-    await append('daily_entries', 'upsert', row())
+  it('keeps the dead letter of a daily entry, which holds no child rows', async () => {
+    const refused = await append('daily_entries', 'upsert', row())
+    await db.transaction('rw', db.outbox, db.deadLetters, async () => {
+      await db.deadLetters.put({ ...refused, error_code: '42501', failed_at: refused.created_at })
+      await db.outbox.delete(refused.id)
+    })
+    const later = await append('daily_entries', 'upsert', row())
 
-    expect(await hasPending('22222222-2222-4222-8222-222222222222')).toBe(false)
+    await markDone(later.id)
+
+    expect(await db.deadLetters.count()).toBe(1)
+  })
+
+  it('does nothing for an entry that is already gone', async () => {
+    await markDone('gone')
+
+    expect(await db.outbox.count()).toBe(0)
   })
 })
 

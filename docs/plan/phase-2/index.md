@@ -1,6 +1,6 @@
 # Phase 2 — step index
 
-`docs/plan/02-phase-2.md` is the source of truth. This folder splits it into 21 step
+`docs/plan/02-phase-2.md` is the source of truth. This folder splits it into 22 step
 files. One step is one session. Never do two steps in one session.
 
 A step keeps the number of its section in the source. A large section splits into
@@ -28,7 +28,8 @@ Phase 1 branch merges.
 | 2.1b | `S2.1b-exercise-seed.md`       | The global exercise seed                 | S    | 2.1a             | done  |
 | 2.2a | `S2.2a-schemas-exercises.md`   | Zod schemas, the exercise repository     | M    | 2.1a             | done  |
 | 2.2b | `S2.2b-session-repository.md`  | The session and set repository           | M    | 2.2a             | done  |
-| 2.2c | `S2.2c-sync-workout-tables.md` | The sync worker for the 3 new tables     | L    | 2.1b, 2.2b       | —     |
+| 2.2c | `S2.2c-sync-workout-tables.md` | The sync worker for the 3 new tables     | L    | 2.1b, 2.2b       | done  |
+| 2.2d | `S2.2d-set-policy-reps.md`     | The set policy and the reps constraint   | S    | 2.2c             | —     |
 | 2.7a | `S2.7a-lift-metrics.md`        | Volume load, Epley, personal records     | S    | 2.2a             | —     |
 | 2.7b | `S2.7b-week-metrics.md`        | Muscle balance, gaps, calories a minute  | S    | 2.2a             | —     |
 | 2.3a | `S2.3a-exercise-picker.md`     | The exercise picker sheet                | M    | 2.0, 2.2a        | —     |
@@ -50,7 +51,7 @@ Phase 1 branch merges.
 ```
 2.1a ─ 2.1b ─────────────────┐
   │                          │
-  └─ 2.2a ─┬─ 2.2b ──────────┴─ 2.2c
+  └─ 2.2a ─┬─ 2.2b ──────────┴─ 2.2c ─ 2.2d
            │     │
            │     └──────────────────┐
            ├─ 2.7a ─────────────────┤
@@ -68,7 +69,7 @@ all ─ 2.11
 
 The run order for one person:
 
-`2.0 · 2.1a · 2.1b · 2.2a · 2.2b · 2.2c · 2.7a · 2.7b · 2.3a · 2.3b · 2.4a · 2.4b ·
+`2.0 · 2.1a · 2.1b · 2.2a · 2.2b · 2.2c · 2.2d · 2.7a · 2.7b · 2.3a · 2.3b · 2.4a · 2.4b ·
 2.5 · 2.6 · 2.8a · 2.8b · 2.9a · 2.9b · 2.9c · 2.10 · 2.11`
 
 2.2c is the highest risk step. A bug there loses a set the user logged in the gym.
@@ -82,7 +83,7 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 
 - [x] The owner opened the prototype and accepted the 5 new plates.
 
-### Checkpoint A — after 2.2c
+### Checkpoint A — after 2.2d
 
 - [ ] The migration applies on a fresh database, with the seed.
 - [ ] Account A cannot read a session or a set of account B.

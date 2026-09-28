@@ -2,6 +2,10 @@ import { db, DEAD_STREAK_KEY } from '../db/dexie'
 
 import type { DeadLetter, OutboxEntry, OutboxPayload } from '../db/dexie'
 
+export const GLOBAL_ROW = 'GLOBAL_ROW'
+
+export const ACTIVE_SESSION_ELSEWHERE = 'ACTIVE_SESSION_ELSEWHERE'
+
 export const PERMANENT_CODES: readonly string[] = [
   '42501',
   '23502',
@@ -14,6 +18,8 @@ export const PERMANENT_CODES: readonly string[] = [
   '22008',
   '42703',
   'PGRST204',
+  GLOBAL_ROW,
+  ACTIVE_SESSION_ELSEWHERE,
 ]
 
 export const MAX_ATTEMPTS = 20

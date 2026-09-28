@@ -8,8 +8,10 @@ import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
 
 import {
+  ACTIVE_SESSION_ELSEWHERE,
   deadLetterCount,
   discardDeadLetter,
+  GLOBAL_ROW,
   isPermanent,
   readDeadStreak,
   writeDeadStreak,
@@ -115,6 +117,8 @@ describe('PERMANENT_CODES', () => {
     ['22008', 'a date out of range'],
     ['42703', 'a column the server does not have'],
     ['PGRST204', 'a column missing from the API schema cache'],
+    [GLOBAL_ROW, 'a global seed row, which the server never takes from a device'],
+    [ACTIVE_SESSION_ELSEWHERE, 'a second active session, which the server already holds'],
   ]
 
   it('names exactly the codes that can never succeed on a retry', () => {

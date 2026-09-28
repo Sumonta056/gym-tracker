@@ -2,7 +2,13 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-import { DEAD_DAY, DEAD_PROFILE } from '../../tests/fixtures/sync'
+import {
+  DEAD_DAY,
+  DEAD_EXERCISE,
+  DEAD_PROFILE,
+  DEAD_SESSION,
+  DEAD_SET,
+} from '../../tests/fixtures/sync'
 
 import { deadLetterName, failedHint, SyncCard } from './SyncCard'
 
@@ -203,5 +209,17 @@ describe('deadLetterName', () => {
 
   it('names the profile write', () => {
     expect(deadLetterName(DEAD_PROFILE)).toBe('Profile settings')
+  })
+
+  it('names a custom exercise by its name', () => {
+    expect(deadLetterName(DEAD_EXERCISE)).toBe('Exercise Cable Fly')
+  })
+
+  it('names a workout session by its day', () => {
+    expect(deadLetterName(DEAD_SESSION)).toBe('Workout Tuesday 1 September')
+  })
+
+  it('names a set by its position and the day it was logged', () => {
+    expect(deadLetterName(DEAD_SET)).toBe('Set 3, Tuesday 1 September')
   })
 })

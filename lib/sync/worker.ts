@@ -1,15 +1,19 @@
 import {
   DAILY_CURSOR_KEY,
   db,
+  EXERCISE_CURSOR_KEY,
   LOCAL_PROFILE_ID,
   PROFILE_CURSOR_KEY,
+  SESSION_CURSOR_KEY,
+  SET_CURSOR_KEY,
   SIGNED_OUT_KEY,
 } from '../db/dexie'
 import { newId } from '../id'
-import { profileSchema } from '../schema/profile'
 import { createClient } from '../supabase/client'
 
 import {
+  ACTIVE_SESSION_ELSEWHERE,
+  GLOBAL_ROW,
   isPermanent,
   MAX_ATTEMPTS,
   MAX_CONSECUTIVE_DEAD,
@@ -17,17 +21,50 @@ import {
   readDeadStreak,
   writeDeadStreak,
 } from './deadLetters'
-import { hasPending, isDue, markDone, markFailed, nextPending, syncedCount } from './outbox'
+import {
+  toLocalEntry,
+  toLocalExercise,
+  toLocalProfile,
+  toLocalSession,
+  toLocalSet,
+  toServerEntry,
+  toServerExercise,
+  toServerProfile,
+  toServerSession,
+  toServerSet,
+} from './mappings'
+import { isDue, markDone, markFailed, nextPending, syncedCount } from './outbox'
 
-import type { DailyEntry, OutboxEntry, Profile } from '../db/dexie'
-import type { Database, Tables, TablesInsert } from '../supabase/database.types'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type {
+  DailyEntry,
+  Exercise,
+  OutboxEntry,
+  OutboxTableName,
+  Profile,
+  WorkoutSession,
+  WorkoutSet,
+} from '../db/dexie'
+import type { Database } from '../supabase/database.types'
+import type { PostgrestSingleResponse, SupabaseClient } from '@supabase/supabase-js'
+import type { Table } from 'dexie'
 
 export const SYNC_INTERVAL_MS = 30000
 
 export const EPOCH = new Date(0).toISOString()
 
 export const DUPLICATE_KEY = '23505'
+
+export const FOREIGN_KEY = '23503'
+
+export const PARENT_NOT_SYNCED = 'PARENT_NOT_SYNCED'
+
+export const PARENT_NOT_SYNCED_MESSAGE =
+  'The session or exercise of this set has not reached the server yet.'
+
+export const GLOBAL_ROW_MESSAGE = 'A built-in exercise is never sent to the server.'
+
+export const ACTIVE_SESSION_MESSAGE =
+  'Another device already has an active session. This one was not sent, so the other stays as it is.'
 
 export const HALT_TIMEOUT_MS = 5000
 
@@ -80,6 +117,35 @@ interface SendResult {
 }
 
 type Client = SupabaseClient<Database>
+
+interface Refusal {
+  message: string
+  code?: string
+}
+
+interface Answer {
+  data: { updated_at: string } | null
+  error: Refusal | null
+}
+
+interface Stamped {
+  updated_at: string
+}
+
+interface ServerRow {
+  id: string
+  updated_at: string
+}
+
+interface PullSpec<Row extends ServerRow> {
+  tableName: OutboxTableName
+  table: Table
+  cursorKey: string
+  fetch: (from: string) => PromiseLike<PostgrestSingleResponse<Row[]>>
+  localKey: (row: Row) => string
+  readLocal: (key: string) => Promise<Stamped | undefined>
+  write: (row: Row) => Promise<unknown>
+}
 
 let state: SyncState = 'idle'
 
@@ -159,98 +225,41 @@ function untilStopped<T>(work: PromiseLike<T>, signal: AbortSignal): Promise<T> 
   })
 }
 
-function toServerEntry(payload: DailyEntry, userId: string): TablesInsert<'daily_entries'> {
-  return {
-    id: payload.id,
-    user_id: userId,
-    entry_date: payload.entry_date,
-    walk_seconds: payload.walk_seconds,
-    gym_seconds: payload.gym_seconds,
-    avg_heart_rate: payload.avg_heart_rate,
-    max_heart_rate: payload.max_heart_rate,
-    weight_kg: payload.weight_kg,
-    calories_burnt: payload.calories_burnt,
-    steps: payload.steps,
-    note: payload.note,
-    created_at: payload.created_at,
-    deleted_at: payload.deleted_at,
-  }
-}
-
-function toServerProfile(payload: Profile, userId: string): TablesInsert<'profiles'> {
-  return {
-    id: userId,
-    display_name: payload.display_name,
-    unit_system: payload.unit_system,
-    height_cm: payload.height_cm,
-    target_weight_kg: payload.target_weight_kg,
-    step_goal: payload.step_goal,
-    rest_sound_muted: payload.rest_sound_muted,
-    rest_seconds_by_exercise: payload.rest_seconds_by_exercise,
-  }
-}
-
-function toLocalEntry(row: Tables<'daily_entries'>): DailyEntry {
-  return {
-    id: row.id,
-    entry_date: row.entry_date,
-    walk_seconds: row.walk_seconds,
-    gym_seconds: row.gym_seconds,
-    avg_heart_rate: row.avg_heart_rate,
-    max_heart_rate: row.max_heart_rate,
-    weight_kg: row.weight_kg,
-    calories_burnt: row.calories_burnt,
-    steps: row.steps,
-    note: row.note,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    deleted_at: row.deleted_at,
-  }
-}
-
-function toLocalProfile(row: Tables<'profiles'>): Profile {
-  return {
-    id: LOCAL_PROFILE_ID,
-    display_name: row.display_name,
-    unit_system: row.unit_system === 'imperial' ? 'imperial' : 'metric',
-    height_cm: row.height_cm,
-    target_weight_kg: row.target_weight_kg,
-    step_goal: row.step_goal,
-    rest_sound_muted:
-      profileSchema.shape.rest_sound_muted.safeParse(row.rest_sound_muted).data ?? false,
-    rest_seconds_by_exercise:
-      profileSchema.shape.rest_seconds_by_exercise.safeParse(row.rest_seconds_by_exercise).data ??
-      {},
-    updated_at: row.updated_at,
-  }
-}
-
-async function stampEntry(payload: DailyEntry, serverAt: string | undefined): Promise<void> {
+async function stampRow<T extends Stamped>(
+  read: () => Promise<T | undefined>,
+  write: (row: T) => Promise<unknown>,
+  pushedAt: string,
+  serverAt: string | undefined,
+): Promise<void> {
   if (serverAt === undefined) {
     return
   }
 
-  const local = await db.dailyEntries.get(payload.id)
+  const local = await read()
 
-  if (local === undefined || local.updated_at !== payload.updated_at) {
+  if (local === undefined || local.updated_at !== pushedAt) {
     return
   }
 
-  await db.dailyEntries.put({ ...local, updated_at: serverAt })
+  await write({ ...local, updated_at: serverAt })
 }
 
-async function stampProfile(payload: Profile, serverAt: string | undefined): Promise<void> {
-  if (serverAt === undefined) {
-    return
+function refused(error: Refusal): SendResult {
+  return { error: error.message, code: codeOf(error) }
+}
+
+async function settle(
+  answer: Answer,
+  stamp: (serverAt: string | undefined) => Promise<void>,
+  classify: (error: Refusal) => SendResult = refused,
+): Promise<SendResult> {
+  if (answer.error !== null) {
+    return classify(answer.error)
   }
 
-  const local = await db.profiles.get(LOCAL_PROFILE_ID)
+  await stamp(answer.data?.updated_at)
 
-  if (local === undefined || local.updated_at !== payload.updated_at) {
-    return
-  }
-
-  await db.profiles.put({ ...local, updated_at: serverAt })
+  return { error: null, code: null }
 }
 
 async function claimServerId(payload: DailyEntry, toId: string): Promise<DailyEntry> {
@@ -294,7 +303,7 @@ async function sendProfile(
   userId: string,
   signal: AbortSignal,
 ): Promise<SendResult> {
-  const { data, error } = await untilStopped(
+  const answer = await untilStopped(
     client
       .from('profiles')
       .upsert(toServerProfile(payload, userId), { onConflict: 'id' })
@@ -303,13 +312,14 @@ async function sendProfile(
     signal,
   )
 
-  if (error !== null) {
-    return { error: error.message, code: codeOf(error) }
-  }
-
-  await stampProfile(payload, data?.updated_at)
-
-  return { error: null, code: null }
+  return settle(answer, (serverAt) =>
+    stampRow(
+      () => db.profiles.get(LOCAL_PROFILE_ID),
+      (row) => db.profiles.put(row),
+      payload.updated_at,
+      serverAt,
+    ),
+  )
 }
 
 async function sendDailyEntry(
@@ -333,12 +343,117 @@ async function sendDailyEntry(
       return adoptServerDate(client, payload, userId, signal)
     }
 
-    return { error: error.message, code: codeOf(error) }
+    return refused(error)
   }
 
-  await stampEntry(payload, data?.updated_at)
+  await stampRow(
+    () => db.dailyEntries.get(payload.id),
+    (row) => db.dailyEntries.put(row),
+    payload.updated_at,
+    data?.updated_at,
+  )
 
   return { error: null, code: null }
+}
+
+async function sendExercise(
+  client: Client,
+  payload: Exercise,
+  userId: string,
+  signal: AbortSignal,
+): Promise<SendResult> {
+  if (payload.user_id === null) {
+    return { error: GLOBAL_ROW_MESSAGE, code: GLOBAL_ROW }
+  }
+
+  const answer = await untilStopped(
+    client
+      .from('exercises')
+      .upsert(toServerExercise(payload, userId), { onConflict: 'id' })
+      .select('updated_at')
+      .maybeSingle(),
+    signal,
+  )
+
+  return settle(answer, (serverAt) =>
+    stampRow(
+      () => db.exercises.get(payload.id),
+      (row) => db.exercises.put(row),
+      payload.updated_at,
+      serverAt,
+    ),
+  )
+}
+
+function sessionRefusal(error: Refusal): SendResult {
+  if (error.code === DUPLICATE_KEY) {
+    return { error: ACTIVE_SESSION_MESSAGE, code: ACTIVE_SESSION_ELSEWHERE }
+  }
+
+  return refused(error)
+}
+
+async function sendSession(
+  client: Client,
+  payload: WorkoutSession,
+  userId: string,
+  signal: AbortSignal,
+): Promise<SendResult> {
+  const answer = await untilStopped(
+    client
+      .from('workout_sessions')
+      .upsert(toServerSession(payload, userId), { onConflict: 'id' })
+      .select('updated_at')
+      .maybeSingle(),
+    signal,
+  )
+
+  return settle(
+    answer,
+    (serverAt) =>
+      stampRow(
+        () => db.workoutSessions.get(payload.id),
+        (row) => db.workoutSessions.put(row),
+        payload.updated_at,
+        serverAt,
+      ),
+    sessionRefusal,
+  )
+}
+
+function setRefusal(error: Refusal): SendResult {
+  if (error.code === FOREIGN_KEY) {
+    return { error: PARENT_NOT_SYNCED_MESSAGE, code: PARENT_NOT_SYNCED }
+  }
+
+  return refused(error)
+}
+
+async function sendSet(
+  client: Client,
+  payload: WorkoutSet,
+  signal: AbortSignal,
+): Promise<SendResult> {
+  const answer = await untilStopped(
+    client
+      .from('workout_sets')
+      .upsert(toServerSet(payload), { onConflict: 'id' })
+      .select('updated_at')
+      .maybeSingle(),
+    signal,
+  )
+
+  return settle(
+    answer,
+    (serverAt) =>
+      stampRow(
+        () => db.workoutSets.get(payload.id),
+        (row) => db.workoutSets.put(row),
+        payload.updated_at,
+        serverAt,
+      ),
+    setRefusal,
+  )
 }
 
 async function adoptServerDate(
@@ -358,7 +473,7 @@ async function adoptServerDate(
   )
 
   if (error !== null) {
-    return { error: error.message, code: codeOf(error) }
+    return refused(error)
   }
 
   const serverId = data?.id
@@ -379,11 +494,18 @@ async function sendEntry(
   signal: AbortSignal,
 ): Promise<SendResult> {
   try {
-    if (entry.table_name === 'profiles') {
-      return await sendProfile(client, entry.payload as Profile, userId, signal)
+    switch (entry.table_name) {
+      case 'profiles':
+        return await sendProfile(client, entry.payload as Profile, userId, signal)
+      case 'exercises':
+        return await sendExercise(client, entry.payload as Exercise, userId, signal)
+      case 'workout_sessions':
+        return await sendSession(client, entry.payload as WorkoutSession, userId, signal)
+      case 'workout_sets':
+        return await sendSet(client, entry.payload as WorkoutSet, signal)
+      case 'daily_entries':
+        return await sendDailyEntry(client, entry.payload as DailyEntry, userId, true, signal)
     }
-
-    return await sendDailyEntry(client, entry.payload as DailyEntry, userId, true, signal)
   } catch (cause) {
     return { error: errorMessage(cause), code: null }
   }
@@ -454,28 +576,40 @@ async function moveCursor(key: string, from: string, to: string): Promise<void> 
   }
 }
 
-async function acceptsServerRow(
-  rowId: string,
-  localUpdatedAt: string | undefined,
-  serverUpdatedAt: string,
+async function applyServerRow<Row extends ServerRow>(
+  spec: PullSpec<Row>,
+  row: Row,
 ): Promise<boolean> {
-  if (await hasPending(rowId)) {
-    return false
-  }
+  return db.transaction('rw', spec.table, db.outbox, async () => {
+    const key = spec.localKey(row)
+    const queued = await db.outbox
+      .where('table_name')
+      .equals(spec.tableName)
+      .filter((entry) => entry.row_id === key)
+      .count()
 
-  return localUpdatedAt === undefined || serverUpdatedAt >= localUpdatedAt
+    if (queued > 0) {
+      return false
+    }
+
+    const local = await spec.readLocal(key)
+
+    if (local !== undefined && row.updated_at < local.updated_at) {
+      return false
+    }
+
+    await spec.write(row)
+
+    return true
+  })
 }
 
-async function pullDailyEntries(client: Client, signal: AbortSignal): Promise<PullResult> {
-  const from = await readCursor(DAILY_CURSOR_KEY)
-  const { data, error } = await untilStopped(
-    client
-      .from('daily_entries')
-      .select('*')
-      .gt('updated_at', from)
-      .order('updated_at', { ascending: true }),
-    signal,
-  )
+async function pullTable<Row extends ServerRow>(
+  spec: PullSpec<Row>,
+  signal: AbortSignal,
+): Promise<PullResult> {
+  const from = await readCursor(spec.cursorKey)
+  const { data, error } = await untilStopped(spec.fetch(from), signal)
 
   if (error !== null) {
     return { pulled: 0, error: error.message }
@@ -490,14 +624,11 @@ async function pullDailyEntries(client: Client, signal: AbortSignal): Promise<Pu
       throw new Error(SYNC_STOPPED)
     }
 
-    const local = await db.dailyEntries.get(row.id)
-
-    if (!(await acceptsServerRow(row.id, local?.updated_at, row.updated_at))) {
+    if (!(await applyServerRow(spec, row))) {
       blocked = true
       continue
     }
 
-    await db.dailyEntries.put(toLocalEntry(row))
     pulled += 1
 
     if (!blocked && row.updated_at > highWater) {
@@ -505,72 +636,123 @@ async function pullDailyEntries(client: Client, signal: AbortSignal): Promise<Pu
     }
   }
 
-  await moveCursor(DAILY_CURSOR_KEY, from, highWater)
+  await moveCursor(spec.cursorKey, from, highWater)
 
   return { pulled, error: null }
 }
 
-async function pullProfiles(client: Client, signal: AbortSignal): Promise<PullResult> {
-  const from = await readCursor(PROFILE_CURSOR_KEY)
-  const { data, error } = await untilStopped(
-    client
-      .from('profiles')
-      .select('*')
-      .gt('updated_at', from)
-      .order('updated_at', { ascending: true }),
-    signal,
-  )
-
-  if (error !== null) {
-    return { pulled: 0, error: error.message }
-  }
-
-  let pulled = 0
-  let highWater = from
-  let blocked = false
-
-  for (const row of data) {
-    if (signal.aborted) {
-      throw new Error(SYNC_STOPPED)
-    }
-
-    const local = await db.profiles.get(LOCAL_PROFILE_ID)
-
-    if (!(await acceptsServerRow(LOCAL_PROFILE_ID, local?.updated_at, row.updated_at))) {
-      blocked = true
-      continue
-    }
-
-    await db.profiles.put(toLocalProfile(row))
-    pulled += 1
-
-    if (!blocked && row.updated_at > highWater) {
-      highWater = row.updated_at
-    }
-  }
-
-  await moveCursor(PROFILE_CURSOR_KEY, from, highWater)
-
-  return { pulled, error: null }
+function pullSteps(client: Client, signal: AbortSignal): (() => Promise<PullResult>)[] {
+  return [
+    () =>
+      pullTable(
+        {
+          tableName: 'daily_entries',
+          table: db.dailyEntries,
+          cursorKey: DAILY_CURSOR_KEY,
+          fetch: (from) =>
+            client
+              .from('daily_entries')
+              .select('*')
+              .gt('updated_at', from)
+              .order('updated_at', { ascending: true }),
+          localKey: (row) => row.id,
+          readLocal: (key) => db.dailyEntries.get(key),
+          write: (row) => db.dailyEntries.put(toLocalEntry(row)),
+        },
+        signal,
+      ),
+    () =>
+      pullTable(
+        {
+          tableName: 'profiles',
+          table: db.profiles,
+          cursorKey: PROFILE_CURSOR_KEY,
+          fetch: (from) =>
+            client
+              .from('profiles')
+              .select('*')
+              .gt('updated_at', from)
+              .order('updated_at', { ascending: true }),
+          localKey: () => LOCAL_PROFILE_ID,
+          readLocal: (key) => db.profiles.get(key),
+          write: (row) => db.profiles.put(toLocalProfile(row)),
+        },
+        signal,
+      ),
+    () =>
+      pullTable(
+        {
+          tableName: 'exercises',
+          table: db.exercises,
+          cursorKey: EXERCISE_CURSOR_KEY,
+          fetch: (from) =>
+            client
+              .from('exercises')
+              .select('*')
+              .gt('updated_at', from)
+              .order('updated_at', { ascending: true }),
+          localKey: (row) => row.id,
+          readLocal: (key) => db.exercises.get(key),
+          write: (row) => db.exercises.put(toLocalExercise(row)),
+        },
+        signal,
+      ),
+    () =>
+      pullTable(
+        {
+          tableName: 'workout_sessions',
+          table: db.workoutSessions,
+          cursorKey: SESSION_CURSOR_KEY,
+          fetch: (from) =>
+            client
+              .from('workout_sessions')
+              .select('*')
+              .gt('updated_at', from)
+              .order('updated_at', { ascending: true }),
+          localKey: (row) => row.id,
+          readLocal: (key) => db.workoutSessions.get(key),
+          write: (row) => db.workoutSessions.put(toLocalSession(row)),
+        },
+        signal,
+      ),
+    () =>
+      pullTable(
+        {
+          tableName: 'workout_sets',
+          table: db.workoutSets,
+          cursorKey: SET_CURSOR_KEY,
+          fetch: (from) =>
+            client
+              .from('workout_sets')
+              .select('*')
+              .gt('updated_at', from)
+              .order('updated_at', { ascending: true }),
+          localKey: (row) => row.id,
+          readLocal: (key) => db.workoutSets.get(key),
+          write: (row) => db.workoutSets.put(toLocalSet(row)),
+        },
+        signal,
+      ),
+  ]
 }
 
 export async function pull(
   client: Client,
   signal: AbortSignal = new AbortController().signal,
 ): Promise<PullResult> {
-  const entries = await pullDailyEntries(client, signal)
+  let pulled = 0
 
-  if (entries.error !== null) {
-    return entries
+  for (const step of pullSteps(client, signal)) {
+    const result = await step()
+
+    pulled += result.pulled
+
+    if (result.error !== null) {
+      return { pulled, error: result.error }
+    }
   }
 
-  const profiles = await pullProfiles(client, signal)
-
-  if (profiles.error !== null) {
-    return { pulled: entries.pulled, error: profiles.error }
-  }
-
-  return { pulled: entries.pulled + profiles.pulled, error: null }
+  return { pulled, error: null }
 }
 
 function idle(status: 'offline'): SyncOutcome {

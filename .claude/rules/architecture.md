@@ -57,6 +57,19 @@ Two known limits of that second rule:
 - The comparison covers the one entry being pushed. A later queued write for the same
   row keeps its own content and lands on the next turn, as any later write does.
 
+### The last push wins
+
+The push is an upsert on `id` with no `updated_at` guard. When 2 devices change the
+same row, the push that reaches the server last keeps its content. This holds for
+every synced table.
+
+- A stale offline edit can undo a change or a soft delete made on another device.
+- The pull keeps a local row that still has a queued write, and writes a newer server
+  row over any other local row.
+- Kept on purpose. This app has one user, who rarely edits one row on 2 devices at
+  once. A server guard compares a device clock with a server clock, the same limit
+  as the server id rule above.
+
 ## 3. The soft delete rule
 
 Set `deleted_at`. A hard delete does not sync, so it comes back on the next pull.

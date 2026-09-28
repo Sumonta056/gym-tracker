@@ -5,19 +5,22 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.2c → `docs/plan/phase-2/S2.2c-sync-workout-tables.md`
+**Next step:** 2.2d → `docs/plan/phase-2/S2.2d-set-policy-reps.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.2b, the session and set repository, on top of `54d6b8a`.
+**Last commit:** 2.2c, the sync of the 3 workout tables, on top of `f16cd7c`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-27 after 2.2b. The report is `reports/2026-09-27-session-set-repository.html`.
+- Stopped on 2026-09-28 after 2.2c. The report is `reports/2026-09-28-sync-workout-tables.html`.
+- 2.2d is new. The owner added it on 2026-09-28 to close 2 server gaps that 2.2c found.
+  Checkpoint A moves to after 2.2d.
 - Migrations `20260927142258_phase2_workouts` and `20260927151153_phase2_exercise_seed` are
   applied to the live project. Never apply them again.
 - `apply_migration` records its own version. Rename the local file to the version that
   `list_migrations` shows.
-- Run each step in a fresh subagent on Node 24. It stages and stops. The owner runs the commit.
+- Run each step in a fresh subagent. PATH: `export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"`.
+  `.nvmrc` pins `24.21.0`. It stages and stops. The owner runs the commit.
 - A UI change puts screenshots in the report. See `.claude/rules/git.md`.
 - Stop any `next dev` before `pnpm verify`. A shared `.next` breaks the build.
 - 2026-09-26: `feat/password-sign-in` adds password sign-in, commit `05813c8`. The report
@@ -68,6 +71,10 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **The session and set repository.** `addSet` takes the set without `set_index` and sets the
   highest index plus 1, deleted sets included. A finished session still takes a set. `updateSet`
   changes only `reps`, `weight_kg`, `rpe` and `completed_at`. From 2.2b.
+- **The workout tables sync.** Mappings live in `lib/sync/mappings.ts`. A null-owner exercise is
+  `GLOBAL_ROW`, a 23505 on a session is `ACTIVE_SESSION_ELSEWHERE`, both dead letters. A 23503 on a
+  set is transient. A set behind a refused parent is held. Unknown `muscle_group` reads `core`,
+  unknown `status` reads `finished`. The last push wins, in `architecture.md`. From 2.2c.
 
 ## Open, with the step that closes each one
 
@@ -79,23 +86,24 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   From 1.13.
 - **2.4a** — the live workout plate has no current Workouts tab. From 2.0.
 - **2.9b** — import review has no plate at 1024 px and up. From 2.0.
-- **2.2c** — remove the hold: add the 3 tables to `SYNCED_TABLES`. First give `sendEntry`,
-  `SyncCard.tsx:36-40` and the pull an explicit branch per table. Today both treat any table
-  but `profiles` as a daily entry. From 2.2a.
-- **2.2c** — own exercises hold `LOCAL_PROFILE_ID`. Push swaps it for the session id, pull maps it
-  back. After a sign-out clear, the pull brings the 40 global rows back. From 2.2a.
-- **Until 2.2c** — after an exercise write, every sign-out shows the "writes will be lost"
-  sheet, and the chip counts held entries as pending. By design. From 2.2a.
-- **2.2c** — `startSession` sees only this device. The server index
-  `workout_sessions_one_active_idx` refuses a second active session. Handle it as a named case. From 2.2b.
 - **Owner** — `lastSetFor` reads every set, because `workoutSets` has no `exercise_id` index.
   An index needs Dexie version 4. Acceptable for one user. From 2.2b.
 - **2.3a** — `listExercises` hides archived rows. Add `includeArchived` so a screen can restore
   one. From 2.2a.
 - **Owner** — `deadLetters.ts` at 93.1 % lines once passed `pnpm verify` in a subagent run. Check
   that the `lib/sync/**` floor in `vitest.config` fails a single file. From 2.2a.
-- **2.2c** — the `workout_sets` policies do not check that `exercise_id` is the user's own or a
-  global row. Only the foreign key applies. Needs a new migration if closed. From 2.1a.
+- **2.2d** — the `workout_sets` policies do not check that `exercise_id` is the user's own or a
+  global row, and the server `reps` is nullable. One migration closes both. From 2.2c.
+- **2.2d** — the manual browser check: log a session offline, reload, go online, see the rows in
+  Supabase. Not done in 2.2c. Checkpoint A needs it. From 2.2c.
+- **2.4a** — discarding a refused session in the sync card also discards its held sets. Today
+  the sets are released and fail again. From 2.2c.
+- **2.4a** — after an active session conflict, a pull can bring a second active session onto this
+  device. The live screen must choose one. From 2.2c.
+- **Owner** — the cleanup of out-of-date dead letters covers sessions and exercises only. The
+  same rule fits daily entries and profiles. From 2.2c.
+- **Owner** — the e2e suite fails 1 to 6 tests on some runs: WebKit timeouts and `fetch failed`
+  in the Supabase cleanup helper. Each passes on rerun. From 2.2c.
 - **Owner** — `get_advisors` warns that leaked password protection is off. An Auth setting. From 2.1a.
 - **2.3b** — no unique index on global exercise names. Only the seed adds global rows. The owner
   deferred it. From 2.1b.
@@ -104,7 +112,7 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 - [x] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
 - [x] Phase 1 — Daily tracker (19 steps) · `docs/plan/phase-1/index.md`
-- [ ] Phase 2 — Workout log and import (21 steps) · `docs/plan/phase-2/index.md`
+- [ ] Phase 2 — Workout log and import (22 steps) · `docs/plan/phase-2/index.md`
 - [ ] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
 
 ## Rules that block you
