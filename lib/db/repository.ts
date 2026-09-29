@@ -2,7 +2,7 @@ import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
 import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
-import { workoutSessionSchema } from '../schema/workoutSession'
+import { storedWorkoutSessionSchema, workoutSessionSchema } from '../schema/workoutSession'
 import { workoutSetSchema } from '../schema/workoutSet'
 import { append as enqueue, lastSequence } from '../sync/outbox'
 import {
@@ -457,10 +457,12 @@ export async function finishSession(id: string): Promise<WorkoutSession> {
     }
 
     const timestamp = nowIso()
-    const parsed = workoutSessionSchema.parse({
+    const endedAt =
+      Date.parse(session.started_at) > Date.parse(timestamp) ? session.started_at : timestamp
+    const parsed = storedWorkoutSessionSchema.parse({
       entry_date: session.entry_date,
       started_at: session.started_at,
-      ended_at: timestamp,
+      ended_at: endedAt,
       status: 'finished',
     })
     const row: WorkoutSession = { ...session, ...parsed, updated_at: timestamp }
@@ -609,30 +611,41 @@ export async function listSets(sessionId: string): Promise<WorkoutSet[]> {
   return rows.filter((row) => row.deleted_at === null).sort(inWriteOrder)
 }
 
-export async function lastSetFor(exerciseId: string): Promise<WorkoutSet | undefined> {
-  const rows = await db.workoutSets
-    .filter((row) => row.exercise_id === exerciseId && row.deleted_at === null)
-    .toArray()
+function doneAt(set: WorkoutSet): number {
+  return Date.parse(set.completed_at ?? set.created_at)
+}
 
-  return rows.sort((left, right) => inWriteOrder(right, left))[0]
+function inDoneOrder(left: WorkoutSet, right: WorkoutSet): number {
+  return doneAt(left) - doneAt(right) || inWriteOrder(left, right)
+}
+
+async function liveSetsOf(exerciseIds: readonly string[]): Promise<WorkoutSet[]> {
+  const wanted = new Set(exerciseIds)
+
+  if (wanted.size === 0) {
+    return []
+  }
+
+  return db.workoutSets
+    .filter((row) => wanted.has(row.exercise_id) && row.deleted_at === null)
+    .toArray()
+}
+
+export async function setsForExercises(exerciseIds: string[]): Promise<WorkoutSet[]> {
+  return (await liveSetsOf(exerciseIds)).sort(inDoneOrder)
+}
+
+export async function lastSetFor(exerciseId: string): Promise<WorkoutSet | undefined> {
+  return (await liveSetsOf([exerciseId])).sort((left, right) => inDoneOrder(right, left))[0]
 }
 
 export async function lastSetsFor(exerciseIds: string[]): Promise<Map<string, WorkoutSet>> {
-  const wanted = new Set(exerciseIds)
   const last = new Map<string, WorkoutSet>()
 
-  if (wanted.size === 0) {
-    return last
-  }
-
-  const rows = await db.workoutSets
-    .filter((row) => wanted.has(row.exercise_id) && row.deleted_at === null)
-    .toArray()
-
-  for (const row of rows) {
+  for (const row of await liveSetsOf(exerciseIds)) {
     const held = last.get(row.exercise_id)
 
-    if (held === undefined || inWriteOrder(row, held) > 0) {
+    if (held === undefined || inDoneOrder(row, held) > 0) {
       last.set(row.exercise_id, row)
     }
   }

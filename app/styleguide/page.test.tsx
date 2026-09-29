@@ -411,4 +411,16 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByText('Picked: none')).toBeInTheDocument()
   })
+
+  it('shows the live workout sample with its timer and the PR badge', () => {
+    const sample = screen.getByTestId('live-sample')
+
+    expect(within(sample).getByRole('timer', { name: 'Sample elapsed time' })).toHaveTextContent(
+      '42:17',
+    )
+    expect(within(sample).getByText('PR')).toBeInTheDocument()
+    expect(
+      within(sample).getByRole('button', { name: 'Add set to Bench Press' }),
+    ).toBeInTheDocument()
+  })
 })

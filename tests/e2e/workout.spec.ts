@@ -1,0 +1,286 @@
+import AxeBuilder from '@axe-core/playwright'
+
+import { expect, navLink, readStore, test } from './support/signedIn'
+
+import type { TestDay } from './support/signedIn'
+import type { BrowserContext, Page } from '@playwright/test'
+
+type LocalSession = {
+  id: string
+  status: string
+  ended_at: string | null
+  deleted_at: string | null
+}
+
+type LocalSet = {
+  id: string
+  session_id: string
+  reps: number
+  weight_kg: number | null
+  deleted_at: string | null
+}
+
+const SUPABASE = /\.supabase\.co\//
+
+const SESSIONS = /\/rest\/v1\/workout_sessions/
+
+const WIDTHS = [390, 768, 1440]
+
+const CLOCK_AHEAD_MS = 60000
+
+const ONE_ACTIVE_SLOT_TIMEOUT_MS = 120000
+
+const SERVICE_WORKER_TIMEOUT_MS = 15000
+
+test.use({
+  serviceWorkers: async ({ browserName }, provide) => {
+    await provide(browserName === 'webkit' ? 'block' : 'allow')
+  },
+})
+
+test.beforeEach(async ({ context, day }) => {
+  await pullOnlyThisWindow(context, day)
+})
+
+async function pullOnlyThisWindow(context: BrowserContext, day: TestDay): Promise<void> {
+  await context.route(SESSIONS, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback()
+      return
+    }
+
+    let response: Awaited<ReturnType<typeof route.fetch>>
+
+    try {
+      response = await route.fetch()
+    } catch {
+      await route.abort('failed')
+      return
+    }
+
+    if (!response.ok()) {
+      await route.fulfill({ response })
+      return
+    }
+
+    const rows = (await response.json()) as { entry_date: string }[]
+    await route.fulfill({
+      response,
+      json: rows.filter((row) => row.entry_date >= day.from && row.entry_date <= day.to),
+    })
+  })
+}
+
+async function waitForExercises(page: Page): Promise<void> {
+  await expect
+    .poll(async () => (await readStore<{ id: string }>(page, 'exercises')).length, {
+      message: 'the built-in exercises reach this device',
+      timeout: 15000,
+    })
+    .toBeGreaterThan(0)
+}
+
+async function waitForServiceWorker(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          await navigator.serviceWorker.ready
+          return navigator.serviceWorker.controller !== null
+        }),
+      { timeout: SERVICE_WORKER_TIMEOUT_MS },
+    )
+    .toBe(true)
+}
+
+async function cutOffTheServer(
+  page: Page,
+  context: BrowserContext,
+  browserName: string,
+): Promise<boolean> {
+  await context.route(SUPABASE, (route) => route.abort('internetdisconnected'))
+  const trulyOffline = browserName !== 'webkit'
+
+  if (trulyOffline) {
+    await page.addInitScript(() => {
+      window.addEventListener(
+        'online',
+        (event) => {
+          if (!navigator.onLine) event.stopImmediatePropagation()
+        },
+        true,
+      )
+    })
+    for (const path of ['/workout', '/workouts']) {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    }
+    await waitForServiceWorker(page)
+    await context.setOffline(true)
+  }
+
+  return trulyOffline
+}
+
+async function openWithExercises(page: Page): Promise<void> {
+  await page.goto('/workouts')
+  await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()
+  await waitForExercises(page)
+}
+
+async function startSession(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Start a session' }).click()
+  await expect(page).toHaveURL(/\/workout$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Session' })).toBeVisible()
+}
+
+async function pickBench(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Add exercise' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Pick an exercise' })
+  await dialog.getByRole('searchbox', { name: 'Search exercises' }).fill('Bench Press')
+  await dialog
+    .getByRole('button', { name: /^Bench Press/ })
+    .first()
+    .click()
+  await expect(page.getByRole('region', { name: 'Bench Press' })).toBeVisible()
+}
+
+function benchCard(page: Page) {
+  return page.getByRole('region', { name: 'Bench Press' })
+}
+
+async function addSet(page: Page, count: number): Promise<void> {
+  await benchCard(page).getByRole('button', { name: 'Add set to Bench Press' }).click()
+  await expect(benchCard(page).getByRole('listitem')).toHaveCount(count)
+}
+
+test('keeps every set of a session logged offline through a finish and a reload', async ({
+  page,
+  context,
+  browserName,
+  account,
+  day,
+}) => {
+  await openWithExercises(page)
+  const trulyOffline = await cutOffTheServer(page, context, browserName)
+  if (trulyOffline) {
+    await page.goto('/workouts')
+  }
+
+  await startSession(page)
+  await pickBench(page)
+  await benchCard(page).getByLabel('Reps').fill('8')
+  await benchCard(page).getByLabel(/^Load/).fill('60')
+  await addSet(page, 1)
+  await addSet(page, 2)
+  await addSet(page, 3)
+  await expect(page.getByTestId('session-summary')).toHaveText(
+    'Volume 1,440 kg · 3 sets · 1 exercise',
+  )
+
+  await page.getByRole('button', { name: 'Finish session' }).click()
+  await expect(page).toHaveURL(/\/workouts$/)
+  await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()
+
+  const sessions = await readStore<LocalSession>(page, 'workoutSessions')
+  expect(sessions).toHaveLength(1)
+  const [session] = sessions
+  expect(session).toMatchObject({ status: 'finished', deleted_at: null })
+  expect(session?.ended_at).not.toBeNull()
+
+  const sets = await readStore<LocalSet>(page, 'workoutSets')
+  expect(
+    sets
+      .filter((set) => set.session_id === session?.id && set.deleted_at === null)
+      .map((set) => [set.reps, set.weight_kg]),
+  ).toEqual([
+    [8, 60],
+    [8, 60],
+    [8, 60],
+  ])
+  expect(await account.sessionsBetween(day.from, day.to)).toEqual([])
+})
+
+test('marks the Workouts tab current on the live screen, with one h1 and no serious axe issue', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  await openWithExercises(page)
+  const trulyOffline = await cutOffTheServer(page, context, browserName)
+  if (trulyOffline) {
+    await page.goto('/workouts')
+  }
+  await startSession(page)
+  await pickBench(page)
+  await benchCard(page).getByLabel('Reps').fill('8')
+  await benchCard(page).getByLabel(/^Load/).fill('60')
+  await addSet(page, 1)
+
+  const current = page.locator('a[aria-current="page"]:visible')
+  await expect(current).toHaveCount(1)
+  await expect(current).toHaveAccessibleName('Workouts')
+  await expect(navLink(page, 'Workouts').first()).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
+
+  const results = await new AxeBuilder({ page }).analyze()
+  expect(
+    results.violations
+      .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+      .map((violation) => violation.id),
+  ).toEqual([])
+
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 900 })
+    const problems = await page.evaluate(() => {
+      const found: string[] = []
+      if (document.documentElement.scrollWidth > document.documentElement.clientWidth) {
+        found.push('sideways scroll')
+      }
+      for (const element of document.querySelectorAll<HTMLElement>('button, a, input')) {
+        const box = element.getBoundingClientRect()
+        if (box.width > 0 && box.height > 0 && box.height < 44) {
+          found.push(
+            `${element.tagName} "${(element.getAttribute('aria-label') ?? element.textContent).trim()}" ${String(box.height)}px`,
+          )
+        }
+      }
+      return found
+    })
+    expect(problems, `${String(width)}px`).toEqual([])
+  }
+})
+
+test('finishes a pulled session whose start is ahead of this device clock', async ({
+  page,
+  account,
+  day,
+}) => {
+  test.setTimeout(ONE_ACTIVE_SLOT_TIMEOUT_MS)
+  const seeded = await account.seedActiveSession({
+    entry_date: day.date,
+    started_at: new Date(day.noon().getTime() + CLOCK_AHEAD_MS).toISOString(),
+  })
+
+  await page.goto('/workout')
+  await expect
+    .poll(
+      async () =>
+        (await readStore<LocalSession>(page, 'workoutSessions')).map((session) => session.id),
+      { message: 'the seeded session reaches this device', timeout: 15000 },
+    )
+    .toEqual([seeded.id])
+  await page.reload()
+  await expect(page.getByRole('heading', { level: 1, name: 'Session' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Finish session' }).click()
+  await expect(page).toHaveURL(/\/workouts$/)
+  await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible()
+
+  const [local] = await readStore<LocalSession>(page, 'workoutSessions')
+  expect(local).toMatchObject({ id: seeded.id, status: 'finished', deleted_at: null })
+  expect(Date.parse(local?.ended_at ?? '')).toBeGreaterThanOrEqual(Date.parse(seeded.started_at))
+})

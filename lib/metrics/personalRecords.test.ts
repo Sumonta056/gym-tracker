@@ -149,8 +149,8 @@ describe('isNewRecord', () => {
     expect(isNewRecord(set({ id: 'new', weight_kg: 75 }), history)).toBe(false)
   })
 
-  it('is true for the first set of an exercise ever', () => {
-    expect(isNewRecord(set({ id: 'first', weight_kg: 20 }), [])).toBe(true)
+  it('is false for the first set of an exercise ever', () => {
+    expect(isNewRecord(set({ id: 'first', weight_kg: 20 }), [])).toBe(false)
   })
 
   it('is false for the first body weight set of an exercise ever', () => {
@@ -163,16 +163,34 @@ describe('isNewRecord', () => {
     expect(isNewRecord(current, [...history, current])).toBe(true)
   })
 
+  it('is false when the history holds only the set itself', () => {
+    const current = set({ id: 'first', weight_kg: 20 })
+
+    expect(isNewRecord(current, [current])).toBe(false)
+  })
+
   it('ignores a history set of another exercise', () => {
     const other = set({ id: 'squat', exercise_id: SQUAT, weight_kg: 140 })
 
-    expect(isNewRecord(set({ id: 'new', weight_kg: 60 }), [other])).toBe(true)
+    expect(isNewRecord(set({ id: 'new', weight_kg: 85 }), [...history, other])).toBe(true)
+  })
+
+  it('is false when only another exercise has history', () => {
+    const other = set({ id: 'squat', exercise_id: SQUAT, weight_kg: 140 })
+
+    expect(isNewRecord(set({ id: 'new', weight_kg: 60 }), [other])).toBe(false)
   })
 
   it('ignores a soft-deleted history set', () => {
     const gone = set({ id: 'gone', weight_kg: 120, deleted_at: DELETED })
 
     expect(isNewRecord(set({ id: 'new', weight_kg: 85 }), [...history, gone])).toBe(true)
+  })
+
+  it('is false when the only earlier set is soft-deleted', () => {
+    const gone = set({ id: 'gone', weight_kg: 20, deleted_at: DELETED })
+
+    expect(isNewRecord(set({ id: 'new', weight_kg: 85 }), [gone])).toBe(false)
   })
 
   it('is false for a soft-deleted set', () => {
@@ -185,9 +203,9 @@ describe('isNewRecord', () => {
     expect(isNewRecord(set({ id: 'new', weight_kg: null }), history)).toBe(false)
   })
 
-  it('is true for a loaded set when the history holds only body weight sets', () => {
+  it('is false for a loaded set when the history holds only body weight sets', () => {
     const bodyWeight = [set({ id: 'bw', weight_kg: null })]
 
-    expect(isNewRecord(set({ id: 'new', weight_kg: 5 }), bodyWeight)).toBe(true)
+    expect(isNewRecord(set({ id: 'new', weight_kg: 5 }), bodyWeight)).toBe(false)
   })
 })

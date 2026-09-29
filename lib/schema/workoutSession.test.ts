@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  storedWorkoutSessionSchema,
   WORKOUT_SESSION_STATUSES,
   workoutSessionSchema,
   workoutSessionStatusSchema,
@@ -158,5 +159,44 @@ describe('workoutSessionSchema', () => {
 
   it('infers a type assignable to the generated workout_sessions row', () => {
     expect(inputAssignableToRow).toBe(true)
+  })
+})
+
+describe('storedWorkoutSessionSchema', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(NOON)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function parseStored(overrides: Record<string, unknown> = {}) {
+    return storedWorkoutSessionSchema.safeParse({
+      entry_date: TOMORROW,
+      started_at: STARTED,
+      ...overrides,
+    })
+  }
+
+  it('accepts an entry date ahead of this device date', () => {
+    expect(parseStored({ status: 'finished', ended_at: ENDED }).success).toBe(true)
+  })
+
+  it('rejects an entry date that is not an ISO date', () => {
+    const issue = firstIssue(parseStored({ entry_date: '16/06/2026' }))
+
+    expect(issue.message).toBe('Enter a date as YYYY-MM-DD.')
+    expect(issue.path).toEqual(['entry_date'])
+  })
+
+  it('rejects an end time before the start time', () => {
+    const issue = firstIssue(
+      parseStored({ status: 'finished', ended_at: '2026-06-15T09:59:59.000Z' }),
+    )
+
+    expect(issue.message).toBe('A session cannot end before it starts.')
+    expect(issue.path).toEqual(['ended_at'])
   })
 })

@@ -79,12 +79,14 @@ export function isNewRecord(set: LiftSet, history: readonly LiftSet[]): boolean 
     return false
   }
 
-  return history.every(
-    (item) =>
-      item.exercise_id !== set.exercise_id ||
-      item.id === set.id ||
-      item.deleted_at !== null ||
-      item.weight_kg === null ||
-      weight > item.weight_kg,
+  const earlier = history.flatMap((item) =>
+    item.exercise_id === set.exercise_id &&
+    item.id !== set.id &&
+    item.deleted_at === null &&
+    item.weight_kg !== null
+      ? [item.weight_kg]
+      : [],
   )
+
+  return earlier.length > 0 && earlier.every((earlierWeight) => weight > earlierWeight)
 }

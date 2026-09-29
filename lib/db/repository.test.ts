@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { dailyEntrySchema } from '../schema/dailyEntry'
+import { dailyEntrySchema, localDate } from '../schema/dailyEntry'
 import { moveToDeadLetters } from '../sync/deadLetters'
 import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
@@ -20,6 +20,7 @@ import {
   lastSetFor,
   lastSetsFor,
   listSets,
+  setsForExercises,
   restoreSet,
   SessionAlreadyActive,
   SessionNotFound,
@@ -1147,6 +1148,21 @@ describe('getActiveSession', () => {
 
     expect(await getActiveSession()).toEqual(newer)
   })
+
+  it('leaves the older active session active and untouched', async () => {
+    const older = await startSession('2026-09-01')
+    await db.outbox.clear()
+    await db.workoutSessions.put({
+      ...older,
+      id: crypto.randomUUID(),
+      started_at: new Date(Date.parse(older.started_at) + 1000).toISOString(),
+    })
+
+    await getActiveSession()
+
+    expect(await db.workoutSessions.get(older.id)).toEqual(older)
+    expect(await db.outbox.count()).toBe(0)
+  })
 })
 
 describe('finishSession', () => {
@@ -1186,6 +1202,35 @@ describe('finishSession', () => {
     await discardSession(session.id)
 
     expect(await refusal(finishSession(session.id))).toBeInstanceOf(SessionNotFound)
+  })
+
+  it('finishes a session whose start is ahead of this device clock', async () => {
+    const session = await startSession('2026-09-01')
+    const ahead = { ...session, started_at: new Date(Date.now() + 5000).toISOString() }
+    await db.workoutSessions.put(ahead)
+
+    const finished = await finishSession(session.id)
+
+    expect(finished).toMatchObject({ id: session.id, status: 'finished' })
+    expect(Date.parse(finished.ended_at ?? '')).toBeGreaterThanOrEqual(Date.parse(ahead.started_at))
+    expect(await db.workoutSessions.get(session.id)).toEqual(finished)
+  })
+
+  it('finishes a session whose date is ahead of this device date', async () => {
+    const session = await startSession('2026-09-01')
+    const later = new Date()
+    later.setDate(later.getDate() + 2)
+    const ahead = { ...session, entry_date: localDate(later) }
+    await db.workoutSessions.put(ahead)
+
+    const finished = await finishSession(session.id)
+
+    expect(finished).toMatchObject({
+      id: session.id,
+      entry_date: ahead.entry_date,
+      status: 'finished',
+    })
+    expect(await db.workoutSessions.get(session.id)).toEqual(finished)
   })
 })
 
@@ -1556,6 +1601,68 @@ describe('lastSetFor', () => {
 
     expect(await lastSetFor(BENCH_ID)).toEqual(kept)
   })
+
+  it('picks the set completed last, even when it was written first', async () => {
+    const completedLast = storedSet({
+      created_at: '2026-09-01T10:00:00.000Z',
+      completed_at: '2026-09-05T10:00:00.000Z',
+    })
+    await db.workoutSets.bulkPut([
+      completedLast,
+      storedSet({
+        created_at: '2026-09-03T10:00:00.000Z',
+        completed_at: '2026-09-04T10:00:00.000Z',
+      }),
+    ])
+
+    expect(await lastSetFor(BENCH_ID)).toEqual(completedLast)
+  })
+
+  it('reads created_at for a set with no completed_at', async () => {
+    const written = storedSet({ created_at: '2026-09-06T10:00:00.000Z', completed_at: null })
+    await db.workoutSets.bulkPut([
+      storedSet({
+        created_at: '2026-09-01T10:00:00.000Z',
+        completed_at: '2026-09-05T10:00:00.000Z',
+      }),
+      written,
+    ])
+
+    expect(await lastSetFor(BENCH_ID)).toEqual(written)
+  })
+
+  it('compares the instant, not the text, of two offsets', async () => {
+    const later = storedSet({ completed_at: '2026-09-05T09:30:00.000Z' })
+    await db.workoutSets.bulkPut([
+      storedSet({ completed_at: '2026-09-05T11:00:00.000+02:00' }),
+      later,
+    ])
+
+    expect(await lastSetFor(BENCH_ID)).toEqual(later)
+  })
+})
+
+describe('setsForExercises', () => {
+  it('returns an empty list for no exercise ids', async () => {
+    await db.workoutSets.put(storedSet({}))
+
+    expect(await setsForExercises([])).toEqual([])
+  })
+
+  it('returns every live set of the asked exercises, across sessions', async () => {
+    const bench = storedSet({})
+    const squat = storedSet({ exercise_id: SQUAT_ID })
+    await db.workoutSets.bulkPut([
+      bench,
+      squat,
+      storedSet({ exercise_id: DEVELOPPE_ID }),
+      storedSet({ deleted_at: '2026-09-02T10:00:00.000Z' }),
+    ])
+
+    const found = await setsForExercises([BENCH_ID, SQUAT_ID])
+
+    expect(found.map((row) => row.id).sort()).toEqual([bench.id, squat.id].sort())
+  })
 })
 
 describe('lastSetsFor', () => {
@@ -1625,6 +1732,24 @@ describe('lastSetsFor', () => {
 
     expect(found.get(BENCH_ID)).toEqual(await lastSetFor(BENCH_ID))
     expect(found.get(SQUAT_ID)).toEqual(await lastSetFor(SQUAT_ID))
+  })
+
+  it('picks the set completed last, the same as lastSetFor', async () => {
+    const completedLast = storedSet({
+      created_at: '2026-09-01T10:00:00.000Z',
+      completed_at: '2026-09-05T10:00:00.000Z',
+    })
+    await db.workoutSets.bulkPut([
+      storedSet({
+        created_at: '2026-09-03T10:00:00.000Z',
+        completed_at: '2026-09-04T10:00:00.000Z',
+      }),
+      completedLast,
+      storedSet({ created_at: '2026-09-02T10:00:00.000Z' }),
+    ])
+
+    expect((await lastSetsFor([BENCH_ID])).get(BENCH_ID)).toEqual(completedLast)
+    expect(await lastSetFor(BENCH_ID)).toEqual(completedLast)
   })
 })
 

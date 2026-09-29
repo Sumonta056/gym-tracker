@@ -30,7 +30,9 @@ import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
+import { ExerciseCard } from '../../components/workout/ExerciseCard'
 import { ExercisePicker } from '../../components/workout/ExercisePicker'
+import { SessionTimer } from '../../components/workout/SessionTimer'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
@@ -326,6 +328,36 @@ function sampleExerciseSource(): ExerciseSource {
     },
   }
 }
+
+const SAMPLE_SESSION_START = new Date(2026, 8, 20, 17, 30, 0).toISOString()
+
+const SAMPLE_SESSION_NOW = new Date(2026, 8, 20, 18, 12, 17)
+
+function sampleSessionNow(): Date {
+  return SAMPLE_SESSION_NOW
+}
+
+const SAMPLE_LIVE_SETS: WorkoutSet[] = (
+  [
+    [60, 12],
+    [70, 10],
+    [75, 8],
+  ] as const
+).map(([weight_kg, reps], at) => ({
+  id: `70000000-0000-4000-8000-${String(at + 1).padStart(12, '0')}`,
+  session_id: '70000000-0000-4000-8000-000000000000',
+  exercise_id: '70000000-0000-4000-8000-000000000099',
+  set_index: at,
+  reps,
+  weight_kg,
+  rpe: null,
+  completed_at: SAMPLE_SESSION_START,
+  created_at: SAMPLE_SESSION_START,
+  updated_at: SAMPLE_SESSION_START,
+  deleted_at: null,
+}))
+
+const SAMPLE_LIVE_RECORDS = new Set([SAMPLE_LIVE_SETS[2]?.id ?? ''])
 
 const SAMPLE_OWN_EXERCISES: Exercise[] = (
   [
@@ -780,6 +812,31 @@ function Styleguide() {
           now={() => SAMPLE_PICKER_NOW}
           source={pickerSource}
         />
+      </Section>
+
+      <Section title="Live workout">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2" data-testid="live-sample">
+          <HeroCard label="Elapsed" aria-label="Sample session" className="md:col-span-2">
+            <SessionTimer
+              startedAt={SAMPLE_SESSION_START}
+              now={sampleSessionNow}
+              aria-label="Sample elapsed time"
+              className="mt-2.5 mb-1.5 text-[48px] leading-none font-extrabold tracking-[-2.4px]"
+            />
+            <p className="text-[13px] font-semibold opacity-80">
+              Volume 2,020 kg · 3 sets · 1 exercise
+            </p>
+          </HeroCard>
+          <ExerciseCard
+            exercise={{ name: 'Bench Press', muscle_group: 'chest' }}
+            sets={SAMPLE_LIVE_SETS}
+            records={SAMPLE_LIVE_RECORDS}
+            unit="metric"
+            source={SAMPLE_LIVE_SETS[2]}
+            sourceKey="sample"
+            onAddSet={() => undefined}
+          />
+        </div>
       </Section>
     </AppShell>
   )

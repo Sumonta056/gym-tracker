@@ -13,7 +13,15 @@ export const NAV_DESTINATIONS: readonly NavDestination[] = [
 
 export const NAV_ACTION: NavDestination = { href: '/log', label: 'Log the day', glyph: '✎' }
 
+const ALSO_CURRENT_ON: Readonly<Record<string, readonly string[]>> = {
+  '/workouts': ['/workout'],
+}
+
+function onPath(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
 export function isCurrentPath(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/'
-  return pathname === href || pathname.startsWith(`${href}/`)
+  return [href, ...(ALSO_CURRENT_ON[href] ?? [])].some((path) => onPath(pathname, path))
 }

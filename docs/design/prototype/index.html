@@ -706,6 +706,35 @@
         font-weight: 700;
       }
 
+      .setrow-built {
+        grid-template-columns: 34px 1fr 1fr;
+      }
+
+      .setrow-built .idx {
+        color: var(--color-muted);
+      }
+
+      .input-unit {
+        position: relative;
+        display: block;
+      }
+
+      .input-unit .input {
+        padding-right: 56px;
+      }
+
+      .input-unit > span {
+        position: absolute;
+        top: 0;
+        right: 16px;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        color: var(--color-muted);
+        font-size: 14px;
+        pointer-events: none;
+      }
+
       .tick {
         min-width: 44px;
         min-height: 44px;
@@ -1482,7 +1511,8 @@
         </div>
       </section>
 
-      <!-- ============ 3 · live workout ============ -->
+      <!-- ============ 3 · live workout ============
+           New classes: setrow-built, input-unit. -->
       <section class="plate" aria-labelledby="p3">
         <div class="plate-label">
           <span class="n">03</span>
@@ -1494,7 +1524,7 @@
             <div class="topbar">
               <div>
                 <h2>Session</h2>
-                <p class="sub">Started 17:30 · Push day</p>
+                <p class="sub">Started 17:30</p>
               </div>
               <span class="chip"><span class="dot dot-cyan" aria-hidden="true"></span>Syncing</span>
             </div>
@@ -1502,7 +1532,7 @@
             <div class="body">
               <div class="hero">
                 <span class="micro">Elapsed</span>
-                <p class="hero-num">00:42:17</p>
+                <p class="hero-num">42:17</p>
                 <p class="hero-foot">Volume 4,820 kg · 11 sets · 3 exercises</p>
               </div>
 
@@ -1512,33 +1542,42 @@
                   <span class="micro">Chest</span>
                 </div>
                 <hr class="rule" />
-                <div class="setrow">
-                  <span class="idx">1</span>
-                  <span class="cell">60 kg</span>
-                  <span class="cell">12 reps</span>
-                  <button class="tick" type="button" aria-pressed="true" aria-label="Set 1 done">
-                    ✓
-                  </button>
-                </div>
-                <div class="setrow">
-                  <span class="idx">2</span>
-                  <span class="cell">70 kg</span>
-                  <span class="cell">10 reps</span>
-                  <button class="tick" type="button" aria-pressed="true" aria-label="Set 2 done">
-                    ✓
-                  </button>
-                </div>
-                <div class="setrow">
-                  <span class="idx">3</span>
-                  <span class="cell">75 kg</span>
-                  <span class="cell">8 reps</span>
-                  <button class="tick" type="button" aria-pressed="false" aria-label="Set 3 done">
-                    ✓
-                  </button>
-                </div>
+                <ol class="list" aria-label="Bench press sets" style="display: grid; gap: 8px">
+                  <li class="setrow setrow-built">
+                    <span class="idx"><span class="sr-only">Set </span>1</span>
+                    <span class="cell">60 kg</span>
+                    <span class="cell">12 reps</span>
+                  </li>
+                  <li class="setrow setrow-built">
+                    <span class="idx"><span class="sr-only">Set </span>2</span>
+                    <span class="cell">70 kg</span>
+                    <span class="cell">10 reps</span>
+                  </li>
+                  <li class="setrow setrow-built">
+                    <span class="idx"><span class="sr-only">Set </span>3</span>
+                    <span class="cell">75 kg</span>
+                    <span class="cell">8 reps</span>
+                  </li>
+                </ol>
                 <p class="dim" style="margin: 10px 0 0">
                   Last time 72.5 kg × 8 · estimated 1RM 95 kg
                 </p>
+                <div class="grid-2" style="margin-top: 12px">
+                  <label class="field" for="live-reps">
+                    <span class="micro">Reps</span>
+                    <input class="input" id="live-reps" inputmode="numeric" value="8" />
+                  </label>
+                  <label class="field" for="live-load">
+                    <span class="micro">Load<span class="sr-only">, kg</span></span>
+                    <span class="input-unit">
+                      <input class="input" id="live-load" inputmode="decimal" value="75" />
+                      <span aria-hidden="true">kg</span>
+                    </span>
+                  </label>
+                </div>
+                <button class="btn btn-secondary" type="button" style="margin-top: 12px">
+                  Add set <span class="sr-only">to Bench press</span>
+                </button>
               </div>
 
               <div class="card">
@@ -1565,13 +1604,13 @@
               <button class="btn" type="button">Finish session</button>
             </div>
 
-            <nav class="tabbar" aria-label="Main">
+            <nav class="tabbar" aria-label="Bottom navigation">
               <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
-              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
-              <button class="center" type="button" aria-label="Live workout in progress">
-                <span class="glyph" aria-hidden="true">■</span>
-              </button>
               <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a class="center" href="#">
+                <span class="glyph" aria-hidden="true">✎</span><span class="sr-only">Log the day</span>
+              </a>
+              <a href="#" aria-current="page"><span class="glyph" aria-hidden="true">⛊</span>Workouts</a>
               <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
             </nav>
           </div>

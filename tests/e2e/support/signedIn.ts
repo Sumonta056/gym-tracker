@@ -92,8 +92,10 @@ export const test = base.extend<Fixtures>({
     const day = dayFor(testInfo)
 
     await account.clear(day.from, day.to)
+    await account.clearSessions(day.from, day.to)
     await provide(day)
     await account.clear(day.from, day.to)
+    await account.clearSessions(day.from, day.to)
   },
   page: async ({ page, day }, provide) => {
     await page.clock.setSystemTime(day.noon())
@@ -103,7 +105,15 @@ export const test = base.extend<Fixtures>({
 
 export { expect }
 
-type StoreName = 'dailyEntries' | 'outbox' | 'deadLetters' | 'profiles' | 'syncMeta'
+type StoreName =
+  | 'dailyEntries'
+  | 'outbox'
+  | 'deadLetters'
+  | 'profiles'
+  | 'syncMeta'
+  | 'exercises'
+  | 'workoutSessions'
+  | 'workoutSets'
 
 export function readStore<Row>(page: Page, store: StoreName): Promise<Row[]> {
   return page.evaluate(

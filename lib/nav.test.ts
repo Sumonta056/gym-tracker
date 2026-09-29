@@ -50,4 +50,24 @@ describe('isCurrentPath', () => {
   it('does not match a path that only shares a prefix', () => {
     expect(isCurrentPath('/profiles', '/profile')).toBe(false)
   })
+
+  it('marks the Workouts tab current on the live workout screen', () => {
+    expect(isCurrentPath('/workout', '/workouts')).toBe(true)
+  })
+
+  it('marks the Workouts tab current below the live workout screen', () => {
+    expect(isCurrentPath('/workout/set', '/workouts')).toBe(true)
+  })
+
+  it('does not mark the Workouts tab on a path that only shares the prefix', () => {
+    expect(isCurrentPath('/workouter', '/workouts')).toBe(false)
+  })
+
+  it('marks no other destination current on the live workout screen', () => {
+    const current = [...NAV_DESTINATIONS, NAV_ACTION].filter((item) =>
+      isCurrentPath('/workout', item.href),
+    )
+
+    expect(current.map((item) => item.href)).toEqual(['/workouts'])
+  })
 })

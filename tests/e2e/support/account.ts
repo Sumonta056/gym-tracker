@@ -17,6 +17,10 @@ const CLEAR_ROUNDS = 5
 
 const LATE_WRITE_MS = 750
 
+const ACTIVE_SLOT_WAIT_MS = 60000
+
+const UNIQUE_VIOLATION = '23505'
+
 const CREDENTIALS_HELP =
   'The signed-in end-to-end tests sign in as the test account. Put E2E_EMAIL and E2E_PASSWORD in .env.test.local, or set them in the environment. CI reads them from the repository secrets.'
 
@@ -25,7 +29,11 @@ const SUPABASE_HELP =
 
 export type DailyRow = Tables<'daily_entries'>
 
+export type SessionRow = Tables<'workout_sessions'>
+
 export type SeedRow = Omit<TablesInsert<'daily_entries'>, 'id' | 'user_id'>
+
+export type SeedSession = Pick<TablesInsert<'workout_sessions'>, 'entry_date' | 'started_at'>
 
 type Client = SupabaseClient<Database>
 
@@ -175,6 +183,71 @@ export class Account {
 
   async rowsOn(date: string): Promise<DailyRow[]> {
     return this.rowsBetween(date, date)
+  }
+
+  async sessionsBetween(from: string, to: string): Promise<SessionRow[]> {
+    const { data, error } = await this.client
+      .from('workout_sessions')
+      .select('*')
+      .gte('entry_date', from)
+      .lte('entry_date', to)
+      .order('entry_date')
+
+    if (error !== null) {
+      throw new Error(`Reading the test sessions failed: ${error.message}`)
+    }
+
+    return data
+  }
+
+  async clearSessions(from: string, to: string): Promise<void> {
+    for (let round = 0; round < CLEAR_ROUNDS; round += 1) {
+      const { error } = await this.client
+        .from('workout_sessions')
+        .delete()
+        .gte('entry_date', from)
+        .lte('entry_date', to)
+
+      if (error !== null) {
+        throw new Error(`Removing the test sessions failed: ${error.message}`)
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, LATE_WRITE_MS))
+
+      if ((await this.sessionsBetween(from, to)).length === 0) {
+        return
+      }
+    }
+
+    throw new Error(`Test sessions between ${from} and ${to} survived the teardown.`)
+  }
+
+  async seedActiveSession(session: SeedSession): Promise<SessionRow> {
+    const deadline = Date.now() + ACTIVE_SLOT_WAIT_MS
+
+    for (;;) {
+      const { data, error } = await this.client
+        .from('workout_sessions')
+        .insert({
+          ...session,
+          id: randomUUID(),
+          user_id: this.userId,
+          status: 'active',
+          ended_at: null,
+        })
+        .select('*')
+        .single()
+
+      if (error === null) {
+        return data
+      }
+
+      if (error.code !== UNIQUE_VIOLATION || Date.now() > deadline) {
+        throw new Error(`Seeding the test session failed: ${error.message}`)
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, LATE_WRITE_MS))
+    }
   }
 
   async seed(rows: readonly SeedRow[]): Promise<DailyRow[]> {
