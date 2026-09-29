@@ -37,6 +37,7 @@ import { formatDuration, parseInput } from '../../lib/duration'
 
 import type { RangeTab } from '../../components/charts/rangeData'
 import type { DashboardSummary } from '../../components/dashboard/summary'
+import type { ManageExerciseSource } from '../../components/profile/ManageExercisesSheet'
 import type { ExerciseSource } from '../../components/workout/ExercisePicker'
 import type { DailyEntry, DeadLetter, Exercise, Profile, WorkoutSet } from '../../lib/db/dexie'
 import type { MuscleGroup } from '../../lib/schema/exercise'
@@ -326,6 +327,46 @@ function sampleExerciseSource(): ExerciseSource {
   }
 }
 
+const SAMPLE_OWN_EXERCISES: Exercise[] = (
+  [
+    ['Cable Fly', 'chest', false],
+    ['Incline Dumbbell', 'chest', false],
+    ['Hip Thrust Machine', 'legs', true],
+  ] as const
+).map(([name, muscle_group, is_archived], at) => ({
+  id: `60000000-0000-4000-8000-${String(at + 1).padStart(12, '0')}`,
+  name,
+  muscle_group,
+  is_archived,
+  user_id: 'local',
+  created_at: '2026-09-01T00:00:00.000Z',
+  updated_at: '2026-09-01T00:00:00.000Z',
+  deleted_at: null,
+}))
+
+function sampleManageSource(): ManageExerciseSource {
+  let rows = [...SAMPLE_OWN_EXERCISES, ...SAMPLE_EXERCISES]
+
+  function change(id: string, patch: Partial<Exercise>): Exercise {
+    rows = rows.map((row) => (row.id === id ? { ...row, ...patch } : row))
+    return rows.find((row) => row.id === id) as Exercise
+  }
+
+  return {
+    listExercises: () =>
+      Promise.resolve([...rows].sort((left, right) => left.name.localeCompare(right.name))),
+    renameExercise: (id, name) => Promise.resolve(change(id, { name })),
+    archiveExercise: (id) => {
+      change(id, { is_archived: true })
+      return Promise.resolve()
+    },
+    restoreExercise: (id) => {
+      change(id, { is_archived: false })
+      return Promise.resolve()
+    },
+  }
+}
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mb-8">
@@ -363,6 +404,7 @@ function Styleguide() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
   const [pickerSource] = useState(sampleExerciseSource)
+  const [manageSource] = useState(sampleManageSource)
   const [showFieldError, setShowFieldError] = useState(false)
   const [showEmailError, setShowEmailError] = useState(false)
   const [sampleProfile, setSampleProfile] = useState<Profile>(SAMPLE_PROFILE)
@@ -522,6 +564,7 @@ function Styleguide() {
           onCancelSignOut={() => {
             setSampleLost(null)
           }}
+          exerciseSource={manageSource}
           testId="profile-grid-sample"
         />
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">

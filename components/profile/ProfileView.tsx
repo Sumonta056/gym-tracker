@@ -1,17 +1,21 @@
 'use client'
 
-import { useId } from 'react'
+import { useId, useState } from 'react'
 
+import { Card } from '../ui/Card'
 import { cn } from '../ui/cn'
+import { MicroLabel } from '../ui/MicroLabel'
 import { SecondaryButton } from '../ui/SecondaryButton'
 
 import { DataCard } from './DataCard'
+import { ManageExercisesSheet, REPOSITORY_MANAGE_SOURCE } from './ManageExercisesSheet'
 import { ProfileHeader } from './ProfileHeader'
 import { SignOutSheet } from './SignOutSheet'
 import { SyncCard } from './SyncCard'
 import { TargetsCard } from './TargetsCard'
 import { UnitsCard } from './UnitsCard'
 
+import type { ManageExerciseSource } from './ManageExercisesSheet'
 import type { DeadLetter, Profile } from '../../lib/db/dexie'
 import type { SyncStatusReport } from '../../lib/db/repository'
 import type { UnitSystem } from '../../lib/schema/profile'
@@ -50,6 +54,7 @@ export type ProfileViewProps = {
   lostOnSignOut?: number | null
   onConfirmSignOut?: () => void
   onCancelSignOut?: () => void
+  exerciseSource?: ManageExerciseSource
   testId?: string
 }
 
@@ -73,8 +78,10 @@ export function ProfileView({
   lostOnSignOut = null,
   onConfirmSignOut = ignore,
   onCancelSignOut = ignore,
+  exerciseSource = REPOSITORY_MANAGE_SOURCE,
   testId = 'profile-grid',
 }: ProfileViewProps) {
+  const [managing, setManaging] = useState(false)
   const unit = profile.unit_system
   const hintId = useId()
   const errorId = useId()
@@ -94,6 +101,21 @@ export function ProfileView({
           onSave={onSaveTarget}
           className="md:row-span-2"
         />
+        <Card data-testid="exercises-card">
+          <MicroLabel as="p">Exercises</MicroLabel>
+          <button
+            type="button"
+            onClick={() => {
+              setManaging(true)
+            }}
+            className="text-text mt-1.5 flex min-h-11 w-full items-center justify-between gap-3 text-left text-[15px] font-bold"
+          >
+            Manage exercises
+            <span aria-hidden="true" className="text-muted text-lg">
+              ›
+            </span>
+          </button>
+        </Card>
         {showImport ? <DataCard /> : null}
         <SyncCard
           report={report}
@@ -123,6 +145,13 @@ export function ProfileView({
           )}
         </div>
       </div>
+      <ManageExercisesSheet
+        open={managing}
+        onClose={() => {
+          setManaging(false)
+        }}
+        source={exerciseSource}
+      />
       <SignOutSheet lost={lostOnSignOut} onConfirm={onConfirmSignOut} onCancel={onCancelSignOut} />
     </>
   )

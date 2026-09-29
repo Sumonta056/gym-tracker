@@ -5,9 +5,32 @@ import { describe, expect, it, vi } from 'vitest'
 import { PROFILE } from '../../tests/fixtures/dashboard'
 import { DEAD_DAY } from '../../tests/fixtures/sync'
 
+import { MANAGE_TITLE } from './ManageExercisesSheet'
 import { ProfileView, signOutHint } from './ProfileView'
 
+import type { ManageExerciseSource } from './ManageExercisesSheet'
 import type { ProfileViewProps } from './ProfileView'
+import type { Exercise } from '../../lib/db/dexie'
+
+const OWN_FLY: Exercise = {
+  id: '55555555-5555-4555-8555-555555555555',
+  user_id: 'local',
+  name: 'Cable Fly',
+  muscle_group: 'chest',
+  is_archived: false,
+  created_at: '2026-09-01T00:00:00.000Z',
+  updated_at: '2026-09-01T00:00:00.000Z',
+  deleted_at: null,
+}
+
+function exerciseSource(): ManageExerciseSource {
+  return {
+    listExercises: vi.fn(() => Promise.resolve([OWN_FLY])),
+    renameExercise: vi.fn(() => Promise.resolve(OWN_FLY)),
+    archiveExercise: vi.fn(() => Promise.resolve()),
+    restoreExercise: vi.fn(() => Promise.resolve()),
+  }
+}
 
 function renderView(overrides: Partial<ProfileViewProps> = {}) {
   const props: ProfileViewProps = {
@@ -120,6 +143,30 @@ describe('ProfileView', () => {
   it('passes a unit error to the units card', () => {
     renderView({ unitError: 'Not saved.' })
     expect(screen.getByRole('alert')).toHaveTextContent('Not saved.')
+  })
+})
+
+describe('ProfileView manage exercises', () => {
+  it('shows the manage exercises row whether or not the import flag is on', () => {
+    renderView({ exerciseSource: exerciseSource() })
+    const card = screen.getByTestId('exercises-card')
+    expect(within(card).getByRole('button', { name: 'Manage exercises' })).toHaveClass('min-h-11')
+  })
+
+  it('opens the manage exercises sheet from the row', async () => {
+    renderView({ exerciseSource: exerciseSource() })
+    await userEvent.click(screen.getByRole('button', { name: 'Manage exercises' }))
+    const dialog = screen.getByRole('dialog', { name: MANAGE_TITLE })
+    expect(await within(dialog).findByRole('button', { name: 'Rename Cable Fly' })).toBeVisible()
+  })
+
+  it('closes the sheet and returns focus to the row', async () => {
+    renderView({ exerciseSource: exerciseSource() })
+    const row = screen.getByRole('button', { name: 'Manage exercises' })
+    await userEvent.click(row)
+    await userEvent.click(screen.getByRole('button', { name: `Close ${MANAGE_TITLE}` }))
+    expect(screen.queryByRole('dialog', { name: MANAGE_TITLE })).not.toBeInTheDocument()
+    expect(row).toHaveFocus()
   })
 })
 

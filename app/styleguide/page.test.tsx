@@ -326,6 +326,36 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.getByText('GT')).toHaveAttribute('aria-hidden', 'true')
   })
 
+  it('opens the manage exercises sample with its own, archived and built in lists', async () => {
+    await userEvent.click(
+      within(screen.getByTestId('profile-grid-sample')).getByRole('button', {
+        name: 'Manage exercises',
+      }),
+    )
+    const dialog = screen.getByRole('dialog', { name: 'Manage exercises' })
+    expect(await within(dialog).findByRole('region', { name: 'Yours · 2 active' })).toBeVisible()
+    expect(within(dialog).getByRole('region', { name: 'Archived · 1' })).toBeVisible()
+    expect(within(dialog).getByRole('region', { name: 'Built in · 11' })).toBeVisible()
+  })
+
+  it('archives, restores and renames in the manage exercises sample', async () => {
+    await userEvent.click(
+      within(screen.getByTestId('profile-grid-sample')).getByRole('button', {
+        name: 'Manage exercises',
+      }),
+    )
+    const dialog = screen.getByRole('dialog', { name: 'Manage exercises' })
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Archive Cable Fly' }))
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Restore Cable Fly' }))
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Rename Cable Fly' }))
+    const input = within(dialog).getByLabelText('New name for Cable Fly')
+    await userEvent.clear(input)
+    await userEvent.type(input, 'Low Cable Fly{Enter}')
+    expect(
+      await within(dialog).findByRole('button', { name: 'Rename Low Cable Fly' }),
+    ).toBeInTheDocument()
+  })
+
   it('opens the exercise picker sample with its recent list', async () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open the exercise picker' }))
     const dialog = screen.getByRole('dialog', { name: 'Pick an exercise' })

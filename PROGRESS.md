@@ -5,14 +5,14 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.3b → `docs/plan/phase-2/S2.3b-manage-exercises.md`
+**Next step:** 2.4a → `docs/plan/phase-2/S2.4a-live-session.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.3a, the exercise picker sheet, on top of `cc4630b`.
+**Last commit:** 2.3b, the manage exercises sheet, on top of `60d3af9`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-29 after 2.3a. The report is `reports/2026-09-29-exercise-picker.html`.
+- Stopped on 2026-09-29 after 2.3b. The report is `reports/2026-09-29-manage-exercises.html`.
   The owner approved Checkpoint A on 2026-09-28.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
   `20260928084529_phase2_set_policy_reps` are applied to the live project. Never apply them again.
@@ -86,6 +86,9 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   the body scrolls. The picker pins its create button there; search and chips scroll with the list.
   Recent reads `lastSetsFor` once. `listExercises` takes `includeArchived`. Plate p4 is corrected:
   title, close, full list, muted row text, scrolling chips, Title Case, a 20 px header gap. From 2.3a.
+- **Manage exercises.** Its own "Exercises" card on `/profile`, always shown, not in `DataCard`.
+  No "43" count and no "past sets kept" count. The "Built in" badge is `MicroLabel` at 700.
+  Rename is an inline field in the row. Plate p9 is corrected to match. From 2.3b.
 
 ## Open, with the step that closes each one
 
@@ -120,8 +123,10 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   3, 1 target needs 9 September. From 2.7b.
 - **2.4a** — `lastSetFor` and `lastSetsFor` pick the last set by `created_at`; Recent sorts and
   dates by `completed_at`. Choose one rule once real sets exist. From 2.3a.
-- **2.3b** — no unique index on global exercise names. Only the seed adds global rows. The owner
+- **Owner** — no unique index on global exercise names. Only the seed adds global rows. The owner
   deferred it. From 2.1b.
+- **2.4a** — an archived exercise keeps its name on a past set, proven in data only. Check it on
+  the first screen that shows past sets. From 2.3b.
 
 ## Phases
 

@@ -921,6 +921,105 @@
         color: var(--color-warn);
       }
 
+      .badge-built {
+        font-weight: 700;
+      }
+
+      .card-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        min-height: 44px;
+        margin-top: 6px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--color-text);
+        font-size: 15px;
+        font-weight: 700;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .card-link .chev {
+        color: var(--color-muted);
+        font-size: 18px;
+      }
+
+      .mx-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .mx-section {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .mx-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 52px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .mx-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .mx-name {
+        color: var(--color-text);
+        font-size: 15px;
+        font-weight: 700;
+        overflow-wrap: break-word;
+      }
+
+      .mx-row.archived .mx-name {
+        color: var(--color-muted);
+      }
+
+      .mx-group {
+        color: var(--color-muted);
+        font-size: 12px;
+      }
+
+      .mx-actions {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 6px;
+      }
+
+      .pill.pill-sm {
+        padding: 0 12px;
+      }
+
+      .mx-rename {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .mx-rename-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
       .cell-review {
         border-color: var(--color-warn);
         justify-content: space-between;
@@ -4796,7 +4895,8 @@
       </section>
 
       <!-- ============ 9 · manage exercises ============
-           New classes: badge. -->
+           New classes: badge-built, card-link, mx-body, mx-section, mx-row, mx-text, mx-name,
+           mx-group, mx-actions, pill-sm, mx-rename, mx-rename-actions. -->
       <section class="plate" aria-labelledby="p9">
         <div class="plate-label">
           <span class="n">09</span>
@@ -4814,10 +4914,11 @@
             </div>
             <div class="body">
               <div class="card">
-                <span class="micro">Data</span>
-                <ul class="list" style="margin-top: 6px">
-                  <li class="row"><span>Manage exercises</span><span class="muted">43</span></li>
-                </ul>
+                <span class="micro">Exercises</span>
+                <button class="card-link" type="button" tabindex="-1">
+                  Manage exercises
+                  <span class="chev" aria-hidden="true">›</span>
+                </button>
               </div>
             </div>
           </div>
@@ -4832,65 +4933,96 @@
           >
             <div class="grabber" aria-hidden="true"></div>
 
-            <div class="row">
-              <h3 id="manage-title" style="margin: 0; font-size: 18px; font-weight: 700">
-                Manage exercises
-              </h3>
-              <button class="pill" type="button">Close</button>
+            <div class="sheet-top">
+              <h3 id="manage-title">Manage exercises</h3>
+              <button class="sheet-close" type="button" aria-label="Close Manage exercises">
+                <span aria-hidden="true">×</span>
+              </button>
             </div>
 
-            <span class="micro">Yours · 2 active</span>
-            <ul class="list">
-              <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 4px 0">
-                <span><strong>Cable fly</strong><br /><span class="dim">Chest</span></span>
-                <span style="display: flex; gap: 6px">
-                  <button class="pill" type="button" style="padding: 0 12px">
-                    Rename <span class="visually-hidden">Cable fly</span>
-                  </button>
-                  <button class="pill" type="button" style="padding: 0 12px">
-                    Archive <span class="visually-hidden">Cable fly</span>
-                  </button>
-                </span>
-              </li>
-              <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 4px 0">
-                <span><strong>Incline dumbbell</strong><br /><span class="dim">Chest</span></span>
-                <span style="display: flex; gap: 6px">
-                  <button class="pill" type="button" style="padding: 0 12px">
-                    Rename <span class="visually-hidden">Incline dumbbell</span>
-                  </button>
-                  <button class="pill" type="button" style="padding: 0 12px">
-                    Archive <span class="visually-hidden">Incline dumbbell</span>
-                  </button>
-                </span>
-              </li>
-            </ul>
+            <div class="mx-body">
+              <section class="mx-section" aria-labelledby="mx-yours">
+                <p class="micro" id="mx-yours" style="margin: 0">Yours · 2 active</p>
+                <ul class="list">
+                  <li class="mx-rename">
+                    <div class="field">
+                      <label class="micro" for="mx-rename-input">New name for Cable fly</label>
+                      <input
+                        class="input"
+                        id="mx-rename-input"
+                        type="text"
+                        autocomplete="off"
+                        enterkeyhint="done"
+                        value="Cable fly"
+                      />
+                    </div>
+                    <div class="mx-rename-actions">
+                      <button
+                        class="btn btn-secondary"
+                        type="button"
+                        aria-label="Cancel renaming Cable fly"
+                      >
+                        Cancel
+                      </button>
+                      <button class="btn" type="submit" aria-label="Save the new name for Cable fly">
+                        Save
+                      </button>
+                    </div>
+                  </li>
+                  <li class="mx-row">
+                    <span class="mx-text">
+                      <span class="mx-name">Incline dumbbell</span>
+                      <span class="mx-group">Chest</span>
+                    </span>
+                    <span class="mx-actions">
+                      <button class="pill pill-sm" type="button" aria-label="Rename Incline dumbbell">
+                        Rename
+                      </button>
+                      <button class="pill pill-sm" type="button" aria-label="Archive Incline dumbbell">
+                        Archive
+                      </button>
+                    </span>
+                  </li>
+                </ul>
+              </section>
 
-            <span class="micro">Archived · 1</span>
-            <ul class="list">
-              <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 4px 0">
-                <span
-                  ><strong class="muted" style="font-size: 15px">Hip thrust machine</strong><br /><span
-                    class="dim"
-                    >Legs · 4 past sets kept</span
-                  ></span
-                >
-                <button class="pill" type="button" style="padding: 0 12px">
-                  Restore <span class="visually-hidden">Hip thrust machine</span>
-                </button>
-              </li>
-            </ul>
+              <section class="mx-section" aria-labelledby="mx-archived">
+                <p class="micro" id="mx-archived" style="margin: 0">Archived · 1</p>
+                <ul class="list">
+                  <li class="mx-row archived">
+                    <span class="mx-text">
+                      <span class="mx-name">Hip thrust machine</span>
+                      <span class="mx-group">Legs</span>
+                    </span>
+                    <span class="mx-actions">
+                      <button class="pill pill-sm" type="button" aria-label="Restore Hip thrust machine">
+                        Restore
+                      </button>
+                    </span>
+                  </li>
+                </ul>
+              </section>
 
-            <span class="micro">Built in · 40</span>
-            <ul class="list">
-              <li class="row" style="border-bottom: 1px solid var(--color-border); padding: 4px 0">
-                <span><strong>Bench Press</strong><br /><span class="dim">Chest</span></span>
-                <span class="badge">Built in</span>
-              </li>
-              <li class="row" style="padding: 4px 0">
-                <span><strong>Lat Pulldown</strong><br /><span class="dim">Back</span></span>
-                <span class="badge">Built in</span>
-              </li>
-            </ul>
+              <section class="mx-section" aria-labelledby="mx-built">
+                <p class="micro" id="mx-built" style="margin: 0">Built in · 40</p>
+                <ul class="list">
+                  <li class="mx-row">
+                    <span class="mx-text">
+                      <span class="mx-name">Bench Press</span>
+                      <span class="mx-group">Chest</span>
+                    </span>
+                    <span class="badge badge-built">Built in</span>
+                  </li>
+                  <li class="mx-row">
+                    <span class="mx-text">
+                      <span class="mx-name">Lat Pulldown</span>
+                      <span class="mx-group">Back</span>
+                    </span>
+                    <span class="badge badge-built">Built in</span>
+                  </li>
+                </ul>
+              </section>
+            </div>
           </div>
         </div>
       </section>
