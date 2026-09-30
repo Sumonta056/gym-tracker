@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isNewRecord, personalRecords } from './personalRecords'
+import { earlierThan, isNewRecord, personalRecords } from './personalRecords'
 
 import type { LiftSet } from './volumeLoad'
 
@@ -137,34 +137,38 @@ describe('isNewRecord', () => {
     set({ id: 'old2', weight_kg: 70, completed_at: '2026-09-21T08:00:00.000Z' }),
   ]
 
+  function later(fields: Partial<LiftSet> & { id: string }): LiftSet {
+    return set({ completed_at: '2026-09-22T08:00:00.000Z', ...fields })
+  }
+
   it('is true for a heavier load', () => {
-    expect(isNewRecord(set({ id: 'new', weight_kg: 82.5 }), history)).toBe(true)
+    expect(isNewRecord(later({ id: 'new', weight_kg: 82.5 }), history)).toBe(true)
   })
 
   it('is false for an equal load', () => {
-    expect(isNewRecord(set({ id: 'new', weight_kg: 80 }), history)).toBe(false)
+    expect(isNewRecord(later({ id: 'new', weight_kg: 80 }), history)).toBe(false)
   })
 
   it('is false for a lighter load', () => {
-    expect(isNewRecord(set({ id: 'new', weight_kg: 75 }), history)).toBe(false)
+    expect(isNewRecord(later({ id: 'new', weight_kg: 75 }), history)).toBe(false)
   })
 
   it('is false for the first set of an exercise ever', () => {
-    expect(isNewRecord(set({ id: 'first', weight_kg: 20 }), [])).toBe(false)
+    expect(isNewRecord(later({ id: 'first', weight_kg: 20 }), [])).toBe(false)
   })
 
   it('is false for the first body weight set of an exercise ever', () => {
-    expect(isNewRecord(set({ id: 'first', weight_kg: null }), [])).toBe(false)
+    expect(isNewRecord(later({ id: 'first', weight_kg: null }), [])).toBe(false)
   })
 
   it('ignores the set itself when it is already in the history', () => {
-    const current = set({ id: 'new', weight_kg: 90 })
+    const current = later({ id: 'new', weight_kg: 90 })
 
     expect(isNewRecord(current, [...history, current])).toBe(true)
   })
 
   it('is false when the history holds only the set itself', () => {
-    const current = set({ id: 'first', weight_kg: 20 })
+    const current = later({ id: 'first', weight_kg: 20 })
 
     expect(isNewRecord(current, [current])).toBe(false)
   })
@@ -172,40 +176,122 @@ describe('isNewRecord', () => {
   it('ignores a history set of another exercise', () => {
     const other = set({ id: 'squat', exercise_id: SQUAT, weight_kg: 140 })
 
-    expect(isNewRecord(set({ id: 'new', weight_kg: 85 }), [...history, other])).toBe(true)
+    expect(isNewRecord(later({ id: 'new', weight_kg: 85 }), [...history, other])).toBe(true)
   })
 
   it('is false when only another exercise has history', () => {
     const other = set({ id: 'squat', exercise_id: SQUAT, weight_kg: 140 })
 
-    expect(isNewRecord(set({ id: 'new', weight_kg: 60 }), [other])).toBe(false)
+    expect(isNewRecord(later({ id: 'new', weight_kg: 60 }), [other])).toBe(false)
   })
 
   it('ignores a soft-deleted history set', () => {
     const gone = set({ id: 'gone', weight_kg: 120, deleted_at: DELETED })
 
-    expect(isNewRecord(set({ id: 'new', weight_kg: 85 }), [...history, gone])).toBe(true)
+    expect(isNewRecord(later({ id: 'new', weight_kg: 85 }), [...history, gone])).toBe(true)
   })
 
   it('is false when the only earlier set is soft-deleted', () => {
     const gone = set({ id: 'gone', weight_kg: 20, deleted_at: DELETED })
 
-    expect(isNewRecord(set({ id: 'new', weight_kg: 85 }), [gone])).toBe(false)
+    expect(isNewRecord(later({ id: 'new', weight_kg: 85 }), [gone])).toBe(false)
   })
 
   it('is false for a soft-deleted set', () => {
-    expect(isNewRecord(set({ id: 'new', weight_kg: 200, deleted_at: DELETED }), history)).toBe(
+    expect(isNewRecord(later({ id: 'new', weight_kg: 200, deleted_at: DELETED }), history)).toBe(
       false,
     )
   })
 
   it('is false for a body weight set once the exercise has history', () => {
-    expect(isNewRecord(set({ id: 'new', weight_kg: null }), history)).toBe(false)
+    expect(isNewRecord(later({ id: 'new', weight_kg: null }), history)).toBe(false)
   })
 
   it('is false for a loaded set when the history holds only body weight sets', () => {
     const bodyWeight = [set({ id: 'bw', weight_kg: null })]
 
-    expect(isNewRecord(set({ id: 'new', weight_kg: 5 }), bodyWeight)).toBe(false)
+    expect(isNewRecord(later({ id: 'new', weight_kg: 5 }), bodyWeight)).toBe(false)
+  })
+  it('compares with the sets done before it only, so a later heavier set hides no record', () => {
+    const heavierLater = set({
+      id: 'later',
+      weight_kg: 100,
+      completed_at: '2026-09-23T08:00:00.000Z',
+    })
+
+    expect(isNewRecord(later({ id: 'new', weight_kg: 85 }), [...history, heavierLater])).toBe(true)
+  })
+
+  it('is false for the first set ever when only later sets are in the history', () => {
+    const laterSet = set({ id: 'later', weight_kg: 10, completed_at: '2026-09-23T08:00:00.000Z' })
+    const first = set({ id: 'first', weight_kg: 50, completed_at: '2026-09-19T08:00:00.000Z' })
+
+    expect(isNewRecord(first, [laterSet])).toBe(false)
+  })
+
+  it('dates a set with no completion time by when it was created', () => {
+    const current = set({ id: 'new', weight_kg: 85, created_at: '2026-09-22T08:00:00.000Z' })
+
+    expect(isNewRecord(current, history)).toBe(true)
+  })
+})
+
+describe('earlierThan', () => {
+  it('orders by the completion time first', () => {
+    const first = set({
+      id: 'b',
+      completed_at: '2026-09-20T08:00:00.000Z',
+      created_at: '2026-09-21T08:00:00.000Z',
+    })
+    const second = set({
+      id: 'a',
+      completed_at: '2026-09-20T09:00:00.000Z',
+      created_at: '2026-09-20T07:00:00.000Z',
+    })
+
+    expect(earlierThan(first, second)).toBe(true)
+    expect(earlierThan(second, first)).toBe(false)
+  })
+
+  it('reads created_at when a set has no completion time', () => {
+    const first = set({ id: 'b', created_at: '2026-09-20T07:00:00.000Z' })
+    const second = set({ id: 'a', completed_at: '2026-09-20T08:00:00.000Z' })
+
+    expect(earlierThan(first, second)).toBe(true)
+  })
+
+  it('compares instants, not text, across time zone offsets', () => {
+    const first = set({ id: 'b', completed_at: '2026-09-20T09:30:00.000+02:00' })
+    const second = set({ id: 'a', completed_at: '2026-09-20T08:00:00.000Z' })
+
+    expect(earlierThan(first, second)).toBe(true)
+  })
+
+  it('breaks an equal time by created_at', () => {
+    const first = set({
+      id: 'b',
+      completed_at: '2026-09-20T08:00:00.000Z',
+      created_at: '2026-09-20T07:00:00.000Z',
+    })
+    const second = set({
+      id: 'a',
+      completed_at: '2026-09-20T08:00:00.000Z',
+      created_at: '2026-09-20T07:30:00.000Z',
+    })
+
+    expect(earlierThan(first, second)).toBe(true)
+  })
+
+  it('breaks a full tie by set_index, then by id', () => {
+    const low = { ...set({ id: 'b' }), set_index: 0 }
+    const high = { ...set({ id: 'a' }), set_index: 1 }
+
+    expect(earlierThan(low, high)).toBe(true)
+    expect(earlierThan(set({ id: 'a' }), set({ id: 'b' }))).toBe(true)
+    expect(earlierThan(set({ id: 'a' }), set({ id: 'a' }))).toBe(false)
+  })
+
+  it('treats a missing set_index as 0', () => {
+    expect(earlierThan(set({ id: 'b' }), { ...set({ id: 'a' }), set_index: 1 })).toBe(true)
   })
 })

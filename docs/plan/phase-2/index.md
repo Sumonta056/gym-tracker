@@ -35,7 +35,7 @@ Phase 1 branch merges.
 | 2.3a | `S2.3a-exercise-picker.md`     | The exercise picker sheet                | M    | 2.0, 2.2a        | done  |
 | 2.3b | `S2.3b-manage-exercises.md`    | "Manage exercises" on `/profile`         | S    | 2.3a             | done  |
 | 2.4a | `S2.4a-live-session.md`        | `/workout` — timer, set rows, PR badge   | M    | 2.2b, 2.3a, 2.7a | done  |
-| 2.4b | `S2.4b-session-edit-resume.md` | `/workout` — edit, undo, resume, laptop  | M    | 2.4a             | —     |
+| 2.4b | `S2.4b-session-edit-resume.md` | `/workout` — edit, undo, resume, laptop  | M    | 2.4a             | done  |
 | 2.5  | `S2.5-rest-timer.md`           | The rest timer                           | M    | 2.4a             | —     |
 | 2.6  | `S2.6-link-to-day.md`          | Link a session to the day                | S    | 2.4a             | —     |
 | 2.8a | `S2.8a-lift-charts.md`         | Volume, one-rep max, the record list     | M    | 2.7a, 2.4a       | —     |

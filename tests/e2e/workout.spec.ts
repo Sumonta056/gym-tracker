@@ -284,3 +284,136 @@ test('finishes a pulled session whose start is ahead of this device clock', asyn
   expect(local).toMatchObject({ id: seeded.id, status: 'finished', deleted_at: null })
   expect(Date.parse(local?.ended_at ?? '')).toBeGreaterThanOrEqual(Date.parse(seeded.started_at))
 })
+
+async function offlineSessionWithOneSet(
+  page: Page,
+  context: BrowserContext,
+  browserName: string,
+): Promise<void> {
+  await openWithExercises(page)
+  const trulyOffline = await cutOffTheServer(page, context, browserName)
+  if (trulyOffline) {
+    await page.goto('/workouts')
+  }
+  await startSession(page)
+  await pickBench(page)
+  await benchCard(page).getByLabel('Reps').fill('8')
+  await benchCard(page).getByLabel(/^Load/).fill('60')
+  await addSet(page, 1)
+}
+
+test('edits a set, deletes it, and brings it back with Undo under the same id', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  await offlineSessionWithOneSet(page, context, browserName)
+  const summary = page.getByTestId('session-summary')
+  await expect(summary).toHaveText('Volume 480 kg · 1 set · 1 exercise')
+
+  await benchCard(page)
+    .getByRole('button', { name: /^Edit set 1,/ })
+    .click()
+  const edit = page.getByRole('dialog', { name: 'Edit set 1' })
+  await edit.getByLabel('Reps').fill('10')
+  await edit.getByRole('button', { name: 'Save set' }).click()
+  await expect(edit).toBeHidden()
+  await expect(summary).toHaveText('Volume 600 kg · 1 set · 1 exercise')
+
+  const [before] = (await readStore<LocalSet>(page, 'workoutSets')).filter(
+    (set) => set.deleted_at === null,
+  )
+
+  await benchCard(page)
+    .getByRole('button', { name: /^Edit set 1,/ })
+    .focus()
+  await page.keyboard.press('Enter')
+  const remove = page.getByRole('dialog', { name: 'Edit set 1' }).getByRole('button', {
+    name: 'Delete set',
+  })
+  await remove.focus()
+  await page.keyboard.press('Enter')
+
+  const toast = page.getByRole('status').filter({ hasText: 'Set 1 deleted.' })
+  await expect(toast).toBeVisible()
+  await expect(summary).toHaveText('Volume 0 kg · 0 sets · 0 exercises')
+
+  await toast.getByRole('button', { name: 'Undo' }).click()
+  await expect(summary).toHaveText('Volume 600 kg · 1 set · 1 exercise')
+
+  const after = (await readStore<LocalSet>(page, 'workoutSets')).filter(
+    (set) => set.deleted_at === null,
+  )
+  expect(after.map((set) => [set.id, set.reps])).toEqual([[before?.id, 10]])
+})
+
+test('offers Resume and Discard when the app opens with an active session', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  await offlineSessionWithOneSet(page, context, browserName)
+
+  await page.goto('/workouts')
+  const prompt = page.getByRole('dialog', { name: 'Session running' })
+  await expect(prompt).toBeVisible()
+  await prompt.getByRole('link', { name: 'Resume' }).click()
+  await expect(page).toHaveURL(/\/workout$/)
+  await expect(benchCard(page)).toBeVisible()
+
+  await page.goto('/workouts')
+  await expect(prompt).toBeVisible()
+  await prompt.getByRole('button', { name: 'Discard' }).click()
+  const confirm = page.getByRole('dialog', { name: 'Discard the session?' })
+  await expect(confirm).toContainText('The session and its 1 set are removed')
+  await confirm.getByRole('button', { name: 'Discard session' }).click()
+
+  await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  const sessions = await readStore<LocalSession>(page, 'workoutSessions')
+  expect(sessions).toHaveLength(1)
+  expect(sessions[0]?.deleted_at).not.toBeNull()
+  const sets = await readStore<LocalSet>(page, 'workoutSets')
+  expect(sets).toHaveLength(1)
+  expect(sets.every((set) => set.deleted_at !== null)).toBe(true)
+})
+
+test('puts the exercise list beside the active exercise at 1440 px and stacks them at 390 px', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  await offlineSessionWithOneSet(page, context, browserName)
+  const list = page.getByRole('region', { name: 'Exercises' })
+  const active = page.getByTestId('live-active')
+
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(list).toBeVisible()
+  await expect(list.getByRole('button', { name: /Bench Press/ })).toHaveAttribute(
+    'aria-current',
+    'true',
+  )
+  const listBox = await list.boundingBox()
+  const activeBox = await active.boundingBox()
+  const heroBox = await page.getByRole('region', { name: 'Session' }).boundingBox()
+  expect(listBox && activeBox && listBox.x + listBox.width <= activeBox.x).toBe(true)
+  expect(heroBox && activeBox && Math.abs(heroBox.y - activeBox.y) < 1).toBe(true)
+
+  await page.setViewportSize({ width: 390, height: 900 })
+  await expect(list).toBeHidden()
+  const stackedActive = await active.boundingBox()
+  const stackedHero = await page.getByRole('region', { name: 'Session' }).boundingBox()
+  expect(
+    stackedActive && stackedHero && stackedActive.y >= stackedHero.y + stackedHero.height,
+  ).toBe(true)
+  expect(stackedActive && stackedHero && Math.abs(stackedActive.x - stackedHero.x) < 1).toBe(true)
+
+  for (const width of [320, 390, 768, 1024, 1440, 2560]) {
+    await page.setViewportSize({ width, height: 900 })
+    const sideways = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )
+    expect(sideways, `${String(width)}px`).toBe(false)
+  }
+})

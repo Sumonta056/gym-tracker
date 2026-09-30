@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -16,21 +16,26 @@ import {
 import { READING_LAST_SET } from './ExerciseCard'
 import { PICK_TITLE } from './ExercisePicker'
 import {
-  earlierThan,
+  DELETE_FAILED,
+  EDIT_FAILED,
   exerciseOrder,
+  exerciseSummary,
   FINISH_FAILED,
   goToWorkouts,
   heroFooter,
   lastOf,
+  lastTimeSet,
   LiveSession,
   READ_FAILED,
   recordIds,
   REPOSITORY_LIVE_SOURCE,
   SAVE_FAILED,
-  startedText,
+  UNDO_FAILED,
   volumeText,
   WORKOUTS_PATH,
 } from './LiveSession'
+import { startedText } from './SessionTimer'
+import { SWIPE_PX } from './SetRow'
 
 import type { LiveSessionSource } from './LiveSession'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
@@ -454,13 +459,17 @@ describe('LiveSession', () => {
     await renderLive()
 
     expect(card('Bench Press')).toBeInTheDocument()
-    const other = screen.getByRole('button', { name: /Back Squat/ })
+    const other = within(screen.getByTestId('done-so-far')).getByRole('button', {
+      name: /Back Squat/,
+    })
     expect(other).toHaveTextContent('1 set · 500 kg')
 
     await userEvent.click(other)
 
     expect(await screen.findByRole('region', { name: 'Back Squat' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Bench Press/ })).toHaveTextContent('1 set · 480 kg')
+    expect(
+      within(screen.getByTestId('done-so-far')).getByRole('button', { name: /Bench Press/ }),
+    ).toHaveTextContent('1 set · 480 kg')
   })
 
   it('shows the start time of the session', async () => {
@@ -562,39 +571,6 @@ function liveSet(overrides: Partial<WorkoutSet>): WorkoutSet {
   return pastSet({ session_id: 'live', ...overrides })
 }
 
-describe('earlierThan', () => {
-  it('orders by the completion time first', () => {
-    const first = liveSet({
-      completed_at: '2026-09-01T10:00:00.000Z',
-      created_at: '2026-09-01T12:00:00.000Z',
-    })
-    const second = liveSet({
-      completed_at: '2026-09-01T11:00:00.000Z',
-      created_at: '2026-09-01T09:00:00.000Z',
-    })
-
-    expect(earlierThan(first, second)).toBe(true)
-    expect(earlierThan(second, first)).toBe(false)
-  })
-
-  it('reads created_at when a set has no completion time', () => {
-    const first = liveSet({ completed_at: null, created_at: '2026-09-01T09:00:00.000Z' })
-    const second = liveSet({ completed_at: '2026-09-01T10:00:00.000Z' })
-
-    expect(earlierThan(first, second)).toBe(true)
-  })
-
-  it('breaks a tie by set_index, then by id', () => {
-    const low = liveSet({ id: 'b', set_index: 0 })
-    const high = liveSet({ id: 'a', set_index: 1 })
-    const twin = liveSet({ id: 'c', set_index: 0 })
-
-    expect(earlierThan(low, high)).toBe(true)
-    expect(earlierThan(low, twin)).toBe(true)
-    expect(earlierThan(low, low)).toBe(false)
-  })
-})
-
 describe('recordIds', () => {
   it('compares each set with the sets before it only', () => {
     const lighter = liveSet({ id: 'a', weight_kg: 60, completed_at: '2026-09-01T10:00:00.000Z' })
@@ -672,5 +648,416 @@ describe('the repository source', () => {
     const session: WorkoutSession = await startSession('2026-09-01')
 
     expect(await REPOSITORY_LIVE_SOURCE.getActiveSession()).toEqual(session)
+  })
+})
+
+function editDialog(position: number) {
+  return screen.getByRole('dialog', { name: `Edit set ${String(position)}` })
+}
+
+async function openEdit(position: number) {
+  await userEvent.click(
+    screen.getByRole('button', { name: new RegExp(`^Edit set ${String(position)},`) }),
+  )
+  return screen.findByRole('dialog', { name: `Edit set ${String(position)}` })
+}
+
+async function sessionWithBench(reps = 8, weight_kg = 60) {
+  const session = await startSession('2026-09-01')
+  const set = await addSet({
+    session_id: session.id,
+    exercise_id: BENCH_ID,
+    reps,
+    weight_kg,
+    completed_at: '2026-09-01T10:00:00.000Z',
+  })
+  return { session, set }
+}
+
+function failing(overrides: Partial<LiveSessionSource>): LiveSessionSource {
+  return { ...REPOSITORY_LIVE_SOURCE, ...overrides }
+}
+
+describe('editing a set', () => {
+  it('changes the volume total when a set is edited', async () => {
+    await sessionWithBench()
+    await renderLive()
+    expect(summary()).toHaveTextContent('Volume 480 kg')
+
+    const dialog = await openEdit(1)
+    await userEvent.clear(within(dialog).getByLabelText('Reps'))
+    await userEvent.type(within(dialog).getByLabelText('Reps'), '10')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save set' }))
+
+    await waitFor(() => {
+      expect(summary()).toHaveTextContent('Volume 600 kg · 1 set · 1 exercise')
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('changes the load of the set in storage, keeping its id', async () => {
+    const { set } = await sessionWithBench()
+    await renderLive()
+
+    const dialog = await openEdit(1)
+    await userEvent.clear(within(dialog).getByLabelText(/^Load/))
+    await userEvent.type(within(dialog).getByLabelText(/^Load/), '62.5')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save set' }))
+
+    await waitFor(async () => {
+      expect((await listSets(set.session_id)).map((row) => [row.id, row.weight_kg])).toEqual([
+        [set.id, 62.5],
+      ])
+    })
+  })
+
+  it('says so inside the sheet when the change cannot be saved', async () => {
+    await sessionWithBench()
+    await renderLive({ source: failing({ updateSet: () => Promise.reject(new Error('full')) }) })
+
+    const dialog = await openEdit(1)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save set' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(EDIT_FAILED)
+    expect(editDialog(1)).toBeInTheDocument()
+  })
+
+  it('names a signed-out device when a change is refused', async () => {
+    await sessionWithBench()
+    await renderLive({
+      source: failing({ updateSet: () => Promise.reject(new SignedOutOnThisDevice()) }),
+    })
+
+    const dialog = await openEdit(1)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save set' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      new SignedOutOnThisDevice().message,
+    )
+  })
+
+  it('closes the sheet with no change on its close button', async () => {
+    await sessionWithBench()
+    await renderLive()
+
+    await openEdit(1)
+    await userEvent.click(screen.getByRole('button', { name: 'Close Edit set 1' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(summary()).toHaveTextContent('Volume 480 kg')
+  })
+
+  it('shows the badge on an edited earlier set even when a later set is heavier', async () => {
+    const session = await startSession('2026-09-02')
+    await db.workoutSets.put(pastSet({ weight_kg: 80, completed_at: '2026-09-01T10:00:00.000Z' }))
+    await addSet({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      reps: 5,
+      weight_kg: 70,
+      completed_at: '2026-09-02T10:00:00.000Z',
+    })
+    await addSet({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      reps: 5,
+      weight_kg: 90,
+      completed_at: '2026-09-02T10:05:00.000Z',
+    })
+    await renderLive()
+
+    const dialog = await openEdit(1)
+    await userEvent.clear(within(dialog).getByLabelText(/^Load/))
+    await userEvent.type(within(dialog).getByLabelText(/^Load/), '85')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save set' }))
+
+    await waitFor(() => {
+      expect(within(card('Bench Press')).getAllByText('PR')).toHaveLength(2)
+    })
+  })
+})
+
+describe('deleting a set and the undo', () => {
+  it('brings a deleted set back on Undo, with the same id', async () => {
+    const { session, set } = await sessionWithBench()
+    await renderLive()
+
+    const dialog = await openEdit(1)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete set' }))
+
+    expect(await screen.findByText('Set 1 deleted.')).toBeInTheDocument()
+    expect(screen.getByText('Set 1 deleted.').closest('[role="status"]')).not.toBeNull()
+    await waitFor(() => {
+      expect(summary()).toHaveTextContent('Volume 0 kg · 0 sets')
+    })
+    expect(await listSets(session.id)).toEqual([])
+
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+
+    await waitFor(() => {
+      expect(summary()).toHaveTextContent('Volume 480 kg · 1 set')
+    })
+    expect((await listSets(session.id)).map((row) => row.id)).toEqual([set.id])
+    expect(screen.queryByText('Set 1 deleted.')).not.toBeInTheDocument()
+  })
+
+  it('deletes a set with the keyboard alone', async () => {
+    const { session } = await sessionWithBench()
+    await renderLive()
+    const row = screen.getByRole('button', { name: /^Edit set 1,/ })
+
+    row.focus()
+    await userEvent.keyboard('{Enter}')
+    const dialog = await screen.findByRole('dialog', { name: 'Edit set 1' })
+    const remove = within(dialog).getByRole('button', { name: 'Delete set' })
+    while (document.activeElement !== remove) {
+      await userEvent.tab()
+    }
+    await userEvent.keyboard('{Enter}')
+
+    expect(await screen.findByText('Set 1 deleted.')).toBeInTheDocument()
+    expect(await listSets(session.id)).toEqual([])
+  })
+
+  it('deletes a set on a swipe to the left, with the same undo', async () => {
+    const { session } = await sessionWithBench()
+    await renderLive()
+    const row = screen.getByRole('button', { name: /^Edit set 1,/ })
+
+    fireEvent.pointerDown(row, { clientX: 200, clientY: 10 })
+    fireEvent.pointerMove(row, { clientX: 200 - SWIPE_PX, clientY: 10 })
+
+    expect(await screen.findByText('Set 1 deleted.')).toBeInTheDocument()
+    expect(await listSets(session.id)).toEqual([])
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('says so on the page when a swiped delete fails', async () => {
+    await sessionWithBench()
+    await renderLive({ source: failing({ deleteSet: () => Promise.reject(new Error('full')) }) })
+    const row = screen.getByRole('button', { name: /^Edit set 1,/ })
+
+    fireEvent.pointerDown(row, { clientX: 200, clientY: 10 })
+    fireEvent.pointerMove(row, { clientX: 200 - SWIPE_PX, clientY: 10 })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(DELETE_FAILED)
+    expect(screen.queryByText('Set 1 deleted.')).not.toBeInTheDocument()
+  })
+
+  it('says so inside the sheet when a delete from it fails', async () => {
+    await sessionWithBench()
+    await renderLive({ source: failing({ deleteSet: () => Promise.reject(new Error('full')) }) })
+
+    const dialog = await openEdit(1)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete set' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(DELETE_FAILED)
+  })
+
+  it('says so when the undo fails', async () => {
+    await sessionWithBench()
+    await renderLive({ source: failing({ restoreSet: () => Promise.reject(new Error('full')) }) })
+
+    const dialog = await openEdit(1)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete set' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(UNDO_FAILED)
+  })
+
+  it('takes no second delete while one is saving', async () => {
+    await sessionWithBench()
+    let finish: () => void = () => undefined
+    const deleteSet = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        }),
+    )
+    await renderLive({ source: failing({ deleteSet }) })
+    const row = screen.getByRole('button', { name: /^Edit set 1,/ })
+
+    for (let swipe = 0; swipe < 2; swipe += 1) {
+      fireEvent.pointerDown(row, { clientX: 200, clientY: 10 })
+      fireEvent.pointerMove(row, { clientX: 200 - SWIPE_PX, clientY: 10 })
+    }
+    finish()
+
+    expect(deleteSet).toHaveBeenCalledTimes(1)
+    await screen.findByText('Set 1 deleted.')
+  })
+
+  it('takes no edit save while a save is running', async () => {
+    await sessionWithBench()
+    const updateSet = vi.fn(() => new Promise<WorkoutSet>(() => undefined))
+    await renderLive({ source: failing({ updateSet }) })
+
+    const dialog = await openEdit(1)
+    const save = within(dialog).getByRole('button', { name: 'Save set' })
+    await userEvent.click(save)
+    fireEvent.submit(save.closest('form') as HTMLFormElement)
+
+    expect(updateSet).toHaveBeenCalledTimes(1)
+  })
+
+  it('counts the sets again after a delete, so the next set keeps its place', async () => {
+    const { session } = await sessionWithBench()
+    await addSet({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      reps: 6,
+      weight_kg: 70,
+      completed_at: '2026-09-01T10:05:00.000Z',
+    })
+    await renderLive()
+
+    const dialog = await openEdit(1)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete set' }))
+
+    expect(
+      await screen.findByRole('button', { name: 'Edit set 1, 70 kg, 6 reps' }),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('the last time line', () => {
+  it('shows the last set of an earlier session with its estimated one-rep max', async () => {
+    await db.workoutSets.bulkPut([
+      pastSet({ weight_kg: 70, reps: 8, completed_at: '2026-08-30T10:00:00.000Z' }),
+      pastSet({ weight_kg: 72.5, reps: 8, completed_at: '2026-08-31T10:00:00.000Z' }),
+    ])
+    await sessionWithBench(8, 75)
+    await renderLive()
+
+    expect(
+      within(card('Bench Press')).getByText('Last time 72.5 kg × 8 · estimated 1RM 92 kg'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows it before the first set of an exercise too', async () => {
+    await db.workoutSets.put(pastSet({ weight_kg: 100, reps: 5 }))
+    await startSession('2026-09-02')
+    await renderLive()
+    await pickExercise('Bench Press')
+
+    expect(
+      await within(card('Bench Press')).findByText('Last time 100 kg × 5 · estimated 1RM 117 kg'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows no line for an exercise done only in this session', async () => {
+    await sessionWithBench()
+    await renderLive()
+
+    expect(within(card('Bench Press')).queryByText(/^Last time/)).not.toBeInTheDocument()
+  })
+})
+
+describe('lastTimeSet', () => {
+  it('takes the last set of the exercise from another session', () => {
+    const older = pastSet({ id: 'older', completed_at: '2026-08-30T10:00:00.000Z' })
+    const newer = pastSet({ id: 'newer', completed_at: '2026-08-31T10:00:00.000Z' })
+    const today = pastSet({
+      id: 'today',
+      session_id: 'live',
+      completed_at: '2026-09-01T10:00:00.000Z',
+    })
+    const squat = pastSet({
+      id: 'squat',
+      exercise_id: SQUAT_ID,
+      completed_at: '2026-09-01T09:00:00.000Z',
+    })
+
+    expect(lastTimeSet([older, newer, today, squat], 'live', BENCH_ID)?.id).toBe('newer')
+  })
+
+  it('returns undefined when the exercise has no earlier session', () => {
+    expect(lastTimeSet([pastSet({ session_id: 'live' })], 'live', BENCH_ID)).toBeUndefined()
+  })
+})
+
+describe('exerciseSummary', () => {
+  it('names an exercise with no sets', () => {
+    expect(exerciseSummary([], 'metric')).toBe('No sets')
+  })
+
+  it('counts the sets and the volume', () => {
+    expect(exerciseSummary([pastSet({ reps: 5, weight_kg: 100 })], 'metric')).toBe('1 set · 500 kg')
+  })
+})
+
+describe('the laptop layout', () => {
+  it('lists every exercise, the active one marked current, and opens one on a tap', async () => {
+    const session = await startSession('2026-09-01')
+    await addSet({
+      session_id: session.id,
+      exercise_id: SQUAT_ID,
+      reps: 5,
+      weight_kg: 100,
+      completed_at: '2026-09-01T10:00:00.000Z',
+    })
+    await addSet({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      reps: 8,
+      weight_kg: 60,
+      completed_at: '2026-09-01T10:05:00.000Z',
+    })
+    await renderLive()
+    const list = screen.getByRole('region', { name: 'Exercises' })
+
+    const bench = within(list).getByRole('button', { name: /Bench Press/ })
+    expect(bench).toHaveAttribute('aria-current', 'true')
+    expect(bench).toHaveTextContent('Chest')
+    expect(bench).toHaveTextContent('1 set · 480 kg')
+
+    await userEvent.click(within(list).getByRole('button', { name: /Back Squat/ }))
+
+    expect(await screen.findByRole('region', { name: 'Back Squat' })).toBeInTheDocument()
+    expect(within(list).getByRole('button', { name: /Back Squat/ })).toHaveAttribute(
+      'aria-current',
+      'true',
+    )
+    expect(within(list).getByRole('button', { name: /Bench Press/ })).not.toHaveAttribute(
+      'aria-current',
+    )
+  })
+
+  it('shows the list only at 1024 px and up, and the Done so far card below it', async () => {
+    const session = await startSession('2026-09-01')
+    await addSet({ session_id: session.id, exercise_id: SQUAT_ID, reps: 5, weight_kg: 100 })
+    await addSet({ session_id: session.id, exercise_id: BENCH_ID, reps: 5, weight_kg: 100 })
+    await renderLive()
+
+    expect(screen.getByTestId('exercise-list')).toHaveClass('hidden', 'lg:flex')
+    expect(screen.getByTestId('done-so-far')).toHaveClass('lg:hidden')
+  })
+
+  it('puts the active exercise in the right column at 1024 px and up', async () => {
+    await sessionWithBench()
+    await renderLive()
+
+    expect(screen.getByTestId('live-grid')).toHaveClass(
+      'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]',
+    )
+    expect(screen.getByTestId('live-active')).toHaveClass('lg:col-2')
+  })
+
+  it('names an exercise the catalogue no longer holds', async () => {
+    const session = await startSession('2026-09-01')
+    await addSet({
+      session_id: session.id,
+      exercise_id: crypto.randomUUID(),
+      reps: 5,
+      weight_kg: 50,
+    })
+    await addSet({ session_id: session.id, exercise_id: BENCH_ID, reps: 5, weight_kg: 50 })
+    await renderLive()
+
+    expect(
+      within(screen.getByRole('region', { name: 'Exercises' })).getByRole('button', {
+        name: /Unknown exercise/,
+      }),
+    ).toBeInTheDocument()
   })
 })

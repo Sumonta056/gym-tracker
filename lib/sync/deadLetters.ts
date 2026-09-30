@@ -1,6 +1,6 @@
 import { db, DEAD_STREAK_KEY } from '../db/dexie'
 
-import type { DeadLetter, OutboxEntry, OutboxPayload } from '../db/dexie'
+import type { DeadLetter, OutboxEntry, OutboxPayload, WorkoutSet } from '../db/dexie'
 
 export const GLOBAL_ROW = 'GLOBAL_ROW'
 
@@ -126,6 +126,49 @@ export async function retryDeadLetter(id: string): Promise<void> {
   )
 }
 
+async function sessionIsOver(sessionId: string, discarded: string): Promise<boolean> {
+  const session = await db.workoutSessions.get(sessionId)
+
+  if (session !== undefined && session.deleted_at === null) {
+    return false
+  }
+
+  const refusals = await db.deadLetters
+    .filter(
+      (letter) =>
+        letter.id !== discarded &&
+        letter.table_name === 'workout_sessions' &&
+        letter.row_id === sessionId,
+    )
+    .count()
+  const queued = await db.outbox
+    .filter((entry) => entry.table_name === 'workout_sessions' && entry.row_id === sessionId)
+    .count()
+
+  return refusals + queued === 0
+}
+
 export async function discardDeadLetter(id: string): Promise<void> {
-  await db.deadLetters.delete(id)
+  await db.transaction('rw', db.deadLetters, db.outbox, db.workoutSessions, async () => {
+    const letter = await db.deadLetters.get(id)
+
+    if (letter === undefined) {
+      return
+    }
+
+    if (
+      letter.table_name === 'workout_sessions' &&
+      (await sessionIsOver(letter.row_id, letter.id))
+    ) {
+      await db.outbox
+        .filter(
+          (entry) =>
+            entry.table_name === 'workout_sets' &&
+            (entry.payload as WorkoutSet).session_id === letter.row_id,
+        )
+        .delete()
+    }
+
+    await db.deadLetters.delete(id)
+  })
 }

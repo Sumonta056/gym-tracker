@@ -1,38 +1,47 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 import {
   addSet,
+  deleteSet,
   finishSession,
   getActiveSession,
   getProfile,
   lastSetFor,
   listExercises,
   listSets,
+  restoreSet,
   setsForExercises,
   SignedOutOnThisDevice,
+  updateSet,
 } from '../../lib/db/repository'
 import { toDisplayWeight, weightSymbol } from '../../lib/format/weight'
-import { isNewRecord } from '../../lib/metrics/personalRecords'
+import { earlierThan, isNewRecord } from '../../lib/metrics/personalRecords'
 import { volumeLoad } from '../../lib/metrics/volumeLoad'
 import { formatCount } from '../dashboard/summary'
 import { SyncChip } from '../sync/SyncChip'
 import { Card } from '../ui/Card'
+import { cn } from '../ui/cn'
 import { HeroCard } from '../ui/HeroCard'
 import { MicroLabel } from '../ui/MicroLabel'
 import { PrimaryButton } from '../ui/PrimaryButton'
 import { SecondaryButton } from '../ui/SecondaryButton'
 
-import { ExerciseCard } from './ExerciseCard'
+import { EditSetSheet } from './EditSetSheet'
+import { ExerciseCard, lastTimeText } from './ExerciseCard'
 import { ExercisePicker } from './ExercisePicker'
-import { SessionTimer, systemNow } from './SessionTimer'
+import { MUSCLE_GROUP_LABEL } from './MuscleGroupChips'
+import { SessionTimer, startedText, systemNow } from './SessionTimer'
+import { ToastRoom, UndoToast } from './UndoToast'
 
+import type { EditingSet } from './EditSetSheet'
 import type { SetValues } from './ExerciseCard'
 import type { ExerciseSource } from './ExercisePicker'
+import type { Toast } from './UndoToast'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
-import type { ExerciseFilter } from '../../lib/db/repository'
+import type { ExerciseFilter, WorkoutSetPatch } from '../../lib/db/repository'
 import type { UnitSystem } from '../../lib/schema/profile'
 
 export type LiveSessionSource = {
@@ -42,6 +51,9 @@ export type LiveSessionSource = {
   setsForExercises: (exerciseIds: string[]) => Promise<WorkoutSet[]>
   lastSetFor: (exerciseId: string) => Promise<WorkoutSet | undefined>
   addSet: typeof addSet
+  updateSet: (id: string, patch: WorkoutSetPatch) => Promise<WorkoutSet>
+  deleteSet: (id: string) => Promise<void>
+  restoreSet: (id: string) => Promise<void>
   finishSession: (id: string) => Promise<WorkoutSession>
   readUnit: () => Promise<UnitSystem>
 }
@@ -53,6 +65,9 @@ export const REPOSITORY_LIVE_SOURCE: LiveSessionSource = {
   setsForExercises,
   lastSetFor,
   addSet,
+  updateSet,
+  deleteSet,
+  restoreSet,
   finishSession,
   readUnit: async () => (await getProfile()).unit_system,
 }
@@ -62,6 +77,12 @@ export const READ_FAILED = 'The session could not be read on this device.'
 export const SAVE_FAILED = 'The set could not be saved on this device.'
 
 export const FINISH_FAILED = 'The session could not be finished on this device.'
+
+export const EDIT_FAILED = 'The set could not be changed on this device.'
+
+export const DELETE_FAILED = 'The set could not be deleted on this device.'
+
+export const UNDO_FAILED = 'The set could not be brought back on this device.'
 
 export const WORKOUTS_PATH = '/workouts'
 
@@ -79,33 +100,11 @@ type ReadState =
   | { status: 'none' }
   | { status: 'ready'; snapshot: Snapshot }
 
-function doneAt(set: WorkoutSet): number {
-  return Date.parse(set.completed_at ?? set.created_at)
-}
-
-export function earlierThan(left: WorkoutSet, right: WorkoutSet): boolean {
-  return (
-    (doneAt(left) - doneAt(right) ||
-      Date.parse(left.created_at) - Date.parse(right.created_at) ||
-      left.set_index - right.set_index ||
-      left.id.localeCompare(right.id)) < 0
-  )
-}
-
 export function recordIds(
   sets: readonly WorkoutSet[],
   history: readonly WorkoutSet[],
 ): Set<string> {
-  return new Set(
-    sets
-      .filter((set) =>
-        isNewRecord(
-          set,
-          history.filter((item) => earlierThan(item, set)),
-        ),
-      )
-      .map((set) => set.id),
-  )
+  return new Set(sets.filter((set) => isNewRecord(set, history)).map((set) => set.id))
 }
 
 export function exerciseOrder(sets: readonly WorkoutSet[], extra: readonly string[]): string[] {
@@ -114,6 +113,16 @@ export function exerciseOrder(sets: readonly WorkoutSet[], extra: readonly strin
 
 export function lastOf(sets: readonly WorkoutSet[]): WorkoutSet | undefined {
   return [...sets].sort((left, right) => (earlierThan(left, right) ? -1 : 1)).at(-1)
+}
+
+export function lastTimeSet(
+  history: readonly WorkoutSet[],
+  sessionId: string,
+  exerciseId: string,
+): WorkoutSet | undefined {
+  return lastOf(
+    history.filter((set) => set.exercise_id === exerciseId && set.session_id !== sessionId),
+  )
 }
 
 function plural(count: number, word: string): string {
@@ -130,8 +139,12 @@ export function heroFooter(sets: readonly WorkoutSet[], unit: UnitSystem): strin
   return `Volume ${volumeText(sets, unit)} · ${plural(sets.length, 'set')} · ${plural(exercises, 'exercise')}`
 }
 
-export function startedText(startedAt: string): string {
-  return new Date(startedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+export function exerciseSummary(sets: readonly WorkoutSet[], unit: UnitSystem): string {
+  return sets.length === 0 ? 'No sets' : `${plural(sets.length, 'set')} · ${volumeText(sets, unit)}`
+}
+
+function failure(cause: unknown, fallback: string): string {
+  return cause instanceof SignedOutOnThisDevice ? cause.message : fallback
 }
 
 async function readSnapshot(source: LiveSessionSource): Promise<Snapshot | null> {
@@ -182,7 +195,12 @@ export function LiveSession({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editing, setEditing] = useState<EditingSet | null>(null)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [toast, setToast] = useState<(Toast & { setId: string }) | null>(null)
+  const deletes = useRef(0)
   const alive = useRef(true)
+  const listHeadingId = useId()
 
   const refresh = useCallback(async () => {
     try {
@@ -282,6 +300,11 @@ export function LiveSession({
     lastOf(activeSets) ?? (activeId === undefined ? undefined : previous.get(activeId)) ?? undefined
   const sourceKey = activeId ?? ''
   const others = order.filter((id) => id !== activeId)
+  const lastTime =
+    activeId === undefined
+      ? undefined
+      : (lastTimeSet(history, session.id, activeId) ?? previous.get(activeId) ?? undefined)
+  const setsOf = (id: string) => sets.filter((set) => set.exercise_id === id)
 
   const saveSet = (values: SetValues) => {
     if (activeId === undefined || busy) {
@@ -304,7 +327,7 @@ export function LiveSession({
           await refresh()
         },
         (cause: unknown) => {
-          setError(cause instanceof SignedOutOnThisDevice ? cause.message : SAVE_FAILED)
+          setError(failure(cause, SAVE_FAILED))
         },
       )
       .finally(() => {
@@ -325,7 +348,87 @@ export function LiveSession({
       },
       (cause: unknown) => {
         setBusy(false)
-        setError(cause instanceof SignedOutOnThisDevice ? cause.message : FINISH_FAILED)
+        setError(failure(cause, FINISH_FAILED))
+      },
+    )
+  }
+
+  const saveEdit = (values: SetValues) => {
+    if (editing === null || busy) {
+      return
+    }
+
+    setBusy(true)
+    setEditError(null)
+    source
+      .updateSet(editing.set.id, { reps: values.reps, weight_kg: values.weight_kg })
+      .then(
+        async () => {
+          setEditing(null)
+          await refresh()
+        },
+        (cause: unknown) => {
+          setEditError(failure(cause, EDIT_FAILED))
+        },
+      )
+      .finally(() => {
+        setBusy(false)
+      })
+  }
+
+  const removeSet = (set: WorkoutSet, position: number) => {
+    if (busy) {
+      return
+    }
+
+    const fromSheet = editing !== null
+
+    setBusy(true)
+    setError(null)
+    setEditError(null)
+    source
+      .deleteSet(set.id)
+      .then(
+        async () => {
+          deletes.current += 1
+          setEditing(null)
+          setToast({
+            key: `${set.id}:${String(deletes.current)}`,
+            message: `Set ${String(position)} deleted.`,
+            setId: set.id,
+          })
+          await refresh()
+        },
+        (cause: unknown) => {
+          const message = failure(cause, DELETE_FAILED)
+
+          if (fromSheet) {
+            setEditError(message)
+          } else {
+            setError(message)
+          }
+        },
+      )
+      .finally(() => {
+        setBusy(false)
+      })
+  }
+
+  const undo = () => {
+    if (toast === null) {
+      return
+    }
+
+    const { setId } = toast
+
+    setToast(null)
+    setError(null)
+    source.restoreSet(setId).then(
+      async () => {
+        await refresh()
+      },
+      (cause: unknown) => {
+        setError(failure(cause, UNDO_FAILED))
       },
     )
   }
@@ -348,8 +451,11 @@ export function LiveSession({
         <SyncChip className="shrink-0" />
       </header>
 
-      <div data-testid="live-grid" className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-        <HeroCard label="Elapsed" aria-label="Session" className="md:col-span-2">
+      <div
+        data-testid="live-grid"
+        className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:grid-rows-[auto_auto_auto_auto_1fr] lg:items-start"
+      >
+        <HeroCard label="Elapsed" aria-label="Session" className="md:col-span-2 lg:col-1">
           <SessionTimer
             startedAt={session.started_at}
             now={now}
@@ -361,63 +467,111 @@ export function LiveSession({
           </p>
         </HeroCard>
 
-        {activeId !== undefined && active !== undefined ? (
-          <ExerciseCard
-            exercise={active}
-            sets={activeSets}
-            records={records}
-            unit={unit}
-            source={copySource}
-            sourceKey={sourceKey}
-            readingSource={needsPrevious}
-            busy={busy}
-            onAddSet={saveSet}
-          />
-        ) : (
-          <Card>
-            <p className="text-muted text-sm">Add an exercise to log your first set.</p>
-          </Card>
-        )}
+        <div data-testid="live-active" className="lg:col-2 lg:row-[1/6]">
+          {activeId !== undefined && active !== undefined ? (
+            <ExerciseCard
+              exercise={active}
+              sets={activeSets}
+              records={records}
+              unit={unit}
+              source={copySource}
+              sourceKey={sourceKey}
+              lastTime={lastTime === undefined ? undefined : lastTimeText(lastTime, unit)}
+              readingSource={needsPrevious}
+              busy={busy}
+              onAddSet={saveSet}
+              onEditSet={(set, position) => {
+                setEditError(null)
+                setEditing({ set, position, exerciseName: active.name })
+              }}
+              onDeleteSet={removeSet}
+            />
+          ) : (
+            <Card>
+              <p className="text-muted text-sm">Add an exercise to log your first set.</p>
+            </Card>
+          )}
+        </div>
 
         {others.length > 0 ? (
-          <Card>
+          <Card className="lg:hidden" data-testid="done-so-far">
             <MicroLabel as="p">Done so far</MicroLabel>
             <ul className="mt-1.5">
-              {others.map((id) => {
-                const exerciseSets = sets.filter((set) => set.exercise_id === id)
+              {others.map((id) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChosen(id)
+                    }}
+                    className="border-border flex min-h-11 w-full items-center justify-between gap-3 border-b py-2 text-left last:border-b-0"
+                  >
+                    <span className="text-muted min-w-0 text-sm break-words">
+                      {nameOf(id)?.name ?? 'Unknown exercise'}
+                    </span>
+                    <strong className="text-text shrink-0 text-sm">
+                      {exerciseSummary(setsOf(id), unit)}
+                    </strong>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+
+        {order.length > 0 ? (
+          <section
+            aria-labelledby={listHeadingId}
+            data-testid="exercise-list"
+            className="hidden flex-col gap-3 lg:col-1 lg:flex"
+          >
+            <h2 id={listHeadingId} className="px-0.5 pt-1.5">
+              <MicroLabel>Exercises</MicroLabel>
+            </h2>
+            <ul className="flex flex-col gap-2">
+              {order.map((id) => {
+                const exercise = nameOf(id)
+                const current = id === activeId
 
                 return (
                   <li key={id}>
                     <button
                       type="button"
+                      aria-current={current ? 'true' : undefined}
                       onClick={() => {
                         setChosen(id)
                       }}
-                      className="border-border flex min-h-11 w-full items-center justify-between gap-3 border-b py-2 text-left last:border-b-0"
+                      className={cn(
+                        'bg-surface rounded-card flex min-h-11 w-full flex-col gap-1 border p-4 text-left',
+                        current ? 'border-accent' : 'border-border',
+                      )}
                     >
-                      <span className="text-muted min-w-0 text-sm break-words">
-                        {nameOf(id)?.name ?? 'Unknown exercise'}
+                      <span className="flex items-center justify-between gap-3">
+                        <strong className="text-text min-w-0 text-[15px] break-words">
+                          {exercise?.name ?? 'Unknown exercise'}
+                        </strong>
+                        {exercise === undefined ? null : (
+                          <MicroLabel>{MUSCLE_GROUP_LABEL[exercise.muscle_group]}</MicroLabel>
+                        )}
                       </span>
-                      <strong className="text-text shrink-0 text-sm">
-                        {exerciseSets.length === 0
-                          ? 'No sets'
-                          : `${plural(exerciseSets.length, 'set')} · ${volumeText(exerciseSets, unit)}`}
-                      </strong>
+                      <span className="text-muted text-sm">
+                        {exerciseSummary(setsOf(id), unit)}
+                      </span>
                     </button>
                   </li>
                 )
               })}
             </ul>
-          </Card>
+          </section>
         ) : null}
 
         {error === null ? null : (
-          <p role="alert" className="text-danger text-sm md:col-span-2">
+          <p role="alert" className="text-danger text-sm md:col-span-2 lg:col-1">
             {error}
           </p>
         )}
 
-        <div className="flex flex-col gap-3 md:col-span-2 md:flex-row">
+        <div className="flex flex-col gap-3 md:col-span-2 md:flex-row lg:col-1 lg:flex-col">
           <SecondaryButton
             onClick={() => {
               setPickerOpen(true)
@@ -440,6 +594,33 @@ export function LiveSession({
         unitSystem={unit}
         now={now}
         {...(pickerSource === undefined ? {} : { source: pickerSource })}
+      />
+
+      <ToastRoom shown={toast !== null} />
+
+      <EditSetSheet
+        editing={editing}
+        unit={unit}
+        busy={busy}
+        error={editError}
+        onSave={saveEdit}
+        onDelete={() => {
+          if (editing !== null) {
+            removeSet(editing.set, editing.position)
+          }
+        }}
+        onClose={() => {
+          setEditing(null)
+          setEditError(null)
+        }}
+      />
+
+      <UndoToast
+        toast={toast}
+        onUndo={undo}
+        onDismiss={() => {
+          setToast(null)
+        }}
       />
     </>
   )

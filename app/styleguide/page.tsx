@@ -30,9 +30,11 @@ import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
+import { EditSetSheet } from '../../components/workout/EditSetSheet'
 import { ExerciseCard } from '../../components/workout/ExerciseCard'
 import { ExercisePicker } from '../../components/workout/ExercisePicker'
 import { SessionTimer } from '../../components/workout/SessionTimer'
+import { UndoToast } from '../../components/workout/UndoToast'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
@@ -40,7 +42,9 @@ import { formatDuration, parseInput } from '../../lib/duration'
 import type { RangeTab } from '../../components/charts/rangeData'
 import type { DashboardSummary } from '../../components/dashboard/summary'
 import type { ManageExerciseSource } from '../../components/profile/ManageExercisesSheet'
+import type { EditingSet } from '../../components/workout/EditSetSheet'
 import type { ExerciseSource } from '../../components/workout/ExercisePicker'
+import type { Toast } from '../../components/workout/UndoToast'
 import type { DailyEntry, DeadLetter, Exercise, Profile, WorkoutSet } from '../../lib/db/dexie'
 import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
@@ -435,6 +439,8 @@ function Styleguide() {
   const [open, setOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
+  const [sampleEditing, setSampleEditing] = useState<EditingSet | null>(null)
+  const [sampleToast, setSampleToast] = useState<Toast | null>(null)
   const [pickerSource] = useState(sampleExerciseSource)
   const [manageSource] = useState(sampleManageSource)
   const [showFieldError, setShowFieldError] = useState(false)
@@ -834,9 +840,47 @@ function Styleguide() {
             unit="metric"
             source={SAMPLE_LIVE_SETS[2]}
             sourceKey="sample"
+            lastTime="Last time 72.5 kg × 8 · estimated 1RM 92 kg"
             onAddSet={() => undefined}
+            onEditSet={(set, position) => {
+              setSampleEditing({ set, position, exerciseName: 'Bench Press' })
+            }}
+            onDeleteSet={(_set, position) => {
+              setSampleToast({
+                key: String(Date.now()),
+                message: `Set ${String(position)} deleted.`,
+              })
+            }}
           />
         </div>
+        <EditSetSheet
+          editing={sampleEditing}
+          unit="metric"
+          onSave={() => {
+            setSampleEditing(null)
+          }}
+          onDelete={() => {
+            if (sampleEditing !== null) {
+              setSampleToast({
+                key: String(Date.now()),
+                message: `Set ${String(sampleEditing.position)} deleted.`,
+              })
+            }
+            setSampleEditing(null)
+          }}
+          onClose={() => {
+            setSampleEditing(null)
+          }}
+        />
+        <UndoToast
+          toast={sampleToast}
+          onUndo={() => {
+            setSampleToast(null)
+          }}
+          onDismiss={() => {
+            setSampleToast(null)
+          }}
+        />
       </Section>
     </AppShell>
   )

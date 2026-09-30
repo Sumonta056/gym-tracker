@@ -423,4 +423,45 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       within(sample).getByRole('button', { name: 'Add set to Bench Press' }),
     ).toBeInTheDocument()
   })
+
+  it('opens the edit set sample on a tap of a set row', async () => {
+    const sample = screen.getByTestId('live-sample')
+
+    await userEvent.click(within(sample).getByRole('button', { name: /^Edit set 2/ }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Edit set 2' })
+    expect(within(dialog).getByRole('button', { name: 'Delete set' })).toBeInTheDocument()
+  })
+
+  it('shows the undo toast sample after a delete in the edit sheet', async () => {
+    const sample = screen.getByTestId('live-sample')
+    await userEvent.click(within(sample).getByRole('button', { name: /^Edit set 1/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete set' }))
+
+    expect(await screen.findByText('Set 1 deleted.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(screen.queryByText('Set 1 deleted.')).not.toBeInTheDocument()
+  })
+
+  it('saves the edit set sample and closes it', async () => {
+    const sample = screen.getByTestId('live-sample')
+    await userEvent.click(within(sample).getByRole('button', { name: /^Edit set 1/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Save set' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Edit set 1' })).not.toBeInTheDocument()
+  })
+
+  it('closes the edit set sample from its close button', async () => {
+    const sample = screen.getByTestId('live-sample')
+    await userEvent.click(within(sample).getByRole('button', { name: /^Edit set 1/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Close Edit set 1' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('shows the last time line in the live workout sample', () => {
+    expect(
+      within(screen.getByTestId('live-sample')).getByText(/^Last time 72.5 kg × 8/),
+    ).toBeInTheDocument()
+  })
 })

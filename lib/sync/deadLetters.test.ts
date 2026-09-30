@@ -21,13 +21,14 @@ import {
   PERMANENT_CODES,
   retryDeadLetter,
 } from './deadLetters'
-import { append, listPending } from './outbox'
+import { append, listPending, markDone } from './outbox'
 
 import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
 
 const ROW_A = '11111111-1111-4111-8111-111111111111'
 const ROW_B = '22222222-2222-4222-8222-222222222222'
-const FAILED_AT = Date.parse('2026-09-01T10:05:00.000Z')
+const FAILED_AT_ISO = '2026-09-01T10:05:00.000Z'
+const FAILED_AT = Date.parse(FAILED_AT_ISO)
 
 function row(id: string, overrides: Partial<DailyEntry> = {}): DailyEntry {
   return {
@@ -355,5 +356,189 @@ describe('discardDeadLetter', () => {
     expect(await db.deadLetters.count()).toBe(0)
     expect(await db.outbox.count()).toBe(0)
     expect(await db.dailyEntries.get(ROW_A)).toEqual(local)
+  })
+})
+
+describe('discardDeadLetter for a refused session', () => {
+  const OTHER_SESSION = '44444444-4444-4444-8444-444444444444'
+  const SET_1 = '55555555-5555-4555-8555-555555555555'
+  const SET_2 = '66666666-6666-4666-8666-666666666666'
+  const SET_3 = '77777777-7777-4777-8777-777777777777'
+
+  async function refusedSession(): Promise<string> {
+    const refused = session(ROW_B, null)
+    await db.workoutSessions.put(refused)
+    const entry = await append('workout_sessions', 'upsert', refused)
+    await moveToDeadLetters(entry.id, ACTIVE_SESSION_ELSEWHERE, 'active elsewhere', FAILED_AT)
+
+    return entry.id
+  }
+
+  async function discardedLocally(): Promise<void> {
+    const stored = await db.workoutSessions.get(ROW_B)
+    await db.workoutSessions.put({ ...session(ROW_B, null), ...stored, deleted_at: FAILED_AT_ISO })
+  }
+
+  async function queueSet(id: string, sessionId = ROW_B): Promise<WorkoutSet> {
+    const local = { ...set(id, 8), session_id: sessionId }
+    await db.workoutSets.put(local)
+    await append('workout_sets', 'upsert', local)
+
+    return local
+  }
+
+  function pendingRows(): Promise<string[]> {
+    return listPending().then((entries) => entries.map((entry) => entry.row_id))
+  }
+
+  it('drops the held sets of a session discarded on this device, so they never fail again', async () => {
+    const letter = await refusedSession()
+    await queueSet(SET_1)
+    await queueSet(SET_2)
+    await discardedLocally()
+
+    await discardDeadLetter(letter)
+
+    expect(await db.deadLetters.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('drops them when the session is no longer on this device', async () => {
+    const letter = await refusedSession()
+    await queueSet(SET_1)
+    await db.workoutSessions.delete(ROW_B)
+
+    await discardDeadLetter(letter)
+
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('keeps the sets on this device', async () => {
+    const letter = await refusedSession()
+    const local = await queueSet(SET_1)
+    await discardedLocally()
+
+    await discardDeadLetter(letter)
+
+    expect(await db.workoutSets.get(SET_1)).toEqual(local)
+  })
+
+  it('drops a queued delete of a set of the session too', async () => {
+    const letter = await refusedSession()
+    const local = await queueSet(SET_1)
+    await append('workout_sets', 'delete', { ...local, deleted_at: FAILED_AT_ISO })
+    await discardedLocally()
+
+    await discardDeadLetter(letter)
+
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('keeps the queued sets of another session', async () => {
+    const letter = await refusedSession()
+    await queueSet(SET_1)
+    await queueSet(SET_2, OTHER_SESSION)
+    await discardedLocally()
+
+    await discardDeadLetter(letter)
+
+    expect(await pendingRows()).toEqual([SET_2])
+  })
+
+  it('keeps the held sets of a live session, which a later session write can still send', async () => {
+    const letter = await refusedSession()
+    await queueSet(SET_1)
+
+    await discardDeadLetter(letter)
+    const finish = await append('workout_sessions', 'upsert', session(ROW_B, FAILED_AT_ISO))
+    await markDone(finish.id)
+
+    expect(await pendingRows()).toEqual([SET_1])
+  })
+
+  it('keeps a set edit behind a refused update of a session the server already holds', async () => {
+    const first = await append('workout_sessions', 'upsert', session(ROW_B, null))
+    await markDone(first.id)
+    await db.workoutSessions.put(session(ROW_B, FAILED_AT_ISO))
+    const finish = await append('workout_sessions', 'upsert', session(ROW_B, FAILED_AT_ISO))
+    await moveToDeadLetters(finish.id, null, 'timeout', FAILED_AT)
+    await queueSet(SET_1)
+
+    await discardDeadLetter(finish.id)
+
+    expect(await pendingRows()).toEqual([SET_1])
+  })
+
+  it('keeps the held sets while another refusal of the same session remains', async () => {
+    const first = await refusedSession()
+    await queueSet(SET_1)
+    const again = await append('workout_sessions', 'upsert', session(ROW_B, FAILED_AT_ISO))
+    await moveToDeadLetters(again.id, ACTIVE_SESSION_ELSEWHERE, 'active elsewhere', FAILED_AT)
+    await discardedLocally()
+
+    await discardDeadLetter(first)
+
+    expect(await pendingRows()).toEqual([SET_1])
+    expect((await listDeadLetters()).map((letter) => letter.id)).toEqual([again.id])
+  })
+
+  it('keeps the held sets when a later write of the session still waits to be sent', async () => {
+    const letter = await refusedSession()
+    await queueSet(SET_1)
+    await discardedLocally()
+    await append('workout_sessions', 'delete', {
+      ...session(ROW_B, null),
+      deleted_at: FAILED_AT_ISO,
+    })
+
+    await discardDeadLetter(letter)
+
+    expect(await pendingRows()).toEqual([SET_1, ROW_B])
+  })
+
+  it('keeps a refused set of the session in the failed list, with its own Retry and Discard', async () => {
+    const letter = await refusedSession()
+    await queueSet(SET_3)
+    const [refusedSet] = await listPending()
+    await moveToDeadLetters(refusedSet?.id ?? '', '23514', 'check', FAILED_AT)
+    await discardedLocally()
+
+    await discardDeadLetter(letter)
+
+    expect((await listDeadLetters()).map((item) => item.row_id)).toEqual([SET_3])
+  })
+
+  it('leaves the queued sets alone when a refused set is discarded', async () => {
+    await db.workoutSessions.put({ ...session(ROW_B, null), deleted_at: FAILED_AT_ISO })
+    await queueSet(SET_1)
+    const [refusedSet] = await listPending()
+    await moveToDeadLetters(refusedSet?.id ?? '', '23514', 'check', FAILED_AT)
+    await queueSet(SET_2)
+
+    await discardDeadLetter(refusedSet?.id ?? '')
+
+    expect(await pendingRows()).toEqual([SET_2])
+  })
+
+  it('does nothing for an id that is not a dead letter', async () => {
+    await queueSet(SET_1)
+
+    await discardDeadLetter('88888888-8888-4888-8888-888888888888')
+
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('keeps the refusal and the held sets when the discard fails half way, as one transaction', async () => {
+    const letter = await refusedSession()
+    await queueSet(SET_1)
+    await discardedLocally()
+    vi.spyOn(db.deadLetters, 'delete').mockImplementationOnce(() => {
+      throw new Error('the disk is full')
+    })
+
+    await expect(discardDeadLetter(letter)).rejects.toThrow('the disk is full')
+
+    expect(await db.deadLetters.count()).toBe(1)
+    expect(await pendingRows()).toEqual([SET_1])
   })
 })

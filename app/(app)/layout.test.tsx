@@ -5,10 +5,22 @@ import { startSync } from '../../lib/db/repository'
 
 import AppLayout from './layout'
 
-const mocks = vi.hoisted(() => ({ stop: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  stop: vi.fn(),
+  active: undefined as
+    | undefined
+    | {
+        id: string
+        started_at: string
+      },
+}))
 
 vi.mock('../../lib/db/repository', () => ({
   startSync: vi.fn(() => mocks.stop),
+  getActiveSession: vi.fn(() => Promise.resolve(mocks.active)),
+  listSets: vi.fn(() => Promise.resolve([])),
+  discardSession: vi.fn(() => Promise.resolve()),
+  SignedOutOnThisDevice: class extends Error {},
 }))
 
 vi.mock('next/navigation', () => ({
@@ -45,5 +57,13 @@ describe('AppLayout', () => {
     setup()
     expect(screen.getByRole('navigation', { name: 'Sidebar' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Bottom navigation' })).toBeInTheDocument()
+  })
+
+  it('asks to resume a session still running when the app opens', async () => {
+    mocks.active = { id: 'session-1', started_at: '2026-09-01T17:30:00.000Z' }
+    setup()
+
+    expect(await screen.findByRole('dialog', { name: 'Session running' })).toBeInTheDocument()
+    mocks.active = undefined
   })
 })

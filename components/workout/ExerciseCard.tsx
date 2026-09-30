@@ -3,6 +3,7 @@
 import { useId, useState } from 'react'
 
 import { fromDisplayWeight, toDisplayWeight, weightSymbol } from '../../lib/format/weight'
+import { epley } from '../../lib/metrics/epley'
 import { workoutSetSchema } from '../../lib/schema/workoutSet'
 import { Card } from '../ui/Card'
 import { MicroLabel } from '../ui/MicroLabel'
@@ -10,7 +11,7 @@ import { NumberField } from '../ui/NumberField'
 import { SecondaryButton } from '../ui/SecondaryButton'
 
 import { MUSCLE_GROUP_LABEL } from './MuscleGroupChips'
-import { SetRow } from './SetRow'
+import { loadText, repsText, SetRow } from './SetRow'
 
 import type { Exercise, WorkoutSet } from '../../lib/db/dexie'
 import type { UnitSystem } from '../../lib/schema/profile'
@@ -73,6 +74,19 @@ export function readDraft(
   return { ok: false, errors: { reps: firstError(reps), load: firstError(load) } }
 }
 
+export function lastTimeText(set: CopySource, unit: UnitSystem): string {
+  if (set.weight_kg === null) {
+    return `Last time ${repsText(set.reps)}`
+  }
+
+  const done = `Last time ${loadText(set.weight_kg, unit)} × ${String(set.reps)}`
+  const oneRepMax = epley(set.weight_kg, set.reps)
+
+  return oneRepMax === null
+    ? done
+    : `${done} · estimated 1RM ${String(Math.round(toDisplayWeight(oneRepMax, unit)))} ${weightSymbol(unit)}`
+}
+
 export type ExerciseCardProps = {
   exercise: Pick<Exercise, 'name' | 'muscle_group'>
   sets: readonly WorkoutSet[]
@@ -80,9 +94,12 @@ export type ExerciseCardProps = {
   unit: UnitSystem
   source: CopySource | undefined
   sourceKey: string
+  lastTime?: string | undefined
   readingSource?: boolean
   busy?: boolean
   onAddSet: (values: SetValues) => void
+  onEditSet: (set: WorkoutSet, position: number) => void
+  onDeleteSet: (set: WorkoutSet, position: number) => void
 }
 
 export const READING_LAST_SET = 'Reading the last set…'
@@ -94,9 +111,12 @@ export function ExerciseCard({
   unit,
   source,
   sourceKey,
+  lastTime,
   readingSource = false,
   busy = false,
   onAddSet,
+  onEditSet,
+  onDeleteSet,
 }: ExerciseCardProps) {
   const headingId = useId()
 
@@ -120,10 +140,17 @@ export function ExerciseCard({
               set={set}
               unit={unit}
               isRecord={records.has(set.id)}
+              onEdit={() => {
+                onEditSet(set, index + 1)
+              }}
+              onDelete={() => {
+                onDeleteSet(set, index + 1)
+              }}
             />
           ))}
         </ol>
       )}
+      {lastTime === undefined ? null : <p className="text-muted text-xs">{lastTime}</p>}
       {readingSource ? (
         <p role="status" className="text-muted text-sm">
           {READING_LAST_SET}

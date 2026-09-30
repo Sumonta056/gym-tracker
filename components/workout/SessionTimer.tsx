@@ -16,6 +16,10 @@ export function elapsedSeconds(startedAt: string, now: Date): number {
   return Math.max(0, Math.floor((now.getTime() - Date.parse(startedAt)) / 1000))
 }
 
+export function startedText(startedAt: string): string {
+  return new Date(startedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
 export type SessionTimerProps = Omit<ComponentPropsWithoutRef<'p'>, 'children'> & {
   startedAt: string
   now?: () => Date

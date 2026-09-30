@@ -24,6 +24,17 @@ function dateOf(set: LiftSet): string {
   return set.completed_at ?? set.created_at
 }
 
+export type OrderedLiftSet = LiftSet & { set_index?: number }
+
+export function earlierThan(left: OrderedLiftSet, right: OrderedLiftSet): boolean {
+  return (
+    (Date.parse(dateOf(left)) - Date.parse(dateOf(right)) ||
+      Date.parse(left.created_at) - Date.parse(right.created_at) ||
+      (left.set_index ?? 0) - (right.set_index ?? 0) ||
+      left.id.localeCompare(right.id)) < 0
+  )
+}
+
 interface Mark {
   value: number
   at: string
@@ -72,7 +83,7 @@ export function personalRecords(sets: readonly LiftSet[]): Record<string, Person
   return records
 }
 
-export function isNewRecord(set: LiftSet, history: readonly LiftSet[]): boolean {
+export function isNewRecord(set: OrderedLiftSet, history: readonly OrderedLiftSet[]): boolean {
   const weight = set.weight_kg
 
   if (set.deleted_at !== null || weight === null) {
@@ -83,7 +94,8 @@ export function isNewRecord(set: LiftSet, history: readonly LiftSet[]): boolean 
     item.exercise_id === set.exercise_id &&
     item.id !== set.id &&
     item.deleted_at === null &&
-    item.weight_kg !== null
+    item.weight_kg !== null &&
+    earlierThan(item, set)
       ? [item.weight_kg]
       : [],
   )

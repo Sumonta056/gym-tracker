@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { elapsedSeconds, SessionTimer, systemNow, TICK_MS } from './SessionTimer'
+import { elapsedSeconds, SessionTimer, startedText, systemNow, TICK_MS } from './SessionTimer'
 
 const STARTED = '2026-09-01T17:30:00.000Z'
 
@@ -67,5 +67,11 @@ describe('SessionTimer', () => {
     )
 
     expect(screen.getByRole('timer', { name: 'Elapsed time' })).toHaveTextContent('0:00')
+  })
+})
+
+describe('startedText', () => {
+  it('reads the start as a 24 hour clock time', () => {
+    expect(startedText('2026-09-01T17:30:00')).toBe('17:30')
   })
 })

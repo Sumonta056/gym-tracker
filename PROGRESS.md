@@ -5,14 +5,14 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.4b → `docs/plan/phase-2/S2.4b-session-edit-resume.md`
+**Next step:** 2.5 → `docs/plan/phase-2/S2.5-rest-timer.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.4a, the live workout screen, on top of `c906805`.
+**Last commit:** 2.4b, edit, undo, resume and the laptop layout, on top of `6814716`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
 
-- Stopped on 2026-09-29 after 2.4a. The report is `reports/2026-09-29-live-workout.html`.
+- Stopped on 2026-09-30 after 2.4b. The report is in `reports/`, dated 2026-09-30.
   The owner approved Checkpoint A on 2026-09-28.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
   `20260928084529_phase2_set_policy_reps` are applied to the live project. Never apply them again.
@@ -95,6 +95,12 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   `42:17`. Finish caps `ended_at` at `started_at` and does not re-check a stored date, so a clock
   behind another device can always finish. The e2e `day` fixture clears sessions. Plate p3 is
   corrected. The offline to Supabase check passed on 2026-09-29. From 2.4a.
+- **Edit, undo and resume.** A tap on a set row opens the edit sheet; swipe and long press are extras.
+  Undo shows 5 s and calls `restoreSet`. `isNewRecord` compares with earlier sets only. Resume or
+  Discard shows once per app open, on every `(app)` route except `/workout`; Discard reloads the
+  page. Last time is Epley on the last earlier set, rounded to a whole kg; plate p3 reads 92 kg.
+  A session's held sets are discarded only when the local session is deleted and nothing else
+  waits for it. The edit sheet, the toast and the prompt have no plate; they are settled as built. From 2.4b.
 
 ## Open, with the step that closes each one
 
@@ -111,10 +117,9 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   that the `lib/sync/**` floor in `vitest.config` fails a single file. From 2.2a.
 - **Owner** — `reps ?? MIN_REPS` in `lib/sync/mappings.ts` stays until the generated Supabase types
   say `reps: number`. Remove it with the type change. From 2.2d.
-- **2.4b** — `isNewRecord` compares with every set in `history`, later sets too. An edit of an old
-  set must pass only the earlier sets, or a later heavier set hides the badge. From 2.7a.
-- **2.4b** — discarding a refused session in the sync card also discards its held sets. Today
-  the sets are released and fail again. From 2.2c.
+- **New step** — a refused session that is still live here (`ACTIVE_SESSION_ELSEWHERE`): Discard
+  releases its held sets and they fail again. No write is lost. Hold them behind a marker until a
+  later session write is confirmed. From 2.4b.
 - **Owner** — the cleanup of out-of-date dead letters covers sessions and exercises only. The
   same rule fits daily entries and profiles. From 2.2c.
 - **Owner** — the e2e suite fails 1 to 6 tests on some runs: WebKit timeouts and `fetch failed`
@@ -124,7 +129,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   3, 1 target needs 9 September. From 2.7b.
 - **Owner** — no unique index on global exercise names. Only the seed adds global rows. The owner
   deferred it. From 2.1b.
-- **2.4b** — the "Last time 72.5 kg × 8 · estimated 1RM" line on plate p3 is not built. From 2.4a.
+- **Owner** — add plates for the edit sheet, the undo toast and the resume prompt. From 2.4b.
+- **Owner** — at 1024 px and up, Tab reaches the active card before the exercise list. From 2.4b.
 - **New step after 2.4b** — `md:` switches at 768 px, not 640 px: `globals.css` has no
   `--breakpoint-md`. Set it and check every screen at 640 to 767 px. From 2.4a.
 - **Owner** — plates p4, p7, p8 and the laptop plate still show "· Push day", `00:42:17` and set
