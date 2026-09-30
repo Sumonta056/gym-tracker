@@ -102,15 +102,6 @@ async function cutOffTheServer(
   const trulyOffline = browserName !== 'webkit'
 
   if (trulyOffline) {
-    await page.addInitScript(() => {
-      window.addEventListener(
-        'online',
-        (event) => {
-          if (!navigator.onLine) event.stopImmediatePropagation()
-        },
-        true,
-      )
-    })
     for (const path of ['/workout', '/workouts']) {
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
@@ -453,4 +444,44 @@ test('runs the rest timer after a set, keeps its time across a reload, and takes
 
   await rest.getByRole('button', { name: 'Skip rest' }).click()
   await expect(rest).toBeHidden()
+})
+
+test('keeps the typed Reps and Load with no reload when the network comes back', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  await openWithExercises(page)
+  const trulyOffline = await cutOffTheServer(page, context, browserName)
+  if (trulyOffline) {
+    await page.goto('/workouts')
+  }
+  await startSession(page)
+  await pickBench(page)
+  const reps = benchCard(page).getByRole('textbox', { name: 'Reps', exact: true })
+  const load = benchCard(page).getByRole('textbox', { name: /^Load/ })
+  await reps.fill('8')
+  await load.fill('60')
+
+  const navigations: string[] = []
+  page.on('framenavigated', (frame) => {
+    if (frame === page.mainFrame()) navigations.push(frame.url())
+  })
+
+  if (!trulyOffline) {
+    await context.setOffline(true)
+  }
+  await context.unroute(SUPABASE)
+  await context.setOffline(false)
+
+  await expect
+    .poll(async () => (await readStore<{ row_id: string }>(page, 'outbox')).length, {
+      message: 'the outbox drains after the network returns',
+      timeout: 15000,
+    })
+    .toBe(0)
+
+  expect(navigations).toEqual([])
+  await expect(reps).toHaveValue('8')
+  await expect(load).toHaveValue('60')
 })

@@ -45,7 +45,11 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en" className={figtree.variable}>
       <body className="bg-ground text-text font-sans [font-variant-numeric:tabular-nums]">
-        <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === 'development'}>
+        <SerwistProvider
+          swUrl="/sw.js"
+          disable={process.env.NODE_ENV === 'development'}
+          reloadOnOnline={false}
+        >
           {children}
         </SerwistProvider>
       </body>
