@@ -37,6 +37,7 @@ Phase 1 branch merges.
 | 2.4a | `S2.4a-live-session.md`        | `/workout` — timer, set rows, PR badge   | M    | 2.2b, 2.3a, 2.7a | done  |
 | 2.4b | `S2.4b-session-edit-resume.md` | `/workout` — edit, undo, resume, laptop  | M    | 2.4a             | done  |
 | 2.5  | `S2.5-rest-timer.md`           | The rest timer                           | M    | 2.4a             | done  |
+| 2.5b | `S2.5b-security-hardening.md`  | Security hardening                       | M    | 2.5              | —     |
 | 2.6  | `S2.6-link-to-day.md`          | Link a session to the day                | S    | 2.4a             | —     |
 | 2.8a | `S2.8a-lift-charts.md`         | Volume, one-rep max, the record list     | M    | 2.7a, 2.4a       | —     |
 | 2.8b | `S2.8b-week-charts.md`         | Balance, gap histogram, calories a min   | M    | 2.7b, 2.8a       | —     |
@@ -70,7 +71,7 @@ all ─ 2.11
 The run order for one person:
 
 `2.0 · 2.1a · 2.1b · 2.2a · 2.2b · 2.2c · 2.2d · 2.7a · 2.7b · 2.3a · 2.3b · 2.4a · 2.4b ·
-2.5 · 2.6 · 2.8a · 2.8b · 2.9a · 2.9b · 2.9c · 2.10 · 2.11`
+2.5 · 2.5b · 2.6 · 2.8a · 2.8b · 2.9a · 2.9b · 2.9c · 2.10 · 2.11`
 
 2.2c is the highest risk step. A bug there loses a set the user logged in the gym.
 2.7a comes before 2.4a, because `/workout` shows the volume and the PR badge.

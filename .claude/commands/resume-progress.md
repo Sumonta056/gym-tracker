@@ -9,7 +9,7 @@ Rules for this session and every session after it:
 3. Give the subagent: the step file, the rule files it names, what the
    previous step left behind, and this PATH line, because the default
    Node 20 breaks every jsdom test:
-   export PATH="$HOME/.nvm/versions/node/v25.2.1/bin:$PATH"
+   export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:$PATH"
 4. Tell the subagent to stage the change and stop. It must never run
    git commit, never run the commit-report skill, never push, and never
    edit PROGRESS.md.

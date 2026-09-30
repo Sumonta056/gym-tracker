@@ -12,3 +12,4 @@ public/swe-worker-*.js
 .claude/settings.local.json
 .claude/commands/
 docs/My Gym Plan.html
+.agents/
