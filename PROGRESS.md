@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** `fix(sync)`: put `stampRow` in `lib/sync/worker.ts` in one transaction. Then Checkpoint B. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
+**Next step:** Checkpoint B. Then 2.5b → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** 2.5, the rest timer, on top of `b519743`.
+**Last commit:** `fix(sync)`, `stampRow` in one transaction, on top of `37ce832`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 
 ## Resume here
@@ -106,6 +106,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   `setRestSeconds` and applies to the next rest. Skip and +30 s live in memory; a reload drops them.
   The alert fires only when the page sees zero. A 0 s rest shows no card. Mute is its own "Rest
   timer" card on `/profile`; plate p6 is corrected. The rest map is last push wins as a whole. From 2.5.
+- **The server stamp is one transaction.** `stampRow` reads and writes inside one `rw` transaction on
+  the entity table alone. Every competing write holds that table, so a save in between is kept. From fix(sync).
 
 ## Open, with the step that closes each one
 
@@ -135,8 +137,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **Owner** — no unique index on global exercise names. Only the seed adds global rows. The owner
   deferred it. From 2.1b.
 - **Owner** — add plates for the edit sheet, the undo toast, the resume prompt and the rest Change sheet. From 2.4b.
-- **fix(sync), before Checkpoint B** — `stampRow` reads then writes with no transaction, so a profile
-  save between them is lost. Tests first, `sync-auditor` review. From 2.5.
+- **Owner** — `tests/e2e/workout.spec.ts:382` runs about 14 s against its 15 s timeout and
+  fails on some runs. Raise the timeout or trim the setup. From fix(sync).
 - **Later step** — a 0 s rest shows no card, so its rest cannot be changed. Add a rest control in
   Manage exercises. From 2.5.
 - **Owner** — at 1024 px and up, Tab reaches the active card before the exercise list. From 2.4b.

@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 
+import Dexie from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -17,6 +18,7 @@ import {
   clearAll,
   createExercise,
   LOCAL_PROFILE_ID,
+  setRestSeconds,
   SignedOutOnThisDevice,
   startSession,
   upsertDay,
@@ -70,6 +72,7 @@ import type { SyncState } from './worker'
 import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
 import type { Database } from '../supabase/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Table } from 'dexie'
 
 const USER_ID = '99999999-9999-4999-8999-999999999999'
 const ROW_A = '11111111-1111-4111-8111-111111111111'
@@ -1513,7 +1516,127 @@ describe('the sign-out drain options', () => {
   })
 })
 
+const LOCAL_EDIT = '2026-09-01T10:45:00.000Z'
+
+function saveDuringStamp<T extends { updated_at: string }>(
+  table: Table<T, string>,
+  save: (row: T) => Promise<unknown>,
+): () => Promise<unknown> {
+  const read = table.get.bind(table) as (key: string) => Promise<T | undefined>
+  let saving: Promise<unknown> = Promise.resolve()
+  const spy = vi.spyOn(table, 'get') as unknown as {
+    mockImplementationOnce: (run: (key: string) => Promise<T | undefined>) => void
+  }
+
+  spy.mockImplementationOnce(async (key) => {
+    const row = await read(key)
+
+    if (row !== undefined) {
+      saving = Dexie.ignoreTransaction(() => save(row))
+    }
+
+    return row
+  })
+
+  return () => saving
+}
+
 describe('the server timestamp write back', () => {
+  it('keeps a rest time saved between the stamp read and the stamp write', async () => {
+    await db.profiles.put(localProfile())
+    await append('profiles', 'upsert', localProfile())
+    const saved = saveDuringStamp(db.profiles, () => setRestSeconds(ROW_C, 150))
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+    await saved()
+    vi.restoreAllMocks()
+
+    const stored = await db.profiles.get(LOCAL_PROFILE_ID)
+    expect(stored?.rest_seconds_by_exercise).toEqual({ [ROW_C]: 150 })
+    expect(stored?.updated_at).not.toBe(SERVER_STAMP)
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('keeps a daily entry saved between the stamp read and the stamp write', async () => {
+    await db.dailyEntries.put(localEntry(ROW_A))
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const saved = saveDuringStamp(db.dailyEntries, (row) =>
+      db.dailyEntries.put({ ...row, steps: 4321, updated_at: LOCAL_EDIT }),
+    )
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+    await saved()
+    vi.restoreAllMocks()
+
+    expect(await db.dailyEntries.get(ROW_A)).toMatchObject({ steps: 4321, updated_at: LOCAL_EDIT })
+  })
+
+  it('keeps an exercise saved between the stamp read and the stamp write', async () => {
+    await db.exercises.put(localExercise(ROW_C))
+    await append('exercises', 'upsert', localExercise(ROW_C))
+    const saved = saveDuringStamp(db.exercises, (row) =>
+      db.exercises.put({ ...row, name: 'Incline Press', updated_at: LOCAL_EDIT }),
+    )
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+    await saved()
+    vi.restoreAllMocks()
+
+    expect(await db.exercises.get(ROW_C)).toMatchObject({
+      name: 'Incline Press',
+      updated_at: LOCAL_EDIT,
+    })
+  })
+
+  it('keeps a session saved between the stamp read and the stamp write', async () => {
+    await db.workoutSessions.put(localSession(ROW_D))
+    await append('workout_sessions', 'upsert', localSession(ROW_D))
+    const saved = saveDuringStamp(db.workoutSessions, (row) =>
+      db.workoutSessions.put({ ...row, deleted_at: LOCAL_EDIT, updated_at: LOCAL_EDIT }),
+    )
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+    await saved()
+    vi.restoreAllMocks()
+
+    expect(await db.workoutSessions.get(ROW_D)).toMatchObject({
+      deleted_at: LOCAL_EDIT,
+      updated_at: LOCAL_EDIT,
+    })
+  })
+
+  it('keeps a set saved between the stamp read and the stamp write', async () => {
+    await db.workoutSets.put(localSet(ROW_E))
+    await append('workout_sets', 'upsert', localSet(ROW_E))
+    const saved = saveDuringStamp(db.workoutSets, (row) =>
+      db.workoutSets.put({ ...row, reps: 5, updated_at: LOCAL_EDIT }),
+    )
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+    await saved()
+    vi.restoreAllMocks()
+
+    expect(await db.workoutSets.get(ROW_E)).toMatchObject({ reps: 5, updated_at: LOCAL_EDIT })
+  })
+
+  it('brings back no profile cleared between the stamp read and the stamp write', async () => {
+    await db.profiles.put(localProfile())
+    await append('profiles', 'upsert', localProfile())
+    const saved = saveDuringStamp(db.profiles, () => db.profiles.clear())
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+    await saved()
+    vi.restoreAllMocks()
+
+    expect(await db.profiles.count()).toBe(0)
+  })
+
   it('stores the server updated_at on the local row after a successful push', async () => {
     await db.dailyEntries.put(localEntry(ROW_A))
     await append('daily_entries', 'upsert', localEntry(ROW_A))
@@ -1605,6 +1728,16 @@ describe('a duplicate date on the server', () => {
 
     expect(await db.dailyEntries.get(ROW_A)).toBeUndefined()
     expect(await db.dailyEntries.get(ROW_B)).toMatchObject({ id: ROW_B, steps: 7000 })
+  })
+
+  it('stamps the server updated_at on the row under the server id', async () => {
+    await db.dailyEntries.put(localEntry(ROW_A, { steps: 7000 }))
+    await append('daily_entries', 'upsert', localEntry(ROW_A, { steps: 7000 }))
+    const fake = fakeClient({ upsertError: { daily_entries: duplicate }, liveRowId: ROW_B })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect((await db.dailyEntries.get(ROW_B))?.updated_at).toBe(SERVER_STAMP)
   })
 
   it('moves every queued write for that row onto the server id', async () => {

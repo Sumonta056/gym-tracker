@@ -226,8 +226,8 @@ function untilStopped<T>(work: PromiseLike<T>, signal: AbortSignal): Promise<T> 
 }
 
 async function stampRow<T extends Stamped>(
-  read: () => Promise<T | undefined>,
-  write: (row: T) => Promise<unknown>,
+  table: Table<T, string>,
+  key: string,
   pushedAt: string,
   serverAt: string | undefined,
 ): Promise<void> {
@@ -235,13 +235,15 @@ async function stampRow<T extends Stamped>(
     return
   }
 
-  const local = await read()
+  await db.transaction('rw', table, async () => {
+    const local = await table.get(key)
 
-  if (local === undefined || local.updated_at !== pushedAt) {
-    return
-  }
+    if (local === undefined || local.updated_at !== pushedAt) {
+      return
+    }
 
-  await write({ ...local, updated_at: serverAt })
+    await table.put({ ...local, updated_at: serverAt })
+  })
 }
 
 function refused(error: Refusal): SendResult {
@@ -313,12 +315,7 @@ async function sendProfile(
   )
 
   return settle(answer, (serverAt) =>
-    stampRow(
-      () => db.profiles.get(LOCAL_PROFILE_ID),
-      (row) => db.profiles.put(row),
-      payload.updated_at,
-      serverAt,
-    ),
+    stampRow(db.profiles, LOCAL_PROFILE_ID, payload.updated_at, serverAt),
   )
 }
 
@@ -346,12 +343,7 @@ async function sendDailyEntry(
     return refused(error)
   }
 
-  await stampRow(
-    () => db.dailyEntries.get(payload.id),
-    (row) => db.dailyEntries.put(row),
-    payload.updated_at,
-    data?.updated_at,
-  )
+  await stampRow(db.dailyEntries, payload.id, payload.updated_at, data?.updated_at)
 
   return { error: null, code: null }
 }
@@ -376,12 +368,7 @@ async function sendExercise(
   )
 
   return settle(answer, (serverAt) =>
-    stampRow(
-      () => db.exercises.get(payload.id),
-      (row) => db.exercises.put(row),
-      payload.updated_at,
-      serverAt,
-    ),
+    stampRow(db.exercises, payload.id, payload.updated_at, serverAt),
   )
 }
 
@@ -410,13 +397,7 @@ async function sendSession(
 
   return settle(
     answer,
-    (serverAt) =>
-      stampRow(
-        () => db.workoutSessions.get(payload.id),
-        (row) => db.workoutSessions.put(row),
-        payload.updated_at,
-        serverAt,
-      ),
+    (serverAt) => stampRow(db.workoutSessions, payload.id, payload.updated_at, serverAt),
     sessionRefusal,
   )
 }
@@ -445,13 +426,7 @@ async function sendSet(
 
   return settle(
     answer,
-    (serverAt) =>
-      stampRow(
-        () => db.workoutSets.get(payload.id),
-        (row) => db.workoutSets.put(row),
-        payload.updated_at,
-        serverAt,
-      ),
+    (serverAt) => stampRow(db.workoutSets, payload.id, payload.updated_at, serverAt),
     setRefusal,
   )
 }
