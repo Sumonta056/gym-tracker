@@ -252,14 +252,25 @@ export async function updateProfile(patch: Partial<Profile>): Promise<Profile> {
 
   profileSchema.partial().parse(patched)
 
+  return writeProfile(() => patched)
+}
+
+export async function setRestSeconds(exerciseId: string, seconds: number): Promise<Profile> {
+  profileSchema.shape.rest_seconds_by_exercise.parse({ [exerciseId]: seconds })
+
+  return writeProfile((stored) => ({
+    rest_seconds_by_exercise: { ...stored.rest_seconds_by_exercise, [exerciseId]: seconds },
+  }))
+}
+
+async function writeProfile(
+  change: (stored: Partial<ProfileInput>) => Partial<ProfileInput>,
+): Promise<Profile> {
   return db.transaction('rw', db.profiles, db.outbox, db.syncMeta, async () => {
     await refuseWhenSignedOut()
 
-    const stored = await db.profiles.get(LOCAL_PROFILE_ID)
-    const parsed = profileSchema.parse({
-      ...profileValues(stored ?? defaultProfile()),
-      ...patched,
-    })
+    const stored = profileValues((await db.profiles.get(LOCAL_PROFILE_ID)) ?? defaultProfile())
+    const parsed = profileSchema.parse({ ...stored, ...change(stored) })
     const row: Profile = { ...parsed, id: LOCAL_PROFILE_ID, updated_at: nowIso() }
 
     await db.profiles.put(row)

@@ -27,6 +27,7 @@ import {
   Profile,
   READ_ERROR,
   SIGN_IN_PATH,
+  SOUND_FAILED,
   UNIT_FAILED,
 } from './Profile'
 import { SAVE_FAILED } from './TargetsCard'
@@ -186,6 +187,26 @@ describe('Profile', () => {
     await waitFor(async () => {
       expect((await db.profiles.toArray())[0]?.target_weight_kg).toBe(68.04)
     })
+  })
+
+  it('saves the rest sound mute to the profile', async () => {
+    render(<Profile />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Muted' }))
+
+    await waitFor(async () => {
+      expect((await db.profiles.toArray())[0]?.rest_sound_muted).toBe(true)
+    })
+    expect(screen.getByRole('button', { name: 'Muted' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('reports a rest sound setting the device could not save', async () => {
+    render(<Profile />)
+    await screen.findByLabelText('Target weight (kg)')
+    vi.mocked(updateProfile).mockRejectedValueOnce(new Error('locked'))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Muted' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(SOUND_FAILED)
   })
 
   it('reports a unit the device could not save', async () => {
@@ -603,6 +624,18 @@ describe('sign out', () => {
 
     expect(updateProfile).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Metric' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('refuses a rest sound change while signing out', async () => {
+    await seedEveryTable()
+    render(<Profile redirect={vi.fn()} />)
+    await pressSignOut()
+    await screen.findByRole('dialog')
+    vi.mocked(updateProfile).mockClear()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Muted' }))
+
+    expect(updateProfile).not.toHaveBeenCalled()
   })
 
   it('refuses a target edit while signing out', async () => {

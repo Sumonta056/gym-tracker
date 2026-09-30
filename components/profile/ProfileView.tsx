@@ -10,6 +10,7 @@ import { SecondaryButton } from '../ui/SecondaryButton'
 import { DataCard } from './DataCard'
 import { ManageExercisesSheet, REPOSITORY_MANAGE_SOURCE } from './ManageExercisesSheet'
 import { ProfileHeader } from './ProfileHeader'
+import { RestSoundCard } from './RestSoundCard'
 import { SignOutSheet } from './SignOutSheet'
 import { SyncCard } from './SyncCard'
 import { TargetsCard } from './TargetsCard'
@@ -44,6 +45,8 @@ export type ProfileViewProps = {
   signOutError: string | null
   unitError?: string | null
   onUnitChange: (unit: UnitSystem) => void
+  onMutedChange?: (muted: boolean) => void
+  soundError?: string | null
   onSaveTarget: (patch: Partial<Profile>) => Promise<void>
   onSyncNow: () => void
   onSignOut: () => void
@@ -68,6 +71,8 @@ export function ProfileView({
   signOutError,
   unitError = null,
   onUnitChange,
+  onMutedChange = ignore,
+  soundError = null,
   onSaveTarget,
   onSyncNow,
   onSignOut,
@@ -100,6 +105,11 @@ export function ProfileView({
           unit={unit}
           onSave={onSaveTarget}
           className="md:row-span-2"
+        />
+        <RestSoundCard
+          muted={profile.rest_sound_muted ?? false}
+          onMutedChange={onMutedChange}
+          error={soundError}
         />
         <Card data-testid="exercises-card">
           <MicroLabel as="p">Exercises</MicroLabel>

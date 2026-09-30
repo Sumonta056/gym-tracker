@@ -77,6 +77,11 @@ export function Card({
 }
 ```
 
+The live `Card` also takes `tone="rest"`, used by the rest timer only. It mixes
+`--color-data-cyan` into the fill (7 % over `--color-surface`) and the border (34 % over
+`--color-border`) with `color-mix`, as the prototype `.rest-card` does. It names no new
+colour; both mixes read tokens. `selected` still wins the border.
+
 A card is a `div`. If the whole card is clickable it is a `button` with
 `text-left w-full` — never a `div` with `onClick`.
 

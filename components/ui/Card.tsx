@@ -2,17 +2,38 @@ import { cn } from './cn'
 
 import type { ComponentPropsWithRef } from 'react'
 
+export type CardTone = 'default' | 'rest'
+
 export type CardProps = ComponentPropsWithRef<'div'> & {
   selected?: boolean
+  tone?: CardTone
 }
 
-export function Card({ selected = false, className, children, ...rest }: CardProps) {
+const TONE_FILL: Record<CardTone, string> = {
+  default: 'bg-surface',
+  rest: 'bg-[color-mix(in_srgb,var(--color-data-cyan)_7%,var(--color-surface))]',
+}
+
+const TONE_BORDER: Record<CardTone, string> = {
+  default: 'border-border',
+  rest: 'border-[color-mix(in_srgb,var(--color-data-cyan)_34%,var(--color-border))]',
+}
+
+export function Card({
+  selected = false,
+  tone = 'default',
+  className,
+  children,
+  ...rest
+}: CardProps) {
   return (
     <div
       data-selected={selected ? 'true' : undefined}
+      data-tone={tone === 'default' ? undefined : tone}
       className={cn(
-        'bg-surface rounded-card border p-4',
-        selected ? 'border-accent' : 'border-border',
+        'rounded-card border p-4',
+        TONE_FILL[tone],
+        selected ? 'border-accent' : TONE_BORDER[tone],
         className,
       )}
       {...rest}

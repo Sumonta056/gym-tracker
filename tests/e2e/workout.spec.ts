@@ -417,3 +417,40 @@ test('puts the exercise list beside the active exercise at 1440 px and stacks th
     expect(sideways, `${String(width)}px`).toBe(false)
   }
 })
+
+test('runs the rest timer after a set, keeps its time across a reload, and takes +30 s and Skip', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  await offlineSessionWithOneSet(page, context, browserName)
+  const rest = page.getByRole('region', { name: 'Rest timer' })
+  const remaining = rest.getByRole('timer', { name: 'Rest remaining' })
+
+  await expect(rest).toBeVisible()
+  await expect(rest.getByText('of 1:30')).toBeVisible()
+  await expect(remaining).toHaveText(/^1:[0-2]\d$|^1:30$/)
+
+  await page.reload()
+  await expect(rest).toBeVisible()
+  await expect(remaining).toHaveText(/^1:[0-2]\d$|^0:[3-5]\d$/)
+
+  await rest.getByRole('button', { name: '+30 s more rest' }).click()
+  await expect(rest.getByText('of 2:00')).toBeVisible()
+
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const name of ['Skip rest', '+30 s more rest', 'Change the rest time for Bench Press']) {
+      const box = await rest.getByRole('button', { name }).boundingBox()
+      expect(box && box.height >= 44, `${name} at ${String(width)}px`).toBe(true)
+    }
+  }
+
+  const axe = await new AxeBuilder({ page }).include('[aria-label="Rest timer"]').analyze()
+  expect(
+    axe.violations.filter((issue) => issue.impact === 'serious' || issue.impact === 'critical'),
+  ).toEqual([])
+
+  await rest.getByRole('button', { name: 'Skip rest' }).click()
+  await expect(rest).toBeHidden()
+})

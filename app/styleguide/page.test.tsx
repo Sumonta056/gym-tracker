@@ -424,6 +424,62 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     ).toBeInTheDocument()
   })
 
+  it('shows the rest tone in the cards section', () => {
+    expect(screen.getByTestId('card-rest-tone')).toHaveAttribute('data-tone', 'rest')
+  })
+
+  it('shows the rest timer sample in the cyan rest tone', () => {
+    const sample = screen.getByTestId('live-sample')
+    const rest = within(sample).getByRole('region', { name: 'Rest timer' })
+
+    expect(rest).toHaveAttribute('data-tone', 'rest')
+    expect(within(rest).getByRole('timer', { name: 'Rest remaining' })).toHaveTextContent('1:24')
+  })
+
+  it('adds 30 seconds, skips and brings back the rest timer sample', async () => {
+    const sample = screen.getByTestId('live-sample')
+
+    await userEvent.click(within(sample).getByRole('button', { name: '+30 s more rest' }))
+    expect(within(sample).getByRole('timer', { name: 'Rest remaining' })).toHaveTextContent('1:54')
+
+    await userEvent.click(within(sample).getByRole('button', { name: 'Skip rest' }))
+    expect(within(sample).queryByRole('region', { name: 'Rest timer' })).not.toBeInTheDocument()
+
+    await userEvent.click(
+      within(sample).getByRole('button', { name: 'Show the rest timer sample' }),
+    )
+    expect(within(sample).getByRole('timer', { name: 'Rest remaining' })).toHaveTextContent('1:24')
+  })
+
+  it('changes the rest time in the rest sheet sample', async () => {
+    const sample = screen.getByTestId('live-sample')
+    await userEvent.click(
+      within(sample).getByRole('button', { name: 'Change the rest time for Bench Press' }),
+    )
+    const dialog = await screen.findByRole('dialog', { name: 'Rest for Bench Press' })
+    await userEvent.clear(within(dialog).getByLabelText('Rest time'))
+    await userEvent.type(within(dialog).getByLabelText('Rest time'), '2:00')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save rest time' }))
+
+    expect(within(sample).getByText('Bench Press rests 2:00')).toBeInTheDocument()
+  })
+
+  it('closes the rest sheet sample', async () => {
+    const sample = screen.getByTestId('live-sample')
+    await userEvent.click(
+      within(sample).getByRole('button', { name: 'Change the rest time for Bench Press' }),
+    )
+    await userEvent.click(await screen.findByRole('button', { name: 'Close Rest for Bench Press' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Rest for Bench Press' })).not.toBeInTheDocument()
+  })
+
+  it('mutes the rest sound on the profile sample', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Muted' }))
+
+    expect(screen.getByRole('button', { name: 'Muted' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('opens the edit set sample on a tap of a set row', async () => {
     const sample = screen.getByTestId('live-sample')
 

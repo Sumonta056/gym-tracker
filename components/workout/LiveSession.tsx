@@ -13,6 +13,7 @@ import {
   listExercises,
   listSets,
   restoreSet,
+  setRestSeconds,
   setsForExercises,
   SignedOutOnThisDevice,
   updateSet,
@@ -20,6 +21,7 @@ import {
 import { toDisplayWeight, weightSymbol } from '../../lib/format/weight'
 import { earlierThan, isNewRecord } from '../../lib/metrics/personalRecords'
 import { volumeLoad } from '../../lib/metrics/volumeLoad'
+import { restSecondsFor } from '../../lib/workout/restTimer'
 import { formatCount } from '../dashboard/summary'
 import { SyncChip } from '../sync/SyncChip'
 import { Card } from '../ui/Card'
@@ -33,12 +35,17 @@ import { EditSetSheet } from './EditSetSheet'
 import { ExerciseCard, lastTimeText } from './ExerciseCard'
 import { ExercisePicker } from './ExercisePicker'
 import { MUSCLE_GROUP_LABEL } from './MuscleGroupChips'
+import { createRestAlert } from './restAlert'
+import { RestTimerCard } from './RestTimerCard'
+import { RestTimeSheet } from './RestTimeSheet'
 import { SessionTimer, startedText, systemNow } from './SessionTimer'
 import { ToastRoom, UndoToast } from './UndoToast'
 
 import type { EditingSet } from './EditSetSheet'
 import type { SetValues } from './ExerciseCard'
 import type { ExerciseSource } from './ExercisePicker'
+import type { RestAlert } from './restAlert'
+import type { ChangingRest } from './RestTimeSheet'
 import type { Toast } from './UndoToast'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { ExerciseFilter, WorkoutSetPatch } from '../../lib/db/repository'
@@ -56,6 +63,20 @@ export type LiveSessionSource = {
   restoreSet: (id: string) => Promise<void>
   finishSession: (id: string) => Promise<WorkoutSession>
   readUnit: () => Promise<UnitSystem>
+  readRest: () => Promise<RestSettings>
+  saveRestSeconds: (exerciseId: string, seconds: number) => Promise<unknown>
+}
+
+export type RestSettings = {
+  muted: boolean
+  byExercise: Readonly<Record<string, number>>
+}
+
+type RestTweak = {
+  setId: string
+  taps: number
+  skipped: boolean
+  frozen: number | null
 }
 
 export const REPOSITORY_LIVE_SOURCE: LiveSessionSource = {
@@ -70,6 +91,15 @@ export const REPOSITORY_LIVE_SOURCE: LiveSessionSource = {
   restoreSet,
   finishSession,
   readUnit: async () => (await getProfile()).unit_system,
+  readRest: async () => {
+    const profile = await getProfile()
+
+    return {
+      muted: profile.rest_sound_muted ?? false,
+      byExercise: profile.rest_seconds_by_exercise ?? {},
+    }
+  },
+  saveRestSeconds: setRestSeconds,
 }
 
 export const READ_FAILED = 'The session could not be read on this device.'
@@ -84,6 +114,8 @@ export const DELETE_FAILED = 'The set could not be deleted on this device.'
 
 export const UNDO_FAILED = 'The set could not be brought back on this device.'
 
+export const REST_SAVE_FAILED = 'The rest time could not be saved on this device.'
+
 export const WORKOUTS_PATH = '/workouts'
 
 type Snapshot = {
@@ -92,6 +124,7 @@ type Snapshot = {
   history: WorkoutSet[]
   exercises: Map<string, Exercise>
   unit: UnitSystem
+  rest: RestSettings
 }
 
 type ReadState =
@@ -154,10 +187,11 @@ async function readSnapshot(source: LiveSessionSource): Promise<Snapshot | null>
     return null
   }
 
-  const [sets, catalogue, unit] = await Promise.all([
+  const [sets, catalogue, unit, rest] = await Promise.all([
     source.listSets(session.id),
     source.listExercises({ includeArchived: true }),
     source.readUnit(),
+    source.readRest(),
   ])
   const history = await source.setsForExercises(exerciseOrder(sets, []))
 
@@ -167,6 +201,7 @@ async function readSnapshot(source: LiveSessionSource): Promise<Snapshot | null>
     history,
     exercises: new Map(catalogue.map((exercise) => [exercise.id, exercise])),
     unit,
+    rest,
   }
 }
 
@@ -175,6 +210,7 @@ export type LiveSessionProps = {
   pickerSource?: ExerciseSource
   now?: () => Date
   onFinished?: () => void
+  alert?: RestAlert
 }
 
 export function goToWorkouts(): void {
@@ -186,6 +222,7 @@ export function LiveSession({
   pickerSource,
   now = systemNow,
   onFinished = goToWorkouts,
+  alert,
 }: LiveSessionProps) {
   const [read, setRead] = useState<ReadState>({ status: 'loading' })
   const [chosen, setChosen] = useState<string | null>(null)
@@ -198,6 +235,11 @@ export function LiveSession({
   const [editing, setEditing] = useState<EditingSet | null>(null)
   const [editError, setEditError] = useState<string | null>(null)
   const [toast, setToast] = useState<(Toast & { setId: string }) | null>(null)
+  const [restTweak, setRestTweak] = useState<RestTweak | null>(null)
+  const [changingRest, setChangingRest] = useState<ChangingRest | null>(null)
+  const [restBusy, setRestBusy] = useState(false)
+  const [restError, setRestError] = useState<string | null>(null)
+  const alertRef = useRef<RestAlert | null>(alert ?? null)
   const deletes = useRef(0)
   const alive = useRef(true)
   const listHeadingId = useId()
@@ -305,12 +347,35 @@ export function LiveSession({
       ? undefined
       : (lastTimeSet(history, session.id, activeId) ?? previous.get(activeId) ?? undefined)
   const setsOf = (id: string) => sets.filter((set) => set.exercise_id === id)
+  const restAlert = () => {
+    alertRef.current ??= createRestAlert()
+    return alertRef.current
+  }
+  const restSet = lastSet?.completed_at == null ? undefined : lastSet
+  const restCompletedAt = restSet?.completed_at ?? null
+  const tweak: RestTweak | null =
+    restSet === undefined
+      ? null
+      : restTweak?.setId === restSet.id
+        ? restTweak
+        : { setId: restSet.id, taps: 0, skipped: false, frozen: null }
+  const savedRest =
+    restSet === undefined ? 0 : restSecondsFor(snapshot.rest.byExercise, restSet.exercise_id)
+  const restBase = tweak?.frozen ?? savedRest
+  const restName =
+    restSet === undefined ? '' : (nameOf(restSet.exercise_id)?.name ?? 'Unknown exercise')
+  const changeTweak = (change: (held: RestTweak) => RestTweak) => {
+    if (tweak !== null) {
+      setRestTweak(change(tweak))
+    }
+  }
 
   const saveSet = (values: SetValues) => {
     if (activeId === undefined || busy) {
       return
     }
 
+    restAlert().unlock()
     setBusy(true)
     setError(null)
     source
@@ -433,6 +498,36 @@ export function LiveSession({
     )
   }
 
+  const saveRest = (seconds: number) => {
+    if (changingRest === null || restBusy) {
+      return
+    }
+
+    const { exerciseId } = changingRest
+    const frozen = restSet?.exercise_id === exerciseId ? restBase : null
+
+    setRestBusy(true)
+    setRestError(null)
+    source
+      .saveRestSeconds(exerciseId, seconds)
+      .then(
+        async () => {
+          if (frozen !== null) {
+            changeTweak((held) => ({ ...held, frozen: held.frozen ?? frozen }))
+          }
+
+          setChangingRest(null)
+          await refresh()
+        },
+        (cause: unknown) => {
+          setRestError(failure(cause, REST_SAVE_FAILED))
+        },
+      )
+      .finally(() => {
+        setRestBusy(false)
+      })
+  }
+
   const pick = (exercise: Exercise) => {
     setPicked((held) => new Map(held).set(exercise.id, exercise))
     setExtra((held) => (held.includes(exercise.id) ? held : [...held, exercise.id]))
@@ -467,7 +562,7 @@ export function LiveSession({
           </p>
         </HeroCard>
 
-        <div data-testid="live-active" className="lg:col-2 lg:row-[1/6]">
+        <div data-testid="live-active" className="flex flex-col gap-3 lg:col-2 lg:row-[1/6]">
           {activeId !== undefined && active !== undefined ? (
             <ExerciseCard
               exercise={active}
@@ -490,6 +585,34 @@ export function LiveSession({
             <Card>
               <p className="text-muted text-sm">Add an exercise to log your first set.</p>
             </Card>
+          )}
+          {restSet === undefined || restCompletedAt === null || tweak?.skipped === true ? null : (
+            <RestTimerCard
+              key={restSet.id}
+              exerciseName={restName}
+              completedAt={restCompletedAt}
+              restSeconds={restBase}
+              savedSeconds={savedRest}
+              extraTaps={tweak?.taps ?? 0}
+              now={now}
+              onZero={() => {
+                restAlert().ring(snapshot.rest.muted)
+              }}
+              onSkip={() => {
+                changeTweak((held) => ({ ...held, skipped: true }))
+              }}
+              onAddThirty={() => {
+                changeTweak((held) => ({ ...held, taps: held.taps + 1 }))
+              }}
+              onChange={() => {
+                setRestError(null)
+                setChangingRest({
+                  exerciseId: restSet.exercise_id,
+                  exerciseName: restName,
+                  seconds: savedRest,
+                })
+              }}
+            />
           )}
         </div>
 
@@ -612,6 +735,17 @@ export function LiveSession({
         onClose={() => {
           setEditing(null)
           setEditError(null)
+        }}
+      />
+
+      <RestTimeSheet
+        changing={changingRest}
+        busy={restBusy}
+        error={restError}
+        onSave={saveRest}
+        onClose={() => {
+          setChangingRest(null)
+          setRestError(null)
         }}
       />
 

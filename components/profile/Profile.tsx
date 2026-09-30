@@ -35,6 +35,8 @@ export const CLEAR_FAILED = 'This device could not be cleared, so you are still 
 
 export const UNIT_FAILED = 'The unit could not be saved on this device.'
 
+export const SOUND_FAILED = 'The rest sound setting could not be saved on this device.'
+
 export const SIGN_IN_PATH = '/sign-in'
 
 export function goToSignIn(): void {
@@ -49,6 +51,7 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
   const [profile, setProfile] = useState<StoredProfile | null>(null)
   const [readError, setReadError] = useState<string | null>(null)
   const [unitError, setUnitError] = useState<string | null>(null)
+  const [soundError, setSoundError] = useState<string | null>(null)
   const [email, setEmail] = useState<string | null>(null)
   const [syncBusy, setSyncBusy] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -113,6 +116,20 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
       },
       () => {
         setUnitError(UNIT_FAILED)
+      },
+    )
+  }
+
+  function changeMuted(muted: boolean): void {
+    if (leaving.current) return
+
+    void updateProfile({ rest_sound_muted: muted }).then(
+      (row) => {
+        setSoundError(null)
+        setProfile(row)
+      },
+      () => {
+        setSoundError(SOUND_FAILED)
       },
     )
   }
@@ -259,6 +276,8 @@ export function Profile({ redirect = goToSignIn }: ProfileProps) {
       signOutError={signOutError}
       unitError={unitError}
       onUnitChange={changeUnit}
+      onMutedChange={changeMuted}
+      soundError={soundError}
       onSaveTarget={saveTarget}
       onSyncNow={runSyncNow}
       onSignOut={() => {

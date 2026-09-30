@@ -45,6 +45,7 @@ import {
   pendingWrites,
   resumeSync as resumeFromRepository,
   retryDeadLetter,
+  setRestSeconds,
   SignedOutOnThisDevice,
   softDeleteDay,
   syncNow,
@@ -508,6 +509,61 @@ describe('updateProfile', () => {
   it('rejects a patch that fails the zod schema', async () => {
     await expect(updateProfile({ step_goal: 0 })).rejects.toThrow()
 
+    expect(await db.profiles.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+})
+
+describe('setRestSeconds', () => {
+  const OTHER_ID = '55555555-5555-4555-8555-555555555555'
+
+  it('saves the rest for one exercise with one outbox entry', async () => {
+    const saved = await setRestSeconds(REST_EXERCISE_ID, 120)
+    const queued = await db.outbox.toArray()
+
+    expect(saved.rest_seconds_by_exercise).toEqual({ [REST_EXERCISE_ID]: 120 })
+    expect(queued).toHaveLength(1)
+    expect(queued[0]).toMatchObject({ table_name: 'profiles', operation: 'upsert' })
+    expect(queued[0]?.payload).toEqual(saved)
+  })
+
+  it('keeps the rest of every other exercise', async () => {
+    await updateProfile({ rest_seconds_by_exercise: { [OTHER_ID]: 60 } })
+    const saved = await setRestSeconds(REST_EXERCISE_ID, 150)
+
+    expect(saved.rest_seconds_by_exercise).toEqual({ [OTHER_ID]: 60, [REST_EXERCISE_ID]: 150 })
+  })
+
+  it('keeps both exercises when two changes overlap', async () => {
+    await Promise.all([setRestSeconds(REST_EXERCISE_ID, 150), setRestSeconds(OTHER_ID, 45)])
+
+    expect((await getProfile()).rest_seconds_by_exercise).toEqual({
+      [REST_EXERCISE_ID]: 150,
+      [OTHER_ID]: 45,
+    })
+  })
+
+  it('keeps the other profile fields', async () => {
+    await updateProfile({ display_name: 'Sumonta', rest_sound_muted: true })
+    const saved = await setRestSeconds(REST_EXERCISE_ID, 90)
+
+    expect(saved.display_name).toBe('Sumonta')
+    expect(saved.rest_sound_muted).toBe(true)
+  })
+
+  it('rejects a rest above the limit and stores nothing', async () => {
+    await expect(setRestSeconds(REST_EXERCISE_ID, 3601)).rejects.toThrow()
+
+    expect(await db.profiles.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses on a signed-out device and stores nothing', async () => {
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-09-02T00:00:00.000Z' })
+
+    await expect(setRestSeconds(REST_EXERCISE_ID, 120)).rejects.toBeInstanceOf(
+      SignedOutOnThisDevice,
+    )
     expect(await db.profiles.count()).toBe(0)
     expect(await db.outbox.count()).toBe(0)
   })

@@ -72,6 +72,22 @@ describe('ProfileView', () => {
     expect(screen.getByTestId('data-card')).toBeInTheDocument()
   })
 
+  it('shows the rest sound setting and hands a change to its owner', async () => {
+    const props = renderView({ onMutedChange: vi.fn() })
+    expect(screen.getByRole('group', { name: 'Rest sound' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Muted' }))
+
+    expect(props.onMutedChange).toHaveBeenCalledWith(true)
+  })
+
+  it('shows a rest sound error the owner reports', () => {
+    renderView({ soundError: 'Not saved.' })
+    expect(within(screen.getByTestId('rest-sound-card')).getByRole('alert')).toHaveTextContent(
+      'Not saved.',
+    )
+  })
+
   it('shows the units, the targets and the sync cards', () => {
     renderView()
     expect(screen.getByRole('group', { name: 'Unit system' })).toBeInTheDocument()

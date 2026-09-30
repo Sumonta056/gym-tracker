@@ -33,6 +33,8 @@ import { StatusChip } from '../../components/ui/StatusChip'
 import { EditSetSheet } from '../../components/workout/EditSetSheet'
 import { ExerciseCard } from '../../components/workout/ExerciseCard'
 import { ExercisePicker } from '../../components/workout/ExercisePicker'
+import { RestTimerCard } from '../../components/workout/RestTimerCard'
+import { RestTimeSheet } from '../../components/workout/RestTimeSheet'
 import { SessionTimer } from '../../components/workout/SessionTimer'
 import { UndoToast } from '../../components/workout/UndoToast'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
@@ -341,6 +343,10 @@ function sampleSessionNow(): Date {
   return SAMPLE_SESSION_NOW
 }
 
+const SAMPLE_REST_COMPLETED_AT = new Date(SAMPLE_SESSION_NOW.getTime() - 6000).toISOString()
+
+const SAMPLE_REST_EXERCISE_ID = '33333333-3333-4333-8333-333333333333'
+
 const SAMPLE_LIVE_SETS: WorkoutSet[] = (
   [
     [60, 12],
@@ -441,6 +447,10 @@ function Styleguide() {
   const [picked, setPicked] = useState<string | null>(null)
   const [sampleEditing, setSampleEditing] = useState<EditingSet | null>(null)
   const [sampleToast, setSampleToast] = useState<Toast | null>(null)
+  const [sampleRestTaps, setSampleRestTaps] = useState(0)
+  const [sampleRestSkipped, setSampleRestSkipped] = useState(false)
+  const [sampleRestSeconds, setSampleRestSeconds] = useState(90)
+  const [sampleChangingRest, setSampleChangingRest] = useState(false)
   const [pickerSource] = useState(sampleExerciseSource)
   const [manageSource] = useState(sampleManageSource)
   const [showFieldError, setShowFieldError] = useState(false)
@@ -518,6 +528,12 @@ function Styleguide() {
             <MicroLabel>Card, selected</MicroLabel>
             <p className="text-text mt-2 text-base">The accent border marks the selection.</p>
           </Card>
+          <Card tone="rest" data-testid="card-rest-tone">
+            <MicroLabel>Card, rest tone</MicroLabel>
+            <p className="text-text mt-2 text-base">
+              Cyan mixed into the surface and the border. The rest timer only.
+            </p>
+          </Card>
         </div>
       </Section>
 
@@ -584,6 +600,9 @@ function Styleguide() {
           signOutError={showSignOutError ? SIGN_OUT_FAILED : null}
           onUnitChange={(unit: UnitSystem) => {
             setSampleProfile((current) => ({ ...current, unit_system: unit }))
+          }}
+          onMutedChange={(muted) => {
+            setSampleProfile((current) => ({ ...current, rest_sound_muted: muted }))
           }}
           onSaveTarget={(patch) => {
             setSampleProfile((current) => ({ ...current, ...patch }))
@@ -852,7 +871,54 @@ function Styleguide() {
               })
             }}
           />
+          {sampleRestSkipped ? (
+            <SecondaryButton
+              onClick={() => {
+                setSampleRestSkipped(false)
+                setSampleRestTaps(0)
+              }}
+            >
+              Show the rest timer sample
+            </SecondaryButton>
+          ) : (
+            <RestTimerCard
+              exerciseName="Bench Press"
+              completedAt={SAMPLE_REST_COMPLETED_AT}
+              restSeconds={90}
+              savedSeconds={sampleRestSeconds}
+              extraTaps={sampleRestTaps}
+              now={sampleSessionNow}
+              onZero={() => undefined}
+              onSkip={() => {
+                setSampleRestSkipped(true)
+              }}
+              onAddThirty={() => {
+                setSampleRestTaps((taps) => taps + 1)
+              }}
+              onChange={() => {
+                setSampleChangingRest(true)
+              }}
+            />
+          )}
         </div>
+        <RestTimeSheet
+          changing={
+            sampleChangingRest
+              ? {
+                  exerciseId: SAMPLE_REST_EXERCISE_ID,
+                  exerciseName: 'Bench Press',
+                  seconds: sampleRestSeconds,
+                }
+              : null
+          }
+          onSave={(seconds) => {
+            setSampleRestSeconds(seconds)
+            setSampleChangingRest(false)
+          }}
+          onClose={() => {
+            setSampleChangingRest(false)
+          }}
+        />
         <EditSetSheet
           editing={sampleEditing}
           unit="metric"

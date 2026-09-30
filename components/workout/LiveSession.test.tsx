@@ -8,9 +8,11 @@ import {
   archiveExercise,
   createExercise,
   getActiveSession,
+  getProfile,
   listSets,
   SignedOutOnThisDevice,
   startSession,
+  updateProfile,
 } from '../../lib/db/repository'
 
 import { READING_LAST_SET } from './ExerciseCard'
@@ -29,11 +31,13 @@ import {
   READ_FAILED,
   recordIds,
   REPOSITORY_LIVE_SOURCE,
+  REST_SAVE_FAILED,
   SAVE_FAILED,
   UNDO_FAILED,
   volumeText,
   WORKOUTS_PATH,
 } from './LiveSession'
+import { REST_OVER } from './RestTimerCard'
 import { startedText } from './SessionTimer'
 import { SWIPE_PX } from './SetRow'
 
@@ -103,9 +107,19 @@ beforeEach(async () => {
   ])
 })
 
+let play = vi.fn<() => Promise<void>>()
+
+beforeEach(() => {
+  play = vi.fn<() => Promise<void>>(() => Promise.resolve())
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => play())
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined)
+})
+
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+  Reflect.deleteProperty(navigator, 'vibrate')
 })
 
 async function renderLive(props: Parameters<typeof LiveSession>[0] = {}) {
@@ -1059,5 +1073,332 @@ describe('the laptop layout', () => {
         name: /Unknown exercise/,
       }),
     ).toBeInTheDocument()
+  })
+})
+
+const REST_START = '2026-09-30T17:30:00.000Z'
+
+function restClock(secondsAfter: number) {
+  let offset = secondsAfter
+  return {
+    now: () => new Date(Date.parse(REST_START) + offset * 1000),
+    move: (seconds: number) => {
+      offset += seconds
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'))
+      })
+    },
+  }
+}
+
+async function sessionResting(exerciseId = BENCH_ID) {
+  const session = await startSession('2026-09-30')
+  const set = await addSet({
+    session_id: session.id,
+    exercise_id: exerciseId,
+    reps: 8,
+    weight_kg: 60,
+    completed_at: REST_START,
+  })
+  return { session, set }
+}
+
+function restCard() {
+  return screen.getByRole('region', { name: 'Rest timer' })
+}
+
+function restRemaining() {
+  return within(restCard()).getByRole('timer', { name: 'Rest remaining' })
+}
+
+function playCount() {
+  return play.mock.calls.length
+}
+
+describe('the rest timer', () => {
+  it('counts down 90 seconds from the last set by default', async () => {
+    await sessionResting()
+    await renderLive({ now: restClock(6).now })
+
+    expect(restRemaining()).toHaveTextContent('1:24')
+    expect(within(restCard()).getByText('of 1:30')).toBeInTheDocument()
+    expect(within(restCard()).getByText('Bench Press rests 1:30')).toBeInTheDocument()
+  })
+
+  it('uses the rest saved for the exercise', async () => {
+    await updateProfile({ rest_seconds_by_exercise: { [BENCH_ID]: 120 } })
+    await sessionResting()
+    await renderLive({ now: restClock(0).now })
+
+    expect(restRemaining()).toHaveTextContent('2:00')
+  })
+
+  it('keeps the right time across a simulated 60 second gap', async () => {
+    await sessionResting()
+    const time = restClock(6)
+    await renderLive({ now: time.now })
+
+    time.move(60)
+
+    expect(restRemaining()).toHaveTextContent('0:24')
+  })
+
+  it('shows the correct remaining time after a reload in the middle of a rest', async () => {
+    await sessionResting()
+    const time = restClock(10)
+    const first = await renderLive({ now: time.now })
+    first.unmount()
+
+    time.move(30)
+    await renderLive({ now: time.now })
+
+    expect(restRemaining()).toHaveTextContent('0:50')
+  })
+
+  it('starts a new rest when a set is added', async () => {
+    const time = restClock(0)
+    await sessionResting()
+    await renderLive({ now: time.now })
+
+    time.move(200)
+    expect(screen.getByText(REST_OVER)).toBeInTheDocument()
+
+    await userEvent.click(
+      within(card('Bench Press')).getByRole('button', { name: 'Add set to Bench Press' }),
+    )
+
+    await waitFor(() => {
+      expect(restRemaining()).toHaveTextContent('1:30')
+    })
+  })
+
+  it('clears the timer on Skip', async () => {
+    await sessionResting()
+    await renderLive({ now: restClock(6).now })
+
+    await userEvent.click(within(restCard()).getByRole('button', { name: 'Skip rest' }))
+
+    expect(screen.queryByRole('region', { name: 'Rest timer' })).not.toBeInTheDocument()
+  })
+
+  it('raises the timer by 30 seconds on +30 s', async () => {
+    await sessionResting()
+    await renderLive({ now: restClock(6).now })
+
+    await userEvent.click(within(restCard()).getByRole('button', { name: '+30 s more rest' }))
+    await userEvent.click(within(restCard()).getByRole('button', { name: '+30 s more rest' }))
+
+    expect(restRemaining()).toHaveTextContent('2:24')
+    expect(within(restCard()).getByText('of 2:30')).toBeInTheDocument()
+  })
+
+  it('shows no timer for a rest that ended before the screen opened', async () => {
+    await sessionResting()
+    await renderLive({ now: restClock(600).now })
+
+    expect(screen.queryByRole('region', { name: 'Rest timer' })).not.toBeInTheDocument()
+  })
+
+  it('shows no timer for a last set with no completed time', async () => {
+    const session = await startSession('2026-09-30')
+    await addSet({ session_id: session.id, exercise_id: BENCH_ID, reps: 8, weight_kg: 60 })
+    await renderLive({ now: restClock(0).now })
+
+    expect(screen.queryByRole('region', { name: 'Rest timer' })).not.toBeInTheDocument()
+  })
+
+  it('announces zero as text, vibrates and plays the sound', async () => {
+    const vibrate = vi.fn(() => true)
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+    await sessionResting()
+    const time = restClock(80)
+    await renderLive({ now: time.now })
+    const before = playCount()
+
+    time.move(10)
+
+    expect(screen.getByText(REST_OVER).closest('[aria-live="polite"]')).not.toBeNull()
+    expect(vibrate).toHaveBeenCalledTimes(1)
+    expect(playCount()).toBe(before + 1)
+  })
+
+  it('plays no sound at zero when the rest sound is muted', async () => {
+    await updateProfile({ rest_sound_muted: true })
+    await sessionResting()
+    const time = restClock(80)
+    await renderLive({ now: time.now })
+
+    time.move(10)
+
+    expect(screen.getByText(REST_OVER)).toBeInTheDocument()
+    expect(playCount()).toBe(0)
+  })
+
+  it('unlocks the sound on the Add set tap, before any rest ends', async () => {
+    const alert = { unlock: vi.fn(), ring: vi.fn() }
+    await sessionResting()
+    await renderLive({ now: restClock(200).now, alert })
+
+    await userEvent.click(
+      within(card('Bench Press')).getByRole('button', { name: 'Add set to Bench Press' }),
+    )
+
+    expect(alert.unlock).toHaveBeenCalledTimes(1)
+    expect(alert.ring).not.toHaveBeenCalled()
+  })
+
+  it('rings the alert it is handed with the muted setting', async () => {
+    const alert = { unlock: vi.fn(), ring: vi.fn() }
+    await updateProfile({ rest_sound_muted: true })
+    await sessionResting()
+    const time = restClock(85)
+    await renderLive({ now: time.now, alert })
+
+    time.move(5)
+
+    expect(alert.ring).toHaveBeenCalledWith(true)
+  })
+})
+
+describe('changing the rest time', () => {
+  async function changeRestTo(text: string) {
+    await userEvent.click(
+      within(restCard()).getByRole('button', { name: 'Change the rest time for Bench Press' }),
+    )
+    const dialog = await screen.findByRole('dialog', { name: 'Rest for Bench Press' })
+    const field = within(dialog).getByLabelText('Rest time')
+    await userEvent.clear(field)
+    await userEvent.type(field, text)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save rest time' }))
+    return dialog
+  }
+
+  it('saves the new rest to the profile with updateProfile, so it syncs', async () => {
+    await sessionResting()
+    await renderLive({ now: restClock(6).now })
+
+    await changeRestTo('2:00')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Rest for Bench Press' })).toBeNull()
+    })
+    expect((await getProfile()).rest_seconds_by_exercise).toEqual({ [BENCH_ID]: 120 })
+    expect(await db.outbox.where('table_name').equals('profiles').count()).toBe(1)
+  })
+
+  it('keeps the running rest and applies the new time to the next rest of that exercise', async () => {
+    await sessionResting()
+    const time = restClock(6)
+    await renderLive({ now: time.now })
+
+    await changeRestTo('2:00')
+
+    await waitFor(() => {
+      expect(within(restCard()).getByText('Bench Press rests 2:00')).toBeInTheDocument()
+    })
+    expect(restRemaining()).toHaveTextContent('1:24')
+    expect(within(restCard()).getByText('of 1:30')).toBeInTheDocument()
+
+    await userEvent.click(
+      within(card('Bench Press')).getByRole('button', { name: 'Add set to Bench Press' }),
+    )
+
+    await waitFor(() => {
+      expect(within(restCard()).getByText('of 2:00')).toBeInTheDocument()
+    })
+  })
+
+  it('leaves the rest of every other exercise at its own time', async () => {
+    await sessionResting()
+    const time = restClock(6)
+    await renderLive({ now: time.now })
+
+    await changeRestTo('2:00')
+    await waitFor(() => {
+      expect(within(restCard()).getByText('Bench Press rests 2:00')).toBeInTheDocument()
+    })
+    await pickExercise('Back Squat')
+    await userEvent.type(within(card('Back Squat')).getByLabelText('Reps'), '5')
+    await userEvent.click(
+      within(card('Back Squat')).getByRole('button', { name: 'Add set to Back Squat' }),
+    )
+
+    await waitFor(() => {
+      expect(within(restCard()).getByText('Back Squat rests 1:30')).toBeInTheDocument()
+    })
+    expect(within(restCard()).getByText('of 1:30')).toBeInTheDocument()
+  })
+
+  it('says so when the rest time cannot be saved', async () => {
+    await sessionResting()
+    await renderLive({
+      now: restClock(6).now,
+      source: failing({ saveRestSeconds: () => Promise.reject(new Error('broken')) }),
+    })
+
+    const dialog = await changeRestTo('2:00')
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(REST_SAVE_FAILED)
+  })
+
+  it('closes the change sheet without saving', async () => {
+    await sessionResting()
+    await renderLive({ now: restClock(6).now })
+
+    await userEvent.click(
+      within(restCard()).getByRole('button', { name: 'Change the rest time for Bench Press' }),
+    )
+    const dialog = await screen.findByRole('dialog', { name: 'Rest for Bench Press' })
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Close Rest for Bench Press' }),
+    )
+
+    expect(screen.queryByRole('dialog', { name: 'Rest for Bench Press' })).toBeNull()
+    expect((await getProfile()).rest_seconds_by_exercise).toEqual({})
+  })
+
+  it('reads the rest settings from the profile', async () => {
+    await updateProfile({ rest_sound_muted: true, rest_seconds_by_exercise: { [BENCH_ID]: 45 } })
+
+    expect(await REPOSITORY_LIVE_SOURCE.readRest()).toEqual({
+      muted: true,
+      byExercise: { [BENCH_ID]: 45 },
+    })
+  })
+})
+
+describe('the rest timer with a deleted set', () => {
+  it('follows the set before it when the newest set is deleted, and comes back on Undo', async () => {
+    const session = await startSession('2026-09-30')
+    await addSet({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      reps: 8,
+      weight_kg: 60,
+      completed_at: '2026-09-30T17:29:00.000Z',
+    })
+    await addSet({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      reps: 8,
+      weight_kg: 60,
+      completed_at: REST_START,
+    })
+    await renderLive({ now: restClock(10).now })
+
+    expect(restRemaining()).toHaveTextContent('1:20')
+
+    const dialog = await openEdit(2)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete set' }))
+
+    await waitFor(() => {
+      expect(restRemaining()).toHaveTextContent('0:20')
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+
+    await waitFor(() => {
+      expect(restRemaining()).toHaveTextContent('1:20')
+    })
   })
 })
