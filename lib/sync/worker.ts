@@ -153,6 +153,8 @@ const listeners = new Set<() => void>()
 
 let draining: Promise<SyncOutcome> | null = null
 
+let queued: Promise<SyncOutcome> | null = null
+
 let halted = false
 
 let clearedHere = false
@@ -908,17 +910,29 @@ export function endSigningOut(): void {
   }
 }
 
+function currentSignal(own: boolean): AbortSignal {
+  if (stop.signal.aborted && !halted && (own || !signingOutElsewhere())) {
+    stop = new AbortController()
+  }
+
+  return stop.signal
+}
+
 function startDrain(
   options: PushOptions,
   after: Promise<SyncOutcome> | null,
   own: boolean,
 ): Promise<SyncOutcome> {
-  if (stop.signal.aborted && !halted && (own || !signingOutElsewhere())) {
-    stop = new AbortController()
-  }
+  const held = own ? currentSignal(true) : null
+  const run = (): Promise<SyncOutcome> => {
+    if (halted && !own) {
+      return Promise.resolve(stopped())
+    }
 
-  const signal = stop.signal
-  const run = (): Promise<SyncOutcome> => withDrainLock(() => runSync(options, signal, own))
+    const signal = held ?? currentSignal(false)
+
+    return withDrainLock(() => runSync(options, signal, own))
+  }
   const next: Promise<SyncOutcome> = (after === null ? run() : after.then(run, run)).finally(() => {
     if (draining === next) {
       draining = null
@@ -972,18 +986,37 @@ export function resumeSync(): void {
   }
 }
 
+function stopped(): SyncOutcome {
+  return { status: 'offline', pushed: 0, pulled: 0, error: null }
+}
+
 export function sync(): Promise<SyncOutcome> {
   if (halted) {
-    return Promise.resolve({ status: 'offline', pushed: 0, pulled: 0, error: null })
+    return Promise.resolve(stopped())
   }
 
   if (signingOutElsewhere()) {
     return Promise.resolve(idle('offline'))
   }
 
-  draining ??= startDrain({}, null, false)
+  if (draining === null) {
+    draining = startDrain({}, null, false)
 
-  return draining
+    return draining
+  }
+
+  if (queued === null) {
+    queued = startDrain(
+      {},
+      draining.finally(() => {
+        queued = null
+      }),
+      false,
+    )
+    draining = queued
+  }
+
+  return queued
 }
 
 export async function drainForSignOut(timeoutMs: number = HALT_TIMEOUT_MS): Promise<void> {

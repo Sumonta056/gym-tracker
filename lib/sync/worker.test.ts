@@ -2228,8 +2228,8 @@ describe('sync', () => {
     const [first, second] = await Promise.all([sync(), sync()])
 
     expect(fake.upserted).toHaveLength(1)
-    expect(first).toEqual(second)
-    expect(mocks.createClient).toHaveBeenCalledTimes(1)
+    expect(first).toMatchObject({ status: 'synced', pushed: 1 })
+    expect(second).toMatchObject({ status: 'synced', pushed: 0 })
   })
 
   it('runs again after the first drain settles', async () => {
@@ -2250,6 +2250,165 @@ describe('sync', () => {
     await sync()
 
     expect(await listPending()).toHaveLength(1)
+  })
+})
+
+describe('a sync call during a drain', () => {
+  function gatedPull(): { fake: Fake; release: () => void } {
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const fake = fakeClient({ onSelect: () => gate })
+
+    return { fake, release }
+  }
+
+  it('pushes a write saved during the drain without waiting for the interval', async () => {
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+    const first = sync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+
+    const second = sync()
+    release()
+    await first
+
+    expect(await second).toMatchObject({ status: 'synced', pushed: 1 })
+    expect(fake.upserted.map((call) => call.row.id)).toEqual([ROW_A])
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('runs at most one more drain however many calls arrive during it', async () => {
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+    const first = sync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+
+    const later = [sync(), sync(), sync(), sync()]
+    release()
+    await first
+    await Promise.all(later)
+    await drained(2)
+
+    expect(new Set(later).size).toBe(1)
+    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+    expect(fake.upserted).toHaveLength(1)
+  })
+
+  it('runs no follow-up drain once sign-out halts the worker', async () => {
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+    const first = sync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+
+    const second = sync()
+    const halting = haltSync()
+    release()
+    await first
+    await halting
+
+    expect(await second).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
+    expect(mocks.createClient).toHaveBeenCalledTimes(1)
+    expect(fake.upserted).toHaveLength(0)
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('lets the sign-out drain run after a skipped follow-up', async () => {
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+    const first = sync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+
+    void sync()
+    const signingOut = drainForSignOut()
+    release()
+    await first
+    await signingOut
+
+    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+    expect(fake.upserted).toHaveLength(1)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('runs the follow-up after a failed sign-out lifts the halt', async () => {
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+    const first = sync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+
+    const second = sync()
+    const halting = haltSync()
+    resumeSync()
+    release()
+    await first
+    await halting
+
+    expect(await second).toMatchObject({ status: 'synced', pushed: 1 })
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('pushes from the follow-up when another tab halted the drain before it', async () => {
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+    const stop = startSync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+
+    const second = sync()
+    otherTabSays('halt')
+    release()
+    const outcome = await second
+    stop()
+
+    expect(outcome).toMatchObject({ status: 'synced', pushed: 1 })
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('lets a queued sign-out drain push after another tab halted the drain before it', async () => {
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+    const stop = startSync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+
+    otherTabSays('halt')
+    const signingOut = drainForSignOut()
+    release()
+    await signingOut
+    stop()
+
+    expect(fake.upserted.map((call) => call.row.id)).toEqual([ROW_A])
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('starts exactly one drain when no drain is running', async () => {
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    await sync()
+    await drained(1)
+
+    expect(mocks.createClient).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -3119,5 +3278,27 @@ describe('startSync', () => {
 
     expect(mocks.createClient).toHaveBeenCalledTimes(1)
     stop()
+  })
+
+  it('pushes a write saved while the mount drain runs as soon as the network returns', async () => {
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const fake = fakeClient({ onSelect: () => gate })
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const stop = startSync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    window.dispatchEvent(new Event('online'))
+    release()
+    await drained(2)
+    stop()
+
+    expect(fake.upserted.map((call) => call.row.id)).toEqual([ROW_A])
+    expect(await db.outbox.count()).toBe(0)
   })
 })
