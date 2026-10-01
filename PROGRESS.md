@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.5b Part C, the security headers → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
+**Next step:** 2.6, link a session to the day → `docs/plan/phase-2/S2.6-link-to-day.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `fix(auth)`, 2.5b Part B, the magic link creates no user and redirects to `SITE_URL`.
+**Last commit:** `fix(setup)`, 2.5b Part C, 5 security headers on every path. 2.5b is done.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -122,6 +122,8 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 - **No Supabase response in Cache Storage.** The Supabase rule in `app/sw.ts` is `NetworkOnly`; `activate` deletes the old
   `supabase` cache. `waitForServiceWorker` lives in `tests/e2e/support/signedIn.ts`. `security.spec.ts` skips WebKit and
   closes the "Session running" prompt with Close, never Discard. The host matcher stays `.supabase.co`. From 2.5b A.
+- **The security headers.** `next.config.ts` sends 5 headers on `/:path*`, static files and `/sw.js` too. `headers()` returns
+  `Promise.resolve`, because `require-await` refuses an `async` with no `await`. Lighthouse 11.4 PWA scores 1. From 2.5b C.
 - **The service worker wait reloads once.** A worker that activates during a navigation does not control that
   page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
 
