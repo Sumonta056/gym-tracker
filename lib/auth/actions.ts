@@ -1,7 +1,5 @@
 'use server'
 
-import { headers } from 'next/headers'
-
 import { createClient } from '../supabase/server'
 
 import { isValidEmail, normaliseEmail } from './email'
@@ -16,6 +14,16 @@ const INVALID_EMAIL = 'Enter an email address like you@example.com.'
 const SEND_FAILED = 'The link could not be sent. Check the address and try again.'
 const EMPTY_PASSWORD = 'Enter your password.'
 const SIGN_IN_FAILED = 'That email and password do not match.'
+const UNKNOWN_EMAIL_CODE = 'otp_disabled'
+
+function siteOrigin(): string | null {
+  try {
+    const { origin } = new URL(process.env.SITE_URL ?? '')
+    return origin === 'null' ? null : origin
+  } catch {
+    return null
+  }
+}
 
 export async function sendMagicLink(email: string): Promise<SendMagicLinkResult> {
   if (!isValidEmail(email)) {
@@ -23,7 +31,7 @@ export async function sendMagicLink(email: string): Promise<SendMagicLinkResult>
   }
 
   const address = normaliseEmail(email)
-  const origin = (await headers()).get('origin')
+  const origin = siteOrigin()
 
   let supabase
   try {
@@ -34,10 +42,13 @@ export async function sendMagicLink(email: string): Promise<SendMagicLinkResult>
 
   const { error } = await supabase.auth.signInWithOtp({
     email: address,
-    options: origin === null ? undefined : { emailRedirectTo: `${origin}/auth/callback` },
+    options:
+      origin === null
+        ? { shouldCreateUser: false }
+        : { shouldCreateUser: false, emailRedirectTo: `${origin}/auth/callback` },
   })
 
-  if (error !== null) {
+  if (error !== null && error.code !== UNKNOWN_EMAIL_CODE) {
     return { status: 'error', message: SEND_FAILED }
   }
 

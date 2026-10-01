@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.5b Part B, the magic link → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
+**Next step:** 2.5b Part C, the security headers → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `fix(pwa)`, 2.5b Part A, no Supabase response in the service worker cache.
+**Last commit:** `fix(auth)`, 2.5b Part B, the magic link creates no user and redirects to `SITE_URL`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -116,6 +116,9 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   outbox 0. Both timers right after a reload and a hidden tab. WebKit offline cuts Supabase only. 2026-10-01.
 - **Safe area insets.** The shell, the sign-in and the offline page pad the top by the inset. The tab bar pads
   `max(inset, 10px)`. The session timer reads the clock on `visibilitychange`. From fix(ui), 2026-10-01.
+- **The magic link.** `shouldCreateUser: false`. The 422 `otp_disabled` refusal for an unknown email reads as sent;
+  every other error stays `SEND_FAILED`. The redirect is the origin of the server-only `SITE_URL`, never the
+  `Origin` header; unset, invalid or a `null` origin omits it. Local `config.toml` refuses sign-ups, passwords under 8. From 2.5b B.
 - **No Supabase response in Cache Storage.** The Supabase rule in `app/sw.ts` is `NetworkOnly`; `activate` deletes the old
   `supabase` cache. `waitForServiceWorker` lives in `tests/e2e/support/signedIn.ts`. `security.spec.ts` skips WebKit and
   closes the "Session running" prompt with Close, never Discard. The host matcher stays `.supabase.co`. From 2.5b A.
@@ -149,6 +152,9 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 - **Later step** — match the Supabase rule in `app/sw.ts` on the origin of `NEXT_PUBLIC_SUPABASE_URL`, not on the
   `.supabase.co` host, so a custom domain or a local stack is not cached. From 2.5b A.
 - **Owner** — `get_advisors` warns that leaked password protection is off. An Auth setting. From 2.1a.
+- **Owner, at deploy** — set `SITE_URL=https://<production-host>` in Vercel, Production, and Preview if previews
+  need their own link. Supabase Redirect URLs must hold `${SITE_URL}/auth/callback` and
+  `http://localhost:3000/auth/callback`. Then send one real link on production. From 2.5b B.
 - **2.8b** — pass `sessionGaps` every daily row date, not only rows with gym time. The 1, 3, 3,
   3, 1 target needs 9 September. From 2.7b.
 - **Owner** — no unique index on global exercise names. Only the seed adds global rows. The owner

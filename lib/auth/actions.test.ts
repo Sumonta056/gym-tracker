@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { sendMagicLink, signInWithPassword } from './actions'
 
 type OtpArgs = {
   email: string
-  options?: { emailRedirectTo?: string }
+  options?: { shouldCreateUser?: boolean; emailRedirectTo?: string }
 }
 
 type PasswordArgs = {
@@ -12,9 +12,11 @@ type PasswordArgs = {
   password: string
 }
 
+type OtpError = { message: string; code?: string; status?: number }
+
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
-  signInWithOtp: vi.fn<(args: OtpArgs) => Promise<{ error: { message: string } | null }>>(),
+  signInWithOtp: vi.fn<(args: OtpArgs) => Promise<{ error: OtpError | null }>>(),
   signInWithPassword:
     vi.fn<(args: PasswordArgs) => Promise<{ error: { message: string } | null }>>(),
   get: vi.fn<(name: string) => string | null>(),
@@ -36,6 +38,11 @@ describe('sendMagicLink', () => {
     mocks.createClient.mockResolvedValue({ auth: { signInWithOtp: mocks.signInWithOtp } })
     mocks.get.mockReset()
     mocks.get.mockReturnValue('https://gym.example')
+    vi.stubEnv('SITE_URL', 'https://gym.example')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it('reports an error and never calls supabase for an invalid address', async () => {
@@ -52,27 +59,68 @@ describe('sendMagicLink', () => {
     expect(result).toEqual({ status: 'sent', email: 'you@example.com' })
     expect(mocks.signInWithOtp).toHaveBeenCalledWith({
       email: 'you@example.com',
-      options: { emailRedirectTo: 'https://gym.example/auth/callback' },
+      options: { shouldCreateUser: false, emailRedirectTo: 'https://gym.example/auth/callback' },
     })
   })
 
-  it('omits the redirect when the request carries no origin', async () => {
-    mocks.get.mockReturnValue(null)
+  it('never creates a user for an unknown email', async () => {
     await sendMagicLink('you@example.com')
-    expect(mocks.signInWithOtp).toHaveBeenCalledWith({
-      email: 'you@example.com',
-      options: undefined,
-    })
+    expect(mocks.signInWithOtp.mock.calls[0]?.[0].options?.shouldCreateUser).toBe(false)
   })
 
-  it('reports an error when supabase refuses the send', async () => {
-    mocks.signInWithOtp.mockResolvedValue({ error: { message: 'rate limited' } })
+  it('reports sent for an email with no account', async () => {
+    mocks.signInWithOtp.mockResolvedValue({
+      error: { message: 'Signups not allowed for otp', code: 'otp_disabled', status: 422 },
+    })
+    const result = await sendMagicLink('  Nobody@Example.com ')
+    expect(result).toEqual({ status: 'sent', email: 'nobody@example.com' })
+  })
+
+  it('still reports an error for any other failure', async () => {
+    mocks.signInWithOtp.mockResolvedValue({
+      error: {
+        message: 'email rate limit exceeded',
+        code: 'over_email_send_rate_limit',
+        status: 429,
+      },
+    })
     const result = await sendMagicLink('you@example.com')
     expect(result).toEqual({
       status: 'error',
       message: 'The link could not be sent. Check the address and try again.',
     })
   })
+
+  it('builds the redirect from SITE_URL, never from the origin header', async () => {
+    vi.stubEnv('SITE_URL', 'https://gym.example/some/path?q=1')
+    mocks.get.mockReturnValue('https://evil.example')
+    await sendMagicLink('you@example.com')
+    expect(mocks.signInWithOtp).toHaveBeenCalledWith({
+      email: 'you@example.com',
+      options: { shouldCreateUser: false, emailRedirectTo: 'https://gym.example/auth/callback' },
+    })
+  })
+
+  it('omits the redirect when SITE_URL is not set', async () => {
+    vi.stubEnv('SITE_URL', undefined)
+    await sendMagicLink('you@example.com')
+    expect(mocks.signInWithOtp).toHaveBeenCalledWith({
+      email: 'you@example.com',
+      options: { shouldCreateUser: false },
+    })
+  })
+
+  it.each(['not a url', 'mailto:you@example.com'])(
+    'omits the redirect when SITE_URL is not a valid URL',
+    async (value) => {
+      vi.stubEnv('SITE_URL', value)
+      await sendMagicLink('you@example.com')
+      expect(mocks.signInWithOtp).toHaveBeenCalledWith({
+        email: 'you@example.com',
+        options: { shouldCreateUser: false },
+      })
+    },
+  )
 
   it('reports an error instead of throwing when the supabase keys are missing', async () => {
     mocks.createClient.mockRejectedValue(new Error('NEXT_PUBLIC_SUPABASE_URL is missing'))
