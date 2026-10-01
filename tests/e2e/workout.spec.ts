@@ -80,17 +80,27 @@ async function waitForExercises(page: Page): Promise<void> {
     .toBeGreaterThan(0)
 }
 
+function isControlled(page: Page): Promise<boolean> {
+  return page.evaluate(() => navigator.serviceWorker.controller !== null)
+}
+
 async function waitForServiceWorker(page: Page): Promise<void> {
   await expect
     .poll(
       () =>
         page.evaluate(async () => {
-          await navigator.serviceWorker.ready
-          return navigator.serviceWorker.controller !== null
+          const registration = await navigator.serviceWorker.ready
+          return registration.active !== null
         }),
       { timeout: SERVICE_WORKER_TIMEOUT_MS },
     )
     .toBe(true)
+
+  if (!(await isControlled(page))) {
+    await page.reload()
+  }
+
+  await expect.poll(() => isControlled(page), { timeout: SERVICE_WORKER_TIMEOUT_MS }).toBe(true)
 }
 
 async function cutOffTheServer(
