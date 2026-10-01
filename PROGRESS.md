@@ -5,10 +5,11 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** Checkpoint B. Then 2.5b → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
+**Next step:** fix(ui) the session timer reads the clock on `visibilitychange`. Then 2.5b → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
 **Last commit:** `fix(pwa)`, no reload on `online`, on top of the `fix(sync)` follow-up drain.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
+The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
 ## Resume here
 
@@ -111,6 +112,8 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 - **A sync call during a drain queues one follow-up drain**, for every trigger. Later calls join it. A follow-
   up after a halt returns offline and takes no lock. The extra drain costs one pull when nothing changed;
   kept. No reload on `online`: `reloadOnOnline={false}`. From fix(sync) and fix(pwa), 2026-10-01.
+- **Checkpoint B passed in the browser.** iPhone 14 and Pixel 7 at 390 px: 1 session, 6 sets, no duplicate,
+  outbox 0. Both timers right after a reload and a hidden tab. WebKit offline cuts Supabase only. 2026-10-01.
 
 ## Open, with the step that closes each one
 
@@ -151,6 +154,11 @@ Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
   ticks. Their tab bars say "Main"; the app says "Bottom navigation". From 2.4a.
 - **Owner** — `offline.spec.ts:65` can read Syncing after 5 s on WebKit when 3 projects run at once. Guess:
   the follow-up waits behind postgrest-js GET retries. If it returns, turn off retries on pull GETs. From fix(sync).
+
+- **Owner, after deploy** — on the iPhone, lock the phone for 60 s during a rest, and record a session in
+  airplane mode. Playwright gives WebKit no service worker, so true WebKit offline is unproven. From Checkpoint B.
+- **Owner** — under the Playwright fake clock, `page-transition` can stay at opacity 0 after a tab change.
+  Probably the test clock in `tests/e2e/support/signedIn.ts`. Check on the device. From Checkpoint B.
 
 ## Phases
 

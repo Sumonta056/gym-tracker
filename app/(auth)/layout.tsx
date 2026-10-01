@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 export default function AuthLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <div className="bg-ground text-text flex min-h-dvh w-full flex-col items-center justify-center px-5 py-10 md:px-7">
+    <div className="bg-ground text-text flex min-h-dvh w-full flex-col items-center justify-center px-5 pt-[calc(env(safe-area-inset-top)+40px)] pb-10 md:px-7">
       <main className="w-full max-w-[420px]">{children}</main>
     </div>
   )

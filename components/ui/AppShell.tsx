@@ -87,7 +87,7 @@ export function AppShell({
       </nav>
 
       <div className="flex w-full min-w-0 flex-1 flex-col">
-        <main className="mx-auto w-full max-w-[1100px] px-5 pt-5 pb-[calc(env(safe-area-inset-bottom)+88px)] md:px-7 lg:pb-10">
+        <main className="mx-auto w-full max-w-[1100px] px-5 pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(env(safe-area-inset-bottom)+88px)] md:px-7 lg:pt-5 lg:pb-10">
           {title === undefined ? null : (
             <h1 className="text-text mb-4 text-[23px] leading-tight font-bold tracking-[-0.6px]">
               {title}
@@ -103,7 +103,7 @@ export function AppShell({
 
       <nav
         aria-label="Bottom navigation"
-        className="border-border bg-surface fixed inset-x-0 bottom-0 z-40 grid auto-cols-fr grid-flow-col items-center gap-1 border-t px-2.5 pt-2 pb-[calc(env(safe-area-inset-bottom)+10px)] lg:hidden"
+        className="border-border bg-surface fixed inset-x-0 bottom-0 z-40 grid auto-cols-fr grid-flow-col items-center gap-1 border-t px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),10px)] lg:hidden"
       >
         {leftItems.map((item) => (
           <BottomLink key={item.href} item={item} />

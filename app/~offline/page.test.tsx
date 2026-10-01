@@ -30,6 +30,14 @@ describe('OfflinePage', () => {
     expect(title).toHaveClass('text-[23px]', 'font-bold', 'tracking-[-0.6px]')
   })
 
+  it('pads the top and the bottom for the safe area insets', () => {
+    render(<OfflinePage />)
+    expect(screen.getByRole('main')).toHaveClass(
+      'pt-[env(safe-area-inset-top)]',
+      'pb-[env(safe-area-inset-bottom)]',
+    )
+  })
+
   it('draws the message on the shared card', () => {
     render(<OfflinePage />)
     const card = screen.getByRole('heading', { level: 1 }).closest('div')

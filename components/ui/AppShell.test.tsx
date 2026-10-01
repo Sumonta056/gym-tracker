@@ -58,11 +58,18 @@ describe('AppShell', () => {
     expect(bar).toHaveClass('fixed')
   })
 
-  it('pads the bottom bar for the safe area inset', () => {
+  it('pads the bottom bar with the safe area inset, or 10 px when the device has none', () => {
     setup()
     expect(screen.getByRole('navigation', { name: 'Bottom navigation' })).toHaveClass(
-      'pb-[calc(env(safe-area-inset-bottom)+10px)]',
+      'pb-[max(env(safe-area-inset-bottom),10px)]',
     )
+  })
+
+  it('pads the top of the content for the safe area inset on the phone only', () => {
+    setup()
+    const main = screen.getByRole('main')
+    expect(main).toHaveClass('pt-[calc(env(safe-area-inset-top)+20px)]')
+    expect(main).toHaveClass('lg:pt-5')
   })
 
   it('puts the centre action button between the two halves of the bar', () => {

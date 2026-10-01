@@ -95,8 +95,8 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 
 ### Checkpoint B — after 2.5
 
-- [ ] A full offline session of 3 exercises records at 390 px and syncs.
-- [ ] The timer and the rest timer keep the correct time after a reload and a
+- [x] A full offline session of 3 exercises records at 390 px and syncs.
+- [x] The timer and the rest timer keep the correct time after a reload and a
       background.
 
 ### Checkpoint C — after 2.9c

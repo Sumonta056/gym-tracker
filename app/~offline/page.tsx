@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function OfflinePage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-5 md:px-7">
+    <main className="flex min-h-dvh flex-col items-center justify-center px-5 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:px-7">
       <Card className="w-full max-w-md">
         <MicroLabel as="p">No signal</MicroLabel>
         <h1 className="mt-2 text-[23px] leading-tight font-bold tracking-[-0.6px]">
