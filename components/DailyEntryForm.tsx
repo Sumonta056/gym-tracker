@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { getDay, upsertDay } from '../lib/db/repository'
+import { acceptGymTimeOffer, getDay, gymTimeOfferOn, upsertDay } from '../lib/db/repository'
 import { formatDuration, parseInput } from '../lib/duration'
 import { dailyEntrySchema, localDate, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from '../lib/schema/dailyEntry'
 
@@ -15,9 +15,12 @@ import { NumberField } from './ui/NumberField'
 import { PrimaryButton } from './ui/PrimaryButton'
 import { SecondaryButton } from './ui/SecondaryButton'
 import { StatusChip } from './ui/StatusChip'
+import { GYM_TIME_SAVE_FAILED, GymTimeOfferCard } from './workout/GymTimeOffer'
 
 import type { DailyEntry } from '../lib/db/dexie'
 import type { DailyEntryDraft, DailyEntryInput } from '../lib/schema/dailyEntry'
+import type { GymTimeOffer } from '../lib/workout/gymTime'
+import type { ReactNode } from 'react'
 import type { RefinementCtx } from 'zod'
 
 export const WEIGHT_STEP = 0.05
@@ -140,6 +143,10 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
   const [online, setOnline] = useState(true)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [offer, setOffer] = useState<GymTimeOffer | null>(null)
+  const [offerRead, setOfferRead] = useState(0)
+  const [offerBusy, setOfferBusy] = useState(false)
+  const [offerError, setOfferError] = useState<string | null>(null)
 
   const {
     formState: { errors, isSubmitting },
@@ -187,6 +194,27 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
     }
   }, [entryDate, reset])
 
+  useEffect(() => {
+    let cancelled = false
+
+    void gymTimeOfferOn(entryDate).then(
+      (found) => {
+        if (!cancelled) {
+          setOffer(found)
+        }
+      },
+      () => {
+        if (!cancelled) {
+          setOffer(null)
+        }
+      },
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [entryDate, offerRead])
+
   const save = useCallback((values: DailyEntryInput) => {
     setSaved(false)
     setSaveError(null)
@@ -194,6 +222,7 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
     return upsertDay(values).then(
       () => {
         setSaved(true)
+        setOfferRead((count) => count + 1)
       },
       (reason: unknown) => {
         setSaveError(reason instanceof Error ? reason.message : 'The entry could not be saved.')
@@ -206,6 +235,54 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
   const weightText = watch('weight_kg')
   const weightNumber = Number(weightText.trim())
   const canNudge = weightText.trim() !== '' && Number.isFinite(weightNumber)
+
+  function takeSessionTime(): void {
+    if (offer === null || offerBusy) {
+      return
+    }
+
+    setOfferBusy(true)
+    setOfferError(null)
+    acceptGymTimeOffer(offer.sessionId)
+      .then(
+        () => {
+          setValue('gym_seconds', formatDuration(offer.sessionSeconds, 'clock'), {
+            shouldDirty: true,
+          })
+          setOffer(null)
+          setOfferRead((count) => count + 1)
+        },
+        () => {
+          setOfferError(GYM_TIME_SAVE_FAILED)
+        },
+      )
+      .finally(() => {
+        setOfferBusy(false)
+      })
+  }
+
+  function offerBlock(placement: string): ReactNode {
+    if (offer === null) {
+      return null
+    }
+
+    return (
+      <div className={`flex-col gap-2 ${placement}`}>
+        <GymTimeOfferCard
+          offer={offer}
+          dateLabel={prettyDate(offer.entryDate)}
+          isToday={offer.entryDate === localDate()}
+          busy={offerBusy}
+          onUse={takeSessionTime}
+        />
+        {offerError === null ? null : (
+          <p role="alert" className="text-danger text-sm">
+            {offerError}
+          </p>
+        )}
+      </div>
+    )
+  }
 
   function nudge(direction: 1 | -1): void {
     if (!canNudge) {
@@ -250,6 +327,8 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
           />
         </div>
 
+        {offerBlock('flex md:hidden')}
+
         <div className="grid grid-cols-2 gap-3">
           <NumberField
             label="Avg heart rate"
@@ -266,6 +345,8 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
             error={errors.max_heart_rate?.message}
           />
         </div>
+
+        {offerBlock('hidden md:col-span-2 md:flex')}
 
         <div className="flex flex-col gap-2">
           <NumberField

@@ -6,6 +6,8 @@ import LogPage from './page'
 vi.mock('../../../lib/db/repository', () => ({
   getDay: vi.fn(() => Promise.resolve(undefined)),
   upsertDay: vi.fn(() => Promise.resolve()),
+  gymTimeOfferOn: vi.fn(() => Promise.resolve(null)),
+  acceptGymTimeOffer: vi.fn(() => Promise.resolve()),
 }))
 
 describe('LogPage', () => {

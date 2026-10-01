@@ -1,16 +1,21 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDay, upsertDay } from '../lib/db/repository'
+import { acceptGymTimeOffer, getDay, gymTimeOfferOn, upsertDay } from '../lib/db/repository'
+import { localDate } from '../lib/schema/dailyEntry'
 
 import { DailyEntryForm, nextWeight, prettyDate, toFormValues } from './DailyEntryForm'
+import { GYM_TIME_SAVE_FAILED } from './workout/GymTimeOffer'
 
 import type { DailyEntry } from '../lib/db/dexie'
+import type { GymTimeOffer } from '../lib/workout/gymTime'
 
 vi.mock('../lib/db/repository', () => ({
   getDay: vi.fn(() => Promise.resolve(undefined)),
   upsertDay: vi.fn(() => Promise.resolve()),
+  gymTimeOfferOn: vi.fn(() => Promise.resolve(null)),
+  acceptGymTimeOffer: vi.fn(() => Promise.resolve()),
 }))
 
 const DATE = '2026-09-19'
@@ -35,6 +40,20 @@ function setOnline(value: boolean): void {
   Object.defineProperty(globalThis.navigator, 'onLine', { configurable: true, value })
 }
 
+async function firstOffer(): Promise<HTMLElement> {
+  const [offer] = await screen.findAllByRole('region', { name: 'Gym time from the session' })
+
+  if (offer === undefined) {
+    throw new Error('no offer')
+  }
+
+  return offer
+}
+
+async function firstUse(): Promise<HTMLElement> {
+  return within(await firstOffer()).getByRole('button', { name: 'Use 1:12:05 for gym time' })
+}
+
 async function renderForm() {
   render(<DailyEntryForm date={DATE} />)
   await waitFor(() => {
@@ -42,9 +61,20 @@ async function renderForm() {
   })
 }
 
+const SESSION_ID = '99999999-9999-4999-8999-999999999999'
+
+const OFFER: GymTimeOffer = {
+  sessionId: SESSION_ID,
+  entryDate: DATE,
+  sessionSeconds: 4325,
+  loggedSeconds: 3900,
+}
+
 beforeEach(() => {
   vi.mocked(getDay).mockResolvedValue(undefined)
   vi.mocked(upsertDay).mockResolvedValue(undefined as never)
+  vi.mocked(gymTimeOfferOn).mockResolvedValue(null)
+  vi.mocked(acceptGymTimeOffer).mockResolvedValue(undefined as never)
   setOnline(true)
 })
 
@@ -327,5 +357,107 @@ describe('DailyEntryForm', () => {
   it('names the day and the field count, as the mockup does', async () => {
     await renderForm()
     expect(screen.getByText('Sat 19 Sep · 8 fields')).toBeInTheDocument()
+  })
+
+  it('shows no gym time offer for a date with nothing to offer', async () => {
+    await renderForm()
+
+    await waitFor(() => {
+      expect(gymTimeOfferOn).toHaveBeenCalledWith(DATE)
+    })
+    expect(screen.queryAllByRole('region', { name: 'Gym time from the session' })).toHaveLength(0)
+  })
+
+  it('shows the session length and the logged gym time side by side', async () => {
+    vi.mocked(gymTimeOfferOn).mockResolvedValue(OFFER)
+    await renderForm()
+
+    const offer = await firstOffer()
+
+    expect(offer).toHaveTextContent(
+      'The session on Sat 19 Sep was 1:12:05. Your log says 1:05:00. Use the session for gym time?',
+    )
+    expect(within(offer).getByRole('button', { name: 'Use 1:12:05 for gym time' })).toBeVisible()
+  })
+
+  it('says today for an offer on today', async () => {
+    const today = localDate()
+    vi.mocked(gymTimeOfferOn).mockResolvedValue({ ...OFFER, entryDate: today })
+    render(<DailyEntryForm date={today} />)
+
+    expect(await firstOffer()).toHaveTextContent("Today's session was 1:12:05.")
+  })
+
+  it('says the log has no gym time when the day holds none', async () => {
+    vi.mocked(gymTimeOfferOn).mockResolvedValue({ ...OFFER, loggedSeconds: null })
+    await renderForm()
+
+    expect(await firstOffer()).toHaveTextContent('Your log has no gym time.')
+  })
+
+  it('writes the session length on Use, fills the field and hides the offer', async () => {
+    vi.mocked(getDay).mockResolvedValue({ ...STORED, gym_seconds: 3900 })
+    vi.mocked(gymTimeOfferOn).mockResolvedValueOnce(OFFER).mockResolvedValue(null)
+    await renderForm()
+
+    await userEvent.click(await firstUse())
+
+    expect(acceptGymTimeOffer).toHaveBeenCalledWith(SESSION_ID)
+    await waitFor(() => {
+      expect(screen.queryAllByRole('region', { name: 'Gym time from the session' })).toHaveLength(0)
+    })
+    expect(screen.getByLabelText('Gym time')).toHaveValue('1:12:05')
+    expect(screen.getByLabelText('Steps')).toHaveValue('12480')
+    expect(upsertDay).not.toHaveBeenCalled()
+  })
+
+  it('keeps the offer and says so when Use cannot be saved', async () => {
+    vi.mocked(gymTimeOfferOn).mockResolvedValue(OFFER)
+    vi.mocked(acceptGymTimeOffer).mockRejectedValueOnce(new Error('disk full'))
+    await renderForm()
+
+    await userEvent.click(await firstUse())
+
+    expect((await screen.findAllByRole('alert'))[0]).toHaveTextContent(GYM_TIME_SAVE_FAILED)
+    expect(screen.getAllByRole('region', { name: 'Gym time from the session' })[0]).toBeVisible()
+  })
+
+  it('reads the offer again after a save', async () => {
+    await renderForm()
+    vi.mocked(gymTimeOfferOn).mockResolvedValue(OFFER)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    expect(await firstOffer()).toBeVisible()
+  })
+
+  it('shows no offer when the offer cannot be read', async () => {
+    vi.mocked(gymTimeOfferOn).mockRejectedValue(new Error('no'))
+    await renderForm()
+
+    await waitFor(() => {
+      expect(gymTimeOfferOn).toHaveBeenCalled()
+    })
+    expect(screen.queryAllByRole('region', { name: 'Gym time from the session' })).toHaveLength(0)
+  })
+
+  it('places the offer after gym time on the phone and after heart rate on wider screens', async () => {
+    vi.mocked(gymTimeOfferOn).mockResolvedValue(OFFER)
+    await renderForm()
+    await firstOffer()
+
+    const [phone, wide] = screen
+      .getAllByRole('region', { name: 'Gym time from the session' })
+      .map((offer) => offer.parentElement)
+    const gym = screen.getByLabelText('Gym time')
+    const avg = screen.getByLabelText('Avg heart rate')
+    const max = screen.getByLabelText('Max heart rate')
+    const follows = (first: Node, second: Node) =>
+      Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING)
+
+    expect(phone).toHaveClass('flex', 'md:hidden')
+    expect(wide).toHaveClass('hidden', 'md:col-span-2', 'md:flex')
+    expect(phone && follows(gym, phone) && follows(phone, avg)).toBe(true)
+    expect(wide && follows(max, wide)).toBe(true)
   })
 })

@@ -8,8 +8,12 @@ import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
 import { db, SIGNED_OUT_KEY } from './dexie'
 import {
+  acceptGymTimeOffer,
   archiveExercise,
   clearAll,
+  gymTimeOfferFor,
+  gymTimeOfferOn,
+  NoGymTimeOffer,
   addSet,
   createExercise,
   deleteSet,
@@ -54,7 +58,7 @@ import {
   upsertDay,
 } from './repository'
 
-import type { DailyEntry, Exercise, OutboxEntry, WorkoutSet } from './dexie'
+import type { DailyEntry, Exercise, OutboxEntry, WorkoutSession, WorkoutSet } from './dexie'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { MuscleGroup } from '../schema/exercise'
 import type { WorkoutSetDraft } from '../schema/workoutSet'
@@ -2191,5 +2195,245 @@ describe('drainForSignOut', () => {
     await drainForSignOut()
 
     expect(await syncNow()).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
+  })
+})
+
+async function finishedSession(
+  entryDate: string,
+  startedAt: string,
+  endedAt: string,
+): Promise<WorkoutSession> {
+  const row: WorkoutSession = {
+    id: crypto.randomUUID(),
+    entry_date: entryDate,
+    started_at: startedAt,
+    ended_at: endedAt,
+    status: 'finished',
+    created_at: startedAt,
+    updated_at: endedAt,
+    deleted_at: null,
+  }
+
+  await db.workoutSessions.put(row)
+
+  return row
+}
+
+async function dailyQueued(): Promise<OutboxEntry[]> {
+  return (await queuedInOrder()).filter((item) => item.table_name === 'daily_entries')
+}
+
+describe('finishing a session and the gym time offer', () => {
+  it('creates a row with only the session seconds when the day has no row', async () => {
+    const session = await startSession('2026-09-01')
+    await db.workoutSessions.put({
+      ...session,
+      started_at: new Date(Date.now() - 4325_000).toISOString(),
+    })
+    const finished = await finishSession(session.id)
+    const offer = await gymTimeOfferFor(finished.id)
+
+    expect(offer).toMatchObject({ entryDate: '2026-09-01', loggedSeconds: null })
+    expect(await getDay('2026-09-01')).toBeUndefined()
+
+    const day = await acceptGymTimeOffer(finished.id)
+
+    expect(day).toEqual(
+      expect.objectContaining({
+        ...entry('2026-09-01', { gym_seconds: offer?.sessionSeconds ?? -1 }),
+        deleted_at: null,
+      }),
+    )
+    expect(offer?.sessionSeconds).toBeGreaterThanOrEqual(4325)
+    expect(offer?.sessionSeconds).toBeLessThan(4335)
+    expect(await getDay('2026-09-01')).toEqual(day)
+    expect(await dailyQueued()).toEqual([
+      expect.objectContaining({ operation: 'upsert', payload: day }),
+    ])
+  })
+
+  it('does not overwrite an existing row before the user accepts', async () => {
+    const before = await upsertDay(entry('2026-09-01', { gym_seconds: 3900, steps: 9000 }))
+    const queued = await db.outbox.count()
+    const session = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+
+    expect(await gymTimeOfferFor(session.id)).toEqual({
+      sessionId: session.id,
+      entryDate: '2026-09-01',
+      sessionSeconds: 4325,
+      loggedSeconds: 3900,
+    })
+    expect(await getDay('2026-09-01')).toEqual(before)
+    expect(await db.outbox.count()).toBe(queued)
+  })
+
+  it('writes only the gym time into an existing row on accept', async () => {
+    const before = await upsertDay(entry('2026-09-01', { gym_seconds: 3900, steps: 9000 }))
+    const session = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+
+    const after = await acceptGymTimeOffer(session.id)
+
+    expect(after).toMatchObject({ id: before.id, gym_seconds: 4325, steps: 9000 })
+    expect(after.created_at).toBe(before.created_at)
+    expect(await dailyQueued()).toHaveLength(2)
+  })
+
+  it('leaves the row as it was and queues nothing when the user declines', async () => {
+    const before = await upsertDay(entry('2026-09-01', { gym_seconds: 3900 }))
+    const session = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+    const queued = await dailyQueued()
+
+    expect(await gymTimeOfferFor(session.id)).not.toBeNull()
+    expect(await gymTimeOfferOn('2026-09-01')).not.toBeNull()
+
+    expect(await getDay('2026-09-01')).toEqual(before)
+    expect(await dailyQueued()).toEqual(queued)
+  })
+
+  it('makes no offer when the row already holds the session length', async () => {
+    await upsertDay(entry('2026-09-01', { gym_seconds: 4325 }))
+    const session = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+
+    expect(await gymTimeOfferFor(session.id)).toBeNull()
+    expect(await gymTimeOfferOn('2026-09-01')).toBeNull()
+  })
+
+  it('makes no offer for an active session', async () => {
+    const session = await startSession('2026-09-01')
+
+    expect(await gymTimeOfferFor(session.id)).toBeNull()
+    expect(await gymTimeOfferOn('2026-09-01')).toBeNull()
+  })
+
+  it('throws SessionNotFound for a session the device does not hold', async () => {
+    expect(await refusal(gymTimeOfferFor(crypto.randomUUID()))).toBeInstanceOf(SessionNotFound)
+    expect(await refusal(acceptGymTimeOffer(crypto.randomUUID()))).toBeInstanceOf(SessionNotFound)
+  })
+
+  it('treats a soft deleted row as no row', async () => {
+    await upsertDay(entry('2026-09-01', { gym_seconds: 4325, steps: 9000 }))
+    await softDeleteDay('2026-09-01')
+    const session = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+
+    expect(await gymTimeOfferFor(session.id)).toMatchObject({ loggedSeconds: null })
+
+    const day = await acceptGymTimeOffer(session.id)
+
+    expect(day).toMatchObject({ gym_seconds: 4325, steps: null, deleted_at: null })
+  })
+
+  it('writes nothing on accept when the row already holds the value', async () => {
+    const before = await upsertDay(entry('2026-09-01', { gym_seconds: 4325 }))
+    const session = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+    const queued = await db.outbox.count()
+
+    expect(await acceptGymTimeOffer(session.id)).toEqual(before)
+    expect(await db.outbox.count()).toBe(queued)
+  })
+
+  it('refuses an accept for a session with no length to offer', async () => {
+    const active = await startSession('2026-09-01')
+    const empty = await finishedSession(
+      '2026-08-31',
+      '2026-08-31T17:30:00.000Z',
+      '2026-08-31T17:30:00.000Z',
+    )
+
+    expect(await refusal(acceptGymTimeOffer(active.id))).toBeInstanceOf(NoGymTimeOffer)
+    expect(await refusal(acceptGymTimeOffer(empty.id))).toBeInstanceOf(NoGymTimeOffer)
+    expect(await dailyQueued()).toEqual([])
+  })
+
+  it('refuses an accept on a signed-out device and writes nothing', async () => {
+    const session = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-09-02T00:00:00.000Z' })
+
+    expect(await refusal(acceptGymTimeOffer(session.id))).toBeInstanceOf(SignedOutOnThisDevice)
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('reads the newest finished session of the date for the /log offer', async () => {
+    await finishedSession('2026-09-01', '2026-09-01T08:00:00.000Z', '2026-09-01T08:30:00.000Z')
+    const late = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+
+    expect(await gymTimeOfferOn('2026-09-01')).toMatchObject({
+      sessionId: late.id,
+      sessionSeconds: 4325,
+    })
+  })
+
+  it('makes no /log offer for a date with no session', async () => {
+    await upsertDay(entry('2026-09-01', { gym_seconds: 3900 }))
+
+    expect(await gymTimeOfferOn('2026-09-01')).toBeNull()
+  })
+
+  it('skips a discarded session in the /log offer', async () => {
+    const session = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T17:30:00.000Z',
+      '2026-09-01T18:42:05.000Z',
+    )
+    await discardSession(session.id)
+
+    expect(await gymTimeOfferOn('2026-09-01')).toBeNull()
+  })
+})
+
+describe('a session that runs past midnight', () => {
+  const started = new Date(2026, 8, 19, 23, 30).toISOString()
+  const ended = new Date(2026, 8, 20, 0, 30).toISOString()
+
+  it('offers its hour to its own entry_date, not the date it ended', async () => {
+    const session = await finishedSession('2026-09-19', started, ended)
+
+    expect(await gymTimeOfferFor(session.id)).toMatchObject({
+      entryDate: '2026-09-19',
+      sessionSeconds: 3600,
+    })
+    expect(await gymTimeOfferOn('2026-09-19')).toMatchObject({ sessionId: session.id })
+    expect(await gymTimeOfferOn('2026-09-20')).toBeNull()
+  })
+
+  it('writes the hour into the row of its entry_date on accept', async () => {
+    const session = await finishedSession('2026-09-19', started, ended)
+
+    await acceptGymTimeOffer(session.id)
+
+    expect(await getDay('2026-09-19')).toMatchObject({ gym_seconds: 3600 })
+    expect(await getDay('2026-09-20')).toBeUndefined()
   })
 })

@@ -8,21 +8,26 @@ import {
   archiveExercise,
   createExercise,
   getActiveSession,
+  getDay,
   getProfile,
   listSets,
   SignedOutOnThisDevice,
   startSession,
   updateProfile,
+  upsertDay,
 } from '../../lib/db/repository'
+import { dailyEntrySchema } from '../../lib/schema/dailyEntry'
 
 import { READING_LAST_SET } from './ExerciseCard'
 import { PICK_TITLE } from './ExercisePicker'
+import { GYM_TIME_SAVE_FAILED } from './GymTimeOffer'
 import {
   DELETE_FAILED,
   EDIT_FAILED,
   exerciseOrder,
   exerciseSummary,
   FINISH_FAILED,
+  finishSummary,
   goToWorkouts,
   heroFooter,
   lastOf,
@@ -100,6 +105,7 @@ beforeEach(async () => {
     db.outbox.clear(),
     db.syncMeta.clear(),
     db.profiles.clear(),
+    db.dailyEntries.clear(),
   ])
   await db.exercises.bulkPut([
     globalExercise(BENCH_ID, 'Bench Press', 'chest'),
@@ -1400,5 +1406,184 @@ describe('the rest timer with a deleted set', () => {
     await waitFor(() => {
       expect(restRemaining()).toHaveTextContent('1:20')
     })
+  })
+})
+
+describe('the gym time offer after Finish', () => {
+  const START = '2026-09-01T17:30:00.000Z'
+  const END = '2026-09-01T18:42:05.000Z'
+
+  async function finishAnHourLater(props: Parameters<typeof LiveSession>[0] = {}) {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(START))
+    const session = await startSession('2026-09-01')
+    vi.setSystemTime(new Date(END))
+    const view = await renderLive(props)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
+
+    return { ...view, session }
+  }
+
+  async function dailyQueued() {
+    return (await db.outbox.toArray()).filter((item) => item.table_name === 'daily_entries')
+  }
+
+  it('asks before it saves the length for a day with no log', async () => {
+    const { onFinished } = await finishAnHourLater()
+
+    const sheet = await screen.findByRole('dialog', { name: 'Session finished' })
+
+    expect(sheet).toHaveTextContent('1:12:05')
+    expect(sheet).toHaveTextContent('Save 1:12:05 as gym time for Tue 1 Sep?')
+    expect(sheet).toHaveTextContent(
+      `Tue 1 Sep · ${startedText(START)} to ${startedText(END)} · 0 sets · 0 kg`,
+    )
+    expect(onFinished).not.toHaveBeenCalled()
+    expect(await db.dailyEntries.count()).toBe(0)
+  })
+
+  it('creates the day with only the gym time on Use', async () => {
+    const { onFinished } = await finishAnHourLater()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Use 1:12:05 for gym time' }))
+
+    await waitFor(() => {
+      expect(onFinished).toHaveBeenCalledTimes(1)
+    })
+    expect(await getDay('2026-09-01')).toMatchObject({
+      gym_seconds: 4325,
+      walk_seconds: null,
+      steps: null,
+    })
+  })
+
+  it('shows both values and keeps the log on Keep, with no outbox entry', async () => {
+    const before = await upsertDay(
+      dailyEntrySchema.parse({ entry_date: '2026-09-01', gym_seconds: 3900 }),
+    )
+    const queued = await dailyQueued()
+    const { onFinished } = await finishAnHourLater()
+
+    const sheet = await screen.findByRole('dialog', { name: 'Session finished' })
+    expect(within(sheet).getByText('In your log').nextSibling).toHaveTextContent('1:05:00')
+    expect(within(sheet).getByText('This session').nextSibling).toHaveTextContent('1:12:05')
+
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Keep 1:05:00' }))
+
+    expect(onFinished).toHaveBeenCalledTimes(1)
+    expect(await getDay('2026-09-01')).toEqual(before)
+    expect(await dailyQueued()).toEqual(queued)
+  })
+
+  it('treats a close of the sheet as a decline', async () => {
+    await upsertDay(dailyEntrySchema.parse({ entry_date: '2026-09-01', gym_seconds: 3900 }))
+    const { onFinished } = await finishAnHourLater()
+    await screen.findByRole('dialog', { name: 'Session finished' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close Session finished' }))
+
+    expect(onFinished).toHaveBeenCalledTimes(1)
+    expect(await getDay('2026-09-01')).toMatchObject({ gym_seconds: 3900 })
+  })
+
+  it('hands straight back when the log already holds the length', async () => {
+    await upsertDay(dailyEntrySchema.parse({ entry_date: '2026-09-01', gym_seconds: 4325 }))
+    const { onFinished } = await finishAnHourLater()
+
+    await waitFor(() => {
+      expect(onFinished).toHaveBeenCalledTimes(1)
+    })
+    expect(screen.queryByRole('dialog', { name: 'Session finished' })).toBeNull()
+  })
+
+  it('hands straight back when the offer cannot be read', async () => {
+    const { onFinished } = await finishAnHourLater({
+      source: failing({ gymTimeOfferFor: () => Promise.reject(new Error('no')) }),
+    })
+
+    await waitFor(() => {
+      expect(onFinished).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('stays on the sheet and says so when Use cannot be saved', async () => {
+    const { onFinished } = await finishAnHourLater({
+      source: failing({ acceptGymTimeOffer: () => Promise.reject(new Error('disk full')) }),
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Use 1:12:05 for gym time' }))
+
+    const sheet = screen.getByRole('dialog', { name: 'Session finished' })
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent(GYM_TIME_SAVE_FAILED)
+    expect(onFinished).not.toHaveBeenCalled()
+    expect(within(sheet).getByRole('button', { name: 'Use 1:12:05 for gym time' })).toBeEnabled()
+  })
+
+  it('ignores Keep and a second Use while Use is saving', async () => {
+    const acceptGymTimeOffer = vi.fn(() => new Promise<unknown>(() => undefined))
+    const { onFinished } = await finishAnHourLater({ source: failing({ acceptGymTimeOffer }) })
+    const use = await screen.findByRole('button', { name: 'Use 1:12:05 for gym time' })
+
+    await userEvent.click(use)
+    fireEvent.click(use)
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(acceptGymTimeOffer).toHaveBeenCalledTimes(1)
+    expect(onFinished).not.toHaveBeenCalled()
+  })
+
+  it('writes the session length into its own entry_date past midnight', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 19, 23, 30))
+    await startSession('2026-09-19')
+    vi.setSystemTime(new Date(2026, 8, 20, 0, 30))
+    const { onFinished } = await renderLive()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Session finished' })
+    expect(sheet).toHaveTextContent('Gym time for Sat 19 Sep')
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Use 1:00:00 for gym time' }))
+
+    await waitFor(() => {
+      expect(onFinished).toHaveBeenCalledTimes(1)
+    })
+    expect(await getDay('2026-09-19')).toMatchObject({ gym_seconds: 3600 })
+    expect(await getDay('2026-09-20')).toBeUndefined()
+  })
+})
+
+describe('finishSummary', () => {
+  it('names the date, the times, the sets and the volume', () => {
+    const session: WorkoutSession = {
+      id: 'a',
+      entry_date: '2026-09-20',
+      started_at: '2026-09-20T17:30:00.000Z',
+      ended_at: '2026-09-20T18:42:00.000Z',
+      status: 'finished',
+      created_at: '2026-09-20T17:30:00.000Z',
+      updated_at: '2026-09-20T18:42:00.000Z',
+      deleted_at: null,
+    }
+
+    expect(finishSummary(session, [pastSet({}), pastSet({})], 'metric')).toBe(
+      `Sun 20 Sep · ${startedText(session.started_at)} to ${startedText('2026-09-20T18:42:00.000Z')} · 2 sets · 1,000 kg`,
+    )
+  })
+
+  it('reads the start as the end for a session with no end', () => {
+    const session: WorkoutSession = {
+      id: 'a',
+      entry_date: '2026-09-20',
+      started_at: '2026-09-20T17:30:00.000Z',
+      ended_at: null,
+      status: 'active',
+      created_at: '2026-09-20T17:30:00.000Z',
+      updated_at: '2026-09-20T17:30:00.000Z',
+      deleted_at: null,
+    }
+    const at = startedText(session.started_at)
+
+    expect(finishSummary(session, [], 'metric')).toBe(`Sun 20 Sep · ${at} to ${at} · 0 sets · 0 kg`)
   })
 })

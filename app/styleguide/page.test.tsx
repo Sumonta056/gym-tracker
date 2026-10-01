@@ -520,4 +520,30 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       within(screen.getByTestId('live-sample')).getByText(/^Last time 72.5 kg × 8/),
     ).toBeInTheDocument()
   })
+
+  it('shows the gym time offer card and hides it after Use', async () => {
+    const sample = screen.getByTestId('gym-offer-sample')
+    await userEvent.click(within(sample).getByRole('button', { name: 'Use 1:12:05 for gym time' }))
+
+    expect(within(sample).queryByRole('region', { name: 'Gym time from the session' })).toBeNull()
+
+    await userEvent.click(
+      within(sample).getByRole('button', { name: 'Show the gym time offer sample' }),
+    )
+
+    expect(within(sample).getByRole('region', { name: 'Gym time from the session' })).toBeVisible()
+  })
+
+  it('opens the finish sheet sample and closes it from either choice', async () => {
+    const sample = screen.getByTestId('gym-offer-sample')
+
+    await userEvent.click(within(sample).getByRole('button', { name: 'Open the finish sheet' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Session finished' })
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Use 1:12:05 for gym time' }))
+    expect(screen.queryByRole('dialog', { name: 'Session finished' })).toBeNull()
+
+    await userEvent.click(within(sample).getByRole('button', { name: 'Open the finish sheet' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Keep 1:05:00' }))
+    expect(screen.queryByRole('dialog', { name: 'Session finished' })).toBeNull()
+  })
 })

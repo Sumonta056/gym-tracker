@@ -1,6 +1,6 @@
 const SECONDS_PER_MINUTE = 60
 const SECONDS_PER_HOUR = 3600
-const MAX_SECONDS = 86400
+export const MAX_DURATION_SECONDS = 86400
 
 const DIGITS = /^\d+$/
 const DECIMAL = /^\d+(?:\.\d+)?$/
@@ -37,7 +37,7 @@ export function parseInput(text: string): ParsedInput {
     return parsed
   }
 
-  if (parsed.seconds > MAX_SECONDS) {
+  if (parsed.seconds > MAX_DURATION_SECONDS) {
     return fail(TOO_LONG_REASON)
   }
 

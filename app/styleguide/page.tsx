@@ -33,6 +33,7 @@ import { StatusChip } from '../../components/ui/StatusChip'
 import { EditSetSheet } from '../../components/workout/EditSetSheet'
 import { ExerciseCard } from '../../components/workout/ExerciseCard'
 import { ExercisePicker } from '../../components/workout/ExercisePicker'
+import { GymTimeOfferCard, GymTimeSheet } from '../../components/workout/GymTimeOffer'
 import { RestTimerCard } from '../../components/workout/RestTimerCard'
 import { RestTimeSheet } from '../../components/workout/RestTimeSheet'
 import { SessionTimer } from '../../components/workout/SessionTimer'
@@ -50,6 +51,7 @@ import type { Toast } from '../../components/workout/UndoToast'
 import type { DailyEntry, DeadLetter, Exercise, Profile, WorkoutSet } from '../../lib/db/dexie'
 import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
+import type { GymTimeOffer } from '../../lib/workout/gymTime'
 import type { ReactNode } from 'react'
 
 const NAV = [
@@ -337,6 +339,13 @@ function sampleExerciseSource(): ExerciseSource {
 
 const SAMPLE_SESSION_START = new Date(2026, 8, 20, 17, 30, 0).toISOString()
 
+const SAMPLE_GYM_OFFER: GymTimeOffer = {
+  sessionId: '00000000-0000-4000-8000-0000000000aa',
+  entryDate: '2026-09-20',
+  sessionSeconds: 4325,
+  loggedSeconds: 3900,
+}
+
 const SAMPLE_SESSION_NOW = new Date(2026, 8, 20, 18, 12, 17)
 
 function sampleSessionNow(): Date {
@@ -451,6 +460,8 @@ function Styleguide() {
   const [sampleRestSkipped, setSampleRestSkipped] = useState(false)
   const [sampleRestSeconds, setSampleRestSeconds] = useState(90)
   const [sampleChangingRest, setSampleChangingRest] = useState(false)
+  const [sampleOfferOpen, setSampleOfferOpen] = useState(false)
+  const [sampleOfferUsed, setSampleOfferUsed] = useState(false)
   const [pickerSource] = useState(sampleExerciseSource)
   const [manageSource] = useState(sampleManageSource)
   const [showFieldError, setShowFieldError] = useState(false)
@@ -901,6 +912,44 @@ function Styleguide() {
             />
           )}
         </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2" data-testid="gym-offer-sample">
+          {sampleOfferUsed ? (
+            <SecondaryButton
+              onClick={() => {
+                setSampleOfferUsed(false)
+              }}
+            >
+              Show the gym time offer sample
+            </SecondaryButton>
+          ) : (
+            <GymTimeOfferCard
+              offer={SAMPLE_GYM_OFFER}
+              dateLabel="Sun 20 Sep"
+              isToday
+              onUse={() => {
+                setSampleOfferUsed(true)
+              }}
+            />
+          )}
+          <SecondaryButton
+            onClick={() => {
+              setSampleOfferOpen(true)
+            }}
+          >
+            Open the finish sheet
+          </SecondaryButton>
+        </div>
+        <GymTimeSheet
+          offer={sampleOfferOpen ? SAMPLE_GYM_OFFER : null}
+          dateLabel="Sun 20 Sep"
+          summary="Sun 20 Sep · 17:30 to 18:42 · 11 sets · 4,820 kg"
+          onUse={() => {
+            setSampleOfferOpen(false)
+          }}
+          onKeep={() => {
+            setSampleOfferOpen(false)
+          }}
+        />
         <RestTimeSheet
           changing={
             sampleChangingRest

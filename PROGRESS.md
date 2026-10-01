@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.6, link a session to the day → `docs/plan/phase-2/S2.6-link-to-day.md`
+**Next step:** 2.8a, the lift charts → `docs/plan/phase-2/S2.8a-lift-charts.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `fix(setup)`, 2.5b Part C, 5 security headers on every path. 2.5b is done.
+**Last commit:** `feat(ui)`, 2.6, the session length is offered as the day's gym time.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -124,6 +124,10 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   closes the "Session running" prompt with Close, never Discard. The host matcher stays `.supabase.co`. From 2.5b A.
 - **The security headers.** `next.config.ts` sends 5 headers on `/:path*`, static files and `/sw.js` too. `headers()` returns
   `Promise.resolve`, because `require-await` refuses an `async` with no `await`. Lighthouse 11.4 PWA scores 1. From 2.5b C.
+- **The gym time offer.** Length is `ended_at` minus `started_at`, whole seconds, rounded down. No offer at 0 s, over 24 h,
+  or when the log holds the same value. Finish opens a sheet; Use writes `gym_seconds` only, Keep, × and Escape write nothing.
+  `/log` offers the newest finished session of the date. A decline is not remembered. The shared sheet and its wording
+  win over plate p8. A session belongs to its `entry_date`, past midnight too. From 2.6.
 - **The service worker wait reloads once.** A worker that activates during a navigation does not control that
   page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
 
@@ -183,6 +187,12 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   `SERVICE_WORKER_TIMEOUT_MS`. Slow but correct. Raise the wait and use `test.slow()` if it returns. From fix(test).
 - **Owner** — `JWT issued at future` in `tests/e2e/support/account.ts:275`, in the test row cleanup. Seen
   twice. Retry the cleanup or wait for the token refresh. From fix(test).
+- **Owner** — plate p8 shows a small "Session finished" label and no ×; the build uses the shared sheet. No plate for "Not now" or
+  "The session on <date> was". Correct the plate. From 2.6.
+- **Owner** — a session whose `entry_date` is ahead of the device date cannot save its gym time: the future date check refuses it.
+  `LiveSession` imports `prettyDate` from `DailyEntryForm`; move it to `lib/format`. From 2.6.
+- **Owner** — `LiveSession.test.tsx` "reads from started_at after a remount" read 42:17, not 42:20, once under load; it passed 3 of 3 alone.
+  `ManageExercisesSheet.test.tsx` failed a focus check once; it passed alone. From 2.6.
 - **Owner** — probably a process outside the session staged `PROGRESS.md` and the step index during the pre-commit hook of `96f40e5`.
   The gate checks the hash before the hook, so it did not see it. From fix(ui), 2026-10-01.
 
