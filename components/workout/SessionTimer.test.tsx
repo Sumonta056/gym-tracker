@@ -61,6 +61,45 @@ describe('SessionTimer', () => {
     expect(now.mock.calls.length).toBe(calls)
   })
 
+  it('catches up at once when the page turns visible again', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(new Date('2026-09-01T17:31:04.000Z'))
+    render(<SessionTimer startedAt={STARTED} />)
+    expect(screen.getByRole('timer')).toHaveTextContent('1:04')
+
+    vi.setSystemTime(new Date('2026-09-01T17:31:21.000Z'))
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(screen.getByRole('timer')).toHaveTextContent('1:21')
+  })
+
+  it('does not catch up when the page turns hidden', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(new Date('2026-09-01T17:31:04.000Z'))
+    render(<SessionTimer startedAt={STARTED} />)
+    const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+
+    vi.setSystemTime(new Date('2026-09-01T17:31:21.000Z'))
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(screen.getByRole('timer')).toHaveTextContent('1:04')
+    hidden.mockRestore()
+  })
+
+  it('stops listening for the page turning visible once unmounted', () => {
+    const remove = vi.spyOn(document, 'removeEventListener')
+    const view = render(<SessionTimer startedAt={STARTED} now={() => new Date(STARTED)} />)
+
+    view.unmount()
+
+    expect(remove).toHaveBeenCalledWith('visibilitychange', expect.any(Function))
+    remove.mockRestore()
+  })
+
   it('passes its label to the timer', () => {
     render(
       <SessionTimer startedAt={STARTED} aria-label="Elapsed time" now={() => new Date(STARTED)} />,

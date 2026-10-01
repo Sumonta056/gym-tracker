@@ -29,13 +29,21 @@ export function SessionTimer({ startedAt, now = systemNow, ...rest }: SessionTim
   const [instant, setInstant] = useState(now)
 
   useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        setInstant(now())
+      }
+    }
+
     setInstant(now())
     const timer = setInterval(() => {
       setInstant(now())
     }, TICK_MS)
+    document.addEventListener('visibilitychange', onVisible)
 
     return () => {
       clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [now])
 

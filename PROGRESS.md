@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** fix(ui) the session timer reads the clock on `visibilitychange`. Then 2.5b → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
+**Next step:** 2.5b → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `fix(pwa)`, no reload on `online`, on top of the `fix(sync)` follow-up drain.
+**Last commit:** `fix(ui)`, the session timer reads the clock on `visibilitychange`, after `fix(test)` and the safe area `fix(ui)`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -114,6 +114,10 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   kept. No reload on `online`: `reloadOnOnline={false}`. From fix(sync) and fix(pwa), 2026-10-01.
 - **Checkpoint B passed in the browser.** iPhone 14 and Pixel 7 at 390 px: 1 session, 6 sets, no duplicate,
   outbox 0. Both timers right after a reload and a hidden tab. WebKit offline cuts Supabase only. 2026-10-01.
+- **Safe area insets.** The shell, the sign-in and the offline page pad the top by the inset. The tab bar pads
+  `max(inset, 10px)`. The session timer reads the clock on `visibilitychange`. From fix(ui), 2026-10-01.
+- **The service worker wait reloads once.** A worker that activates during a navigation does not control that
+  page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
 
 ## Open, with the step that closes each one
 
@@ -159,6 +163,12 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   airplane mode. Playwright gives WebKit no service worker, so true WebKit offline is unproven. From Checkpoint B.
 - **Owner** — under the Playwright fake clock, `page-transition` can stay at opacity 0 after a tab change.
   Probably the test clock in `tests/e2e/support/signedIn.ts`. Check on the device. From Checkpoint B.
+- **Owner** — at a load of about 79 the worker install takes about 22 s, past the 15 s
+  `SERVICE_WORKER_TIMEOUT_MS`. Slow but correct. Raise the wait and use `test.slow()` if it returns. From fix(test).
+- **Owner** — `JWT issued at future` in `tests/e2e/support/account.ts:275`, in the test row cleanup. Seen
+  twice. Retry the cleanup or wait for the token refresh. From fix(test).
+- **Owner** — probably a process outside the session staged `PROGRESS.md` and the step index during the pre-commit hook of `96f40e5`.
+  The gate checks the hash before the hook, so it did not see it. From fix(ui), 2026-10-01.
 
 ## Phases
 
