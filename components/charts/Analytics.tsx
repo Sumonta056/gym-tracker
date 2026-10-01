@@ -7,11 +7,13 @@ import { SegmentedTabs } from '../ui/SegmentedTabs'
 
 import { CaloriesChart } from './CaloriesChart'
 import { HeartRateChart } from './HeartRateChart'
+import { LiftCharts } from './LiftCharts'
 import { RANGE_TABS } from './rangeData'
 import { StepsChart } from './StepsChart'
 import { StreakHeatMap } from './StreakHeatMap'
 import { TotalsChart } from './TotalsChart'
 import { useAnalytics } from './useAnalytics'
+import { useLiftData } from './useLiftData'
 import { WeightChart } from './WeightChart'
 import { ZoneSplitChart } from './ZoneSplitChart'
 
@@ -76,6 +78,7 @@ export type AnalyticsProps = {
 export function Analytics({ clock }: AnalyticsProps) {
   const [tab, setTab] = useState<RangeTab>('week')
   const state = useAnalytics(tab, clock)
+  const lifts = useLiftData()
 
   return (
     <>
@@ -95,6 +98,27 @@ export function Analytics({ clock }: AnalyticsProps) {
       ) : null}
 
       {state.status === 'ready' ? <AnalyticsView data={state.data} /> : null}
+
+      {state.status === 'ready' && lifts.status === 'ready' ? (
+        <LiftCharts
+          source={lifts.source}
+          tab={state.data.tab}
+          today={state.data.today}
+          unit={state.data.unitSystem}
+        />
+      ) : null}
+
+      {state.status === 'ready' && lifts.status === 'loading' ? (
+        <p role="status" className="text-muted mt-4 text-sm">
+          Reading the workouts…
+        </p>
+      ) : null}
+
+      {lifts.status === 'error' ? (
+        <p role="alert" className="text-danger mt-4 text-sm">
+          {lifts.message}
+        </p>
+      ) : null}
     </>
   )
 }

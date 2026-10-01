@@ -696,6 +696,35 @@ export async function listSets(sessionId: string): Promise<WorkoutSet[]> {
   return rows.filter((row) => row.deleted_at === null).sort(inWriteOrder)
 }
 
+function byStart(left: WorkoutSession, right: WorkoutSession): number {
+  return (
+    Date.parse(left.started_at) - Date.parse(right.started_at) || left.id.localeCompare(right.id)
+  )
+}
+
+export async function listSessions(from: string, to: string): Promise<WorkoutSession[]> {
+  const rows = await db.workoutSessions.where('entry_date').between(from, to, true, true).toArray()
+
+  return rows.filter((row) => row.deleted_at === null).sort(byStart)
+}
+
+export async function listSetsInRange(from: string, to: string): Promise<WorkoutSet[]> {
+  return db.transaction('r', db.workoutSessions, db.workoutSets, async () => {
+    const sessions = await listSessions(from, to)
+
+    if (sessions.length === 0) {
+      return []
+    }
+
+    const rows = await db.workoutSets
+      .where('session_id')
+      .anyOf(sessions.map((session) => session.id))
+      .toArray()
+
+    return rows.filter((row) => row.deleted_at === null).sort(inDoneOrder)
+  })
+}
+
 function doneAt(set: WorkoutSet): number {
   return Date.parse(set.completed_at ?? set.created_at)
 }

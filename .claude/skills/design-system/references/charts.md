@@ -42,6 +42,14 @@ prototype plates `p5` and `p5-one-day`. The shared parts live in `components/cha
    - No average line with fewer than 2 logged days. A goal line always shows.
    - The steps goal, the calories average and the gym time average all use this one
      label, so every bar chart places it the same way.
+   - **Named exception: the volume load per session chart never uses spot 2.** Where
+     `referencePlacement` picks "just below", it takes the band. In the browser the
+     value label box ends 3 px lower than the model says, so "just below" can touch it.
+     On the Month range its average label always sits in the band (settled in 2.0).
+   - **The average line never touches a value label, on the volume load chart.** A bar
+     drops its value label when the line would pass within 3 px of the label box. The
+     box is measured in the browser: from 15 px to 2 px above the bar top. The value
+     stays in the text alternative. `clearOfLine` in `VolumeLoadChart.tsx` holds the rule.
 4. **End labels** on line charts: the last value at the end of each line, in the
    colour of its line. A weight chart also writes its min and max at the left.
    - **Named exception: the raw weight end label is `muted`,** not the violet of its
@@ -57,7 +65,8 @@ prototype plates `p5` and `p5-one-day`. The shared parts live in `components/cha
    A logged day of 0 counts as no value: a ghost slot and no label.
 6. **Not enough data.** A line series needs 2 or more points to be drawn. When no series
    qualifies, show the latest value and `SPARSE_HINT`, "Log one more day to see a
-   trend.", in `muted`. Never a lone dot.
+   trend.", in `muted`. Never a lone dot. A chart of sessions, the one-rep max chart,
+   says "Log one more session to see a trend." instead.
 7. **An honest legend.** A legend item shows only for a series that the chart draws.
 8. **Empty state.** With no value at all, the card shows its empty state copy.
 

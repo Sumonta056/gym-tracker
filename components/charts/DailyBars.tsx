@@ -57,9 +57,9 @@ export type ReferenceLabelProps = {
   placement?: ReferencePlacement
 }
 
-const PLOT_TOP = 18
+export const PLOT_TOP = 18
 
-const AXIS_HEIGHT = 22
+export const AXIS_HEIGHT = 22
 
 const LABEL_BOX = 13
 
@@ -69,7 +69,7 @@ const VALUE_LABEL_OFFSET = 5
 
 const LABEL_SPAN = 0.22
 
-const BAND_HEIGHT = 14
+export const BAND_HEIGHT = 14
 
 const BAND_BASELINE = 11
 

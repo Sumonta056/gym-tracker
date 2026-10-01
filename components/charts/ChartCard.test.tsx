@@ -81,6 +81,43 @@ describe('ChartCard', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Steps' })).toBeInTheDocument()
   })
 
+  it('shows the lead above the chart, the empty state and the sparse value', () => {
+    const { rerender } = render(
+      <ChartCard title="Volume" empty emptyText="Nothing yet." label="Volume" lead={<p>Lead</p>} />,
+    )
+    expect(screen.getByText('Lead')).toBeVisible()
+
+    rerender(
+      <ChartCard
+        title="Volume"
+        empty={false}
+        emptyText="Nothing yet."
+        label="Volume"
+        lead={<p>Lead</p>}
+      >
+        <svg />
+      </ChartCard>,
+    )
+    expect(
+      screen.getByText('Lead').compareDocumentPosition(screen.getByRole('img')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('shows its own sparse hint when it is given one', () => {
+    render(
+      <ChartCard
+        title="One-rep max"
+        empty={false}
+        emptyText="Nothing yet."
+        label="One-rep max"
+        sparse={<span>50.0</span>}
+        sparseHint="Log one more session to see a trend."
+      />,
+    )
+    expect(screen.getByText('Log one more session to see a trend.')).toBeVisible()
+  })
+
   it('shows the legend and the footer beside the chart', () => {
     render(
       <ChartCard

@@ -30,10 +30,10 @@ export function repsText(reps: number): string {
   return reps === 1 ? '1 rep' : `${String(reps)} reps`
 }
 
-export function RecordBadge() {
+export function RecordBadge({ label = 'PR' }: { label?: string }) {
   return (
     <span className="bg-accent/16 text-accent inline-flex shrink-0 items-center rounded-md px-[7px] py-[3px] text-[10px] font-extrabold tracking-[0.6px]">
-      PR
+      {label}
     </span>
   )
 }

@@ -23,7 +23,9 @@ import {
   getActiveSession,
   lastSetFor,
   lastSetsFor,
+  listSessions,
   listSets,
+  listSetsInRange,
   setsForExercises,
   restoreSet,
   SessionAlreadyActive,
@@ -1626,6 +1628,110 @@ describe('listSets', () => {
     ])
 
     expect((await listSets(SQUAT_ID)).map((row) => row.set_index)).toEqual([0, 1])
+  })
+})
+
+function storedSession(overrides: Partial<WorkoutSession>): WorkoutSession {
+  return {
+    id: crypto.randomUUID(),
+    entry_date: '2026-09-02',
+    started_at: '2026-09-02T17:00:00.000Z',
+    ended_at: '2026-09-02T18:00:00.000Z',
+    status: 'finished',
+    created_at: '2026-09-02T17:00:00.000Z',
+    updated_at: '2026-09-02T18:00:00.000Z',
+    deleted_at: null,
+    ...overrides,
+  }
+}
+
+describe('listSessions', () => {
+  it('returns the live sessions from the first date to the last, both included, oldest first', async () => {
+    const first = storedSession({
+      entry_date: '2026-09-02',
+      started_at: '2026-09-02T17:00:00.000Z',
+    })
+    const last = storedSession({ entry_date: '2026-09-09', started_at: '2026-09-09T07:00:00.000Z' })
+    const middle = storedSession({
+      entry_date: '2026-09-05',
+      started_at: '2026-09-05T07:00:00.000Z',
+    })
+    await db.workoutSessions.bulkPut([
+      last,
+      storedSession({ entry_date: '2026-09-01' }),
+      first,
+      storedSession({ entry_date: '2026-09-10' }),
+      middle,
+    ])
+
+    expect((await listSessions('2026-09-02', '2026-09-09')).map((row) => row.id)).toEqual([
+      first.id,
+      middle.id,
+      last.id,
+    ])
+  })
+
+  it('hides a soft-deleted session', async () => {
+    const kept = storedSession({})
+    await db.workoutSessions.bulkPut([
+      kept,
+      storedSession({ deleted_at: '2026-09-03T10:00:00.000Z' }),
+    ])
+
+    expect(await listSessions('2026-09-01', '2026-09-30')).toEqual([kept])
+  })
+
+  it('orders two sessions that start at the same instant by id', async () => {
+    const later = storedSession({ id: '00000000-0000-4000-8000-000000000002' })
+    const earlier = storedSession({ id: '00000000-0000-4000-8000-000000000001' })
+    await db.workoutSessions.bulkPut([later, earlier])
+
+    expect((await listSessions('2026-09-01', '2026-09-30')).map((row) => row.id)).toEqual([
+      earlier.id,
+      later.id,
+    ])
+  })
+})
+
+describe('listSetsInRange', () => {
+  it('returns the live sets of the sessions dated in the range, in the order they were done', async () => {
+    const inside = storedSession({ entry_date: '2026-09-02' })
+    const outside = storedSession({ entry_date: '2026-09-20' })
+    const second = storedSet({ session_id: inside.id, completed_at: '2026-09-02T17:20:00.000Z' })
+    const first = storedSet({ session_id: inside.id, completed_at: '2026-09-02T17:10:00.000Z' })
+    await db.workoutSessions.bulkPut([inside, outside])
+    await db.workoutSets.bulkPut([second, first, storedSet({ session_id: outside.id })])
+
+    expect((await listSetsInRange('2026-09-01', '2026-09-07')).map((row) => row.id)).toEqual([
+      first.id,
+      second.id,
+    ])
+  })
+
+  it('hides a soft-deleted set', async () => {
+    const session = storedSession({})
+    const kept = storedSet({ session_id: session.id })
+    await db.workoutSessions.put(session)
+    await db.workoutSets.bulkPut([
+      kept,
+      storedSet({ session_id: session.id, deleted_at: '2026-09-02T18:00:00.000Z' }),
+    ])
+
+    expect(await listSetsInRange('2026-09-01', '2026-09-30')).toEqual([kept])
+  })
+
+  it('hides every set of a soft-deleted session', async () => {
+    const removed = storedSession({ deleted_at: '2026-09-02T19:00:00.000Z' })
+    await db.workoutSessions.put(removed)
+    await db.workoutSets.put(storedSet({ session_id: removed.id }))
+
+    expect(await listSetsInRange('2026-09-01', '2026-09-30')).toEqual([])
+  })
+
+  it('returns an empty list when no session falls in the range', async () => {
+    await db.workoutSets.put(storedSet({}))
+
+    expect(await listSetsInRange('2026-09-01', '2026-09-30')).toEqual([])
   })
 })
 

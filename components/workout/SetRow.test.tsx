@@ -44,6 +44,12 @@ describe('RecordBadge', () => {
 
     expect(screen.getByText('PR')).toBeInTheDocument()
   })
+
+  it('carries another text when it is given one', () => {
+    render(<RecordBadge label="New today" />)
+
+    expect(screen.getByText('New today')).toBeInTheDocument()
+  })
 })
 
 describe('setRowLabel', () => {

@@ -27,3 +27,9 @@ export function fromDisplayWeight(value: number, unit: UnitSystem): number {
 export function formatWeight(kg: number, unit: UnitSystem, digits: number): string {
   return toDisplayWeight(kg, unit).toFixed(digits)
 }
+
+export function formatLoadShort(kg: number, unit: UnitSystem): string {
+  const scale = unit === 'metric' ? 100 : 10
+
+  return String(Math.round(toDisplayWeight(kg, unit) * scale) / scale)
+}

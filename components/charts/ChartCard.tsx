@@ -20,8 +20,10 @@ export type ChartCardProps = {
   emptyText: string
   label: string
   legend?: LegendItem[]
+  lead?: ReactNode
   footer?: ReactNode
   sparse?: ReactNode
+  sparseHint?: string
   className?: string
   children?: ReactNode
 }
@@ -68,8 +70,10 @@ export function ChartCard({
   emptyText,
   label,
   legend,
+  lead,
   footer,
   sparse,
+  sparseHint = SPARSE_HINT,
   className,
   children,
 }: ChartCardProps) {
@@ -84,6 +88,8 @@ export function ChartCard({
         )}
       </div>
 
+      {lead}
+
       {empty ? <p className="text-muted text-sm">{emptyText}</p> : null}
 
       {!empty && sparse !== undefined ? (
@@ -91,7 +97,7 @@ export function ChartCard({
           <p className="text-text text-[25px] leading-tight font-bold tracking-[-0.9px]">
             {sparse}
           </p>
-          <p className="text-muted mt-1 text-[13px]">{SPARSE_HINT}</p>
+          <p className="text-muted mt-1 text-[13px]">{sparseHint}</p>
         </div>
       ) : null}
 

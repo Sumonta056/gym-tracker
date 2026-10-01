@@ -248,6 +248,23 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(within(grid).getAllByRole('img').length).toBeGreaterThan(0)
   })
 
+  it('renders the lifting charts from the sample week, each with a text alternative', () => {
+    const grid = screen.getByTestId('lift-grid')
+    expect(within(grid).getAllByRole('img')).toHaveLength(2)
+    expect(within(grid).getByRole('heading', { name: 'Personal records' })).toBeInTheDocument()
+    expect(within(grid).getByText('New today')).toBeInTheDocument()
+  })
+
+  it('renders the lifting charts with one session and with none', () => {
+    const one = screen.getByTestId('lift-grid-one-session')
+    expect(within(one).getByText('Log one more session to see a trend.')).toBeInTheDocument()
+    const none = screen.getByTestId('lift-grid-empty')
+    expect(
+      within(none).getByText('Finish a set with a load to see your records.'),
+    ).toBeInTheDocument()
+    expect(within(none).queryByRole('img')).not.toBeInTheDocument()
+  })
+
   it('renders a chart in its empty state', () => {
     expect(screen.getByText('Log your steps to see them per day.')).toBeInTheDocument()
   })

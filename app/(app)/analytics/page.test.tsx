@@ -12,6 +12,9 @@ vi.mock('../../../lib/db/repository', async () => {
   const { PROFILE } = await import('../../../tests/fixtures/dashboard')
   return {
     listRange: vi.fn(() => Promise.resolve([])),
+    listSessions: vi.fn(() => Promise.resolve([])),
+    listSetsInRange: vi.fn(() => Promise.resolve([])),
+    listExercises: vi.fn(() => Promise.resolve([])),
     getProfile: vi.fn(() => Promise.resolve(PROFILE)),
     useSyncStatus: () => ({ status: 'synced', pending: 0, failed: 0 }),
   }
@@ -33,6 +36,12 @@ describe('AnalyticsPage', () => {
   it('renders the charts once the device is read', async () => {
     render(<AnalyticsPage />)
     expect(await screen.findByTestId('analytics-grid')).toBeInTheDocument()
+  })
+
+  it('renders the lifting charts beside the daily charts', async () => {
+    render(<AnalyticsPage />)
+    expect(await screen.findByTestId('lift-grid')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Personal records' })).toBeInTheDocument()
   })
 
   it('builds no frame of its own, because the route group layout owns it', async () => {

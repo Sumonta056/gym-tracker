@@ -149,6 +149,142 @@ test('shows the not enough data state on the one logged day sample', async ({ pa
   await expect(grid.getByText('Log one more day to see a trend.')).toHaveCount(2)
 })
 
+async function liftBoxes(page: Page): Promise<Box[]> {
+  const grid = page.getByTestId('lift-grid')
+  await grid.scrollIntoViewIfNeeded()
+  await expect(grid.getByRole('img').first()).toBeVisible()
+
+  return grid.evaluate((element) =>
+    Array.from(element.children).map((child) => {
+      const box = child.getBoundingClientRect()
+      return { x: box.x, y: box.y, width: box.width, height: box.height }
+    }),
+  )
+}
+
+test('shows two lifting cards per row at 1440 px, on the style guide sample', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/styleguide')
+
+  const boxes = await liftBoxes(page)
+
+  expect(boxes).toHaveLength(3)
+  expect(Math.round(boxes[0]?.y ?? 0)).toBe(Math.round(boxes[1]?.y ?? -1))
+  expect(boxes[1]?.x ?? 0).toBeGreaterThan(boxes[0]?.x ?? 0)
+  expect(rowCount(boxes, 3)).toBe(2)
+})
+
+test('shows one lifting card per row at 390 px, on the style guide sample', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/styleguide')
+
+  const boxes = await liftBoxes(page)
+
+  expect(rowCount(boxes, 3)).toBe(3)
+  for (const box of boxes) {
+    expect(Math.round(box.x)).toBe(Math.round(boxes[0]?.x ?? 0))
+  }
+})
+
+const LIFT_GRIDS = ['lift-grid', 'lift-grid-heavy', 'lift-grid-one-session']
+
+for (const width of [320, 390, 430]) {
+  test(`keeps every lifting chart label apart and inside its chart at ${String(width)} px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/styleguide')
+    await liftBoxes(page)
+
+    expect(await labelProblems(page, LIFT_GRIDS)).toEqual([])
+  })
+}
+
+test('keeps every lifting chart label apart on the month range at 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.goto('/styleguide')
+  await page
+    .locator('section', { has: page.getByRole('heading', { level: 2, name: 'Analytics' }) })
+    .getByRole('button', { name: 'Month' })
+    .click()
+  await liftBoxes(page)
+
+  expect(await labelProblems(page, LIFT_GRIDS)).toEqual([])
+})
+
+async function lineCrossings(page: Page, grids: readonly string[]): Promise<string[]> {
+  return page.evaluate((ids) => {
+    const found: string[] = []
+    const selector = ids.map((id) => `[data-testid="${id}"] [role="img"] svg`).join(', ')
+    for (const svg of document.querySelectorAll(selector)) {
+      const labels = Array.from(svg.querySelectorAll('.recharts-label-list text'))
+        .filter((node) => node.textContent.trim() !== '')
+        .map((node) => ({ text: node.textContent, box: node.getBoundingClientRect() }))
+      for (const line of svg.querySelectorAll('.recharts-reference-line line')) {
+        const y = line.getBoundingClientRect().top
+        for (const label of labels) {
+          if (y >= label.box.top - 1 && y <= label.box.bottom + 1) {
+            found.push(`the average line touches ${label.text}`)
+          }
+        }
+      }
+    }
+    return found
+  }, grids)
+}
+
+const LINE_CHECKS = [320, 390, 768, 1440].flatMap((width) =>
+  ['Day', 'Week', 'Month'].map((range) => ({ width, range })),
+)
+
+for (const { width, range } of LINE_CHECKS) {
+  test(`keeps the average line off every value label on the ${range} range at ${String(width)} px`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/styleguide')
+    await page
+      .locator('section', { has: page.getByRole('heading', { level: 2, name: 'Analytics' }) })
+      .getByRole('button', { name: range })
+      .click()
+    await page.getByTestId('lift-grid').scrollIntoViewIfNeeded()
+
+    expect(await lineCrossings(page, LIFT_GRIDS)).toEqual([])
+  })
+}
+
+test('draws the lifting charts to the width of their cards at 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.goto('/styleguide')
+  await liftBoxes(page)
+
+  const widths = await page
+    .getByTestId('lift-grid')
+    .locator('[role="img"] svg')
+    .evaluateAll((elements) =>
+      elements.map((element) => ({
+        svg: element.getBoundingClientRect().width,
+        card: element.closest('[role="img"]')?.getBoundingClientRect().width ?? 0,
+      })),
+    )
+
+  expect(widths).toHaveLength(2)
+  for (const width of widths) {
+    expect(width.svg).toBeGreaterThan(0)
+    expect(Math.abs(width.svg - width.card)).toBeLessThanOrEqual(1)
+  }
+})
+
+test('shows the not enough data state on the one session sample', async ({ page }) => {
+  await page.goto('/styleguide')
+
+  const grid = page.getByTestId('lift-grid-one-session')
+
+  await expect(grid.getByText('Log one more session to see a trend.')).toHaveCount(1)
+  await expect(grid.locator('[role="img"]')).toHaveCount(1)
+})
+
 signedIn('switches the /analytics range from week to month', async ({ page, account, day }) => {
   await openWithWeek(page, account, day)
   await navLink(page, 'Stats').click()

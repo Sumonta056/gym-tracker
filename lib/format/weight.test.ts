@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  formatLoadShort,
   formatWeight,
   fromDisplayWeight,
   KG_PER_LB,
@@ -50,5 +51,23 @@ describe('formatWeight', () => {
 
   it('formats pounds with the digits asked for', () => {
     expect(formatWeight(71, 'imperial', 1)).toBe('156.5')
+  })
+})
+
+describe('formatLoadShort', () => {
+  it('rounds a pound load to one decimal', () => {
+    expect(formatLoadShort(47.5, 'imperial')).toBe('104.7')
+    expect(formatLoadShort(85, 'imperial')).toBe('187.4')
+    expect(formatLoadShort(33.75, 'imperial')).toBe('74.4')
+  })
+
+  it('drops a trailing .0 from a pound load', () => {
+    expect(formatLoadShort(KG_PER_LB * 100, 'imperial')).toBe('100')
+  })
+
+  it('keeps a kilo load as logged, to two decimals', () => {
+    expect(formatLoadShort(42.5, 'metric')).toBe('42.5')
+    expect(formatLoadShort(45, 'metric')).toBe('45')
+    expect(formatLoadShort(33.75, 'metric')).toBe('33.75')
   })
 })

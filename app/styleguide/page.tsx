@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { useState } from 'react'
 
 import { AnalyticsHeader, AnalyticsView, RangeTabs } from '../../components/charts/Analytics'
+import { LiftCharts } from '../../components/charts/LiftCharts'
 import { analyse } from '../../components/charts/rangeData'
 import { StepsChart } from '../../components/charts/StepsChart'
 import { DailyEntryForm, nextWeight } from '../../components/DailyEntryForm'
@@ -43,12 +44,20 @@ import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
 
 import type { RangeTab } from '../../components/charts/rangeData'
+import type { LiftSource } from '../../components/charts/useLiftData'
 import type { DashboardSummary } from '../../components/dashboard/summary'
 import type { ManageExerciseSource } from '../../components/profile/ManageExercisesSheet'
 import type { EditingSet } from '../../components/workout/EditSetSheet'
 import type { ExerciseSource } from '../../components/workout/ExercisePicker'
 import type { Toast } from '../../components/workout/UndoToast'
-import type { DailyEntry, DeadLetter, Exercise, Profile, WorkoutSet } from '../../lib/db/dexie'
+import type {
+  DailyEntry,
+  DeadLetter,
+  Exercise,
+  Profile,
+  WorkoutSession,
+  WorkoutSet,
+} from '../../lib/db/dexie'
 import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
 import type { GymTimeOffer } from '../../lib/workout/gymTime'
@@ -204,6 +213,88 @@ const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
   displayName: 'Sumonta',
   unitSystem: 'metric',
 }
+
+const SAMPLE_LIFT_DATES = [
+  '2026-09-02',
+  '2026-09-03',
+  '2026-09-06',
+  '2026-09-09',
+  '2026-09-12',
+  '2026-09-13',
+  '2026-09-15',
+  '2026-09-17',
+  '2026-09-20',
+]
+
+const SAMPLE_LIFT_EXERCISES: Exercise[] = [
+  ['00000000-0000-4000-8000-000000000301', 'Bench press', 'chest'],
+  ['00000000-0000-4000-8000-000000000302', 'Lat pulldown', 'back'],
+  ['00000000-0000-4000-8000-000000000303', 'Leg press', 'legs'],
+].map(([id, name, group]) => ({
+  id: id ?? '',
+  user_id: null,
+  name: name ?? '',
+  muscle_group: group as MuscleGroup,
+  is_archived: false,
+  created_at: '2026-09-01T00:00:00.000Z',
+  updated_at: '2026-09-01T00:00:00.000Z',
+  deleted_at: null,
+}))
+
+const SAMPLE_LIFT_SESSIONS: WorkoutSession[] = SAMPLE_LIFT_DATES.map((date, index) => ({
+  id: `00000000-0000-4000-8000-${String(index + 400).padStart(12, '0')}`,
+  entry_date: date,
+  started_at: `${date}T12:00:00.000Z`,
+  ended_at: `${date}T13:00:00.000Z`,
+  status: 'finished',
+  created_at: `${date}T12:00:00.000Z`,
+  updated_at: `${date}T13:00:00.000Z`,
+  deleted_at: null,
+}))
+
+function sampleLiftSet(
+  session: WorkoutSession,
+  exercise: number,
+  order: number,
+  reps: number,
+  weightKg: number,
+): WorkoutSet {
+  const minute = String(exercise * 10 + order).padStart(2, '0')
+
+  return {
+    id: `${session.id.slice(0, -4)}${String(exercise)}${String(order).padStart(3, '0')}`,
+    session_id: session.id,
+    exercise_id: SAMPLE_LIFT_EXERCISES[exercise]?.id ?? '',
+    set_index: exercise * 10 + order,
+    reps,
+    weight_kg: weightKg,
+    rpe: null,
+    completed_at: `${session.entry_date}T12:${minute}:00.000Z`,
+    created_at: `${session.entry_date}T12:${minute}:00.000Z`,
+    updated_at: `${session.entry_date}T12:${minute}:00.000Z`,
+    deleted_at: null,
+  }
+}
+
+const SAMPLE_LIFT_SETS: WorkoutSet[] = SAMPLE_LIFT_SESSIONS.flatMap((session, index) => [
+  ...[0, 1, 2].map((order) => sampleLiftSet(session, 0, order, 8, 37.5 + index * 1.25)),
+  ...[0, 1, 2].map((order) => sampleLiftSet(session, 1, order, 12, 30 + (index % 4) * 1.25)),
+  ...(index % 3 === 0 ? [sampleLiftSet(session, 2, 0, 10, 70 + index * 2.5)] : []),
+])
+
+const SAMPLE_LIFTS: LiftSource = {
+  sessions: SAMPLE_LIFT_SESSIONS,
+  sets: SAMPLE_LIFT_SETS,
+  exercises: SAMPLE_LIFT_EXERCISES,
+}
+
+const SAMPLE_ONE_SESSION: LiftSource = {
+  sessions: SAMPLE_LIFT_SESSIONS.filter((session) => session.entry_date === SAMPLE_STATS_TODAY),
+  sets: SAMPLE_LIFT_SETS.filter((set) => set.session_id === SAMPLE_LIFT_SESSIONS.at(-1)?.id),
+  exercises: SAMPLE_LIFT_EXERCISES,
+}
+
+const SAMPLE_NO_LIFTS: LiftSource = { sessions: [], sets: [], exercises: SAMPLE_LIFT_EXERCISES }
 
 function sampleStats(entries: DailyEntry[], tab: RangeTab) {
   return analyse(entries, entries, tab, SAMPLE_STATS_TODAY, SAMPLE_STATS_NOW, SAMPLE_STEP_GOAL)
@@ -584,14 +675,34 @@ function Styleguide() {
           <RangeTabs value={statsTab} onValueChange={setStatsTab} />
         </Card>
         <AnalyticsView data={stats} />
+        <LiftCharts source={SAMPLE_LIFTS} tab={statsTab} today={SAMPLE_STATS_TODAY} />
         <h3 className="text-text mt-6 text-base font-bold">One logged day</h3>
         <AnalyticsView data={oneDay} testId="analytics-grid-one-day" />
+        <LiftCharts
+          source={SAMPLE_ONE_SESSION}
+          tab={statsTab}
+          today={SAMPLE_STATS_TODAY}
+          testId="lift-grid-one-session"
+        />
         <h3 className="text-text mt-6 text-base font-bold">A heavy week, in pounds</h3>
         <AnalyticsView data={heavy} testId="analytics-grid-heavy" />
+        <LiftCharts
+          source={SAMPLE_LIFTS}
+          tab={statsTab}
+          today={SAMPLE_STATS_TODAY}
+          unit="imperial"
+          testId="lift-grid-heavy"
+        />
         <h3 className="text-text mt-6 text-base font-bold">Nothing logged</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           <StepsChart days={[]} tab="week" stepGoal={SAMPLE_STEP_GOAL} />
         </div>
+        <LiftCharts
+          source={SAMPLE_NO_LIFTS}
+          tab={statsTab}
+          today={SAMPLE_STATS_TODAY}
+          testId="lift-grid-empty"
+        />
       </Section>
 
       <Section title="Daily log">

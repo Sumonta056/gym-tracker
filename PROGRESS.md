@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.8a, the lift charts → `docs/plan/phase-2/S2.8a-lift-charts.md`
+**Next step:** 2.8b, the week charts → `docs/plan/phase-2/S2.8b-week-charts.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `feat(ui)`, 2.6, the session length is offered as the day's gym time.
+**Last commit:** `feat(charts)`, 2.8a, the volume, one-rep max and record charts on `/analytics`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -128,6 +128,11 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   or when the log holds the same value. Finish opens a sheet; Use writes `gym_seconds` only, Keep, × and Escape write nothing.
   `/log` offers the newest finished session of the date. A decline is not remembered. The shared sheet and its wording
   win over plate p8. A session belongs to its `entry_date`, past midnight too. From 2.6.
+- **The lift charts.** Volume and one-rep max follow the Day/Week/Month tab; the record list is all-time, A to Z, no cap.
+  The week change compares Monday to today with the same weekdays of last week. Default picks are the 2 most-trained lifts,
+  3 at most. Est. 1RM is the best Epley over all sets; plate 45 × 8 reads 57.0. Imperial is display only. A line needs 2
+  sessions. The volume chart turns a "below" average label into "band", and drops a bar value label within 3 px of the
+  average line; both are named rules in `charts.md`. Record loads in lb show 1 decimal, no `.0`; kg as logged. From 2.8a.
 - **The service worker wait reloads once.** A worker that activates during a navigation does not control that
   page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
 
@@ -193,6 +198,9 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   `LiveSession` imports `prettyDate` from `DailyEntryForm`; move it to `lib/format`. From 2.6.
 - **Owner** — `LiveSession.test.tsx` "reads from started_at after a remount" read 42:17, not 42:20, once under load; it passed 3 of 3 alone.
   `ManageExercisesSheet.test.tsx` failed a focus check once; it passed alone. From 2.6.
+- **New step** — `referencePlacement` in `DailyBars.tsx` puts the value-label box 3 px too high, so a "below" label can overlap a
+  value by about 4 px. Fix all 3 boxes against measured browser geometry. From 2.8a.
+- **Owner** — the analytics plate reads 56.3 for 45 × 8 (Epley gives 57.0) and writes its badge in upper case. Correct the plate. From 2.8a.
 - **Owner** — probably a process outside the session staged `PROGRESS.md` and the step index during the pre-commit hook of `96f40e5`.
   The gate checks the hash before the hook, so it did not see it. From fix(ui), 2026-10-01.
 

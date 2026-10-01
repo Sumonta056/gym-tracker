@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { listRange } from '../../lib/db/repository'
+import { listRange, listSetsInRange } from '../../lib/db/repository'
 import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
 
 import { Analytics, AnalyticsHeader, AnalyticsView } from './Analytics'
@@ -18,6 +18,9 @@ vi.mock('../../lib/db/repository', async () => {
   const { syncedStatus } = await import('../../tests/fixtures/sync')
   return {
     listRange: vi.fn(),
+    listSessions: vi.fn(() => Promise.resolve([])),
+    listSetsInRange: vi.fn(() => Promise.resolve([])),
+    listExercises: vi.fn(() => Promise.resolve([])),
     getProfile: vi.fn(() => Promise.resolve({ ...PROFILE, step_goal: 10000 })),
     useSyncStatus: syncedStatus,
   }
@@ -79,9 +82,33 @@ describe('Analytics', () => {
 
   it('shows every chart in its empty state when nothing is logged', async () => {
     render(<Analytics clock={clock} />)
-    await screen.findByTestId('analytics-grid')
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(7)
+    await screen.findByTestId('lift-grid')
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(10)
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('shows the lifting charts after the daily charts', async () => {
+    render(<Analytics clock={clock} />)
+    const lifts = await screen.findByTestId('lift-grid')
+    expect(within(lifts).getByRole('heading', { name: 'Volume load per session' })).toBeVisible()
+    expect(within(lifts).getByRole('heading', { name: 'Estimated one-rep max' })).toBeVisible()
+    expect(within(lifts).getByRole('heading', { name: 'Personal records' })).toBeVisible()
+  })
+
+  it('says it is reading the workouts while that read is open', async () => {
+    vi.mocked(listSetsInRange).mockReturnValueOnce(new Promise(() => undefined))
+    render(<Analytics clock={clock} />)
+    expect(await screen.findByText('Reading the workouts…')).toHaveAttribute('role', 'status')
+  })
+
+  it('shows the error when the workouts cannot be read, and keeps the daily charts', async () => {
+    vi.mocked(listSetsInRange).mockRejectedValueOnce(new Error('locked'))
+    render(<Analytics clock={clock} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The workouts on this device could not be read.',
+    )
+    expect(await screen.findByTestId('analytics-grid')).toBeVisible()
+    expect(screen.queryByTestId('lift-grid')).not.toBeInTheDocument()
   })
 })
 
