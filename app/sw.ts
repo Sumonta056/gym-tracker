@@ -1,5 +1,5 @@
 import { defaultCache } from '@serwist/next/worker'
-import { NetworkFirst, Serwist } from 'serwist'
+import { NetworkOnly, Serwist } from 'serwist'
 
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
 
@@ -19,10 +19,7 @@ const serwist = new Serwist({
   runtimeCaching: [
     {
       matcher: ({ url }) => url.hostname.endsWith('.supabase.co'),
-      handler: new NetworkFirst({
-        cacheName: 'supabase',
-        networkTimeoutSeconds: 10,
-      }),
+      handler: new NetworkOnly(),
     },
     ...defaultCache,
   ],
@@ -34,6 +31,10 @@ const serwist = new Serwist({
       },
     ],
   },
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.delete('supabase'))
 })
 
 serwist.addEventListeners()

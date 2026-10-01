@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.5b → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
+**Next step:** 2.5b Part B, the magic link → `docs/plan/phase-2/S2.5b-security-hardening.md`. Then 2.6 → `docs/plan/phase-2/S2.6-link-to-day.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `fix(ui)`, the session timer reads the clock on `visibilitychange`, after `fix(test)` and the safe area `fix(ui)`.
+**Last commit:** `fix(pwa)`, 2.5b Part A, no Supabase response in the service worker cache.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -116,6 +116,9 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   outbox 0. Both timers right after a reload and a hidden tab. WebKit offline cuts Supabase only. 2026-10-01.
 - **Safe area insets.** The shell, the sign-in and the offline page pad the top by the inset. The tab bar pads
   `max(inset, 10px)`. The session timer reads the clock on `visibilitychange`. From fix(ui), 2026-10-01.
+- **No Supabase response in Cache Storage.** The Supabase rule in `app/sw.ts` is `NetworkOnly`; `activate` deletes the old
+  `supabase` cache. `waitForServiceWorker` lives in `tests/e2e/support/signedIn.ts`. `security.spec.ts` skips WebKit and
+  closes the "Session running" prompt with Close, never Discard. The host matcher stays `.supabase.co`. From 2.5b A.
 - **The service worker wait reloads once.** A worker that activates during a navigation does not control that
   page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
 
@@ -140,7 +143,11 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 - **Owner** — the cleanup of out-of-date dead letters covers sessions and exercises only. The
   same rule fits daily entries and profiles. From 2.2c.
 - **Owner** — the e2e suite fails 1 to 6 tests on some runs: WebKit timeouts and `fetch failed`
-  in the Supabase cleanup helper. Each passes on rerun. From 2.2c.
+  in the Supabase cleanup helper. Each passes on rerun. From 2.2c. Also `dashboard.spec.ts:27` on WebKit: the
+  dashboard showed the day with no gym time; it passed 5 of 5 alone. From 2.5b A.
+- **Owner** — no test proves that `activate` deletes an old `supabase` cache on a device with the old worker. From 2.5b A.
+- **Later step** — match the Supabase rule in `app/sw.ts` on the origin of `NEXT_PUBLIC_SUPABASE_URL`, not on the
+  `.supabase.co` host, so a custom domain or a local stack is not cached. From 2.5b A.
 - **Owner** — `get_advisors` warns that leaked password protection is off. An Auth setting. From 2.1a.
 - **2.8b** — pass `sessionGaps` every daily row date, not only rows with gym time. The 1, 3, 3,
   3, 1 target needs 9 September. From 2.7b.
@@ -161,6 +168,7 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
 - **Owner, after deploy** — on the iPhone, lock the phone for 60 s during a rest, and record a session in
   airplane mode. Playwright gives WebKit no service worker, so true WebKit offline is unproven. From Checkpoint B.
+  Also check in Safari Web Inspector, Storage, Cache Storage, that no `supabase` cache exists. From 2.5b A.
 - **Owner** — under the Playwright fake clock, `page-transition` can stay at opacity 0 after a tab change.
   Probably the test clock in `tests/e2e/support/signedIn.ts`. Check on the device. From Checkpoint B.
 - **Owner** — at a load of about 79 the worker install takes about 22 s, past the 15 s

@@ -234,6 +234,31 @@ export async function recordDay(page: Page, values: { gym: string; steps: string
   await expect(page.getByText('Saved on this device.')).toBeVisible()
 }
 
+const SERVICE_WORKER_TIMEOUT_MS = 15000
+
+function isControlled(page: Page): Promise<boolean> {
+  return page.evaluate(() => navigator.serviceWorker.controller !== null)
+}
+
+export async function waitForServiceWorker(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const registration = await navigator.serviceWorker.ready
+          return registration.active !== null
+        }),
+      { timeout: SERVICE_WORKER_TIMEOUT_MS },
+    )
+    .toBe(true)
+
+  if (!(await isControlled(page))) {
+    await page.reload()
+  }
+
+  await expect.poll(() => isControlled(page), { timeout: SERVICE_WORKER_TIMEOUT_MS }).toBe(true)
+}
+
 export function stepsCard(page: Page) {
   return page.getByRole('progressbar', { name: 'Steps progress' }).locator('..')
 }

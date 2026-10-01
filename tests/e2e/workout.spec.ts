@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 
-import { expect, navLink, readStore, test } from './support/signedIn'
+import { expect, navLink, readStore, test, waitForServiceWorker } from './support/signedIn'
 
 import type { TestDay } from './support/signedIn'
 import type { BrowserContext, Page } from '@playwright/test'
@@ -29,8 +29,6 @@ const WIDTHS = [390, 768, 1440]
 const CLOCK_AHEAD_MS = 60000
 
 const ONE_ACTIVE_SLOT_TIMEOUT_MS = 120000
-
-const SERVICE_WORKER_TIMEOUT_MS = 15000
 
 test.use({
   serviceWorkers: async ({ browserName }, provide) => {
@@ -78,29 +76,6 @@ async function waitForExercises(page: Page): Promise<void> {
       timeout: 15000,
     })
     .toBeGreaterThan(0)
-}
-
-function isControlled(page: Page): Promise<boolean> {
-  return page.evaluate(() => navigator.serviceWorker.controller !== null)
-}
-
-async function waitForServiceWorker(page: Page): Promise<void> {
-  await expect
-    .poll(
-      () =>
-        page.evaluate(async () => {
-          const registration = await navigator.serviceWorker.ready
-          return registration.active !== null
-        }),
-      { timeout: SERVICE_WORKER_TIMEOUT_MS },
-    )
-    .toBe(true)
-
-  if (!(await isControlled(page))) {
-    await page.reload()
-  }
-
-  await expect.poll(() => isControlled(page), { timeout: SERVICE_WORKER_TIMEOUT_MS }).toBe(true)
 }
 
 async function cutOffTheServer(
