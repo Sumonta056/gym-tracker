@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.9b, the import review screen → `docs/plan/phase-2/S2.9b-import-review.md`
+**Next step:** 2.9c, apply the import: Skip, Overwrite, Merge → `docs/plan/phase-2/S2.9c-import-apply.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `feat(csv)`, 2.9a, the sheet parser `parseSheet` in `lib/csv/import.ts`.
+**Last commit:** `feat(csv)`, 2.9b, the import review screen behind `NEXT_PUBLIC_ENABLE_CSV_IMPORT`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -143,6 +143,11 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   unreadable text is an error. A trailing newline is not a blank row. BOM, CRLF and doubled quotes parse. The fixture is synthetic,
   made-up numbers in the real cell shapes; the owner approved it in the repository. A missing column's cells, a short or long row
   and an unclosed quote are only proven not to throw; 2.9b decides what they show. From 2.9a.
+- **The import review.** "Import the old sheet" on the Data card asks the year first; the review has "Change year", which reads the
+  file again and clears every pick. Cards under 1024 px (2 columns from `md:`), a table at 1024 px and up. A picked cell keeps both
+  buttons. Review cells on an error row are not counted. Similar means same column and same digits after the point. Rows number
+  by position. Future dates are errors. Weight shows in kg. The table heading is "Kcal". Apply writes nothing yet. Plate p10 gains
+  the laptop frame `pl-import`; its duplicate date card is marked for 2.9c. From 2.9b.
 - **The service worker wait reloads once.** A worker that activates during a navigation does not control that
   page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
 
@@ -154,7 +159,9 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 - **Owner** — `/log` shows its chip only when offline. The recipe wants `SyncChip`. From 1.15.
 - **Owner** — `/log` takes weight in kg only. The imperial setting is display only elsewhere.
   From 1.13.
-- **2.9b** — import review has no plate at 1024 px and up. From 2.0.
+- **2.9c** — `parseSheet` reports no short row, long row or unclosed quote, so the review shows nothing for them. Add 3 issue kinds.
+  Apply is enabled at a count of 0 even when every row is an error; disable it when no row can be imported. From 2.9b.
+- **Owner** — no plate shows the open Data card: the year field, the file input and the read error. From 2.9b.
 - **Owner** — `lastSetFor` reads every set, because `workoutSets` has no `exercise_id` index.
   An index needs Dexie version 4. Acceptable for one user. From 2.2b.
 - **Owner** — `deadLetters.ts` at 93.1 % lines once passed `pnpm verify` in a subagent run. Check
@@ -206,6 +213,8 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   `LiveSession` imports `prettyDate` from `DailyEntryForm`; move it to `lib/format`. From 2.6.
 - **Owner** — `LiveSession.test.tsx` "reads from started_at after a remount" read 42:17, not 42:20, once under load; it passed 3 of 3 alone.
   From 2.6. The `ManageExercisesSheet.test.tsx` focus race is closed: its checks wait with `waitFor`. From fix(test).
+  Also flaky under load, each passed alone: `LiveSession.test.tsx` "rings the alert it is handed with the muted setting", and
+  `app/styleguide/page.test.tsx` "shows the pending warning on the profile sample" (15 s timeout). From 2.9b.
 - **New step** — `referencePlacement` in `DailyBars.tsx` puts the value-label box 3 px too high, so a "below" label can overlap a
   value by about 4 px. Fix all 3 boxes against measured browser geometry. From 2.8a.
 - **Owner** — the analytics plate reads 56.3 for 45 × 8 (Epley gives 57.0) and writes its badge in upper case. Correct the plate. From 2.8a.

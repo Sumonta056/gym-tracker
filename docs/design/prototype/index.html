@@ -1167,6 +1167,32 @@
         flex-direction: column;
         gap: var(--gap);
       }
+      .imp-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .imp-table th,
+      .imp-table td {
+        padding: 12px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .imp-table th:first-child,
+      .imp-table td:first-child {
+        padding-left: 12px;
+      }
+
+      .imp-table tbody tr.imp-main {
+        border-top: 1px solid var(--color-border);
+      }
+
+      .imp-table .imp-pick td {
+        padding: 0 12px 16px;
+      }
     </style>
   </head>
 
@@ -1174,7 +1200,8 @@
     <header class="sheet-head">
       <h1>Gym Tracker — the visual contract</h1>
       <p>
-        Thirteen plates at 390 px, and the live workout at 1440 px below them. Every colour is a
+        Thirteen plates at 390 px, and the live workout and the import review at 1440 px below
+        them. Every colour is a
         token declared once on
         <code>:root</code>. This file imports no project code, so it cannot drift by
         accident.
@@ -5109,8 +5136,7 @@
                 </div>
                 <p class="stat-num">2 of 5 cells</p>
                 <p class="muted" style="margin: 6px 0 0; font-size: 12px">
-                  5 durations can be read two ways. 3 are picked. 1 date is already logged. 1 row
-                  has an error.
+                  5 durations can be read two ways. 3 are picked. 1 row has an error.
                 </p>
                 <div class="row" style="margin-top: 8px">
                   <span class="muted">Dates read as <strong style="color: var(--color-text)">2026</strong></span>
@@ -5125,11 +5151,11 @@
                 </div>
                 <div class="grid-2" style="margin-top: 10px">
                   <div>
-                    <span class="dim">Gym time</span>
+                    <span class="muted">Gym time</span>
                     <span class="cell" style="margin-top: 4px">1:03:13</span>
                   </div>
                   <div>
-                    <span class="dim">Walk time</span>
+                    <span class="muted">Walk time</span>
                     <span class="cell cell-review" style="margin-top: 4px"
                       >15.54 <span class="badge badge-warn">Check</span></span
                     >
@@ -5148,14 +5174,14 @@
                     </button>
                   </div>
                   <div class="grid-2" style="gap: 8px; margin-top: 4px">
-                    <span class="dim" style="text-align: center">as mm.ss</span>
-                    <span class="dim" style="text-align: center">as minutes · 15m 32s</span>
+                    <span class="muted" style="text-align: center">as mm.ss</span>
+                    <span class="muted" style="text-align: center">as minutes · 15m 32s</span>
                   </div>
                 </fieldset>
-                <button class="btn btn-secondary" type="button" style="margin-top: 10px; min-height: 44px">
+                <button class="btn btn-secondary" type="button" disabled style="margin-top: 10px; min-height: 44px; opacity: 0.5">
                   Apply to all similar · 1 more
                 </button>
-                <p class="dim" style="margin: 8px 0 0">
+                <p class="muted" style="margin: 8px 0 0; font-size: 12px">
                   HR 117 / 174 · 73.65 kg · 963 kcal · 5,909 steps
                 </p>
               </article>
@@ -5167,20 +5193,36 @@
                 </div>
                 <div class="grid-2" style="margin-top: 10px">
                   <div>
-                    <span class="dim">Gym time</span>
+                    <span class="muted">Gym time</span>
                     <span class="cell" style="margin-top: 4px">1:15:37</span>
                   </div>
                   <div>
-                    <span class="dim">Walk time</span>
+                    <span class="muted">Walk time</span>
                     <span class="cell cell-review" style="margin-top: 4px"
                       >12.40 <span class="badge badge-warn">Check</span></span
                     >
                   </div>
                 </div>
-                <div class="grid-2" style="gap: 8px; margin-top: 12px" role="group" aria-label="Walk time 12.40 reads two ways">
-                  <button class="pill" type="button" aria-pressed="false">12m 40s</button>
-                  <button class="pill" type="button" aria-pressed="false">12.40 min</button>
-                </div>
+                <fieldset style="border: 0; margin: 12px 0 0; padding: 0">
+                  <legend class="muted" style="padding: 0; margin-bottom: 8px">
+                    Walk time 12.40 reads two ways. Pick one.
+                  </legend>
+                  <div class="grid-2" style="gap: 8px">
+                    <button class="pill" type="button" aria-pressed="false">
+                      12m 40s <span class="visually-hidden">, read as minutes and seconds</span>
+                    </button>
+                    <button class="pill" type="button" aria-pressed="false">
+                      12.40 min <span class="visually-hidden">, read as decimal minutes, 12m 24s</span>
+                    </button>
+                  </div>
+                  <div class="grid-2" style="gap: 8px; margin-top: 4px">
+                    <span class="muted" style="text-align: center">as mm.ss</span>
+                    <span class="muted" style="text-align: center">as minutes · 12m 24s</span>
+                  </div>
+                </fieldset>
+                <button class="btn btn-secondary" type="button" disabled style="margin-top: 10px; min-height: 44px; opacity: 0.5">
+                  Apply to all similar · 1 more
+                </button>
               </article>
 
               <article class="card" aria-labelledby="imp-r7">
@@ -5190,14 +5232,35 @@
                 </div>
                 <div class="grid-2" style="margin-top: 10px">
                   <div>
-                    <span class="dim">Gym time</span>
+                    <span class="muted">Gym time</span>
                     <span class="cell" style="margin-top: 4px">1:44:50</span>
                   </div>
                   <div>
-                    <span class="dim">Walk time · 20.05</span>
+                    <span class="muted">Walk time · 20.05</span>
                     <span class="cell" style="margin-top: 4px">20m 5s</span>
                   </div>
                 </div>
+                <!-- A picked cell keeps its two readings, so a wrong pick can be changed. -->
+                <fieldset style="border: 0; margin: 12px 0 0; padding: 0">
+                  <legend class="muted" style="padding: 0; margin-bottom: 8px">
+                    Walk time 20.05 reads two ways. Pick one.
+                  </legend>
+                  <div class="grid-2" style="gap: 8px">
+                    <button class="pill" type="button" aria-pressed="true">
+                      20m 5s <span class="visually-hidden">, read as minutes and seconds</span>
+                    </button>
+                    <button class="pill" type="button" aria-pressed="false">
+                      20.05 min <span class="visually-hidden">, read as decimal minutes, 20m 3s</span>
+                    </button>
+                  </div>
+                  <div class="grid-2" style="gap: 8px; margin-top: 4px">
+                    <span class="muted" style="text-align: center">as mm.ss</span>
+                    <span class="muted" style="text-align: center">as minutes · 20m 3s</span>
+                  </div>
+                </fieldset>
+                <button class="btn btn-secondary" type="button" style="margin-top: 10px; min-height: 44px">
+                  Apply to all similar · 2 more
+                </button>
               </article>
 
               <article class="card" aria-labelledby="imp-r9">
@@ -5206,12 +5269,16 @@
                   <span class="badge" style="color: var(--color-danger)">Error</span>
                 </div>
                 <p class="muted" style="margin: 8px 0 0">
-                  Steps "5.9k" is not a number. This row is left out of the import.
+                  Steps "5.9k" could not be read. Enter a number. This row is left out of the
+                  import.
                 </p>
               </article>
 
-              <p class="dim" style="margin: 0; text-align: center">11 other rows · 2 picked, the rest read cleanly</p>
+              <!-- Plate shorthand: the screen shows every row as a card like the ones above. -->
+              <p class="dim" style="margin: 0; text-align: center">Rows 10 to 15 are drawn the same way</p>
 
+              <!-- Step 2.9c, not built in 2.9b: a date the app already holds. -->
+              <p class="dim" style="margin: 0">From step 2.9c: a date the app already holds</p>
               <article class="card" aria-labelledby="imp-r16">
                 <div class="row-tight">
                   <h3 class="micro" id="imp-r16">Row 16 · 13 Sep</h3>
@@ -5235,6 +5302,7 @@
               <p class="muted" style="margin: 0; text-align: center; font-size: 12px">
                 Pick the 2 readings left to apply. Nothing is written until you confirm.
               </p>
+              <button class="btn btn-secondary" type="button">Back to the profile</button>
             </div>
 
             <nav class="tabbar" aria-label="Main">
@@ -5684,6 +5752,216 @@
                   </section>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ laptop · import review at 1440 px ============
+         New classes: imp-table, imp-main, imp-pick. From 1024 px up the rows are one table.
+         A row with a cell to check is followed by a row that holds its picks. -->
+    <section class="laptop" aria-labelledby="pl-import">
+      <div class="plate-label">
+        <span class="n">Laptop</span>
+        <span class="name" id="pl-import">Import review at 1440 px</span>
+        <span class="route">/profile · import</span>
+      </div>
+      <p class="muted" style="margin: 0 2px 12px">
+        At 1024 px and up the rows are one table, inside a card. A row with a cell to check is
+        followed by its picks. Under 1024 px the same rows are the cards of plate 10, one per
+        row under 640 px and two per row from 640 px.
+      </p>
+      <div class="laptop-scroll">
+        <div class="laptop-frame" style="height: auto; min-height: 900px">
+          <nav class="sidebar" aria-label="Main">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 0 14px 18px">
+              <span
+                aria-hidden="true"
+                style="
+                  width: 32px;
+                  height: 32px;
+                  border-radius: 10px;
+                  background: var(--color-accent);
+                  color: var(--color-accent-ink);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 13px;
+                  font-weight: 800;
+                "
+                >GT</span
+              >
+              <strong>Gym Tracker</strong>
+            </div>
+            <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+            <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+            <button class="center" type="button" aria-label="Start a live workout">
+              <span class="glyph" aria-hidden="true">▶</span>Start workout
+            </button>
+            <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+            <a href="#" aria-current="page"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+          </nav>
+
+          <div class="laptop-main">
+            <div class="laptop-col">
+              <div class="topbar" style="padding-left: 0; padding-right: 0; padding-top: 24px">
+                <div>
+                  <h2>Import review</h2>
+                  <p class="sub">gym-sheet.csv · 16 rows</p>
+                </div>
+                <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+              </div>
+
+              <div class="card">
+                <div class="row-tight">
+                  <span class="micro">Still to check</span>
+                  <span class="badge badge-warn">2 left</span>
+                </div>
+                <p class="stat-num">2 of 5 cells</p>
+                <p class="muted" style="margin: 6px 0 0; font-size: 12px">
+                  5 durations can be read two ways. 3 are picked. 1 row has an error.
+                </p>
+                <div class="row" style="margin-top: 8px">
+                  <span class="muted">Dates read as <strong style="color: var(--color-text)">2026</strong></span>
+                  <button class="pill" type="button">Change year</button>
+                </div>
+              </div>
+
+              <div class="card" style="padding: 0; overflow: hidden">
+                <table class="imp-table">
+                  <caption class="visually-hidden">Rows of the sheet</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" style="width: 15%"><span class="micro">Row</span></th>
+                      <th scope="col"><span class="micro">Walk</span></th>
+                      <th scope="col"><span class="micro">Gym</span></th>
+                      <th scope="col"><span class="micro">Avg HR</span></th>
+                      <th scope="col"><span class="micro">Max HR</span></th>
+                      <th scope="col"><span class="micro">Weight</span></th>
+                      <th scope="col"><span class="micro">Kcal</span></th>
+                      <th scope="col"><span class="micro">Steps</span></th>
+                      <th scope="col" style="width: 12%"><span class="micro">Status</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="imp-main">
+                      <th scope="row">Row 1 · 12 Aug</th>
+                      <td><span style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center"><strong style="color: var(--color-warn)">15.54</strong> <span class="badge badge-warn">Check</span></span></td>
+                      <td>1:03:13</td>
+                      <td>117</td>
+                      <td>174</td>
+                      <td>73.65 kg</td>
+                      <td>963</td>
+                      <td>5,909</td>
+                      <td><strong style="color: var(--color-warn)">1 to check</strong></td>
+                    </tr>
+                    <tr class="imp-pick">
+                      <td colspan="9">
+                        <div class="grid-2" style="gap: 16px">
+                        <div class="stack" style="gap: 10px">
+                          <fieldset style="border: 0; margin: 0; padding: 0">
+                            <legend class="muted" style="padding: 0; margin-bottom: 8px">
+                              Walk time 15.54 reads two ways. Pick one.
+                            </legend>
+                            <div class="grid-2" style="gap: 8px">
+                              <button class="pill" type="button" aria-pressed="false">
+                                15m 54s <span class="visually-hidden">, read as minutes and seconds</span>
+                              </button>
+                              <button class="pill" type="button" aria-pressed="false">
+                                15.54 min <span class="visually-hidden">, read as decimal minutes, 15m 32s</span>
+                              </button>
+                            </div>
+                            <div class="grid-2" style="gap: 8px; margin-top: 4px">
+                              <span class="muted" style="text-align: center">as mm.ss</span>
+                              <span class="muted" style="text-align: center">as minutes · 15m 32s</span>
+                            </div>
+                          </fieldset>
+                          <button class="btn btn-secondary" type="button" disabled style="min-height: 44px; opacity: 0.5">
+                            Apply to all similar · 1 more
+                          </button>
+                        </div>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr class="imp-main">
+                      <th scope="row">Row 7 · 20 Aug</th>
+                      <td>20m 5s</td>
+                      <td>1:44:50</td>
+                      <td>122</td>
+                      <td>171</td>
+                      <td>73.10 kg</td>
+                      <td>1,012</td>
+                      <td>11,482</td>
+                      <td class="muted">Picked</td>
+                    </tr>
+                    <tr class="imp-pick">
+                      <td colspan="9">
+                        <div class="grid-2" style="gap: 16px">
+                        <div class="stack" style="gap: 10px">
+                          <fieldset style="border: 0; margin: 0; padding: 0">
+                            <legend class="muted" style="padding: 0; margin-bottom: 8px">
+                              Walk time 20.05 reads two ways. Pick one.
+                            </legend>
+                            <div class="grid-2" style="gap: 8px">
+                              <button class="pill" type="button" aria-pressed="true">
+                                20m 5s <span class="visually-hidden">, read as minutes and seconds</span>
+                              </button>
+                              <button class="pill" type="button" aria-pressed="false">
+                                20.05 min <span class="visually-hidden">, read as decimal minutes, 20m 3s</span>
+                              </button>
+                            </div>
+                            <div class="grid-2" style="gap: 8px; margin-top: 4px">
+                              <span class="muted" style="text-align: center">as mm.ss</span>
+                              <span class="muted" style="text-align: center">as minutes · 20m 3s</span>
+                            </div>
+                          </fieldset>
+                          <button class="btn btn-secondary" type="button" style="min-height: 44px">
+                            Apply to all similar · 1 more
+                          </button>
+                        </div>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr class="imp-main">
+                      <th scope="row">Row 8 · 22 Aug</th>
+                      <td>18:45</td>
+                      <td>1:10:02</td>
+                      <td>119</td>
+                      <td>165</td>
+                      <td>73.00 kg</td>
+                      <td>901</td>
+                      <td>8,204</td>
+                      <td class="muted">Ready</td>
+                    </tr>
+                    <tr class="imp-main">
+                      <th scope="row">Row 9 · 18 Aug</th>
+                      <td>20:00</td>
+                      <td>1:02:09</td>
+                      <td>118</td>
+                      <td>166</td>
+                      <td>73.20 kg</td>
+                      <td>904</td>
+                      <td><strong style="color: var(--color-danger)">5.9k</strong></td>
+                      <td><strong style="color: var(--color-danger)">Error</strong></td>
+                    </tr>
+                    <tr class="imp-pick">
+                      <td colspan="9" class="muted">
+                        Steps "5.9k" could not be read. Enter a number. This row is left out of the
+                        import.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <button class="btn" type="button" disabled style="opacity: 0.45; cursor: not-allowed">
+                Apply import
+              </button>
+              <p class="muted" style="margin: 0; text-align: center; font-size: 12px">
+                Pick the 2 readings left to apply. Nothing is written until you confirm.
+              </p>
+              <button class="btn btn-secondary" type="button">Back to the profile</button>
             </div>
           </div>
         </div>

@@ -148,6 +148,49 @@ for (const route of PUBLIC_ROUTES) {
   })
 }
 
+test('never scrolls sideways on the import review sample at 320 px, with the year form open', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.goto('/styleguide')
+  const sample = page.getByTestId('import-review-sample')
+  await sample.getByRole('button', { name: 'Change year' }).click()
+  await expect(sample.getByLabel('Year of the sheet')).toBeVisible()
+
+  expect(await sideways(page)).toEqual([])
+  expect(await smallTargets(page)).toEqual([])
+})
+
+test('fits every import table heading inside its cell at 1024 px and 1440 px', async ({ page }) => {
+  await page.goto('/styleguide')
+
+  for (const width of [1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    const table = page.getByTestId('import-review-sample').getByRole('table')
+    await table.scrollIntoViewIfNeeded()
+    await expect(table).toBeVisible()
+
+    const spills = await table.evaluate((element) =>
+      Array.from(element.querySelectorAll('th')).flatMap((cell) => {
+        const style = getComputedStyle(cell)
+        const inner =
+          cell.getBoundingClientRect().right - Number.parseFloat(style.paddingRight) + 0.5
+        const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT)
+        let right = 0
+        for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+          const range = document.createRange()
+          range.selectNodeContents(node)
+          right = Math.max(right, range.getBoundingClientRect().right)
+        }
+        const overflow = cell.scrollWidth > cell.clientWidth || right > inner
+        return overflow ? [`${cell.textContent.trim()} ${String(cell.clientWidth)}px`] : []
+      }),
+    )
+
+    expect(spills, `${String(width)}px`).toEqual([])
+  }
+})
+
 test('keeps every tap target 44 px or taller inside the open sheet, at all seven widths', async ({
   page,
 }) => {
@@ -159,11 +202,18 @@ test('keeps every tap target 44 px or taller inside the open sheet, at all seven
   expect(await atEachWidth(page, STEP_WIDTHS, () => sideways(page))).toEqual([])
 })
 
-test('keeps the dashboard, log and profile samples inside the page at 320 px', async ({ page }) => {
+test('keeps the dashboard, log, profile and import review samples inside the page at 320 px', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 320, height: 900 })
   await page.goto('/styleguide')
 
-  for (const id of ['dashboard-sample', 'log-sample', 'profile-grid-sample']) {
+  for (const id of [
+    'dashboard-sample',
+    'log-sample',
+    'profile-grid-sample',
+    'import-review-sample',
+  ]) {
     const sample = page.getByTestId(id)
     await sample.scrollIntoViewIfNeeded()
     const box = await sample.boundingBox()

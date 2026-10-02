@@ -8,6 +8,7 @@ import { LiftCharts } from '../../components/charts/LiftCharts'
 import { analyse } from '../../components/charts/rangeData'
 import { StepsChart } from '../../components/charts/StepsChart'
 import { WeekCharts } from '../../components/charts/WeekCharts'
+import { ImportReview } from '../../components/csv/ImportReview'
 import { DailyEntryForm, nextWeight } from '../../components/DailyEntryForm'
 import { DashboardView } from '../../components/dashboard/Dashboard'
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader'
@@ -101,6 +102,14 @@ const SAMPLE_DEAD_LETTER: DeadLetter = {
   error_code: '42501',
   failed_at: '2026-09-13T10:00:05.000Z',
 }
+
+const SAMPLE_IMPORT_SHEET = [
+  'Day,Walk Time,Gym Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
+  'August 12,15.54,1:03:13,117,174,73.65,963,5909',
+  'August 15,12.40,1:15:37,121,168,73.40,880,7120',
+  'August 18,20,1:02:09,118,166,73.20,904,5.9k',
+  'August 20,18.75,1:44:50,124,171,73.10,1012,"11,482"',
+].join('\n')
 
 const SAMPLE_ZONES = {
   warmSeconds: 480,
@@ -853,6 +862,17 @@ function Styleguide() {
         <h3 className="text-text mt-6 text-base font-bold">With the Phase 2 flag on</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <DataCard />
+        </div>
+      </Section>
+
+      <Section title="Import review">
+        <div data-testid="import-review-sample">
+          <ImportReview
+            fileName="gym-sheet.csv"
+            text={SAMPLE_IMPORT_SHEET}
+            initialYear={2026}
+            status={<StatusChip status="synced" announce={false} />}
+          />
         </div>
       </Section>
 

@@ -24,7 +24,7 @@ test('keeps the Phase 2 import card out of the profile sample', async ({ page })
   await page.goto('/styleguide')
 
   await expect(
-    page.getByTestId('profile-grid-sample').getByRole('button', { name: 'Import the Excel CSV' }),
+    page.getByTestId('profile-grid-sample').getByRole('button', { name: 'Import the old sheet' }),
   ).toHaveCount(0)
 })
 

@@ -91,8 +91,15 @@ describe('the styleguide page', { timeout: 15000 }, () => {
   it('renders the profile sample with the import card hidden, as the flag is off', () => {
     const grid = within(screen.getByTestId('profile-grid-sample'))
     expect(grid.getByLabelText('Target weight (kg)')).toHaveValue('71.0')
-    expect(grid.queryByRole('button', { name: 'Import the Excel CSV' })).not.toBeInTheDocument()
+    expect(grid.queryByRole('button', { name: 'Import the old sheet' })).not.toBeInTheDocument()
     expect(screen.getByTestId('data-card')).toBeInTheDocument()
+  })
+
+  it('renders the import review sample with its review cells and its error row', () => {
+    const sample = within(screen.getByTestId('import-review-sample'))
+    expect(sample.getByTestId('import-count')).toHaveTextContent('2 of 2 cells')
+    expect(sample.getByRole('button', { name: 'Apply import' })).toBeDisabled()
+    expect(sample.getAllByText(/This row is left out of the import\./).length).toBeGreaterThan(0)
   })
 
   it('switches the profile sample to imperial from its unit toggle', async () => {
