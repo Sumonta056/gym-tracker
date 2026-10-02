@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.9a, the CSV parser, tests first → `docs/plan/phase-2/S2.9a-csv-parser.md`
+**Next step:** 2.9b, the import review screen → `docs/plan/phase-2/S2.9b-import-review.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `feat(charts)`, 2.8b, the balance, gap and calories a minute charts on `/analytics`.
+**Last commit:** `feat(csv)`, 2.9a, the sheet parser `parseSheet` in `lib/csv/import.ts`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -138,6 +138,11 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   row. The calorie average label sits on the side away from the end label, else in the band; a named rule in `charts.md`. The
   balance bar uses 4 new tokens, `data-pink` arms, `data-blue` shoulders, `data-yellow` core, `data-slate` cardio; `warn` means
   only the warning. Plate 11 is corrected. `chartPalette` does not take them. From 2.8b.
+- **The sheet parser.** `parseSheet` is pure and never throws; cells are `ok`, `review` or `error`. A review reading is mm.ss first,
+  decimal second, labelled by `formatDuration` style `minsec`. `"11,482"` steps read 11482. Blank, `0` or `-` is ok with no value;
+  unreadable text is an error. A trailing newline is not a blank row. BOM, CRLF and doubled quotes parse. The fixture is synthetic,
+  made-up numbers in the real cell shapes; the owner approved it in the repository. A missing column's cells, a short or long row
+  and an unclosed quote are only proven not to throw; 2.9b decides what they show. From 2.9a.
 - **The service worker wait reloads once.** A worker that activates during a navigation does not control that
   page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
 

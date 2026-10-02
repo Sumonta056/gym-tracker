@@ -53,6 +53,11 @@ export default defineConfig({
           branches: 90,
           functions: 95,
         },
+        'lib/csv/**': {
+          lines: 95,
+          branches: 90,
+          functions: 95,
+        },
         'components/**': {
           lines: 85,
           branches: 75,

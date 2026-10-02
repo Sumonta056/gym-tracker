@@ -254,6 +254,24 @@ describe('formatDuration', () => {
     { seconds: 7200, text: '120m' },
   ]
 
+  const minsecCases: { seconds: number; text: string }[] = [
+    { seconds: 954, text: '15m 54s' },
+    { seconds: 932, text: '15m 32s' },
+    { seconds: 0, text: '0m 0s' },
+    { seconds: 60, text: '1m 0s' },
+    { seconds: 3600, text: '60m 0s' },
+    { seconds: 59.6, text: '1m 0s' },
+    { seconds: 954.4, text: '15m 54s' },
+    { seconds: -30, text: '0m 0s' },
+  ]
+
+  it.each(minsecCases)(
+    'formats $seconds seconds in the minsec style as $text',
+    ({ seconds, text }) => {
+      expect(formatDuration(seconds, 'minsec')).toBe(text)
+    },
+  )
+
   it.each(minuteCases)(
     'formats $seconds seconds in the minutes style as $text',
     ({ seconds, text }) => {
