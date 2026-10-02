@@ -205,7 +205,7 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 - **Owner** — a session whose `entry_date` is ahead of the device date cannot save its gym time: the future date check refuses it.
   `LiveSession` imports `prettyDate` from `DailyEntryForm`; move it to `lib/format`. From 2.6.
 - **Owner** — `LiveSession.test.tsx` "reads from started_at after a remount" read 42:17, not 42:20, once under load; it passed 3 of 3 alone.
-  `ManageExercisesSheet.test.tsx` failed a focus check once; it passed alone. From 2.6.
+  From 2.6. The `ManageExercisesSheet.test.tsx` focus race is closed: its checks wait with `waitFor`. From fix(test).
 - **New step** — `referencePlacement` in `DailyBars.tsx` puts the value-label box 3 px too high, so a "below" label can overlap a
   value by about 4 px. Fix all 3 boxes against measured browser geometry. From 2.8a.
 - **Owner** — the analytics plate reads 56.3 for 45 × 8 (Epley gives 57.0) and writes its badge in upper case. Correct the plate. From 2.8a.

@@ -104,9 +104,9 @@ describe('ManageExercisesSheet acceptance', () => {
       within(dialog).getByRole('button', { name: 'Save the new name for Cable Fly' }),
     )
 
-    expect(
-      await within(dialog).findByRole('button', { name: 'Rename Low Cable Fly' }),
-    ).toHaveFocus()
+    await waitFor(() => {
+      expect(within(dialog).getByRole('button', { name: 'Rename Low Cable Fly' })).toHaveFocus()
+    })
     expect((await db.exercises.get(fly.id))?.name).toBe('Low Cable Fly')
     expect(await pickerNames()).toContain('Low Cable Fly')
   })
@@ -116,11 +116,15 @@ describe('ManageExercisesSheet acceptance', () => {
     const { dialog } = renderSheet()
 
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Archive Cable Fly' }))
-    expect(await within(dialog).findByRole('button', { name: 'Restore Cable Fly' })).toHaveFocus()
+    await waitFor(() => {
+      expect(within(dialog).getByRole('button', { name: 'Restore Cable Fly' })).toHaveFocus()
+    })
     expect(await pickerNames()).not.toContain('Cable Fly')
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Restore Cable Fly' }))
-    expect(await within(dialog).findByRole('button', { name: 'Archive Cable Fly' })).toHaveFocus()
+    await waitFor(() => {
+      expect(within(dialog).getByRole('button', { name: 'Archive Cable Fly' })).toHaveFocus()
+    })
     expect(await pickerNames()).toContain('Cable Fly')
   })
 
