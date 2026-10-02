@@ -79,6 +79,10 @@ Figtree, weights 400 to 800. `font-variant-numeric: tabular-nums` on the body.
 --color-accent-ink   #10160A   text on the accent fill
 --color-data-cyan    #22D3EE   walk, steps, volume load
 --color-data-violet  #A78BFA   weight, 7-day average
+--color-data-pink    #F472B6   muscle group balance: arms
+--color-data-blue    #60A5FA   muscle group balance: shoulders
+--color-data-yellow  #FACC15   muscle group balance: core
+--color-data-slate   #94A3B8   muscle group balance: cardio
 --color-warn         #FB923C   cardio zone, warning
 --color-danger       #F87171   peak zone, destructive
 --color-ok           #4ADE80   sync status

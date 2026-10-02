@@ -7,6 +7,7 @@ import { AnalyticsHeader, AnalyticsView, RangeTabs } from '../../components/char
 import { LiftCharts } from '../../components/charts/LiftCharts'
 import { analyse } from '../../components/charts/rangeData'
 import { StepsChart } from '../../components/charts/StepsChart'
+import { WeekCharts } from '../../components/charts/WeekCharts'
 import { DailyEntryForm, nextWeight } from '../../components/DailyEntryForm'
 import { DashboardView } from '../../components/dashboard/Dashboard'
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader'
@@ -295,6 +296,47 @@ const SAMPLE_ONE_SESSION: LiftSource = {
 }
 
 const SAMPLE_NO_LIFTS: LiftSource = { sessions: [], sets: [], exercises: SAMPLE_LIFT_EXERCISES }
+
+const SAMPLE_WEEK_TODAY = '2026-09-13'
+
+const SAMPLE_WEEK_NOW = new Date(2026, 8, 13, 18, 0, 0)
+
+const SAMPLE_WEEK_DAYS: [string, number | null, number][] = [
+  ['2026-09-02', 3600, 804],
+  ['2026-09-03', 3600, 726],
+  ['2026-09-06', 3600, 834],
+  ['2026-09-09', null, 629],
+  ['2026-09-12', 3600, 798],
+  ['2026-09-13', 3600, 852],
+]
+
+const SAMPLE_WEEK_ENTRIES: DailyEntry[] = SAMPLE_WEEK_DAYS.map(
+  ([date, gymSeconds, calories], index) => ({
+    ...SAMPLE_DAY,
+    id: `00000000-0000-4000-8000-${String(index + 500).padStart(12, '0')}`,
+    entry_date: date,
+    gym_seconds: gymSeconds,
+    calories_burnt: calories,
+  }),
+)
+
+const SAMPLE_WEEK_ONE_DAY = SAMPLE_WEEK_ENTRIES.filter(
+  (row) => row.entry_date === SAMPLE_WEEK_TODAY,
+)
+
+const SAMPLE_WEEK_ONE_SESSION: LiftSource = {
+  sessions: SAMPLE_LIFT_SESSIONS.filter((session) => session.entry_date === SAMPLE_WEEK_TODAY),
+  sets: SAMPLE_LIFT_SETS.filter((set) =>
+    SAMPLE_LIFT_SESSIONS.some(
+      (session) => session.id === set.session_id && session.entry_date === SAMPLE_WEEK_TODAY,
+    ),
+  ),
+  exercises: SAMPLE_LIFT_EXERCISES,
+}
+
+function sampleWeekDays(entries: DailyEntry[], tab: RangeTab) {
+  return analyse(entries, entries, tab, SAMPLE_WEEK_TODAY, SAMPLE_WEEK_NOW, SAMPLE_STEP_GOAL).days
+}
 
 function sampleStats(entries: DailyEntry[], tab: RangeTab) {
   return analyse(entries, entries, tab, SAMPLE_STATS_TODAY, SAMPLE_STATS_NOW, SAMPLE_STEP_GOAL)
@@ -676,6 +718,19 @@ function Styleguide() {
         </Card>
         <AnalyticsView data={stats} />
         <LiftCharts source={SAMPLE_LIFTS} tab={statsTab} today={SAMPLE_STATS_TODAY} />
+        <h3 className="text-text mt-6 text-base font-bold">The week charts, 2 to 13 September</h3>
+        <WeekCharts
+          source={SAMPLE_LIFTS}
+          days={sampleWeekDays(SAMPLE_WEEK_ENTRIES, statsTab)}
+          today={SAMPLE_WEEK_TODAY}
+        />
+        <h3 className="text-text mt-6 text-base font-bold">The week charts, one session</h3>
+        <WeekCharts
+          source={SAMPLE_WEEK_ONE_SESSION}
+          days={sampleWeekDays(SAMPLE_WEEK_ONE_DAY, statsTab)}
+          today={SAMPLE_WEEK_TODAY}
+          testId="week-grid-one-session"
+        />
         <h3 className="text-text mt-6 text-base font-bold">One logged day</h3>
         <AnalyticsView data={oneDay} testId="analytics-grid-one-day" />
         <LiftCharts
@@ -702,6 +757,12 @@ function Styleguide() {
           tab={statsTab}
           today={SAMPLE_STATS_TODAY}
           testId="lift-grid-empty"
+        />
+        <WeekCharts
+          source={SAMPLE_NO_LIFTS}
+          days={sampleWeekDays([], statsTab)}
+          today={SAMPLE_WEEK_TODAY}
+          testId="week-grid-empty"
         />
       </Section>
 

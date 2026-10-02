@@ -285,6 +285,99 @@ test('shows the not enough data state on the one session sample', async ({ page 
   await expect(grid.locator('[role="img"]')).toHaveCount(1)
 })
 
+async function weekBoxes(page: Page): Promise<Box[]> {
+  const grid = page.getByTestId('week-grid')
+  await grid.scrollIntoViewIfNeeded()
+  await expect(grid.getByRole('img').first()).toBeVisible()
+
+  return grid.evaluate((element) =>
+    Array.from(element.children).map((child) => {
+      const box = child.getBoundingClientRect()
+      return { x: box.x, y: box.y, width: box.width, height: box.height }
+    }),
+  )
+}
+
+test('shows two week cards per row at 1440 px, the calorie rate under them', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/styleguide')
+
+  const boxes = await weekBoxes(page)
+
+  expect(boxes).toHaveLength(3)
+  expect(Math.round(boxes[0]?.y ?? 0)).toBe(Math.round(boxes[1]?.y ?? -1))
+  expect(boxes[1]?.x ?? 0).toBeGreaterThan(boxes[0]?.x ?? 0)
+  expect(rowCount(boxes, 3)).toBe(2)
+})
+
+test('shows one week card per row at 390 px, on the style guide sample', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/styleguide')
+
+  const boxes = await weekBoxes(page)
+
+  expect(rowCount(boxes, 3)).toBe(3)
+  for (const box of boxes) {
+    expect(Math.round(box.x)).toBe(Math.round(boxes[0]?.x ?? 0))
+  }
+})
+
+const WEEK_GRIDS = ['week-grid', 'week-grid-one-session']
+
+const WEEK_CHECKS = [320, 390, 1440].flatMap((width) =>
+  ['Day', 'Week', 'Month'].map((range) => ({ width, range })),
+)
+
+for (const { width, range } of WEEK_CHECKS) {
+  test(`keeps every week chart label apart and inside its chart on the ${range} range at ${String(width)} px`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/styleguide')
+    await page
+      .locator('section', { has: page.getByRole('heading', { level: 2, name: 'Analytics' }) })
+      .getByRole('button', { name: range })
+      .click()
+    await page.getByTestId('week-grid').scrollIntoViewIfNeeded()
+
+    expect(await labelProblems(page, WEEK_GRIDS)).toEqual([])
+  })
+}
+
+test('draws the week charts to the width of their cards at 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.goto('/styleguide')
+  await weekBoxes(page)
+
+  const widths = await page
+    .getByTestId('week-grid')
+    .locator('[role="img"] svg')
+    .evaluateAll((elements) =>
+      elements.map((element) => ({
+        svg: element.getBoundingClientRect().width,
+        card: element.closest('[role="img"]')?.getBoundingClientRect().width ?? 0,
+      })),
+    )
+
+  expect(widths).toHaveLength(3)
+  for (const width of widths) {
+    expect(width.svg).toBeGreaterThan(0)
+    expect(Math.abs(width.svg - width.card)).toBeLessThanOrEqual(1)
+  }
+})
+
+test('shows the balance warning as text with a shape, on the style guide sample', async ({
+  page,
+}) => {
+  await page.goto('/styleguide')
+
+  const note = page.getByTestId('week-grid').getByRole('note')
+
+  await expect(note).toContainText('Legs behind:')
+  await expect(note.locator('svg')).toBeVisible()
+})
+
 signedIn('switches the /analytics range from week to month', async ({ page, account, day }) => {
   await openWithWeek(page, account, day)
   await navLink(page, 'Stats').click()

@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.8b, the week charts → `docs/plan/phase-2/S2.8b-week-charts.md`
+**Next step:** 2.9a, the CSV parser, tests first → `docs/plan/phase-2/S2.9a-csv-parser.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `feat(charts)`, 2.8a, the volume, one-rep max and record charts on `/analytics`.
+**Last commit:** `feat(charts)`, 2.8b, the balance, gap and calories a minute charts on `/analytics`.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 
@@ -133,6 +133,11 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   3 at most. Est. 1RM is the best Epley over all sets; plate 45 × 8 reads 57.0. Imperial is display only. A line needs 2
   sessions. The volume chart turns a "below" average label into "band", and drops a bar value label within 3 px of the
   average line; both are named rules in `charts.md`. Record loads in lb show 1 decimal, no `.0`; kg as logged. From 2.8a.
+- **The week charts.** Balance is always this week; gaps and calories a minute follow the Day/Week/Month tab. Gaps take every
+  daily row date. Two or more groups under 15 % share one warning line that names them all. A 0 % group warns but has no legend
+  row. The calorie average label sits on the side away from the end label, else in the band; a named rule in `charts.md`. The
+  balance bar uses 4 new tokens, `data-pink` arms, `data-blue` shoulders, `data-yellow` core, `data-slate` cardio; `warn` means
+  only the warning. Plate 11 is corrected. `chartPalette` does not take them. From 2.8b.
 - **The service worker wait reloads once.** A worker that activates during a navigation does not control that
   page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
 
@@ -166,8 +171,6 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 - **Owner, at deploy** — set `SITE_URL=https://<production-host>` in Vercel, Production, and Preview if previews
   need their own link. Supabase Redirect URLs must hold `${SITE_URL}/auth/callback` and
   `http://localhost:3000/auth/callback`. Then send one real link on production. From 2.5b B.
-- **2.8b** — pass `sessionGaps` every daily row date, not only rows with gym time. The 1, 3, 3,
-  3, 1 target needs 9 September. From 2.7b.
 - **Owner** — no unique index on global exercise names. Only the seed adds global rows. The owner
   deferred it. From 2.1b.
 - **Owner** — add plates for the edit sheet, the undo toast, the resume prompt and the rest Change sheet. From 2.4b.
@@ -201,6 +204,8 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 - **New step** — `referencePlacement` in `DailyBars.tsx` puts the value-label box 3 px too high, so a "below" label can overlap a
   value by about 4 px. Fix all 3 boxes against measured browser geometry. From 2.8a.
 - **Owner** — the analytics plate reads 56.3 for 45 × 8 (Epley gives 57.0) and writes its badge in upper case. Correct the plate. From 2.8a.
+- **Owner** — more e2e tests seen flaky in full runs, each passed alone: `analytics.spec.ts:381` and `workout.spec.ts:401`
+  (`waitForServiceWorker`) on desktop, `dashboard.spec.ts:27` and `a11y.spec.ts:155` (`JWT issued at future`) on WebKit. From 2.8b.
 - **Owner** — probably a process outside the session staged `PROGRESS.md` and the step index during the pre-commit hook of `96f40e5`.
   The gate checks the hash before the hook, so it did not see it. From fix(ui), 2026-10-01.
 

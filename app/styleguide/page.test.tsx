@@ -265,6 +265,20 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(within(none).queryByRole('img')).not.toBeInTheDocument()
   })
 
+  it('renders the week charts from the plate sample, with the balance warning', () => {
+    const grid = screen.getByTestId('week-grid')
+    expect(within(grid).getAllByRole('img')).toHaveLength(3)
+    expect(within(grid).getByRole('note')).toHaveTextContent(/^Legs behind: /)
+  })
+
+  it('renders the week charts with one session and with none', () => {
+    const one = screen.getByTestId('week-grid-one-session')
+    expect(within(one).getByText('Log one more session to see a trend.')).toBeInTheDocument()
+    expect(within(one).getAllByRole('img')).toHaveLength(1)
+    const none = screen.getByTestId('week-grid-empty')
+    expect(within(none).queryByRole('img')).not.toBeInTheDocument()
+  })
+
   it('renders a chart in its empty state', () => {
     expect(screen.getByText('Log your steps to see them per day.')).toBeInTheDocument()
   })

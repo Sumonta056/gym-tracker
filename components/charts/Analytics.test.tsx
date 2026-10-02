@@ -83,7 +83,7 @@ describe('Analytics', () => {
   it('shows every chart in its empty state when nothing is logged', async () => {
     render(<Analytics clock={clock} />)
     await screen.findByTestId('lift-grid')
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(10)
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(13)
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 

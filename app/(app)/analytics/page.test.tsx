@@ -44,6 +44,14 @@ describe('AnalyticsPage', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Personal records' })).toBeInTheDocument()
   })
 
+  it('renders the week charts after the lifting charts', async () => {
+    render(<AnalyticsPage />)
+    expect(await screen.findByTestId('week-grid')).toBeInTheDocument()
+    for (const name of ['Muscle group balance', 'Days between sessions', 'Calories a gym minute']) {
+      expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument()
+    }
+  })
+
   it('builds no frame of its own, because the route group layout owns it', async () => {
     render(<AnalyticsPage />)
     await screen.findByTestId('analytics-grid')

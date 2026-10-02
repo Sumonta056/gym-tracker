@@ -50,6 +50,12 @@ prototype plates `p5` and `p5-one-day`. The shared parts live in `components/cha
      drops its value label when the line would pass within 3 px of the label box. The
      box is measured in the browser: from 15 px to 2 px above the bar top. The value
      stays in the text alternative. `clearOfLine` in `VolumeLoadChart.tsx` holds the rule.
+   - **The calories a gym minute chart is a line with an average line.** Its label sits
+     on the side of the line away from the end label: below the line when the last value
+     sits 10 px or more above it, above when it sits 10 px or more below. Otherwise, or
+     when below would reach the day labels, it takes the band. `ratePlacement` in
+     `CaloriesPerMinuteChart.tsx` holds the rule.
+   - The session gap histogram shows no average line. Its average is in the summary only.
 4. **End labels** on line charts: the last value at the end of each line, in the
    colour of its line. A weight chart also writes its min and max at the left.
    - **Named exception: the raw weight end label is `muted`,** not the violet of its

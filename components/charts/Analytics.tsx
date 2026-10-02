@@ -14,6 +14,7 @@ import { StreakHeatMap } from './StreakHeatMap'
 import { TotalsChart } from './TotalsChart'
 import { useAnalytics } from './useAnalytics'
 import { useLiftData } from './useLiftData'
+import { WeekCharts } from './WeekCharts'
 import { WeightChart } from './WeightChart'
 import { ZoneSplitChart } from './ZoneSplitChart'
 
@@ -100,12 +101,15 @@ export function Analytics({ clock }: AnalyticsProps) {
       {state.status === 'ready' ? <AnalyticsView data={state.data} /> : null}
 
       {state.status === 'ready' && lifts.status === 'ready' ? (
-        <LiftCharts
-          source={lifts.source}
-          tab={state.data.tab}
-          today={state.data.today}
-          unit={state.data.unitSystem}
-        />
+        <>
+          <LiftCharts
+            source={lifts.source}
+            tab={state.data.tab}
+            today={state.data.today}
+            unit={state.data.unitSystem}
+          />
+          <WeekCharts source={lifts.source} days={state.data.days} today={state.data.today} />
+        </>
       ) : null}
 
       {state.status === 'ready' && lifts.status === 'loading' ? (

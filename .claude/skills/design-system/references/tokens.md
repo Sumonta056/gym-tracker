@@ -32,6 +32,10 @@ In a component you reach a token through its Tailwind class — `bg-surface`,
 | `--color-accent-ink`  | `#10160A` | The only text colour allowed on an accent fill.     |
 | `--color-data-cyan`   | `#22D3EE` | Walk, steps, volume load.                           |
 | `--color-data-violet` | `#A78BFA` | Weight and the 7-day average.                       |
+| `--color-data-pink`   | `#F472B6` | Muscle group balance: arms.                         |
+| `--color-data-blue`   | `#60A5FA` | Muscle group balance: shoulders.                    |
+| `--color-data-yellow` | `#FACC15` | Muscle group balance: core.                         |
+| `--color-data-slate`  | `#94A3B8` | Muscle group balance: cardio.                       |
 | `--color-warn`        | `#FB923C` | The cardio zone, a warning, the `OFFLINE` chip.     |
 | `--color-danger`      | `#F87171` | The peak zone and anything destructive.             |
 | `--color-ok`          | `#4ADE80` | Sync status when everything is pushed.              |
@@ -46,6 +50,9 @@ In a component you reach a token through its Tailwind class — `bg-surface`,
 - **The data colours mean something.** Cyan is movement and volume, violet is body
   weight, orange is the cardio zone, red is the peak zone, green is sync. Do not borrow
   a data colour because it looks nice; the reader learns the mapping across screens.
+- **The muscle group balance bar** uses accent for chest, cyan for back, violet for
+  legs, then pink, blue, yellow and slate for arms, shoulders, core and cardio. No
+  segment uses `--color-warn`, so orange in that card means only the 15 % warning.
 - **`--color-ok` also marks the fat-burn zone** in the heart rate zone bar.
 - **Never carry meaning by colour alone.** A green dot is paired with the word
   `SYNCED`. A red bar is paired with the word `Peak`.

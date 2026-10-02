@@ -40,7 +40,7 @@ Phase 1 branch merges.
 | 2.5b | `S2.5b-security-hardening.md`  | Security hardening                       | M    | 2.5              | done  |
 | 2.6  | `S2.6-link-to-day.md`          | Link a session to the day                | S    | 2.4a             | done  |
 | 2.8a | `S2.8a-lift-charts.md`         | Volume, one-rep max, the record list     | M    | 2.7a, 2.4a       | done  |
-| 2.8b | `S2.8b-week-charts.md`         | Balance, gap histogram, calories a min   | M    | 2.7b, 2.8a       | —     |
+| 2.8b | `S2.8b-week-charts.md`         | Balance, gap histogram, calories a min   | M    | 2.7b, 2.8a       | done  |
 | 2.9a | `S2.9a-csv-parser.md`          | The CSV parser, tests first              | M    | 2.2a             | —     |
 | 2.9b | `S2.9b-import-review.md`       | The import review screen                 | M    | 2.0, 2.9a        | —     |
 | 2.9c | `S2.9c-import-apply.md`        | Apply the import: Skip, Overwrite, Merge | M    | 2.9b             | —     |
