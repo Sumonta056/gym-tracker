@@ -45,7 +45,7 @@ One step is one session. Never do two steps in one session.
 | Step | File                      | Title                                         | Size | Depends on   | Commit               | State |
 | ---- | ------------------------- | --------------------------------------------- | ---- | ------------ | -------------------- | ----- |
 | A0   | `A0-design-contract.md`   | Plan docs and the sign-up and verify plates   | S    | —            | `docs(design)`       | done  |
-| A1   | `A1-sign-up-action.md`    | The sign-up schema and server action          | S    | A0           | `feat(auth)`         | —     |
+| A1   | `A1-sign-up-action.md`    | The sign-up schema and server action          | S    | A0           | `feat(auth)`         | done  |
 | A2   | `A2-sign-up-screen.md`    | `/sign-up`, the middleware, the sign-in link  | M    | A1           | `feat(auth)`         | —     |
 | A3   | `A3-remove-magic-link.md` | Remove the magic link and the callback        | S    | A2           | `refactor(auth)`     | —     |
 | B0   | `B0-resend-setup.md`      | Resend as SMTP — the owner, no code           | S    | Checkpoint A | none                 | —     |
