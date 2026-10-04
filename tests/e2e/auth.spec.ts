@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+import { test as signedIn } from './support/signedIn'
+
 test('sends an anonymous visitor from the dashboard to the sign in screen', async ({ page }) => {
   await page.goto('/')
 
@@ -46,15 +48,17 @@ test('refuses an empty password without leaving the screen', async ({ page }) =>
   await expect(page).toHaveURL(/\/sign-in$/)
 })
 
-test('switches to the magic link form and back', async ({ page }) => {
-  await page.goto('/sign-in')
+test('sends an anonymous visitor from the old callback to the sign in screen', async ({ page }) => {
+  await page.goto('/auth/callback?code=abc')
 
-  await page.getByRole('button', { name: 'Email me a link instead' }).click()
-  await expect(page.getByRole('button', { name: 'Send magic link' })).toBeVisible()
-  await expect(page.getByLabel('Password')).toHaveCount(0)
+  await expect(page).toHaveURL(/\/sign-in$/)
+})
 
-  await page.getByRole('button', { name: 'Use password instead' }).click()
-  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+signedIn('answers a signed in visit to the old callback with a 404', async ({ page }) => {
+  const response = await page.goto('/auth/callback?code=abc')
+
+  expect(response?.status()).toBe(404)
+  await expect(page).toHaveURL(/\/auth\/callback\?code=abc$/)
 })
 
 test('lets an anonymous visitor reach the sign up screen directly', async ({ page }) => {

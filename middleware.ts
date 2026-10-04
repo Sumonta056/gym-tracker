@@ -4,7 +4,7 @@ import { updateSession } from './lib/supabase/middleware'
 
 import type { NextRequest } from 'next/server'
 
-export const PUBLIC_PATHS = ['/sign-in', '/sign-up', '/auth/callback', '/styleguide', '/~offline']
+export const PUBLIC_PATHS = ['/sign-in', '/sign-up', '/styleguide', '/~offline']
 
 const SIGNED_OUT_PATHS = ['/sign-in', '/sign-up']
 

@@ -31,8 +31,8 @@ describe('isPublicPath', () => {
     expect(isPublicPath('/sign-up')).toBe(true)
   })
 
-  it('lets an anonymous visitor reach the callback', () => {
-    expect(isPublicPath('/auth/callback')).toBe(true)
+  it('does not treat the old magic link callback as public', () => {
+    expect(isPublicPath('/auth/callback')).toBe(false)
   })
 
   it('lets an anonymous visitor reach a path under a public prefix', () => {
@@ -98,6 +98,20 @@ describe('middleware', () => {
     const response = await middleware(new NextRequest('https://gym.example/sign-up'))
     expect(response.status).toBe(307)
     expect(response.headers.get('location')).toBe('https://gym.example/')
+  })
+
+  it('redirects an anonymous visitor from the old callback to the sign in screen', async () => {
+    mocks.updateSession.mockResolvedValue(session(null))
+    const response = await middleware(new NextRequest('https://gym.example/auth/callback?code=abc'))
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('https://gym.example/sign-in')
+  })
+
+  it('lets a signed in visit to the old callback through to the router', async () => {
+    mocks.updateSession.mockResolvedValue(session({ id: 'user-1' }))
+    const response = await middleware(new NextRequest('https://gym.example/auth/callback?code=abc'))
+    expect(response.status).toBe(200)
+    expect(response.headers.get('location')).toBeNull()
   })
 
   it('drops the query string when it redirects', async () => {

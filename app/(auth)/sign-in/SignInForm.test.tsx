@@ -4,19 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SignInForm } from './SignInForm'
 
-type SendResult = { status: 'sent'; email: string } | { status: 'error'; message: string }
-
 type PasswordResult = { status: 'signed-in' } | { status: 'error'; message: string }
 
 const mocks = vi.hoisted(() => ({
-  sendMagicLink: vi.fn<(email: string) => Promise<SendResult>>(),
   signInWithPassword: vi.fn<(email: string, password: string) => Promise<PasswordResult>>(),
   replace: vi.fn<(href: string) => void>(),
   refresh: vi.fn<() => void>(),
 }))
 
 vi.mock('../../../lib/auth/actions', () => ({
-  sendMagicLink: mocks.sendMagicLink,
   signInWithPassword: mocks.signInWithPassword,
 }))
 
@@ -24,21 +20,14 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }),
 }))
 
-async function openLinkMode(): Promise<void> {
-  render(<SignInForm />)
-  await userEvent.click(screen.getByRole('button', { name: 'Email me a link instead' }))
-}
-
 function resetMocks(): void {
-  mocks.sendMagicLink.mockReset()
-  mocks.sendMagicLink.mockResolvedValue({ status: 'sent', email: 'you@example.com' })
   mocks.signInWithPassword.mockReset()
   mocks.signInWithPassword.mockResolvedValue({ status: 'signed-in' })
   mocks.replace.mockReset()
   mocks.refresh.mockReset()
 }
 
-describe('SignInForm in password mode', () => {
+describe('SignInForm', () => {
   beforeEach(resetMocks)
 
   it('opens on the email and password form', () => {
@@ -46,6 +35,13 @@ describe('SignInForm in password mode', () => {
     expect(screen.getByLabelText('Email')).toHaveAttribute('autocomplete', 'username')
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
     expect(screen.getByRole('button', { name: 'Sign in' })).toHaveAttribute('type', 'submit')
+  })
+
+  it('offers no magic link', () => {
+    render(<SignInForm />)
+    expect(
+      screen.queryByRole('button', { name: 'Email me a link instead' }),
+    ).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Send magic link' })).not.toBeInTheDocument()
   })
 
@@ -88,7 +84,8 @@ describe('SignInForm in password mode', () => {
     const pending = await screen.findByRole('button', { name: 'Signing in…' })
     expect(pending).toBeDisabled()
     expect(pending).toHaveAttribute('aria-busy', 'true')
-    expect(screen.getByRole('button', { name: 'Email me a link instead' })).toBeDisabled()
+    expect(screen.getByLabelText('Email')).toBeDisabled()
+    expect(screen.getByLabelText('Password')).toBeDisabled()
 
     release({ status: 'signed-in' })
     await waitFor(() => {
@@ -151,17 +148,6 @@ describe('SignInForm in password mode', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('switches to the magic link form and back, keeping the email', async () => {
-    await openLinkMode()
-    await userEvent.type(screen.getByLabelText('Email'), 'you@example.com')
-    expect(screen.getByRole('button', { name: 'Send magic link' })).toBeInTheDocument()
-    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Use password instead' }))
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Email')).toHaveValue('you@example.com')
-  })
-
   it('links a new person to the create account screen', () => {
     render(<SignInForm />)
     expect(screen.getByText(/New here\?/)).toContainElement(
@@ -173,139 +159,13 @@ describe('SignInForm in password mode', () => {
     )
   })
 
+  it('sets the tagline at the prototype 13 px', () => {
+    render(<SignInForm />)
+    expect(screen.getByText('One log. Works with no signal in the gym.')).toHaveClass('text-[13px]')
+  })
+
   it('tells the user how to install the app on iPhone', () => {
     render(<SignInForm />)
-    expect(screen.getByText('Install on iPhone')).toBeInTheDocument()
-    expect(screen.getByText(/Add to Home Screen/)).toBeInTheDocument()
-  })
-})
-
-describe('SignInForm in magic link mode', () => {
-  beforeEach(resetMocks)
-
-  it('ties the email field to a visible label', async () => {
-    await openLinkMode()
-    expect(screen.getByLabelText('Email')).toBeInTheDocument()
-  })
-
-  it('shows an error for an invalid email and does not submit', async () => {
-    await openLinkMode()
-    await userEvent.type(screen.getByLabelText('Email'), 'not-an-email')
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Enter an email address like you@example.com.',
-    )
-    expect(mocks.sendMagicLink).not.toHaveBeenCalled()
-  })
-
-  it('ties the error to the input and marks the input invalid', async () => {
-    await openLinkMode()
-    const field = screen.getByLabelText('Email')
-    await userEvent.type(field, 'not-an-email')
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-
-    expect(field).toHaveAttribute('aria-invalid', 'true')
-    expect(field).toHaveAccessibleDescription('Enter an email address like you@example.com.')
-  })
-
-  it('clears the error once the user types again', async () => {
-    await openLinkMode()
-    const field = screen.getByLabelText('Email')
-    await userEvent.type(field, 'nope')
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-    expect(screen.getByRole('alert')).toBeInTheDocument()
-
-    await userEvent.type(field, 'x')
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  })
-
-  it('disables the button and shows a pending state while sending', async () => {
-    let release: (result: SendResult) => void = () => undefined
-    mocks.sendMagicLink.mockReturnValue(
-      new Promise<SendResult>((resolve) => {
-        release = resolve
-      }),
-    )
-
-    await openLinkMode()
-    await userEvent.type(screen.getByLabelText('Email'), 'you@example.com')
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-
-    const pending = await screen.findByRole('button', { name: 'Sending the link…' })
-    expect(pending).toBeDisabled()
-    expect(pending).toHaveAttribute('aria-busy', 'true')
-
-    release({ status: 'sent', email: 'you@example.com' })
-    await waitFor(() => {
-      expect(screen.getByText('Check your email')).toBeInTheDocument()
-    })
-  })
-
-  it('shows the check your email state after a send', async () => {
-    await openLinkMode()
-    await userEvent.type(screen.getByLabelText('Email'), 'you@example.com')
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-
-    expect(await screen.findByText('Check your email')).toBeInTheDocument()
-    expect(screen.getByText('you@example.com')).toBeInTheDocument()
-    expect(mocks.sendMagicLink).toHaveBeenCalledWith('you@example.com')
-  })
-
-  it('announces the check your email state and moves focus to it', async () => {
-    await openLinkMode()
-    await userEvent.type(screen.getByLabelText('Email'), 'you@example.com')
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-
-    const confirmation = await screen.findByRole('status')
-    expect(confirmation).toHaveTextContent('Check your email')
-    await waitFor(() => {
-      expect(confirmation).toHaveFocus()
-    })
-  })
-
-  it('breaks a long email address inside its card instead of pushing the page sideways', async () => {
-    const long = 'a.very.long.name.that.keeps.going.and.going@an-equally-long-domain.example.com'
-    mocks.sendMagicLink.mockResolvedValue({ status: 'sent', email: long })
-    await openLinkMode()
-    await userEvent.type(screen.getByLabelText('Email'), long)
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-
-    expect(await screen.findByText(long)).toHaveClass('break-words', 'min-w-0')
-  })
-
-  it('sets the secondary lines at the prototype 13 px', async () => {
-    await openLinkMode()
-    expect(screen.getByText('One log. Works with no signal in the gym.')).toHaveClass('text-[13px]')
-    expect(screen.getByText('No password. The link signs you in for 30 days.')).toHaveClass(
-      'text-[13px]',
-    )
-  })
-
-  it('goes back to the form from the check your email state', async () => {
-    await openLinkMode()
-    await userEvent.type(screen.getByLabelText('Email'), 'you@example.com')
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Use a different email' }))
-
-    expect(screen.getByRole('button', { name: 'Send magic link' })).toBeInTheDocument()
-  })
-
-  it('shows the message when the send fails', async () => {
-    mocks.sendMagicLink.mockResolvedValue({
-      status: 'error',
-      message: 'The link could not be sent.',
-    })
-    await openLinkMode()
-    await userEvent.type(screen.getByLabelText('Email'), 'you@example.com')
-    await userEvent.click(screen.getByRole('button', { name: 'Send magic link' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('The link could not be sent.')
-    expect(screen.getByRole('button', { name: 'Send magic link' })).toBeEnabled()
-  })
-
-  it('keeps the install card', async () => {
-    await openLinkMode()
     expect(screen.getByText('Install on iPhone')).toBeInTheDocument()
     expect(screen.getByText(/Add to Home Screen/)).toBeInTheDocument()
   })

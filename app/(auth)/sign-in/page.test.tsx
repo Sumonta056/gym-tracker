@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest'
 import SignInPage, { metadata } from './page'
 
 vi.mock('../../../lib/auth/actions', () => ({
-  sendMagicLink: vi.fn(),
   signInWithPassword: vi.fn(),
 }))
 
@@ -18,10 +17,12 @@ describe('the sign in page', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Gym Tracker' })).toBeInTheDocument()
   })
 
-  it('offers the password form with the magic link as a fallback', () => {
+  it('offers the password form alone', () => {
     render(<SignInPage />)
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Email me a link instead' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Email me a link instead' }),
+    ).not.toBeInTheDocument()
   })
 
   it('carries a page title', () => {

@@ -47,7 +47,7 @@ One step is one session. Never do two steps in one session.
 | A0   | `A0-design-contract.md`   | Plan docs and the sign-up and verify plates   | S    | —            | `docs(design)`       | done  |
 | A1   | `A1-sign-up-action.md`    | The sign-up schema and server action          | S    | A0           | `feat(auth)`         | done  |
 | A2   | `A2-sign-up-screen.md`    | `/sign-up`, the middleware, the sign-in link  | M    | A1           | `feat(auth)`         | done  |
-| A3   | `A3-remove-magic-link.md` | Remove the magic link and the callback        | S    | A2           | `refactor(auth)`     | —     |
+| A3   | `A3-remove-magic-link.md` | Remove the magic link and the callback        | S    | A2           | `refactor(auth)`     | done  |
 | B0   | `B0-resend-setup.md`      | Resend as SMTP — the owner, no code           | S    | Checkpoint A | none                 | —     |
 | B1   | `B1-code-actions.md`      | Verify, resend and the unverified sign-in     | S    | A3, B0       | `feat(auth)`         | —     |
 | B2   | `B2-verify-screen.md`     | `/verify` and the routes into it              | M    | B1           | `feat(auth)`         | —     |
