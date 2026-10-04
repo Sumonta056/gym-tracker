@@ -44,7 +44,7 @@ Phase 1 branch merges.
 | 2.9a | `S2.9a-csv-parser.md`          | The CSV parser, tests first              | M    | 2.2a             | done  |
 | 2.9b | `S2.9b-import-review.md`       | The import review screen                 | M    | 2.0, 2.9a        | done  |
 | 2.9c | `S2.9c-import-apply.md`        | Apply the import: Skip, Overwrite, Merge | M    | 2.9b             | done  |
-| 2.10 | `S2.10-csv-export.md`          | The CSV export and the round trip        | S    | 2.9a             | —     |
+| 2.10 | `S2.10-csv-export.md`          | The CSV export and the round trip        | S    | 2.9a             | done  |
 | 2.11 | `S2.11-verification.md`        | Phase 2 verification and device check    | S    | all              | —     |
 
 ## Order
@@ -101,8 +101,8 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 
 ### Checkpoint C — after 2.9c
 
-- [ ] The 16 old rows are in the app. The review screen handled every unclear cell.
-- [ ] The charts fill in with the imported rows.
+- [x] The 16 old rows are in the app. The review screen handled every unclear cell.
+- [x] The charts fill in with the imported rows.
 
 ### Checkpoint D — after 2.11
 
@@ -144,8 +144,8 @@ Do not build these again. Read them first.
 
 - The real 16-row sheet is not in the repository. The owner supplies it as a CSV
   before 2.9a. It goes in `tests/fixtures/gym-sheet.csv`.
-- The zip library for 2.10. The plan names `fflate`. The owner approves the new
-  dependency at 2.10.
+- The zip library for 2.10. The plan names `fflate`. 2.10 ships a small stored zip
+  writer, `lib/csv/zip.ts`, with no new dependency. The owner may still swap in `fflate`.
 - `workout_sets` has no `user_id` in the specification. Its policy reads the parent
   session. The `db-migration` skill wants `user_id` on every table. 2.1a keeps the
   specification and records it as a named exception.

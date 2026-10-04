@@ -265,6 +265,20 @@ describe('formatDuration', () => {
     { seconds: -30, text: '0m 0s' },
   ]
 
+  const hmsCases: { seconds: number; text: string }[] = [
+    { seconds: 4325, text: '1:12:05' },
+    { seconds: 2700, text: '0:45:00' },
+    { seconds: 0, text: '0:00:00' },
+    { seconds: 59, text: '0:00:59' },
+    { seconds: 86400, text: '24:00:00' },
+    { seconds: -30, text: '0:00:00' },
+    { seconds: 59.6, text: '0:01:00' },
+  ]
+
+  it.each(hmsCases)('formats $seconds seconds in the hms style as $text', ({ seconds, text }) => {
+    expect(formatDuration(seconds, 'hms')).toBe(text)
+  })
+
   it.each(minsecCases)(
     'formats $seconds seconds in the minsec style as $text',
     ({ seconds, text }) => {
@@ -292,6 +306,18 @@ describe('formatDuration', () => {
       expect(formatDuration(seconds, 'short')).toBe(text)
     },
   )
+})
+
+describe('the hms sheet round trip', () => {
+  it('reads every formatted value back as certain, with the same seconds', () => {
+    const next = mulberry32(20261004)
+
+    for (let index = 0; index < 200; index += 1) {
+      const seconds = 1 + Math.floor(next() * 86400)
+
+      expect(parseSheetValue(formatDuration(seconds, 'hms'))).toEqual({ seconds, certain: true })
+    }
+  })
 })
 
 describe('the clock round trip', () => {

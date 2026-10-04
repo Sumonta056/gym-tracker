@@ -43,6 +43,7 @@ import {
   restoreExercise,
   outboxSequence,
   drainForSignOut,
+  exportTables,
   failedWrites,
   getDay,
   getProfile,
@@ -3015,5 +3016,64 @@ describe('loggedDates', () => {
 
   it('returns an empty set for no dates', async () => {
     expect(await loggedDates([])).toEqual(new Set())
+  })
+})
+
+describe('exportTables', () => {
+  it('reads every live row of the four tables', async () => {
+    await seedGlobals()
+    const day = await upsertDay(entry('2026-09-02', { walk_seconds: 954 }))
+    const session = storedSession({})
+    const set = storedSet({ session_id: session.id })
+    await db.workoutSessions.put(session)
+    await db.workoutSets.put(set)
+
+    const tables = await exportTables()
+
+    expect(tables.dailyEntries).toEqual([day])
+    expect(tables.exercises.map((row) => row.name)).toEqual([
+      'Back Squat',
+      'Bench Press',
+      'Développé Couché',
+    ])
+    expect(tables.sessions).toEqual([session])
+    expect(tables.sets).toEqual([set])
+  })
+
+  it('leaves out a soft-deleted row of every table', async () => {
+    await seedGlobals()
+    await upsertDay(entry('2026-09-02'))
+    await softDeleteDay('2026-09-02')
+    await db.exercises.update(BENCH_ID, { deleted_at: '2026-09-03T10:00:00.000Z' })
+    const gone = storedSession({ deleted_at: '2026-09-03T10:00:00.000Z' })
+    const kept = storedSession({})
+    await db.workoutSessions.bulkPut([gone, kept])
+    await db.workoutSets.bulkPut([
+      storedSet({ session_id: kept.id, deleted_at: '2026-09-03T10:00:00.000Z' }),
+      storedSet({ session_id: gone.id }),
+    ])
+
+    const tables = await exportTables()
+
+    expect(tables.dailyEntries).toEqual([])
+    expect(tables.exercises.map((row) => row.id)).not.toContain(BENCH_ID)
+    expect(tables.sessions).toEqual([kept])
+    expect(tables.sets).toEqual([])
+  })
+
+  it('keeps an archived exercise, because past sets still name it', async () => {
+    await seedGlobals()
+    await db.exercises.update(SQUAT_ID, { is_archived: true })
+
+    expect((await exportTables()).exercises.map((row) => row.id)).toContain(SQUAT_ID)
+  })
+
+  it('writes nothing to the outbox', async () => {
+    await upsertDay(entry('2026-09-02'))
+    const before = await pendingWrites()
+
+    await exportTables()
+
+    expect(await pendingWrites()).toBe(before)
   })
 })

@@ -57,3 +57,6 @@ next-env.d.ts
 /.lighthouseci
 /playwright/.auth
 Icon?
+
+# oh-my-claudecode plugin state
+/.omc

@@ -5,11 +5,12 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
 **Step index:** `docs/plan/phase-2/index.md`
-**Next step:** Checkpoint C, then 2.10, the CSV export and the round trip → `docs/plan/phase-2/S2.10-csv-export.md`
+**Next step:** 2.11, Phase 2 verification and device check → `docs/plan/phase-2/S2.11-verification.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `feat(csv)`, 2.9c, the import applied through `importDays`. Stop at Checkpoint C for the owner.
+**Last commit:** `feat(csv)`, 2.10, the zip export read from Dexie. Checkpoint D follows 2.11.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
+The owner approved Checkpoint C on 2026-10-04.
 
 ## Resume here
 
@@ -157,6 +158,11 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   Plates p10b and p10c added. From 2.9c.
 - **The service worker wait reloads once.** A worker that activates during a navigation does not control that
   page. `waitForServiceWorker` waits for an active worker, reloads once if the page is not controlled. From fix(test).
+- **The export.** "Export all data" on the Data card saves `gym-tracker-<date>.zip`, read from Dexie through `exportTables`, offline
+  too. No `fflate`: `lib/csv/zip.ts` writes a stored zip. One `daily-entries-<year>.csv` per year in the old sheet's headers, plus a
+  Note column the importer skips. Durations are `h:mm:ss`, the `'hms'` style. Exercises, sessions and sets files too; every file
+  starts with a BOM. Soft-deleted rows and sets of a deleted session are left out. Web Share when the device can share the file,
+  else a download link. The owner accepted it as built. From 2.10.
 
 ## Open, with the step that closes each one
 
@@ -170,7 +176,6 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   returns the same 1000 rows and the import waits until that write is pushed. Nothing is lost. From 2.9c.
 - **Owner** — `gym-tracker` and `gym-tracker-auth` share port 3100. With `reuseExistingServer` on, 2 suites at once test the wrong
   build. Use a port per worktree, or never run both at once. From 2.9c.
-- **Owner, Checkpoint C** — apply the sheet online by hand and see the rows in Supabase. The e2e proves it on the test account. From 2.9c.
 - **Owner** — no plate shows the open Data card: the year field, the file input and the read error. From 2.9b.
 - **Owner** — `lastSetFor` reads every set, because `workoutSets` has no `exercise_id` index.
   An index needs Dexie version 4. Acceptable for one user. From 2.2b.
@@ -185,7 +190,7 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   same rule fits daily entries and profiles. From 2.2c.
 - **Owner** — the e2e suite fails 1 to 6 tests on some runs: WebKit timeouts and `fetch failed`
   in the Supabase cleanup helper. Each passes on rerun. From 2.2c. Also `dashboard.spec.ts:27` on WebKit: the
-  dashboard showed the day with no gym time; it passed 5 of 5 alone. From 2.5b A.
+  dashboard showed the day with no gym time; it passed 5 of 5 alone. From 2.5b A. Again in the 2.10 verify; 3 of 3 alone.
 - **Owner** — no test proves that `activate` deletes an old `supabase` cache on a device with the old worker. From 2.5b A.
 - **Later step** — match the Supabase rule in `app/sw.ts` on the origin of `NEXT_PUBLIC_SUPABASE_URL`, not on the
   `.supabase.co` host, so a custom domain or a local stack is not cached. From 2.5b A.
@@ -233,6 +238,12 @@ The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
   (`waitForServiceWorker`) on desktop, `dashboard.spec.ts:27` and `a11y.spec.ts:155` (`JWT issued at future`) on WebKit. From 2.8b.
 - **Owner** — probably a process outside the session staged `PROGRESS.md` and the step index during the pre-commit hook of `96f40e5`.
   The gate checks the hash before the hook, so it did not see it. From fix(ui), 2026-10-01.
+- **Owner** — the export hides in production: the Data card shows only with `NEXT_PUBLIC_ENABLE_CSV_IMPORT`. Show the card with the
+  export alone? The export only reads. From 2.10.
+- **Owner** — a Mac browser that can share a file gets a share sheet, not a download. Share only in the home-screen app? From 2.10.
+- **Later step** — the importer skips the export's Note column, so notes do not come back. A stored 0 duration comes back empty,
+  as 2.9a settled. Also swap in `fflate` if the owner wants it. From 2.10.
+- **Owner** — plate p6 has no Data card, and the busy export state has no spoken confirmation. From 2.10.
 
 ## Phases
 

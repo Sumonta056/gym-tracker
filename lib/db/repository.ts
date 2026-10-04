@@ -895,6 +895,33 @@ async function liveSetsOf(exerciseIds: readonly string[]): Promise<WorkoutSet[]>
     .toArray()
 }
 
+export type ExportTables = {
+  dailyEntries: DailyEntry[]
+  exercises: Exercise[]
+  sessions: WorkoutSession[]
+  sets: WorkoutSet[]
+}
+
+export async function exportTables(): Promise<ExportTables> {
+  return db.transaction(
+    'r',
+    [db.dailyEntries, db.exercises, db.workoutSessions, db.workoutSets],
+    async () => {
+      const dailyEntries = await listRange('0000-01-01', '9999-12-31')
+      const exercises = await listExercises({ includeArchived: true })
+      const sessions = (await db.workoutSessions.toArray())
+        .filter((row) => row.deleted_at === null)
+        .sort(byStart)
+      const live = new Set(sessions.map((session) => session.id))
+      const sets = (await db.workoutSets.toArray())
+        .filter((row) => row.deleted_at === null && live.has(row.session_id))
+        .sort(inDoneOrder)
+
+      return { dailyEntries, exercises, sessions, sets }
+    },
+  )
+}
+
 export async function setsForExercises(exerciseIds: string[]): Promise<WorkoutSet[]> {
   return (await liveSetsOf(exerciseIds)).sort(inDoneOrder)
 }
