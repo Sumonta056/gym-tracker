@@ -12,7 +12,7 @@ import { openLiftCharts, openLiveSession, openPicker } from './support/workout'
 
 import type { Page } from '@playwright/test'
 
-const PUBLIC_ROUTES = ['/sign-in', '/styleguide', '/~offline']
+const PUBLIC_ROUTES = ['/sign-in', '/sign-up', '/styleguide', '/~offline']
 const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/profile']
 const FOCUS_WIDTHS = [390, 1440]
 const MOST_TAB_STOPS = 400

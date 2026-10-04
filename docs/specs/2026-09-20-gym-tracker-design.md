@@ -289,11 +289,11 @@ labels, a goal or average line, and a clear state for sparse data. The rules are
 Three phases. Each phase has its own step-by-step plan file. Do not start a phase
 before the previous phase passes its checklist.
 
-| Phase | File                      | Content                                                                                        |
-| ----- | ------------------------- | ---------------------------------------------------------------------------------------------- |
-| 0     | `docs/plan/00-phase-0.md` | Tooling, the Claude workspace, the design system, the prototype, the Progressive Web App shell |
-| 1     | `docs/plan/01-phase-1.md` | Auth, the 8-column form, offline sync, the dashboard, the Phase 1 charts                       |
-| 2     | `docs/plan/02-phase-2.md` | The exercise library, the live set logger, the rest timer, the Phase 2 charts, the CSV import  |
+| Phase | File                              | Content                                                                                        |
+| ----- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 0     | `docs/plan/archive/00-phase-0.md` | Tooling, the Claude workspace, the design system, the prototype, the Progressive Web App shell |
+| 1     | `docs/plan/archive/01-phase-1.md` | Auth, the 8-column form, offline sync, the dashboard, the Phase 1 charts                       |
+| 2     | `docs/plan/archive/02-phase-2.md` | The exercise library, the live set logger, the rest timer, the Phase 2 charts, the CSV import  |
 
 `PROGRESS.md` names the next step. It is the entry point for every new session.
 

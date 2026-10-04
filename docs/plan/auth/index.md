@@ -4,18 +4,19 @@
 **Progress:** `docs/plan/auth/PROGRESS.md`. Not the root `PROGRESS.md`.
 **Command:** `/resume-auth` runs the next step.
 
-**Branch:** `feat/email-registration`, cut from `feat/phase-2-workout-log` at `c9ffdc0`.
-**Worktree:** `/Users/cefalo_1/Documents/Projects/gym-tracker-auth`. Every auth session runs here.
-**Merges into:** `feat/phase-2-workout-log`, in step M1.
+**Branch:** phase A and M1 are merged. Phase B starts on a new branch from `main`.
+**Worktree:** none. Removed in M1. Phase B runs in the main folder.
+**Done steps:** A0 to A3 and M1 live in `docs/plan/archive/auth/`.
 
-This track runs next to Phase 2. Phase 2 keeps working in the main folder on its own branch.
 One step is one session. Never do two steps in one session.
 
-## Rules that keep Phase 2 unblocked
+## Rules that kept Phase 2 unblocked
+
+These rules applied while the worktree existed. Rules 3 and 4 still apply to any second folder.
 
 1. **Work only in the worktree.** Never `cd` into `/Users/cefalo_1/Documents/Projects/gym-tracker`
    and never check out another branch there.
-2. **Never edit the root `PROGRESS.md`, `CLAUDE.md` or `docs/plan/phase-2/**`.** Step M1 changes
+2. **Never edit the root `PROGRESS.md`, `CLAUDE.md` or `docs/plan/archive/phase-2/**`.** Step M1 changes
    them once, at merge time.
 3. **One e2e run at a time across both folders.** Playwright uses port 3100 with
    `reuseExistingServer` (`playwright.config.ts:11`, `:53`). A server from the other folder on that
@@ -42,16 +43,16 @@ One step is one session. Never do two steps in one session.
 
 ## The steps
 
-| Step | File                      | Title                                         | Size | Depends on   | Commit               | State   |
-| ---- | ------------------------- | --------------------------------------------- | ---- | ------------ | -------------------- | ------- |
-| A0   | `A0-design-contract.md`   | Plan docs and the sign-up and verify plates   | S    | —            | `docs(design)`       | done    |
-| A1   | `A1-sign-up-action.md`    | The sign-up schema and server action          | S    | A0           | `feat(auth)`         | done    |
-| A2   | `A2-sign-up-screen.md`    | `/sign-up`, the middleware, the sign-in link  | M    | A1           | `feat(auth)`         | done    |
-| A3   | `A3-remove-magic-link.md` | Remove the magic link and the callback        | S    | A2           | `refactor(auth)`     | done    |
-| B0   | `B0-resend-setup.md`      | Resend as SMTP — the owner, no code           | S    | Checkpoint A | none                 | paused  |
-| B1   | `B1-code-actions.md`      | Verify, resend and the unverified sign-in     | S    | A3, B0       | `feat(auth)`         | —       |
-| B2   | `B2-verify-screen.md`     | `/verify` and the routes into it              | M    | B1           | `feat(auth)`         | —       |
-| M1   | `M1-merge.md`             | Merge into Phase 2, docs, remove the worktree | S    | Checkpoint B | `docs(docs)` + merge | phase A |
+| Step | File                      | Title                                         | Size | Depends on   | Commit               | State  |
+| ---- | ------------------------- | --------------------------------------------- | ---- | ------------ | -------------------- | ------ |
+| A0   | `A0-design-contract.md`   | Plan docs and the sign-up and verify plates   | S    | —            | `docs(design)`       | done   |
+| A1   | `A1-sign-up-action.md`    | The sign-up schema and server action          | S    | A0           | `feat(auth)`         | done   |
+| A2   | `A2-sign-up-screen.md`    | `/sign-up`, the middleware, the sign-in link  | M    | A1           | `feat(auth)`         | done   |
+| A3   | `A3-remove-magic-link.md` | Remove the magic link and the callback        | S    | A2           | `refactor(auth)`     | done   |
+| B0   | `B0-resend-setup.md`      | Resend as SMTP — the owner, no code           | S    | Checkpoint A | none                 | paused |
+| B1   | `B1-code-actions.md`      | Verify, resend and the unverified sign-in     | S    | A3, B0       | `feat(auth)`         | —      |
+| B2   | `B2-verify-screen.md`     | `/verify` and the routes into it              | M    | B1           | `feat(auth)`         | —      |
+| M1   | `M1-merge.md`             | Merge into Phase 2, docs, remove the worktree | S    | Checkpoint B | `docs(docs)` + merge | done   |
 
 ## Checkpoints
 

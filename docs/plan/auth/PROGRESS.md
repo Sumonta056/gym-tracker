@@ -2,11 +2,11 @@
 
 **Start of every session:** run `/resume-auth`. It reads this file, then the step file named below.
 
-**Worktree:** `/Users/cefalo_1/Documents/Projects/gym-tracker-auth`
-**Branch:** `feat/email-registration`, cut from `feat/phase-2-workout-log` at `c9ffdc0`.
-**Next step:** M1 step 5, fast-forward Phase 2 → `docs/plan/auth/M1-merge.md`. Phase B waits for a domain.
-**Last commit:** `docs(docs): record checkpoint a and pause phase b`, then the merge of Phase 2 at `69d2d8c`.
-**Phase 2 branch last seen at:** `69d2d8c`. Merged into this branch in M1.
+**Worktree:** none. Removed in M1. Phase B runs in the main folder.
+**Branch:** none. Phase B starts on a new branch from `main`, for example `feat/email-verify-code`.
+**Next step:** B0, when the owner has a domain → `docs/plan/auth/B0-resend-setup.md`. Phase B is paused.
+**Last commit:** `docs(docs): describe open registration after the auth merge` at `f0f4eed`.
+**Done steps:** A0 to A3 and M1 live in `docs/plan/archive/auth/`.
 
 ## Resume here
 
@@ -18,8 +18,9 @@
 - 2026-10-04: `fix(ui)` Today reads the profile live. Checkpoint A passed, ticked by the owner.
 - 2026-10-04: B0 paused at step 1, no domain. Phase B paused. Next is M1 with phase A only.
 - 2026-10-04: M1 steps 1 to 4. Phase 2 merged with no conflicts. Prototype and docs fixed. Local `feat/password-sign-in` and `feat/phase-1-daily-tracker` deleted.
+- 2026-10-04: M1 steps 5 to 7. `feat/phase-2-workout-log` fast-forwarded to `f0f4eed`. The worktree is removed. `git branch -d feat/email-registration` waits for the owner. `pnpm verify` passed in the main folder: 2715 unit tests, 528 e2e passed, 1 skipped (WebKit has no service worker). M1 done with phase A only.
 - PATH: `export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:$PATH"`. Node 20 breaks jsdom tests.
-- Before any e2e run, port 3100 must be free. See index rule 3.
+- Before any e2e run, port 3100 must be free.
 
 ## Settled, do not reopen
 
@@ -82,8 +83,8 @@
 ## Steps
 
 - [x] A0 · [x] A1 · [x] A2 · [x] A3 · [x] Checkpoint A
+- [x] M1, phase A only
 - [ ] B0 · [ ] B1 · [ ] B2 · [ ] Checkpoint B
-- [ ] M1
 
 ## How to update this file
 

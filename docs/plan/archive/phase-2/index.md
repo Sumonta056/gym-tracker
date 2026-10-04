@@ -1,6 +1,6 @@
 # Phase 2 — step index
 
-`docs/plan/02-phase-2.md` is the source of truth. This folder splits it into 22 step
+`docs/plan/archive/02-phase-2.md` is the source of truth. This folder splits it into 22 step
 files. One step is one session. Never do two steps in one session.
 
 A step keeps the number of its section in the source. A large section splits into
@@ -84,14 +84,12 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 
 - [x] The owner opened the prototype and accepted the 5 new plates.
 
-### Checkpoint A — after 2.2d
-
-- [ ] The migration applies on a fresh database, with the seed.
-- [ ] Account A cannot read a session or a set of account B.
-- [ ] A second active session is refused, on the device and on the server.
-- [ ] An offline session and its sets sync in parent-first order after a reload.
-- [ ] The sync worker never pushes a global seed exercise.
-- [ ] `lib/sync/**` coverage is 95 percent or higher.
+- [x] The migration applies on a fresh database, with the seed.
+- [x] Account A cannot read a session or a set of account B.
+- [x] A second active session is refused, on the device and on the server.
+- [x] An offline session and its sets sync in parent-first order after a reload.
+- [x] The sync worker never pushes a global seed exercise.
+- [x] `lib/sync/**` coverage is 95 percent or higher.
 
 ### Checkpoint B — after 2.5
 
@@ -106,7 +104,7 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 
 ### Checkpoint D — after 2.11
 
-- [ ] Every item in the Phase 2 checklist of `docs/plan/02-phase-2.md` passes.
+- [x] Every item in the Phase 2 checklist of `docs/plan/archive/02-phase-2.md` passes.
 
 ## What Phase 1 already built
 

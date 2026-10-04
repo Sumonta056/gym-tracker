@@ -10,9 +10,10 @@ It works with no network in the gym. It also works on a laptop.
 | --------------------------------------------- | --------------------------------------------------- |
 | `PROGRESS.md`                                 | The next step. Update it after every step.          |
 | `docs/specs/2026-09-20-gym-tracker-design.md` | What we are building and why                        |
-| `docs/plan/00-phase-0.md`                     | Foundation: tooling, Claude setup, design system    |
-| `docs/plan/01-phase-1.md`                     | The daily tracker                                   |
-| `docs/plan/02-phase-2.md`                     | The live workout log and the CSV import             |
+| `docs/plan/archive/00-phase-0.md`             | Foundation: tooling, Claude setup, design system    |
+| `docs/plan/archive/01-phase-1.md`             | The daily tracker                                   |
+| `docs/plan/archive/02-phase-2.md`             | The live workout log and the CSV import             |
+| `docs/plan/03-phase-3.md`                     | Coach plans. The current phase.                     |
 | `docs/design/prototype/index.html`            | The visual contract. Open it in a browser.          |
 | `.claude/skills/design-system/`               | Load this before any UI work                        |
 | `.claude/rules/architecture.md`               | The repository, UUID, soft delete and seconds rules |

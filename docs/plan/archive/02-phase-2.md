@@ -7,7 +7,7 @@ Do not start Phase 2 before every Phase 1 checklist item passes.
 Exit condition: a full session is recorded offline, the old sheet is in the app, and
 the personal record chart is correct.
 
-**Step files:** `docs/plan/phase-2/index.md` splits this plan into 21 steps, one per
+**Step files:** `docs/plan/archive/phase-2/index.md` splits this plan into 21 steps, one per
 session. Step 2.0 adds the missing prototype plates first. The index gives the run
 order.
 

@@ -1,6 +1,6 @@
 # Phase 1 — step index
 
-`docs/plan/01-phase-1.md` is the source of truth. This folder splits it into 17 step
+`docs/plan/archive/01-phase-1.md` is the source of truth. This folder splits it into 17 step
 files, plus step 1.13b, added after 1.13. One step is one session. Never do two steps in one session.
 
 **Branch for all of Phase 1:** `feat/phase-1-daily-tracker`
@@ -82,7 +82,7 @@ Stop and report to the user at each checkpoint. Do not continue without approval
 
 Steps 1.1 to 1.17 are done.
 
-- [x] Every item in the Phase 1 checklist of `docs/plan/01-phase-1.md` passes.
+- [x] Every item in the Phase 1 checklist of `docs/plan/archive/01-phase-1.md` passes.
 
 ## What Phase 0 already built
 
