@@ -18,7 +18,7 @@ export type ParsedInput = { ok: true; seconds: number } | { ok: false; reason: s
 
 export type ParsedSheetValue = { seconds: number; certain: boolean }
 
-export type DurationStyle = 'clock' | 'short' | 'minutes' | 'minsec'
+export type DurationStyle = 'clock' | 'hms' | 'short' | 'minutes' | 'minsec'
 
 export function parseInput(text: string): ParsedInput {
   const compact = text.toLowerCase().replaceAll(/\s+/g, '')
@@ -110,7 +110,7 @@ export function formatDuration(seconds: number, style: DurationStyle): string {
 
   const rest = safe % SECONDS_PER_MINUTE
 
-  if (hours === 0) {
+  if (hours === 0 && style === 'clock') {
     return `${String(minutes)}:${pad(rest)}`
   }
 

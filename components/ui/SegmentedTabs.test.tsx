@@ -10,7 +10,7 @@ const OPTIONS = [
   { value: 'month', label: 'Month' },
 ]
 
-function setup(value = 'day') {
+function setup(value: string | null = 'day') {
   const onValueChange = vi.fn()
   render(
     <SegmentedTabs label="Range" options={OPTIONS} value={value} onValueChange={onValueChange} />,
@@ -40,6 +40,13 @@ describe('SegmentedTabs', () => {
     const selected = screen.getByRole('button', { name: 'Week' })
     expect(selected).toHaveClass('bg-accent')
     expect(selected).toHaveClass('text-accent-ink')
+  })
+
+  it('marks no option as pressed when nothing is chosen yet', () => {
+    setup(null)
+    for (const button of screen.getAllByRole('button')) {
+      expect(button).toHaveAttribute('aria-pressed', 'false')
+    }
   })
 
   it('reports the option the user picks', async () => {

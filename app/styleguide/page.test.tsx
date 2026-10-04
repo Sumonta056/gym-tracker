@@ -91,8 +91,19 @@ describe('the styleguide page', { timeout: 15000 }, () => {
   it('renders the profile sample with the import card hidden, as the flag is off', () => {
     const grid = within(screen.getByTestId('profile-grid-sample'))
     expect(grid.getByLabelText('Target weight (kg)')).toHaveValue('71.0')
-    expect(grid.queryByRole('button', { name: 'Import the Excel CSV' })).not.toBeInTheDocument()
+    expect(grid.queryByRole('button', { name: 'Import the old sheet' })).not.toBeInTheDocument()
     expect(screen.getByTestId('data-card')).toBeInTheDocument()
+  })
+
+  it('renders the import review sample with its review cells and its error row', async () => {
+    const sample = within(screen.getByTestId('import-review-sample'))
+    await waitFor(() => {
+      expect(sample.getByTestId('import-count')).toHaveTextContent(
+        '3 of 3 to check: 2 cells, 1 date',
+      )
+    })
+    expect(sample.getByRole('button', { name: 'Apply import' })).toBeDisabled()
+    expect(sample.getAllByText(/This row is left out of the import\./).length).toBeGreaterThan(0)
   })
 
   it('switches the profile sample to imperial from its unit toggle', async () => {
@@ -563,6 +574,42 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     )
 
     expect(within(sample).getByRole('region', { name: 'Gym time from the session' })).toBeVisible()
+  })
+
+  it('shows a date already logged with its three choices and no pick yet', () => {
+    const group = within(
+      screen.getByRole('group', { name: 'Row 16, 13 September, already logged' }),
+    )
+    for (const name of ['Skip', 'Overwrite', 'Merge']) {
+      expect(group.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'false')
+    }
+  })
+
+  it('opens the import confirm sheet sample with its counts and closes it on Cancel', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the import confirm sheet' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'Apply the import?' }))
+    expect(dialog.getByTestId('confirm-created')).toHaveTextContent('12')
+    expect(dialog.getByTestId('confirm-leftOut')).toHaveTextContent('1')
+    expect(dialog.getByRole('button', { name: 'Import 15 days' })).toBeInTheDocument()
+    await userEvent.click(dialog.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog', { name: 'Apply the import?' })).not.toBeInTheDocument()
+  })
+
+  it('closes the import confirm sheet sample on its import button too', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the import confirm sheet' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Import 15 days' }))
+    expect(screen.queryByRole('dialog', { name: 'Apply the import?' })).not.toBeInTheDocument()
+  })
+
+  it('shows the dashboard import result sample as a status', () => {
+    const sample = within(screen.getByTestId('import-notice-sample'))
+    expect(sample.getByRole('status')).toHaveTextContent(
+      'The sheet is imported: 12 new, 1 overwritten, 2 merged, 1 skipped, 1 left out.',
+    )
+  })
+
+  it('marks the duration sample ready once the page has hydrated', () => {
+    expect(screen.getByTestId('duration-sample')).toHaveAttribute('data-ready', 'true')
   })
 
   it('opens the finish sheet sample and closes it from either choice', async () => {

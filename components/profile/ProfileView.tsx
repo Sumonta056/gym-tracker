@@ -2,6 +2,8 @@
 
 import { useId, useState } from 'react'
 
+import { ImportReview } from '../csv/ImportReview'
+import { SyncChipView } from '../sync/SyncChip'
 import { Card } from '../ui/Card'
 import { cn } from '../ui/cn'
 import { MicroLabel } from '../ui/MicroLabel'
@@ -16,6 +18,7 @@ import { SyncCard } from './SyncCard'
 import { TargetsCard } from './TargetsCard'
 import { UnitsCard } from './UnitsCard'
 
+import type { ChosenSheet } from './DataCard'
 import type { ManageExerciseSource } from './ManageExercisesSheet'
 import type { DeadLetter, Profile } from '../../lib/db/dexie'
 import type { SyncStatusReport } from '../../lib/db/repository'
@@ -87,10 +90,26 @@ export function ProfileView({
   testId = 'profile-grid',
 }: ProfileViewProps) {
   const [managing, setManaging] = useState(false)
+  const [importing, setImporting] = useState<ChosenSheet | null>(null)
   const unit = profile.unit_system
   const hintId = useId()
   const errorId = useId()
   const unsynced = report.pending + report.failed
+
+  if (importing !== null) {
+    return (
+      <ImportReview
+        fileName={importing.fileName}
+        text={importing.text}
+        initialYear={importing.year}
+        focusOnMount
+        status={<SyncChipView report={report} className="shrink-0" />}
+        onClose={() => {
+          setImporting(null)
+        }}
+      />
+    )
+  }
 
   return (
     <>
@@ -126,7 +145,7 @@ export function ProfileView({
             </span>
           </button>
         </Card>
-        {showImport ? <DataCard /> : null}
+        {showImport ? <DataCard onSheet={setImporting} /> : null}
         <SyncCard
           report={report}
           busy={syncBusy}

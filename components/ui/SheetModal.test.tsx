@@ -250,6 +250,35 @@ describe('SheetModal', () => {
     document.body.style.overflow = ''
   })
 
+  it('disables its close button and backdrop while closing is not allowed', async () => {
+    const onClose = vi.fn()
+    render(
+      <SheetModal open title="Log a set" onClose={onClose} closeDisabled>
+        <p>Sheet body</p>
+      </SheetModal>,
+    )
+    expect(screen.getByRole('button', { name: 'Close Log a set' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled()
+    await userEvent.keyboard('{Escape}')
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('closes on escape again once closing is allowed', async () => {
+    const onClose = vi.fn()
+    const { rerender } = render(
+      <SheetModal open title="Log a set" onClose={onClose} closeDisabled>
+        <p>Sheet body</p>
+      </SheetModal>,
+    )
+    rerender(
+      <SheetModal open title="Log a set" onClose={onClose}>
+        <p>Sheet body</p>
+      </SheetModal>,
+    )
+    await userEvent.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
   it('keeps the close button at 44 px', () => {
     setup()
     const close = screen.getByRole('button', { name: 'Close Log a set' })

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import * as repository from '../db/repository'
 
-import { parseSheet } from './import'
+import { parseSheet, rowEntry } from './import'
 
 import type { ParsedSheet, SheetCell, SheetField } from './import'
 
@@ -567,6 +567,56 @@ describe('parseSheet', () => {
     ])
   })
 
+  it('reports a short data row by its line and reads its missing cells as blank', () => {
+    const parsed = parseSheet(sheet('August 12,25,1:02:41', 'August 13,30,,,,,,'), YEAR)
+
+    expect(parsed.issues).toEqual([
+      expect.objectContaining({ kind: 'short_row', line: 2, column: null }),
+    ])
+    expect(parsed.rows).toHaveLength(2)
+    expect(cellOf(parsed, 0, 'gym_seconds')).toEqual({ status: 'ok', raw: '1:02:41', value: 3761 })
+    expect(cellOf(parsed, 0, 'steps')).toEqual({ status: 'ok', raw: '', value: null })
+  })
+
+  it('reports a long data row by its line and ignores the cells past the header', () => {
+    const parsed = parseSheet(sheet('August 12,25,,,,,,9874,extra,more'), YEAR)
+
+    expect(parsed.issues).toEqual([
+      expect.objectContaining({ kind: 'long_row', line: 2, column: null }),
+    ])
+    expect(cellOf(parsed, 0, 'steps')).toEqual({ status: 'ok', raw: '9874', value: 9874 })
+  })
+
+  it('reports an unclosed quote by the line it opens on', () => {
+    const text = `${HEADER}\nAugust 12,25,,,,,,9874\nAugust 13,"30,,,,,,\nAugust 14,20,,,,,,\n`
+
+    const parsed = parseSheet(text, YEAR)
+
+    expect(parsed.issues).toContainEqual(
+      expect.objectContaining({ kind: 'unclosed_quote', line: 3, column: null }),
+    )
+    expect(parsed.rows[0]?.line).toBe(2)
+  })
+
+  it('gives the short row, long row and unclosed quote issues a message that names the line', () => {
+    const short = parseSheet(sheet('August 12,25'), YEAR).issues
+    const long = parseSheet(sheet('August 12,25,,,,,,,,'), YEAR).issues
+    const quote = parseSheet(`${HEADER}\nAugust 12,"25\n`, YEAR).issues
+
+    for (const issue of [...short, ...long, ...quote]) {
+      expect(issue.message).toMatch(/Line \d+/)
+    }
+    expect([...short, ...long, ...quote].map((issue) => issue.kind)).toEqual([
+      'short_row',
+      'long_row',
+      'unclosed_quote',
+    ])
+  })
+
+  it('reports no row issue for the 16-row sheet', () => {
+    expect(parseSheet(SHEET, YEAR).issues).toEqual([])
+  })
+
   it('returns no rows and no issues for a header with no rows', () => {
     expect(parseSheet(`${HEADER}\n`, YEAR)).toEqual({ rows: [], issues: [] })
   })
@@ -593,5 +643,58 @@ describe('parseSheet', () => {
 
     expect(Object.values(repository).filter((value) => vi.isMockFunction(value))).not.toEqual([])
     expect(called).toEqual([])
+  })
+})
+
+describe('rowEntry', () => {
+  function firstRow(text: string) {
+    const row = parseSheet(text, YEAR).rows[0]
+
+    if (row === undefined) {
+      throw new Error('No row')
+    }
+
+    return row
+  }
+
+  it('turns an ok row into a daily entry draft with every sheet field', () => {
+    const row = firstRow(sheet('August 12,1:02:41,1:02:41,131,164,81.40,412,"11,482"'))
+
+    expect(rowEntry(row, {})).toEqual({
+      entry_date: '2025-08-12',
+      walk_seconds: 3761,
+      gym_seconds: 3761,
+      avg_heart_rate: 131,
+      max_heart_rate: 164,
+      weight_kg: 81.4,
+      calories_burnt: 412,
+      steps: 11482,
+    })
+  })
+
+  it('reads a blank cell as null', () => {
+    const row = firstRow(sheet('August 12,,,,,,,'))
+
+    expect(rowEntry(row, {})).toMatchObject({ walk_seconds: null, steps: null, weight_kg: null })
+  })
+
+  it('takes the seconds of the picked reading of a review cell', () => {
+    const row = firstRow(sheet('August 12,15.54,,,,,,'))
+
+    expect(rowEntry(row, { walk_seconds: 0 })?.walk_seconds).toBe(954)
+    expect(rowEntry(row, { walk_seconds: 1 })?.walk_seconds).toBe(932)
+  })
+
+  it('returns null while a review cell has no pick', () => {
+    const row = firstRow(sheet('August 12,15.54,,,,,,'))
+
+    expect(rowEntry(row, {})).toBeNull()
+    expect(rowEntry(row, { walk_seconds: 2 })).toBeNull()
+  })
+
+  it('returns null for a row with an error', () => {
+    const row = firstRow(sheet('August 12,25,,,,,,5.9k'))
+
+    expect(rowEntry(row, {})).toBeNull()
   })
 })

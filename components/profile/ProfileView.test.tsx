@@ -64,12 +64,41 @@ describe('ProfileView', () => {
   it('leaves the Phase 2 import card out of the document while the flag is off', () => {
     renderView()
     expect(screen.queryByTestId('data-card')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Import the Excel CSV' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Import the old sheet' })).not.toBeInTheDocument()
   })
 
   it('shows the import card while the flag is on', () => {
     renderView({ showImport: true })
     expect(screen.getByTestId('data-card')).toBeInTheDocument()
+  })
+
+  it('opens the import review for a chosen sheet, and comes back to the profile', async () => {
+    renderView({ showImport: true })
+    await userEvent.click(screen.getByRole('button', { name: 'Import the old sheet' }))
+    const year = screen.getByLabelText('Year of the sheet')
+    await userEvent.clear(year)
+    await userEvent.type(year, '2025')
+    await userEvent.upload(
+      screen.getByLabelText('The sheet as a CSV file'),
+      new File(
+        [
+          'Day,Walk Time,Gym Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps\nAugust 12,15.54,,,,,,\n',
+        ],
+        'old.csv',
+        { type: 'text/csv' },
+      ),
+    )
+
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Import review' })
+    expect(heading).toHaveFocus()
+    expect(screen.getByText('old.csv · 1 row')).toBeInTheDocument()
+    expect(screen.getByText('2025')).toBeInTheDocument()
+    expect(screen.getByTestId('import-count')).toHaveTextContent('1 of 1 to check: 1 cell')
+    expect(screen.queryByTestId('profile-grid')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to the profile' }))
+
+    expect(screen.getByTestId('profile-grid')).toBeInTheDocument()
   })
 
   it('shows the rest sound setting and hands a change to its owner', async () => {

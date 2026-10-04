@@ -35,6 +35,12 @@ export type SeedRow = Omit<TablesInsert<'daily_entries'>, 'id' | 'user_id'>
 
 export type SeedSession = Pick<TablesInsert<'workout_sessions'>, 'entry_date' | 'started_at'>
 
+export type SetRow = Tables<'workout_sets'>
+
+export type SeedSet = Pick<TablesInsert<'workout_sets'>, 'exercise_id' | 'reps' | 'weight_kg'>
+
+export type SeedFinishedSession = SeedSession & { ended_at: string; sets: readonly SeedSet[] }
+
 type Client = SupabaseClient<Database>
 
 type StoredState = { cookies: Cookie[]; origins: unknown[] }
@@ -248,6 +254,47 @@ export class Account {
 
       await new Promise((resolve) => setTimeout(resolve, LATE_WRITE_MS))
     }
+  }
+
+  async seedFinishedSessions(sessions: readonly SeedFinishedSession[]): Promise<SetRow[]> {
+    const rows = sessions.map(({ sets, ...session }) => ({
+      session: {
+        ...session,
+        id: randomUUID(),
+        user_id: this.userId,
+        status: 'finished' as const,
+      },
+      sets,
+    }))
+
+    const { error: sessionError } = await this.client
+      .from('workout_sessions')
+      .insert(rows.map((row) => row.session))
+
+    if (sessionError !== null) {
+      throw new Error(`Seeding the finished sessions failed: ${sessionError.message}`)
+    }
+
+    const { data, error } = await this.client
+      .from('workout_sets')
+      .insert(
+        rows.flatMap((row) =>
+          row.sets.map((set, index) => ({
+            ...set,
+            id: randomUUID(),
+            session_id: row.session.id,
+            set_index: index,
+            completed_at: row.session.started_at,
+          })),
+        ),
+      )
+      .select('*')
+
+    if (error !== null) {
+      throw new Error(`Seeding the finished sets failed: ${error.message}`)
+    }
+
+    return data
   }
 
   async seed(rows: readonly SeedRow[]): Promise<DailyRow[]> {

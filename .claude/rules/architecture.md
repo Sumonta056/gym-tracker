@@ -117,7 +117,9 @@ Two known limits:
   that drain runs, saves are refused until it comes back online.
 - **Kept on purpose: no Web Locks and no `localStorage`.** In a browser with neither,
   for example Safari before 15.4 in a private window, another tab can drain during a
-  sign-out and fill the device again, or lift `signed_out` early. Closing this needs a
+  sign-out and fill the device again, or lift `signed_out` early. That drain can also
+  write the first-pull marker after the clear, so an import right after the next
+  sign-in can pass before the device holds the server's days. Closing this needs a
   guard in IndexedDB that knows which session is signing out. That guard would compare
   a device clock or a session id against the server, and a wrong answer leaves the
   device stuck with no sync and no save. That risk is worse than the case it closes.

@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test'
 
+import { openImportReview } from './support/sheet'
 import {
   openRoute,
   openWithWeek,
   SIGNED_IN_ROUTES as LIVE_ROUTES,
   test as signedIn,
 } from './support/signedIn'
+import { openLiftCharts, openLiveSession, openPicker } from './support/workout'
 
 import type { Page } from '@playwright/test'
 
@@ -148,6 +150,89 @@ for (const route of PUBLIC_ROUTES) {
   })
 }
 
+test('never scrolls sideways on the import review sample at 320 px, with the year form open', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.goto('/styleguide')
+  const sample = page.getByTestId('import-review-sample')
+  await sample.getByRole('button', { name: 'Change year' }).click()
+  await expect(sample.getByLabel('Year of the sheet')).toBeVisible()
+
+  expect(await sideways(page)).toEqual([])
+  expect(await smallTargets(page)).toEqual([])
+})
+
+test('fits the three import choices at 14 px inside their card at 320 px, each 44 px tall', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.goto('/styleguide')
+  const groups = page.getByRole('group', { name: /already logged$|^Apply to all duplicates$/ })
+  await expect(groups).not.toHaveCount(0)
+
+  const problems: string[] = []
+  for (const group of await groups.all()) {
+    await group.scrollIntoViewIfNeeded()
+    problems.push(
+      ...(await group.evaluate((element) => {
+        const out: string[] = []
+        const name = element.getAttribute('aria-label') ?? ''
+        const card = element.closest('[data-testid], li, td') ?? element.parentElement
+        const limit = card === null ? Infinity : card.getBoundingClientRect().right + 0.5
+        if (element.getBoundingClientRect().right > limit)
+          out.push(`${name}: group spills its card`)
+        for (const button of element.querySelectorAll('button')) {
+          const box = button.getBoundingClientRect()
+          const size = getComputedStyle(button).fontSize
+          if (size !== '14px') out.push(`${name} ${button.textContent}: ${size}`)
+          if (box.height < 44)
+            out.push(`${name} ${button.textContent}: ${String(box.height)}px tall`)
+          if (button.scrollWidth > button.clientWidth) {
+            out.push(
+              `${name} ${button.textContent}: text ${String(button.scrollWidth)} > ${String(button.clientWidth)}`,
+            )
+          }
+        }
+        return out
+      })),
+    )
+  }
+
+  expect(problems).toEqual([])
+  expect(await sideways(page)).toEqual([])
+})
+
+test('fits every import table heading inside its cell at 1024 px and 1440 px', async ({ page }) => {
+  await page.goto('/styleguide')
+
+  for (const width of [1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    const table = page.getByTestId('import-review-sample').getByRole('table')
+    await table.scrollIntoViewIfNeeded()
+    await expect(table).toBeVisible()
+
+    const spills = await table.evaluate((element) =>
+      Array.from(element.querySelectorAll('th')).flatMap((cell) => {
+        const style = getComputedStyle(cell)
+        const inner =
+          cell.getBoundingClientRect().right - Number.parseFloat(style.paddingRight) + 0.5
+        const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT)
+        let right = 0
+        for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+          const range = document.createRange()
+          range.selectNodeContents(node)
+          right = Math.max(right, range.getBoundingClientRect().right)
+        }
+        const overflow = cell.scrollWidth > cell.clientWidth || right > inner
+        return overflow ? [`${cell.textContent.trim()} ${String(cell.clientWidth)}px`] : []
+      }),
+    )
+
+    expect(spills, `${String(width)}px`).toEqual([])
+  }
+})
+
 test('keeps every tap target 44 px or taller inside the open sheet, at all seven widths', async ({
   page,
 }) => {
@@ -159,11 +244,18 @@ test('keeps every tap target 44 px or taller inside the open sheet, at all seven
   expect(await atEachWidth(page, STEP_WIDTHS, () => sideways(page))).toEqual([])
 })
 
-test('keeps the dashboard, log and profile samples inside the page at 320 px', async ({ page }) => {
+test('keeps the dashboard, log, profile and import review samples inside the page at 320 px', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 320, height: 900 })
   await page.goto('/styleguide')
 
-  for (const id of ['dashboard-sample', 'log-sample', 'profile-grid-sample']) {
+  for (const id of [
+    'dashboard-sample',
+    'log-sample',
+    'profile-grid-sample',
+    'import-review-sample',
+  ]) {
     const sample = page.getByTestId(id)
     await sample.scrollIntoViewIfNeeded()
     const box = await sample.boundingBox()
@@ -268,3 +360,76 @@ for (const route of LIVE_ROUTES) {
     )
   })
 }
+
+signedIn.describe('signed in on /workout with a set logged', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openLiveSession(page, context)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('shows exactly one navigation at every width', async ({ page }) => {
+    expect(await navigationProblems(page)).toEqual([])
+  })
+})
+
+signedIn.describe('signed in on /workout with the exercise picker open', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openLiveSession(page, context)
+    await openPicker(page)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+})
+
+signedIn.describe('signed in on the import review, with the sheet fixture open', () => {
+  signedIn.beforeEach(async ({ page, account, day }) => {
+    await openImportReview(page, account, day)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('shows exactly one navigation at every width', async ({ page }) => {
+    expect(await navigationProblems(page)).toEqual([])
+  })
+})
+
+signedIn.describe('signed in on /analytics with lift and week charts', () => {
+  signedIn.beforeEach(async ({ page, context, account, day }) => {
+    await openLiftCharts(page, context, account, day)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('shows exactly one navigation at every width', async ({ page }) => {
+    expect(await navigationProblems(page)).toEqual([])
+  })
+})

@@ -10,7 +10,7 @@ export type SegmentedTabOption<Value extends string> = {
 export type SegmentedTabsProps<Value extends string> = {
   label: string
   options: SegmentedTabOption<Value>[]
-  value: Value
+  value: Value | null
   onValueChange: (value: Value) => void
   className?: string
 }
