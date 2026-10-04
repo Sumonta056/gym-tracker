@@ -5,12 +5,36 @@ import { StatCard } from '../ui/StatCard'
 
 import { DashboardHeader } from './DashboardHeader'
 import { HeartRateZonesCard } from './HeartRateZonesCard'
+import { ImportNotice } from './ImportNotice'
 import { formatCount } from './summary'
 import { TodayHero } from './TodayHero'
 import { useDashboard } from './useDashboard'
 import { WeekTotalsCard } from './WeekTotalsCard'
 
 import type { DashboardSummary } from './summary'
+import type { ReactNode } from 'react'
+
+function DashboardBody({ clock }: DashboardProps): ReactNode {
+  const state = useDashboard(clock)
+
+  if (state.status === 'loading') {
+    return (
+      <p role="status" className="text-muted text-sm">
+        Reading this device…
+      </p>
+    )
+  }
+
+  if (state.status === 'error') {
+    return (
+      <p role="alert" className="text-danger text-sm">
+        {state.message}
+      </p>
+    )
+  }
+
+  return <DashboardView summary={state.summary} />
+}
 
 export type DashboardProps = {
   clock?: () => Date
@@ -72,23 +96,10 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
 }
 
 export function Dashboard({ clock }: DashboardProps) {
-  const state = useDashboard(clock)
-
-  if (state.status === 'loading') {
-    return (
-      <p role="status" className="text-muted text-sm">
-        Reading this device…
-      </p>
-    )
-  }
-
-  if (state.status === 'error') {
-    return (
-      <p role="alert" className="text-danger text-sm">
-        {state.message}
-      </p>
-    )
-  }
-
-  return <DashboardView summary={state.summary} />
+  return (
+    <>
+      <ImportNotice />
+      <DashboardBody clock={clock} />
+    </>
+  )
 }

@@ -1,12 +1,15 @@
 import 'fake-indexeddb/auto'
 
+import { readFileSync } from 'node:fs'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { parseSheet, rowEntry } from '../csv/import'
 import { dailyEntrySchema, localDate } from '../schema/dailyEntry'
 import { moveToDeadLetters } from '../sync/deadLetters'
 import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
-import { db, SIGNED_OUT_KEY } from './dexie'
+import { DAILY_CURSOR_KEY, DAILY_PULLED_KEY, db, SIGNED_OUT_KEY } from './dexie'
 import {
   acceptGymTimeOffer,
   archiveExercise,
@@ -43,7 +46,14 @@ import {
   failedWrites,
   getDay,
   getProfile,
+  firstPullDone,
+  ImportMergeRefused,
+  ImportNeedsAChoice,
+  ImportNeedsFirstSync,
+  ImportRepeatsADate,
+  importDays,
   listDeadLetters,
+  loggedDates,
   listRange,
   LOCAL_PROFILE_ID,
   NEVER_WRITTEN,
@@ -61,6 +71,7 @@ import {
 } from './repository'
 
 import type { DailyEntry, Exercise, OutboxEntry, WorkoutSession, WorkoutSet } from './dexie'
+import type { ImportDay } from './repository'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { MuscleGroup } from '../schema/exercise'
 import type { WorkoutSetDraft } from '../schema/workoutSet'
@@ -2541,5 +2552,468 @@ describe('a session that runs past midnight', () => {
 
     expect(await getDay('2026-09-19')).toMatchObject({ gym_seconds: 3600 })
     expect(await getDay('2026-09-20')).toBeUndefined()
+  })
+})
+
+describe('importDays', () => {
+  beforeEach(async () => {
+    await db.syncMeta.put({ key: DAILY_PULLED_KEY, value: '2026-09-02T00:00:00.000Z' })
+  })
+
+  const SHEET = readFileSync(new URL('../../tests/fixtures/gym-sheet.csv', import.meta.url), 'utf8')
+
+  function sheetDays(): ImportDay[] {
+    return parseSheet(SHEET, { year: 2025 }).rows.map((row) => {
+      const draft = rowEntry(row, {
+        walk_seconds: 0,
+        gym_seconds: 0,
+      })
+
+      if (draft === null) {
+        throw new Error(`Row ${String(row.line)} cannot be imported`)
+      }
+
+      return { entry: draft }
+    })
+  }
+
+  it('creates 16 entries and 16 outbox entries on an empty device', async () => {
+    const result = await importDays(sheetDays())
+
+    expect(result).toEqual({ created: 16, overwritten: 0, merged: 0, skipped: 0 })
+    expect(await db.dailyEntries.count()).toBe(16)
+    expect(await db.outbox.count()).toBe(16)
+  })
+
+  it('queues one upsert outbox entry for each written row, carrying that row', async () => {
+    await importDays(sheetDays())
+
+    const rows = await db.dailyEntries.toArray()
+    const queued = await db.outbox.orderBy('sequence').toArray()
+
+    expect(queued.every((item) => item.operation === 'upsert')).toBe(true)
+    expect(queued.every((item) => item.table_name === 'daily_entries')).toBe(true)
+    expect(new Set(queued.map((item) => item.row_id))).toEqual(new Set(rows.map((row) => row.id)))
+    for (const item of queued) {
+      expect(item.payload).toEqual(rows.find((row) => row.id === item.row_id))
+    }
+  })
+
+  it('gives every new row a client generated uuid of its own', async () => {
+    await importDays(sheetDays())
+
+    const ids = (await db.dailyEntries.toArray()).map((row) => row.id)
+
+    expect(new Set(ids).size).toBe(16)
+    for (const id of ids) {
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    }
+  })
+
+  it('stores the sheet values of a row, with the picked reading of a review cell', async () => {
+    await importDays(sheetDays())
+
+    expect(await getDay('2025-08-12')).toMatchObject({
+      walk_seconds: 954,
+      gym_seconds: 3761,
+      avg_heart_rate: 131,
+      max_heart_rate: 164,
+      weight_kg: 81.4,
+      calories_burnt: 412,
+      steps: 9874,
+      note: null,
+    })
+  })
+
+  it('leaves the existing row as it was on Skip and queues nothing for it', async () => {
+    const existing = await upsertDay(entry('2025-08-12', { steps: 500 }))
+    await db.outbox.clear()
+
+    const result = await importDays([
+      { entry: { entry_date: '2025-08-12', steps: 9874 }, choice: 'skip' },
+    ])
+
+    expect(result).toEqual({ created: 0, overwritten: 0, merged: 0, skipped: 1 })
+    expect(await db.dailyEntries.toArray()).toEqual([existing])
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('replaces every sheet field on Overwrite and sets a blank sheet cell to null', async () => {
+    await upsertDay(
+      entry('2025-08-12', { steps: 500, weight_kg: 80, note: 'old', calories_burnt: 300 }),
+    )
+
+    const result = await importDays([
+      { entry: { entry_date: '2025-08-12', steps: 9874, walk_seconds: 954 }, choice: 'overwrite' },
+    ])
+
+    expect(result).toEqual({ created: 0, overwritten: 1, merged: 0, skipped: 0 })
+    expect(await getDay('2025-08-12')).toMatchObject({
+      steps: 9874,
+      walk_seconds: 954,
+      weight_kg: null,
+      calories_burnt: null,
+      avg_heart_rate: null,
+      max_heart_rate: null,
+      gym_seconds: null,
+    })
+  })
+
+  it('keeps the existing id on Overwrite, so the server never sees a second row for the date', async () => {
+    const existing = await upsertDay(entry('2025-08-12', { steps: 500 }))
+    await db.outbox.clear()
+
+    await importDays([{ entry: { entry_date: '2025-08-12', steps: 9874 }, choice: 'overwrite' }])
+
+    const rows = await db.dailyEntries.toArray()
+    const queued = await db.outbox.toArray()
+
+    expect(rows.map((row) => row.id)).toEqual([existing.id])
+    expect(rows[0]?.created_at).toBe(existing.created_at)
+    expect(queued.map((item) => item.row_id)).toEqual([existing.id])
+  })
+
+  it('keeps the existing id on Merge', async () => {
+    const existing = await upsertDay(entry('2025-08-12', { steps: 500 }))
+
+    await importDays([{ entry: { entry_date: '2025-08-12', weight_kg: 81.4 }, choice: 'merge' }])
+
+    expect((await db.dailyEntries.toArray()).map((row) => row.id)).toEqual([existing.id])
+  })
+
+  it('fills only the null fields on Merge and keeps every value already there', async () => {
+    await upsertDay(entry('2025-08-12', { steps: 500, note: 'kept', avg_heart_rate: 120 }))
+
+    const result = await importDays([
+      {
+        entry: {
+          entry_date: '2025-08-12',
+          steps: 9874,
+          weight_kg: 81.4,
+          avg_heart_rate: 131,
+          max_heart_rate: 164,
+        },
+        choice: 'merge',
+      },
+    ])
+
+    expect(result).toEqual({ created: 0, overwritten: 0, merged: 1, skipped: 0 })
+    expect(await getDay('2025-08-12')).toMatchObject({
+      steps: 500,
+      note: 'kept',
+      avg_heart_rate: 120,
+      max_heart_rate: 164,
+      weight_kg: 81.4,
+      walk_seconds: null,
+    })
+  })
+
+  it('queues one outbox entry for an overwritten row and one for a merged row', async () => {
+    await upsertDay(entry('2025-08-12', { steps: 500 }))
+    await upsertDay(entry('2025-08-13', { steps: 600 }))
+    await db.outbox.clear()
+
+    await importDays([
+      { entry: { entry_date: '2025-08-12', steps: 1 }, choice: 'overwrite' },
+      { entry: { entry_date: '2025-08-13', weight_kg: 81 }, choice: 'merge' },
+    ])
+
+    expect(await db.outbox.count()).toBe(2)
+  })
+
+  it('counts a date that only has a deleted row as new and keeps that row id', async () => {
+    const existing = await upsertDay(entry('2025-08-12', { steps: 500 }))
+    await softDeleteDay('2025-08-12')
+
+    const result = await importDays([{ entry: { entry_date: '2025-08-12', steps: 9874 } }])
+
+    expect(result).toEqual({ created: 1, overwritten: 0, merged: 0, skipped: 0 })
+    expect(await getDay('2025-08-12')).toMatchObject({ id: existing.id, steps: 9874 })
+  })
+
+  it('refuses a date already logged with no choice and writes nothing', async () => {
+    await upsertDay(entry('2025-08-12', { steps: 500 }))
+    const before = await db.dailyEntries.toArray()
+    const outbox = await db.outbox.count()
+
+    await expect(
+      importDays([
+        { entry: { entry_date: '2025-08-11', steps: 1 } },
+        { entry: { entry_date: '2025-08-12', steps: 2 } },
+      ]),
+    ).rejects.toBeInstanceOf(ImportNeedsAChoice)
+
+    expect(await db.dailyEntries.toArray()).toEqual(before)
+    expect(await db.outbox.count()).toBe(outbox)
+  })
+
+  it('refuses a date that appears twice in the import and writes nothing', async () => {
+    await expect(
+      importDays([
+        { entry: { entry_date: '2025-08-12', steps: 1 } },
+        { entry: { entry_date: '2025-08-12', steps: 2 } },
+      ]),
+    ).rejects.toBeInstanceOf(ImportRepeatsADate)
+
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses a row the schema refuses and writes nothing', async () => {
+    await expect(
+      importDays([
+        { entry: { entry_date: '2025-08-11', steps: 1 } },
+        { entry: { entry_date: '2025-08-12', weight_kg: 900 } },
+      ]),
+    ).rejects.toThrow()
+
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('rolls back every row and outbox entry when a write fails half way', async () => {
+    const put = db.dailyEntries.put.bind(db.dailyEntries)
+    let writes = 0
+
+    vi.spyOn(db.dailyEntries, 'put').mockImplementation((item) => {
+      writes += 1
+
+      return writes === 9
+        ? put(item).then(() => {
+            throw new Error('the disk is full')
+          })
+        : put(item)
+    })
+
+    await expect(importDays(sheetDays())).rejects.toThrow('the disk is full')
+
+    vi.restoreAllMocks()
+
+    expect(writes).toBe(9)
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('rolls back the rows already written when an outbox entry fails half way', async () => {
+    await upsertDay(entry('2025-08-12', { steps: 500 }))
+    const before = await db.dailyEntries.toArray()
+    const outboxBefore = await db.outbox.toArray()
+    const append = db.outbox.add.bind(db.outbox)
+    let appends = 0
+
+    vi.spyOn(db.outbox, 'add').mockImplementation((item) => {
+      appends += 1
+
+      return appends === 2
+        ? append(item).then(() => {
+            throw new Error('the outbox is full')
+          })
+        : append(item)
+    })
+
+    await expect(
+      importDays([
+        { entry: { entry_date: '2025-08-12', steps: 1 }, choice: 'overwrite' },
+        { entry: { entry_date: '2025-08-13', steps: 2 } },
+      ]),
+    ).rejects.toThrow('the outbox is full')
+
+    vi.restoreAllMocks()
+
+    expect(await db.dailyEntries.toArray()).toEqual(before)
+    expect(await db.outbox.toArray()).toEqual(outboxBefore)
+  })
+
+  it('throws SignedOutOnThisDevice on a signed-out device and stores nothing', async () => {
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-09-02T00:00:00.000Z' })
+
+    await expect(importDays(sheetDays())).rejects.toBeInstanceOf(SignedOutOnThisDevice)
+
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('writes nothing on Skip when the logged day was deleted since the review', async () => {
+    await upsertDay(entry('2025-08-12', { steps: 500 }))
+    await softDeleteDay('2025-08-12')
+    await db.outbox.clear()
+
+    const result = await importDays([
+      { entry: { entry_date: '2025-08-12', steps: 1 }, choice: 'skip' },
+    ])
+
+    expect(result).toEqual({ created: 0, overwritten: 0, merged: 0, skipped: 1 })
+    expect(await getDay('2025-08-12')).toBeUndefined()
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses a Merge that breaks the peak heart rate rule, names the date and writes nothing', async () => {
+    await upsertDay(entry('2025-08-12', { avg_heart_rate: 150 }))
+    const before = await db.dailyEntries.toArray()
+    const outbox = await db.outbox.count()
+
+    const refused = await refusal(
+      importDays([
+        { entry: { entry_date: '2025-08-11', steps: 1 } },
+        { entry: { entry_date: '2025-08-12', max_heart_rate: 140 }, choice: 'merge' },
+      ]),
+    )
+
+    expect(refused).toBeInstanceOf(ImportMergeRefused)
+    expect((refused as Error).message).toContain('2025-08-12')
+    expect(await db.dailyEntries.toArray()).toEqual(before)
+    expect(await db.outbox.count()).toBe(outbox)
+  })
+
+  it('keeps the note on Overwrite, because the sheet has no note column', async () => {
+    await upsertDay(entry('2025-08-12', { note: 'kept', steps: 500 }))
+
+    await importDays([{ entry: { entry_date: '2025-08-12', steps: 1 }, choice: 'overwrite' }])
+
+    expect(await getDay('2025-08-12')).toMatchObject({ note: 'kept', steps: 1 })
+  })
+
+  it('queues the kept note with the overwritten row', async () => {
+    await upsertDay(entry('2025-08-12', { note: 'kept' }))
+    await db.outbox.clear()
+
+    await importDays([{ entry: { entry_date: '2025-08-12', steps: 1 }, choice: 'overwrite' }])
+
+    const queued = await db.outbox.toArray()
+    expect(queued.map((item) => (item.payload as DailyEntry).note)).toEqual(['kept'])
+  })
+
+  it('refuses before the first daily pull has finished, with ImportNeedsFirstSync, and writes nothing', async () => {
+    await db.syncMeta.delete(DAILY_PULLED_KEY)
+
+    await expect(importDays(sheetDays())).rejects.toBeInstanceOf(ImportNeedsFirstSync)
+
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('imports once the first daily pull has finished', async () => {
+    await db.syncMeta.delete(DAILY_PULLED_KEY)
+    await db.syncMeta.put({ key: DAILY_PULLED_KEY, value: '2026-09-02T00:00:00.000Z' })
+
+    expect(await importDays(sheetDays())).toMatchObject({ created: 16 })
+  })
+
+  it('imports on a device whose daily pull cursor was stored before the marker existed', async () => {
+    await db.syncMeta.delete(DAILY_PULLED_KEY)
+    await db.syncMeta.put({ key: DAILY_CURSOR_KEY, value: '2026-09-01T12:00:00.000Z' })
+
+    expect(await importDays(sheetDays())).toMatchObject({ created: 16 })
+  })
+
+  it('writes and queues nothing for a Merge that fills no field, and counts it as skipped', async () => {
+    const full = await upsertDay(
+      entry('2025-08-12', {
+        walk_seconds: 1,
+        gym_seconds: 2,
+        avg_heart_rate: 120,
+        max_heart_rate: 150,
+        weight_kg: 80,
+        calories_burnt: 300,
+        steps: 500,
+        note: 'kept',
+      }),
+    )
+    await db.outbox.clear()
+
+    const result = await importDays([
+      { entry: { entry_date: '2025-08-12', steps: 9874, weight_kg: 81.4 }, choice: 'merge' },
+    ])
+
+    expect(result).toEqual({ created: 0, overwritten: 0, merged: 0, skipped: 1 })
+    expect(await db.outbox.count()).toBe(0)
+    expect(await getDay('2025-08-12')).toEqual(full)
+  })
+
+  it('counts an Overwrite on a day deleted since the review as overwritten, on the old id', async () => {
+    const existing = await upsertDay(entry('2025-08-12', { steps: 500 }))
+    await softDeleteDay('2025-08-12')
+    await db.outbox.clear()
+
+    const result = await importDays([
+      { entry: { entry_date: '2025-08-12', steps: 9874 }, choice: 'overwrite' },
+    ])
+
+    expect(result).toEqual({ created: 0, overwritten: 1, merged: 0, skipped: 0 })
+    expect(await getDay('2025-08-12')).toMatchObject({ id: existing.id, steps: 9874 })
+    expect(await db.dailyEntries.count()).toBe(1)
+    const queued = await db.outbox.toArray()
+    expect(queued).toHaveLength(1)
+    expect(queued[0]).toMatchObject({ operation: 'upsert', row_id: existing.id })
+    expect((queued[0]?.payload as DailyEntry).deleted_at).toBeNull()
+  })
+
+  it('counts a Merge on a day deleted since the review as merged, on the old id', async () => {
+    const existing = await upsertDay(entry('2025-08-12', { steps: 500 }))
+    await softDeleteDay('2025-08-12')
+    await db.outbox.clear()
+
+    const result = await importDays([
+      { entry: { entry_date: '2025-08-12', weight_kg: 81.4 }, choice: 'merge' },
+    ])
+
+    expect(result).toEqual({ created: 0, overwritten: 0, merged: 1, skipped: 0 })
+    expect(await getDay('2025-08-12')).toMatchObject({ id: existing.id, weight_kg: 81.4 })
+    expect(await db.dailyEntries.count()).toBe(1)
+    const queued = await db.outbox.toArray()
+    expect(queued).toHaveLength(1)
+    expect(queued[0]).toMatchObject({ operation: 'upsert', row_id: existing.id })
+    expect((queued[0]?.payload as DailyEntry).deleted_at).toBeNull()
+  })
+
+  it('names every broken rule of a refused Merge', async () => {
+    await upsertDay(entry('2025-08-12', { avg_heart_rate: 150 }))
+
+    const refused = await refusal(
+      importDays([{ entry: { entry_date: '2025-08-12', max_heart_rate: 140 }, choice: 'merge' }]),
+    )
+
+    expect((refused as Error).message).toContain('The peak heart rate cannot be below the average.')
+  })
+
+  it('writes and queues nothing for an import of only skips', async () => {
+    await upsertDay(entry('2025-08-12', { steps: 500 }))
+    await db.outbox.clear()
+
+    await importDays([{ entry: { entry_date: '2025-08-12', steps: 1 }, choice: 'skip' }])
+
+    expect(await db.outbox.count()).toBe(0)
+  })
+})
+
+describe('firstPullDone', () => {
+  it('is false before any daily pull', async () => {
+    expect(await firstPullDone()).toBe(false)
+  })
+
+  it('is true once the worker marks the first daily pull done', async () => {
+    await db.syncMeta.put({ key: DAILY_PULLED_KEY, value: '2026-09-02T00:00:00.000Z' })
+    expect(await firstPullDone()).toBe(true)
+  })
+
+  it('is true when a daily pull cursor is stored', async () => {
+    await db.syncMeta.put({ key: DAILY_CURSOR_KEY, value: '2026-09-01T12:00:00.000Z' })
+    expect(await firstPullDone()).toBe(true)
+  })
+})
+
+describe('loggedDates', () => {
+  it('returns the dates that hold a live row, and leaves out a deleted one', async () => {
+    await upsertDay(entry('2025-08-12'))
+    await upsertDay(entry('2025-08-13'))
+    await softDeleteDay('2025-08-13')
+
+    expect(await loggedDates(['2025-08-12', '2025-08-13', '2025-08-14'])).toEqual(
+      new Set(['2025-08-12']),
+    )
+  })
+
+  it('returns an empty set for no dates', async () => {
+    expect(await loggedDates([])).toEqual(new Set())
   })
 })

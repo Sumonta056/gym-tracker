@@ -18,6 +18,7 @@ export default defineConfig({
           environment: 'jsdom',
           include: [
             'components/**/*.test.tsx',
+            'components/**/*.test.ts',
             'app/**/*.test.tsx',
             'app/**/*.test.ts',
             'lib/sync/worker.test.ts',

@@ -16,10 +16,18 @@ import {
 } from '../sync/worker'
 import { gymTimeOffer, newestFinished, sessionLengthSeconds } from '../workout/gymTime'
 
-import { db, LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY, SIGNED_OUT_KEY } from './dexie'
+import {
+  DAILY_CURSOR_KEY,
+  DAILY_PULLED_KEY,
+  db,
+  LOCAL_PROFILE_ID,
+  NEVER_WRITTEN,
+  OUTBOX_SEQUENCE_KEY,
+  SIGNED_OUT_KEY,
+} from './dexie'
 
 import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from './dexie'
-import type { DailyEntryInput } from '../schema/dailyEntry'
+import type { DailyEntryDraft, DailyEntryInput } from '../schema/dailyEntry'
 import type { ExerciseInput, MuscleGroup } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
 import type { WorkoutSetDraft, WorkoutSetInput } from '../schema/workoutSet'
@@ -109,6 +117,37 @@ export class SetNotFound extends Error {
   constructor() {
     super('This set is not on this device.')
     this.name = 'SetNotFound'
+  }
+}
+
+export class ImportNeedsAChoice extends Error {
+  constructor(readonly entryDate: string) {
+    super(`${entryDate} already has a day on this device. Choose Skip, Overwrite or Merge.`)
+    this.name = 'ImportNeedsAChoice'
+  }
+}
+
+export class ImportMergeRefused extends Error {
+  constructor(
+    readonly entryDate: string,
+    reason: string,
+  ) {
+    super(`Merging ${entryDate} breaks a rule of the day: ${reason} Nothing was written.`)
+    this.name = 'ImportMergeRefused'
+  }
+}
+
+export class ImportNeedsFirstSync extends Error {
+  constructor() {
+    super('Waiting for the first sync. Connect to the internet to import. Nothing was written.')
+    this.name = 'ImportNeedsFirstSync'
+  }
+}
+
+export class ImportRepeatsADate extends Error {
+  constructor(readonly entryDate: string) {
+    super(`${entryDate} appears more than once in the import.`)
+    this.name = 'ImportRepeatsADate'
   }
 }
 
@@ -233,6 +272,117 @@ export async function softDeleteDay(date: string): Promise<void> {
 
     await db.dailyEntries.put(row)
     await enqueue('daily_entries', 'delete', row)
+  })
+}
+
+export type ImportChoice = 'skip' | 'overwrite' | 'merge'
+
+export type ImportDay = { entry: DailyEntryDraft; choice?: ImportChoice }
+
+export type ImportResult = {
+  created: number
+  overwritten: number
+  merged: number
+  skipped: number
+}
+
+export async function firstPullDone(): Promise<boolean> {
+  const marks = await db.syncMeta.bulkGet([DAILY_PULLED_KEY, DAILY_CURSOR_KEY])
+
+  return marks.some((mark) => mark !== undefined)
+}
+
+export async function loggedDates(dates: string[]): Promise<Set<string>> {
+  if (dates.length === 0) {
+    return new Set()
+  }
+
+  const rows = await db.dailyEntries.where('entry_date').anyOf(dates).toArray()
+
+  return new Set(rows.filter((row) => row.deleted_at === null).map((row) => row.entry_date))
+}
+
+function mergeDay(existing: DailyEntry, sheet: DailyEntryInput): DailyEntryInput | null {
+  const merged: Record<string, unknown> = { ...dayFields(existing) }
+  let filled = false
+
+  for (const [field, value] of Object.entries(sheet)) {
+    if (merged[field] === null && value !== null) {
+      merged[field] = value
+      filled = true
+    }
+  }
+
+  if (!filled) {
+    return null
+  }
+
+  const result = dailyEntrySchema.safeParse(merged)
+
+  if (!result.success) {
+    throw new ImportMergeRefused(
+      existing.entry_date,
+      result.error.issues.map((issue) => issue.message).join(' '),
+    )
+  }
+
+  return result.data
+}
+
+const COUNTED_CHOICE: Record<'overwrite' | 'merge', 'overwritten' | 'merged'> = {
+  overwrite: 'overwritten',
+  merge: 'merged',
+}
+
+export async function importDays(days: ImportDay[]): Promise<ImportResult> {
+  const parsed = days.map((day) => ({ ...day, entry: dailyEntrySchema.parse(day.entry) }))
+  const seen = new Set<string>()
+
+  for (const { entry } of parsed) {
+    if (seen.has(entry.entry_date)) {
+      throw new ImportRepeatsADate(entry.entry_date)
+    }
+
+    seen.add(entry.entry_date)
+  }
+
+  const timestamp = nowIso()
+
+  return db.transaction('rw', db.dailyEntries, db.outbox, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+
+    if (!(await firstPullDone())) {
+      throw new ImportNeedsFirstSync()
+    }
+
+    const result: ImportResult = { created: 0, overwritten: 0, merged: 0, skipped: 0 }
+
+    for (const { entry, choice } of parsed) {
+      const existing = await getDay(entry.entry_date)
+
+      if (choice === 'skip') {
+        result.skipped += 1
+      } else if (existing === undefined) {
+        await writeDay(entry, timestamp)
+        result[choice === undefined ? 'created' : COUNTED_CHOICE[choice]] += 1
+      } else if (choice === undefined) {
+        throw new ImportNeedsAChoice(entry.entry_date)
+      } else if (choice === 'overwrite') {
+        await writeDay({ ...entry, note: existing.note }, timestamp)
+        result.overwritten += 1
+      } else {
+        const merged = mergeDay(existing, entry)
+
+        if (merged === null) {
+          result.skipped += 1
+        } else {
+          await writeDay(merged, timestamp)
+          result.merged += 1
+        }
+      }
+    }
+
+    return result
   })
 }
 

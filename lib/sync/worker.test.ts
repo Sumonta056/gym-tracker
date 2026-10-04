@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   DAILY_CURSOR_KEY,
+  DAILY_PULLED_KEY,
   db,
   DEAD_STREAK_KEY,
   EXERCISE_CURSOR_KEY,
@@ -17,7 +18,11 @@ import {
   addSet,
   clearAll,
   createExercise,
+  getDay,
+  ImportNeedsFirstSync,
+  importDays,
   LOCAL_PROFILE_ID,
+  loggedDates,
   setRestSeconds,
   SignedOutOnThisDevice,
   startSession,
@@ -57,6 +62,7 @@ import {
   haltSync,
   LOCK_TIMEOUT_MS,
   pull,
+  PULL_PAGE_ROWS,
   push,
   resumeSync,
   SIGN_OUT_MARKER,
@@ -132,13 +138,20 @@ interface Fake {
   client: SupabaseClient<Database>
   upserted: Upserted[]
   selected: Selected[]
+  limits: Record<string, number>
   lookups: number
 }
 
 function fakeClient(options: FakeOptions = {}): Fake {
   const upserted: Upserted[] = []
   const selected: Selected[] = []
-  const fake: Fake = { client: {} as SupabaseClient<Database>, upserted, selected, lookups: 0 }
+  const fake: Fake = {
+    client: {} as SupabaseClient<Database>,
+    upserted,
+    selected,
+    limits: {},
+    lookups: 0,
+  }
   const user = options.user === undefined ? USER_ID : options.user
   let attempt = 0
 
@@ -176,7 +189,7 @@ function fakeClient(options: FakeOptions = {}): Fake {
     return { data: { updated_at: options.serverStamp ?? SERVER_STAMP }, error: null }
   }
 
-  async function listAnswer(table: string): Promise<unknown> {
+  async function listAnswer(table: string, limit?: number): Promise<unknown> {
     await options.onSelect?.()
 
     if (options.selectThrows?.includes(table) === true) {
@@ -189,7 +202,9 @@ function fakeClient(options: FakeOptions = {}): Fake {
       return { data: null, error: { message: failure } }
     }
 
-    return { data: options.serverRows?.[table] ?? [], error: null }
+    const rows = options.serverRows?.[table] ?? []
+
+    return { data: limit === undefined ? rows : rows.slice(0, limit), error: null }
   }
 
   function lookupAnswer(): Promise<unknown> {
@@ -234,7 +249,15 @@ function fakeClient(options: FakeOptions = {}): Fake {
           order: () => {
             selected.push({ table, cursor })
 
-            return listAnswer(table)
+            return {
+              then: (resolve: (value: unknown) => unknown, reject: (cause: unknown) => unknown) =>
+                listAnswer(table).then(resolve, reject),
+              limit: (count: number) => {
+                fake.limits[table] = count
+
+                return listAnswer(table, count)
+              },
+            }
           },
         }),
         eq: () => ({
@@ -2123,6 +2146,160 @@ describe('pull', () => {
   })
 })
 
+describe('the first daily pull', () => {
+  it('marks the first daily pull done after a pull that finds no row', async () => {
+    const fake = fakeClient()
+
+    await pull(fake.client)
+
+    expect(await cursor(DAILY_PULLED_KEY)).toEqual(expect.any(String))
+    expect(await cursor(DAILY_CURSOR_KEY)).toBeUndefined()
+  })
+
+  it('marks the first daily pull done when its rows wait behind a queued local write', async () => {
+    await db.dailyEntries.put(localEntry(ROW_A, { steps: 1000 }))
+    await append('daily_entries', 'upsert', localEntry(ROW_A, { steps: 1000 }))
+    const fake = fakeClient({
+      serverRows: { daily_entries: [serverEntry(ROW_A, '2026-09-09T12:00:00.000Z', 5000)] },
+    })
+
+    await pull(fake.client)
+
+    expect(await cursor(DAILY_PULLED_KEY)).toEqual(expect.any(String))
+  })
+
+  it('does not mark the daily pull done when the daily select fails', async () => {
+    const fake = fakeClient({ selectError: { daily_entries: 'the server is down' } })
+
+    await pull(fake.client)
+
+    expect(await cursor(DAILY_PULLED_KEY)).toBeUndefined()
+  })
+
+  it('does not mark the daily pull done when the pull is stopped half way', async () => {
+    const stop = new AbortController()
+    stop.abort()
+    const fake = fakeClient({
+      serverRows: { daily_entries: [serverEntry(ROW_A, SERVER_STAMP, 5)] },
+    })
+
+    await expect(pull(fake.client, stop.signal)).rejects.toThrow(SYNC_STOPPED)
+
+    expect(await cursor(DAILY_PULLED_KEY)).toBeUndefined()
+  })
+
+  it('does not mark the daily pull done when the pull is stopped inside the row loop', async () => {
+    const stop = new AbortController()
+    const fake = fakeClient({
+      serverRows: {
+        daily_entries: [
+          serverEntry(ROW_A, '2026-09-01T11:00:00.000Z', 5),
+          serverEntry(ROW_B, '2026-09-01T12:00:00.000Z', 6),
+        ],
+      },
+    })
+    const put = db.dailyEntries.put.bind(db.dailyEntries)
+    const spy = vi.spyOn(db.dailyEntries, 'put').mockImplementation((row) => {
+      stop.abort()
+      return put(row)
+    })
+
+    await expect(pull(fake.client, stop.signal)).rejects.toThrow(SYNC_STOPPED)
+    spy.mockRestore()
+
+    expect(await db.dailyEntries.count()).toBe(1)
+    expect(await cursor(DAILY_PULLED_KEY)).toBeUndefined()
+  })
+
+  it('asks the server for one page of daily rows, at most the server cap of 1000', async () => {
+    const fake = fakeClient()
+
+    await pull(fake.client)
+
+    expect(PULL_PAGE_ROWS).toBeLessThanOrEqual(1000)
+    expect(fake.limits).toEqual({ daily_entries: PULL_PAGE_ROWS })
+  })
+
+  it('leaves the daily pull unmarked when a full page comes back, and moves the cursor', async () => {
+    const fake = fakeClient({
+      serverRows: {
+        daily_entries: [
+          serverEntry(ROW_A, '2026-09-01T11:00:00.000Z', 5),
+          serverEntry(ROW_B, '2026-09-01T12:00:00.000Z', 6),
+          serverEntry(ROW_C, '2026-09-01T13:00:00.000Z', 7),
+        ],
+      },
+    })
+
+    await pull(fake.client, undefined, 2)
+
+    expect(await cursor(DAILY_PULLED_KEY)).toBeUndefined()
+    expect(await cursor(DAILY_CURSOR_KEY)).toBe('2026-09-01T12:00:00.000Z')
+    expect(await db.dailyEntries.count()).toBe(2)
+  })
+
+  it('marks the daily pull done once a later pull gets a short page', async () => {
+    await db.syncMeta.put({ key: DAILY_CURSOR_KEY, value: '2026-09-01T12:00:00.000Z' })
+    const fake = fakeClient({
+      serverRows: { daily_entries: [serverEntry(ROW_C, '2026-09-01T13:00:00.000Z', 7)] },
+    })
+
+    await pull(fake.client, undefined, 2)
+
+    expect(await cursor(DAILY_PULLED_KEY)).toEqual(expect.any(String))
+    expect(await cursor(DAILY_CURSOR_KEY)).toBe('2026-09-01T13:00:00.000Z')
+  })
+
+  it('pages no other table: the profile, exercise, session and set selects ask for no limit', async () => {
+    const fake = fakeClient()
+
+    await pull(fake.client, undefined, 2)
+
+    expect(fake.limits).toEqual({ daily_entries: 2 })
+    expect(fake.selected.map((call) => call.table)).toEqual([
+      'daily_entries',
+      'profiles',
+      'exercises',
+      'workout_sessions',
+      'workout_sets',
+    ])
+  })
+
+  it('keeps a server-only day safe: the import waits for the first pull, then Overwrite keeps its id and note', async () => {
+    const serverDay = {
+      ...serverEntry(ROW_A, '2026-09-01T12:00:00.000Z', 5000),
+      note: 'from the server',
+    }
+    const fake = fakeClient({ serverRows: { daily_entries: [serverDay] } })
+    const sheetRow = { entry: { entry_date: '2026-09-01', steps: 9000 } }
+
+    await expect(importDays([sheetRow])).rejects.toBeInstanceOf(ImportNeedsFirstSync)
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await pendingCount()).toBe(0)
+
+    await pull(fake.client)
+
+    expect(await loggedDates(['2026-09-01'])).toEqual(new Set(['2026-09-01']))
+
+    await importDays([{ ...sheetRow, choice: 'overwrite' }])
+
+    expect(await db.dailyEntries.count()).toBe(1)
+    expect(await getDay('2026-09-01')).toMatchObject({
+      id: ROW_A,
+      steps: 9000,
+      note: 'from the server',
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(firstUpsert(fake).row).toMatchObject({
+      id: ROW_A,
+      steps: 9000,
+      note: 'from the server',
+    })
+  })
+})
+
 describe('sync', () => {
   it('reports offline and touches no network when the browser is offline', async () => {
     Object.defineProperty(globalThis.navigator, 'onLine', { value: false, configurable: true })
@@ -2912,9 +3089,7 @@ describe('the cross-tab halt', () => {
     const repository = await import('../db/repository')
 
     const stop = startSync()
-    await vi.waitFor(() => {
-      expect(mocks.createClient).toHaveBeenCalledTimes(1)
-    })
+    await drained(1)
     stop()
     await repository.clearAll({ count: 0, sequence: 0 }, signedIn)
     repository.resumeSync()

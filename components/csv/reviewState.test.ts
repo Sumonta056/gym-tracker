@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -7,6 +8,16 @@ import { parseSheet } from '../../lib/csv/import'
 import {
   applyToSimilar,
   cellKey,
+  chooseForAll,
+  duplicateDates,
+  importPlan,
+  repeatedRows,
+  repeatText,
+  rowDate,
+  rowPicks,
+  sharedChoice,
+  spokenRowTitle,
+  undecided,
   cellText,
   dayLabel,
   errorText,
@@ -22,7 +33,7 @@ import {
 
 import type { ParsedRow, SheetCell } from '../../lib/csv/import'
 
-const SHEET = readFileSync(new URL('../../tests/fixtures/gym-sheet.csv', import.meta.url), 'utf8')
+const SHEET = readFileSync(join(process.cwd(), 'tests/fixtures/gym-sheet.csv'), 'utf8')
 const HEADER = 'Day,Walk Time,Gym Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps'
 
 function sheetOf(...lines: string[]) {
@@ -183,5 +194,128 @@ describe('hasError and errorText', () => {
 
   it('finds no error on a clean row', () => {
     expect(hasError(firstRow('August 12,20,,,,,,'))).toBe(false)
+  })
+})
+
+describe('rowDate', () => {
+  it('returns the ISO date of a row, or null when the date is an error', () => {
+    const sheet = sheetOf('August 12,20,,,,,,', 'Augustus 13,20,,,,,,')
+    expect(sheet.rows.map(rowDate)).toEqual(['2026-08-12', null])
+  })
+})
+
+describe('repeatedRows', () => {
+  it('maps a later row with the same date to the first row of that date', () => {
+    const sheet = sheetOf('August 12,20,,,,,,', 'August 13,20,,,,,,', 'August 12,30,,,,,,')
+    expect(repeatedRows(sheet)).toEqual(new Map([[2, 0]]))
+  })
+
+  it('ignores a row with an error', () => {
+    const sheet = sheetOf('August 12,20,,,,,,5.9k', 'August 12,20,,,,,,')
+    expect(repeatedRows(sheet)).toEqual(new Map())
+  })
+
+  it('asks no pick on a repeated row', () => {
+    const sheet = sheetOf('August 12,20,,,,,,', 'August 12,15.54,,,,,,')
+    expect(reviewTargets(sheet)).toEqual([])
+  })
+})
+
+describe('repeatText', () => {
+  it('names the date and the earlier row', () => {
+    const sheet = sheetOf('August 12,20,,,,,,', 'August 12,30,,,,,,')
+    expect(repeatText(sheet, 1, 0)).toBe(
+      'Day 12 Aug is also on row 1, so only that row is imported.',
+    )
+  })
+
+  it('falls back to a plain word for a row it cannot find', () => {
+    const sheet = sheetOf('August 12,20,,,,,,')
+    expect(repeatText(sheet, 5, 0)).toBe(
+      'This date is also on row 1, so only that row is imported.',
+    )
+  })
+})
+
+describe('rowPicks', () => {
+  it('takes the picks of one row by field', () => {
+    const picks = { [cellKey(1, 'walk_seconds')]: 1, [cellKey(2, 'gym_seconds')]: 0 }
+    expect(rowPicks(picks, 1)).toEqual({ walk_seconds: 1 })
+    expect(rowPicks(picks, 2)).toEqual({ gym_seconds: 0 })
+  })
+})
+
+describe('the logged dates', () => {
+  const sheet = sheetOf(
+    'August 12,20,,,,,,',
+    'August 13,20,,,,,,',
+    'August 13,20,,,,,,',
+    'August 14,20,,,,,,5.9k',
+  )
+  const logged = new Set(['2026-08-13', '2026-08-14'])
+
+  it('lists the importable rows whose date is logged, once each', () => {
+    expect(duplicateDates(sheet, logged)).toEqual(['2026-08-13'])
+  })
+
+  it('counts the dates with no choice yet', () => {
+    expect(undecided(['2026-08-13', '2026-08-15'], { '2026-08-13': 'skip' })).toBe(1)
+  })
+
+  it('sets one choice on every date', () => {
+    expect(chooseForAll(['a', 'b'], 'merge')).toEqual({ a: 'merge', b: 'merge' })
+  })
+
+  it('names the shared choice, or null when the dates differ or have none', () => {
+    expect(sharedChoice(['a', 'b'], { a: 'skip', b: 'skip' })).toBe('skip')
+    expect(sharedChoice(['a', 'b'], { a: 'skip', b: 'merge' })).toBeNull()
+    expect(sharedChoice(['a'], {})).toBeNull()
+    expect(sharedChoice([], {})).toBeNull()
+  })
+})
+
+describe('importPlan', () => {
+  const sheet = sheetOf(
+    'August 11,20,,,,,,',
+    'August 12,20,,,,,,',
+    'August 13,20,,,,,,',
+    'August 14,20,,,,,,',
+    'August 15,20,,,,,,5.9k',
+    'August 11,20,,,,,,',
+    'August 16,15.54,,,,,,',
+  )
+  const logged = new Set(['2026-08-12', '2026-08-13', '2026-08-14'])
+
+  it('counts new, overwritten, merged, skipped and left out rows', () => {
+    const plan = importPlan(sheet, { [cellKey(6, 'walk_seconds')]: 0 }, logged, {
+      '2026-08-12': 'overwrite',
+      '2026-08-13': 'merge',
+      '2026-08-14': 'skip',
+    })
+    expect(plan.counts).toEqual({ created: 2, overwritten: 1, merged: 1, skipped: 1, leftOut: 2 })
+    expect(plan.writes).toBe(4)
+    expect(plan.days.map((day) => [day.entry.entry_date, day.choice])).toEqual([
+      ['2026-08-11', undefined],
+      ['2026-08-12', 'overwrite'],
+      ['2026-08-13', 'merge'],
+      ['2026-08-14', 'skip'],
+      ['2026-08-16', undefined],
+    ])
+    expect(plan.days[4]?.entry.walk_seconds).toBe(954)
+  })
+
+  it('leaves out a logged date with no choice and a row with an unpicked reading', () => {
+    const plan = importPlan(sheet, {}, logged, {})
+    expect(plan.counts).toEqual({ created: 1, overwritten: 0, merged: 0, skipped: 0, leftOut: 6 })
+  })
+})
+
+describe('spokenRowTitle', () => {
+  it('names the row and the full date, as a screen reader reads it', () => {
+    const sheet = sheetOf('September 13,20,,,,,,', 'Augustus 13,20,,,,,,')
+    expect(sheet.rows.map((row, index) => spokenRowTitle(row, index))).toEqual([
+      'Row 1, 13 September',
+      'Row 2',
+    ])
   })
 })

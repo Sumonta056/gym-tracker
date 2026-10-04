@@ -1,6 +1,14 @@
+import { rowEntry } from '../../lib/csv/import'
 import { formatDuration } from '../../lib/duration'
 
-import type { ParsedRow, ParsedSheet, SheetCell, SheetField } from '../../lib/csv/import'
+import type {
+  ParsedRow,
+  ParsedSheet,
+  ReadingPicks,
+  SheetCell,
+  SheetField,
+} from '../../lib/csv/import'
+import type { ImportChoice, ImportDay } from '../../lib/db/repository'
 
 export type Picks = Readonly<Record<string, number>>
 
@@ -65,9 +73,40 @@ export function hasError(row: ParsedRow): boolean {
   return SHEET_FIELDS.some((field) => row.cells[field].status === 'error')
 }
 
+export function rowDate(row: ParsedRow): string | null {
+  const day = row.cells.entry_date
+
+  return day.status === 'ok' && typeof day.value === 'string' ? day.value : null
+}
+
+export function repeatedRows(sheet: ParsedSheet): Map<number, number> {
+  const first = new Map<string, number>()
+  const repeated = new Map<number, number>()
+
+  sheet.rows.forEach((row, rowIndex) => {
+    const date = rowDate(row)
+
+    if (date === null || hasError(row)) {
+      return
+    }
+
+    const earlier = first.get(date)
+
+    if (earlier === undefined) {
+      first.set(date, rowIndex)
+    } else {
+      repeated.set(rowIndex, earlier)
+    }
+  })
+
+  return repeated
+}
+
 export function reviewTargets(sheet: ParsedSheet): ReviewTarget[] {
+  const repeated = repeatedRows(sheet)
+
   return sheet.rows.flatMap((row, rowIndex) => {
-    if (hasError(row)) {
+    if (hasError(row) || repeated.has(rowIndex)) {
       return []
     }
 
@@ -111,6 +150,32 @@ export function applyToSimilar(
 
 export function dayLabel(iso: string): string {
   return `${String(Number(iso.slice(8, 10)))} ${MONTHS[Number(iso.slice(5, 7)) - 1] ?? ''}`
+}
+
+const LONG_MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+export function spokenRowTitle(row: ParsedRow, rowIndex: number): string {
+  const number = `Row ${String(rowIndex + 1)}`
+  const date = rowDate(row)
+
+  if (date === null) {
+    return number
+  }
+
+  return `${number}, ${String(Number(date.slice(8, 10)))} ${LONG_MONTHS[Number(date.slice(5, 7)) - 1] ?? ''}`
 }
 
 export function rowTitle(row: ParsedRow, rowIndex: number): string {
@@ -188,4 +253,111 @@ export function errorText(row: ParsedRow): string[] {
 
     return [`${lead} ${cell.reason}`]
   })
+}
+
+export type Choices = Readonly<Record<string, ImportChoice>>
+
+export type ImportCounts = {
+  created: number
+  overwritten: number
+  merged: number
+  skipped: number
+  leftOut: number
+}
+
+export type ImportPlan = { days: ImportDay[]; counts: ImportCounts; writes: number }
+
+export function rowPicks(picks: Picks, rowIndex: number): ReadingPicks {
+  const own: ReadingPicks = {}
+
+  for (const field of DURATION_FIELDS) {
+    const pick = picks[cellKey(rowIndex, field)]
+
+    if (pick !== undefined) {
+      own[field] = pick
+    }
+  }
+
+  return own
+}
+
+export function duplicateDates(sheet: ParsedSheet, logged: ReadonlySet<string>): string[] {
+  const repeated = repeatedRows(sheet)
+
+  return sheet.rows.flatMap((row, rowIndex) => {
+    const date = rowDate(row)
+
+    return date !== null && !hasError(row) && !repeated.has(rowIndex) && logged.has(date)
+      ? [date]
+      : []
+  })
+}
+
+export function undecided(dates: string[], choices: Choices): number {
+  return dates.filter((date) => choices[date] === undefined).length
+}
+
+export function chooseForAll(dates: string[], choice: ImportChoice): Choices {
+  return Object.fromEntries(dates.map((date) => [date, choice]))
+}
+
+export function sharedChoice(dates: string[], choices: Choices): ImportChoice | null {
+  const first = dates[0] === undefined ? undefined : choices[dates[0]]
+
+  if (first === undefined) {
+    return null
+  }
+
+  return dates.every((date) => choices[date] === first) ? first : null
+}
+
+const COUNTED: Record<ImportChoice, 'skipped' | 'overwritten' | 'merged'> = {
+  skip: 'skipped',
+  overwrite: 'overwritten',
+  merge: 'merged',
+}
+
+export function importPlan(
+  sheet: ParsedSheet,
+  picks: Picks,
+  logged: ReadonlySet<string>,
+  choices: Choices,
+): ImportPlan {
+  const repeated = repeatedRows(sheet)
+  const counts: ImportCounts = { created: 0, overwritten: 0, merged: 0, skipped: 0, leftOut: 0 }
+  const days: ImportDay[] = []
+
+  sheet.rows.forEach((row, rowIndex) => {
+    const entry = repeated.has(rowIndex) ? null : rowEntry(row, rowPicks(picks, rowIndex))
+
+    if (entry === null) {
+      counts.leftOut += 1
+      return
+    }
+
+    if (!logged.has(entry.entry_date)) {
+      counts.created += 1
+      days.push({ entry })
+      return
+    }
+
+    const choice = choices[entry.entry_date]
+
+    if (choice === undefined) {
+      counts.leftOut += 1
+      return
+    }
+
+    counts[COUNTED[choice]] += 1
+    days.push({ entry, choice })
+  })
+
+  return { days, counts, writes: counts.created + counts.overwritten + counts.merged }
+}
+
+export function repeatText(sheet: ParsedSheet, rowIndex: number, earlier: number): string {
+  const date = sheet.rows[rowIndex] === undefined ? null : rowDate(sheet.rows[rowIndex])
+  const day = date === null ? 'This date' : `Day ${dayLabel(date)}`
+
+  return `${day} is also on row ${String(earlier + 1)}, so only that row is imported.`
 }

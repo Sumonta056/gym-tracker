@@ -93,7 +93,7 @@ describe('ProfileView', () => {
     expect(heading).toHaveFocus()
     expect(screen.getByText('old.csv · 1 row')).toBeInTheDocument()
     expect(screen.getByText('2025')).toBeInTheDocument()
-    expect(screen.getByTestId('import-count')).toHaveTextContent('1 of 1 cell')
+    expect(screen.getByTestId('import-count')).toHaveTextContent('1 of 1 to check: 1 cell')
     expect(screen.queryByTestId('profile-grid')).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Back to the profile' }))

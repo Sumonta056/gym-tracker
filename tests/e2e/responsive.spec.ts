@@ -161,6 +161,46 @@ test('never scrolls sideways on the import review sample at 320 px, with the yea
   expect(await smallTargets(page)).toEqual([])
 })
 
+test('fits the three import choices at 14 px inside their card at 320 px, each 44 px tall', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.goto('/styleguide')
+  const groups = page.getByRole('group', { name: /already logged$|^Apply to all duplicates$/ })
+  await expect(groups).not.toHaveCount(0)
+
+  const problems: string[] = []
+  for (const group of await groups.all()) {
+    await group.scrollIntoViewIfNeeded()
+    problems.push(
+      ...(await group.evaluate((element) => {
+        const out: string[] = []
+        const name = element.getAttribute('aria-label') ?? ''
+        const card = element.closest('[data-testid], li, td') ?? element.parentElement
+        const limit = card === null ? Infinity : card.getBoundingClientRect().right + 0.5
+        if (element.getBoundingClientRect().right > limit)
+          out.push(`${name}: group spills its card`)
+        for (const button of element.querySelectorAll('button')) {
+          const box = button.getBoundingClientRect()
+          const size = getComputedStyle(button).fontSize
+          if (size !== '14px') out.push(`${name} ${button.textContent}: ${size}`)
+          if (box.height < 44)
+            out.push(`${name} ${button.textContent}: ${String(box.height)}px tall`)
+          if (button.scrollWidth > button.clientWidth) {
+            out.push(
+              `${name} ${button.textContent}: text ${String(button.scrollWidth)} > ${String(button.clientWidth)}`,
+            )
+          }
+        }
+        return out
+      })),
+    )
+  }
+
+  expect(problems).toEqual([])
+  expect(await sideways(page)).toEqual([])
+})
+
 test('fits every import table heading inside its cell at 1024 px and 1440 px', async ({ page }) => {
   await page.goto('/styleguide')
 

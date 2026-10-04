@@ -15,6 +15,7 @@ test('parses a duration in the browser, with no network and no server round trip
 
   const sample = page.getByTestId('duration-sample')
   const field = sample.getByLabel('Gym time')
+  await expect(sample).toHaveAttribute('data-ready', 'true')
   await field.fill('72m')
 
   await expect(sample.getByText('Stored seconds: 4320')).toBeVisible()

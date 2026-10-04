@@ -88,6 +88,8 @@ export const OUTBOX_SEQUENCE_KEY = 'outbox_sequence'
 
 export const DAILY_CURSOR_KEY = 'pull_cursor_daily_entries'
 
+export const DAILY_PULLED_KEY = 'pulled_daily_entries'
+
 export const PROFILE_CURSOR_KEY = 'pull_cursor_profiles'
 
 export const EXERCISE_CURSOR_KEY = 'pull_cursor_exercises'

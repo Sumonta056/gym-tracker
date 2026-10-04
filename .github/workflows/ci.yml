@@ -138,6 +138,7 @@ jobs:
         run: pnpm build
         env:
           NEXT_PUBLIC_ENABLE_STYLEGUIDE: '1'
+          NEXT_PUBLIC_ENABLE_CSV_IMPORT: '1'
 
       - name: End-to-end tests
         run: pnpm e2e --project=${{ matrix.project }}

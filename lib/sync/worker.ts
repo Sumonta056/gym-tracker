@@ -1,5 +1,6 @@
 import {
   DAILY_CURSOR_KEY,
+  DAILY_PULLED_KEY,
   db,
   EXERCISE_CURSOR_KEY,
   LOCAL_PROFILE_ID,
@@ -51,6 +52,8 @@ import type { Table } from 'dexie'
 export const SYNC_INTERVAL_MS = 30000
 
 export const EPOCH = new Date(0).toISOString()
+
+export const PULL_PAGE_ROWS = 1000
 
 export const DUPLICATE_KEY = '23505'
 
@@ -141,6 +144,8 @@ interface PullSpec<Row extends ServerRow> {
   tableName: OutboxTableName
   table: Table
   cursorKey: string
+  doneKey?: string
+  pageRows?: number
   fetch: (from: string) => PromiseLike<PostgrestSingleResponse<Row[]>>
   localKey: (row: Row) => string
   readLocal: (key: string) => Promise<Stamped | undefined>
@@ -615,10 +620,18 @@ async function pullTable<Row extends ServerRow>(
 
   await moveCursor(spec.cursorKey, from, highWater)
 
+  if (spec.doneKey !== undefined && (spec.pageRows === undefined || data.length < spec.pageRows)) {
+    await db.syncMeta.put({ key: spec.doneKey, value: new Date().toISOString() })
+  }
+
   return { pulled, error: null }
 }
 
-function pullSteps(client: Client, signal: AbortSignal): (() => Promise<PullResult>)[] {
+function pullSteps(
+  client: Client,
+  signal: AbortSignal,
+  pageRows: number,
+): (() => Promise<PullResult>)[] {
   return [
     () =>
       pullTable(
@@ -626,12 +639,15 @@ function pullSteps(client: Client, signal: AbortSignal): (() => Promise<PullResu
           tableName: 'daily_entries',
           table: db.dailyEntries,
           cursorKey: DAILY_CURSOR_KEY,
+          doneKey: DAILY_PULLED_KEY,
+          pageRows,
           fetch: (from) =>
             client
               .from('daily_entries')
               .select('*')
               .gt('updated_at', from)
-              .order('updated_at', { ascending: true }),
+              .order('updated_at', { ascending: true })
+              .limit(pageRows),
           localKey: (row) => row.id,
           readLocal: (key) => db.dailyEntries.get(key),
           write: (row) => db.dailyEntries.put(toLocalEntry(row)),
@@ -716,10 +732,11 @@ function pullSteps(client: Client, signal: AbortSignal): (() => Promise<PullResu
 export async function pull(
   client: Client,
   signal: AbortSignal = new AbortController().signal,
+  pageRows: number = PULL_PAGE_ROWS,
 ): Promise<PullResult> {
   let pulled = 0
 
-  for (const step of pullSteps(client, signal)) {
+  for (const step of pullSteps(client, signal, pageRows)) {
     const result = await step()
 
     pulled += result.pulled

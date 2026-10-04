@@ -13,6 +13,7 @@ export type SheetModalProps = {
   children: ReactNode
   footer?: ReactNode
   className?: string
+  closeDisabled?: boolean
 }
 
 const FOCUSABLE =
@@ -44,14 +45,24 @@ function trapTab(event: KeyboardEvent, dialog: HTMLElement): void {
   next.focus()
 }
 
-export function SheetModal({ open, title, onClose, children, footer, className }: SheetModalProps) {
+export function SheetModal({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+  className,
+  closeDisabled = false,
+}: SheetModalProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
+  const closeDisabledRef = useRef(closeDisabled)
 
   useEffect(() => {
     onCloseRef.current = onClose
-  }, [onClose])
+    closeDisabledRef.current = closeDisabled
+  }, [onClose, closeDisabled])
 
   useLayoutEffect(() => {
     if (!open) {
@@ -69,7 +80,7 @@ export function SheetModal({ open, title, onClose, children, footer, className }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        onCloseRef.current()
+        if (!closeDisabledRef.current) onCloseRef.current()
         return
       }
 
@@ -96,6 +107,7 @@ export function SheetModal({ open, title, onClose, children, footer, className }
       <button
         type="button"
         aria-label="Close"
+        disabled={closeDisabled}
         onClick={onClose}
         className="bg-ground/70 absolute inset-0 h-full w-full"
       />
@@ -127,8 +139,9 @@ export function SheetModal({ open, title, onClose, children, footer, className }
             <button
               type="button"
               onClick={onClose}
+              disabled={closeDisabled}
               aria-label={`Close ${title}`}
-              className="text-muted bg-surface-2 border-border inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-lg"
+              className="text-muted bg-surface-2 border-border inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-lg disabled:opacity-50"
             >
               <span aria-hidden="true">×</span>
             </button>

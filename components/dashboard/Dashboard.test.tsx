@@ -69,7 +69,7 @@ describe('DashboardView motion', () => {
 describe('Dashboard', () => {
   it('says it is reading the device while the entries load', () => {
     render(<Dashboard clock={clock} />)
-    expect(screen.getByRole('status')).toHaveTextContent('Reading this device')
+    expect(screen.getByText('Reading this device…')).toHaveAttribute('role', 'status')
   })
 
   it('shows the empty state linking to /log when today has no entry', async () => {
@@ -91,6 +91,30 @@ describe('Dashboard', () => {
     vi.mocked(listRange).mockResolvedValue([entryOn(TODAY, { gym_seconds: 4325 })])
     render(<Dashboard clock={clock} />)
     expect(await screen.findByText(formatDuration(4325, 'clock'))).toBeInTheDocument()
+  })
+
+  it('shows the result of an import as text after the import lands on /', async () => {
+    window.history.replaceState(null, '', '/?imported=16.0.0.0.0')
+    render(<Dashboard clock={clock} />)
+    expect(await screen.findByTestId('import-notice')).toHaveTextContent(
+      'The sheet is imported: 16 new, 0 overwritten, 0 merged, 0 skipped, 0 left out.',
+    )
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('mounts the empty import status region while the entries still load', () => {
+    render(<Dashboard clock={clock} />)
+    const regions = screen.getAllByRole('status')
+    expect(regions[0]).toBeEmptyDOMElement()
+    expect(regions[0]).toHaveAttribute('aria-live', 'polite')
+    expect(screen.getByText('Reading this device…')).toBeInTheDocument()
+  })
+
+  it('keeps the same import status region once the dashboard is ready', async () => {
+    render(<Dashboard clock={clock} />)
+    const region = screen.getAllByRole('status')[0]
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.getAllByRole('status')[0]).toBe(region)
   })
 
   it('reports a read failure in words', async () => {

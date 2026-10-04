@@ -1,6 +1,8 @@
 import { formatDuration, parseInput, parseSheetValue } from '../duration'
 import { dailyEntrySchema, localDate } from '../schema/dailyEntry'
 
+import type { DailyEntryDraft } from '../schema/dailyEntry'
+
 export type SheetField =
   | 'entry_date'
   | 'walk_seconds'
@@ -21,7 +23,8 @@ export type SheetCell =
 export type ParsedRow = { line: number; cells: Record<SheetField, SheetCell> }
 
 export type SheetIssue = {
-  kind: 'missing_column' | 'extra_column' | 'blank_row'
+  kind:
+    'missing_column' | 'extra_column' | 'blank_row' | 'short_row' | 'long_row' | 'unclosed_quote'
   line: number
   column: string | null
   message: string
@@ -64,7 +67,36 @@ const BLANK_DATE_REASON = 'Enter a date such as August 12.'
 const DATE_SHAPE_REASON = 'Write the date as a month name and a day, such as August 12.'
 const NUMBER_REASON = 'Enter a number.'
 
-type SheetRecord = { line: number; fields: string[] }
+export type ReadingPicks = Partial<Record<SheetField, number>>
+
+export function rowEntry(row: ParsedRow, picks: ReadingPicks): DailyEntryDraft | null {
+  const entry: Record<string, unknown> = {}
+
+  for (const { field } of COLUMNS) {
+    const cell = row.cells[field]
+
+    if (cell.status === 'error') {
+      return null
+    }
+
+    if (cell.status === 'review') {
+      const pick = picks[field]
+      const reading = pick === undefined ? undefined : cell.readings[pick]
+
+      if (reading === undefined) {
+        return null
+      }
+
+      entry[field] = reading.seconds
+    } else {
+      entry[field] = cell.value
+    }
+  }
+
+  return entry as DailyEntryDraft
+}
+
+type SheetRecord = { line: number; fields: string[]; quoteOpenedOn?: number }
 
 export function parseSheet(text: string, options: { year: number }): ParsedSheet {
   const [header, ...records] = readRecords(text.replace(/^﻿/, ''))
@@ -83,10 +115,50 @@ export function parseSheet(text: string, options: { year: number }): ParsedSheet
       continue
     }
 
+    issues.push(...shapeIssues(record, names.length))
     rows.push({ line: record.line, cells: readRow(names, record.fields, options.year) })
   }
 
   return { rows, issues }
+}
+
+function shapeIssues(record: SheetRecord, width: number): SheetIssue[] {
+  const line = String(record.line)
+
+  if (record.quoteOpenedOn !== undefined) {
+    return [
+      {
+        kind: 'unclosed_quote',
+        line: record.quoteOpenedOn,
+        column: null,
+        message: `Line ${String(record.quoteOpenedOn)} opens a quote that never closes, so the rest of the sheet reads as one cell.`,
+      },
+    ]
+  }
+
+  if (record.fields.length < width) {
+    return [
+      {
+        kind: 'short_row',
+        line: record.line,
+        column: null,
+        message: `Line ${line} has fewer cells than the header, so its last cells read as blank.`,
+      },
+    ]
+  }
+
+  if (record.fields.length > width) {
+    return [
+      {
+        kind: 'long_row',
+        line: record.line,
+        column: null,
+        message: `Line ${line} has more cells than the header, so the extra cells are ignored.`,
+      },
+    ]
+  }
+
+  return []
 }
 
 function columnIssues(names: string[]): SheetIssue[] {
@@ -238,6 +310,7 @@ function readRecords(text: string): SheetRecord[] {
   let fields: string[] = []
   let field = ''
   let quoted = false
+  let openedOn = 0
   let line = 1
   let start = 1
   let index = 0
@@ -259,6 +332,7 @@ function readRecords(text: string): SheetRecord[] {
       }
     } else if (char === '"') {
       quoted = true
+      openedOn = line
     } else if (char === ',') {
       fields.push(field)
       field = ''
@@ -279,9 +353,11 @@ function readRecords(text: string): SheetRecord[] {
     index += 1
   }
 
-  if (field !== '' || fields.length > 0) {
+  if (field !== '' || fields.length > 0 || quoted) {
     fields.push(field)
-    records.push({ line: start, fields })
+    records.push(
+      quoted ? { line: start, fields, quoteOpenedOn: openedOn } : { line: start, fields },
+    )
   }
 
   return records
