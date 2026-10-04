@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test'
 
+import { openImportReview } from './support/sheet'
 import {
   openRoute,
   openWithWeek,
   SIGNED_IN_ROUTES as LIVE_ROUTES,
   test as signedIn,
 } from './support/signedIn'
+import { openLiftCharts, openLiveSession, openPicker } from './support/workout'
 
 import type { Page } from '@playwright/test'
 
@@ -358,3 +360,76 @@ for (const route of LIVE_ROUTES) {
     )
   })
 }
+
+signedIn.describe('signed in on /workout with a set logged', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openLiveSession(page, context)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('shows exactly one navigation at every width', async ({ page }) => {
+    expect(await navigationProblems(page)).toEqual([])
+  })
+})
+
+signedIn.describe('signed in on /workout with the exercise picker open', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openLiveSession(page, context)
+    await openPicker(page)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+})
+
+signedIn.describe('signed in on the import review, with the sheet fixture open', () => {
+  signedIn.beforeEach(async ({ page, account, day }) => {
+    await openImportReview(page, account, day)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('shows exactly one navigation at every width', async ({ page }) => {
+    expect(await navigationProblems(page)).toEqual([])
+  })
+})
+
+signedIn.describe('signed in on /analytics with lift and week charts', () => {
+  signedIn.beforeEach(async ({ page, context, account, day }) => {
+    await openLiftCharts(page, context, account, day)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('shows exactly one navigation at every width', async ({ page }) => {
+    expect(await navigationProblems(page)).toEqual([])
+  })
+})

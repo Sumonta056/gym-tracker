@@ -3,11 +3,11 @@
 **Start of every session:** read `CLAUDE.md`, then the step file named below, then do
 that one step only. Stop and report when the step is done.
 
-**Current phase:** 2 — Workout log and import · `docs/plan/02-phase-2.md`
-**Step index:** `docs/plan/phase-2/index.md`
-**Next step:** 2.11, Phase 2 verification and device check → `docs/plan/phase-2/S2.11-verification.md`
+**Current phase:** 3 — Coach plans · `docs/plan/03-phase-3.md`
+**Step index:** `docs/plan/phase-3/index.md`
+**Next step:** Checkpoint D, the owner's approval. Then 3.1, the prototype plates and the docs → `docs/plan/phase-3/S3.1-design-contract.md`
 **Branch:** `feat/phase-2-workout-log`, cut from `main` at `839ee97`.
-**Last commit:** `feat(csv)`, 2.10, the zip export read from Dexie. Checkpoint D follows 2.11.
+**Last commit:** `test(test)`, 2.11, the Phase 2 routes in the responsive and axe suites. Phase 2 closed; Checkpoint D waits.
 Checkpoint 0 is ticked. The owner accepted plates p7 to p11 on 2026-09-27.
 The owner approved Checkpoint B on 2026-10-01 from a Playwright run at 390 px.
 The owner approved Checkpoint C on 2026-10-04.
@@ -244,13 +244,25 @@ The owner approved Checkpoint C on 2026-10-04.
 - **Later step** — the importer skips the export's Note column, so notes do not come back. A stored 0 duration comes back empty,
   as 2.9a settled. Also swap in `fflate` if the owner wants it. From 2.10.
 - **Owner** — plate p6 has no Data card, and the busy export state has no spoken confirmation. From 2.10.
+- **Owner, after deploy** — the 2.11 device check ran in Chromium at 390 px on a local build, not on the iPhone. Still unproven:
+  Safari and the home-screen app, a real airplane mode with a cold start, a real screen lock, and the iOS share sheet for the
+  export. Push the branch, set `NEXT_PUBLIC_ENABLE_CSV_IMPORT` on Preview, and run them. From 2.11.
+- **Later step** — the new screens in `responsive.spec.ts` skip "clips no text" and "keeps the navigation in view at the foot of
+  the page", which the older routes run. The picker sheet skips the one-navigation check, as the style guide sheet does. From 2.11.
+- **Later step** — `lib/csv/export.ts` branches are 92.85 %; lines 114 and 150 are not taken. The folder is 95 %. From 2.11.
+- **Later step** — `/styleguide` has no `ResumePrompt` sample, and its live workout sample is a 2-column grid with no header,
+  "Done so far" or laptop list, unlike `LiveSession`. The style guide is the bug. From 2.11.
+- **Owner** — plate p3 shows the rest card with no Skip, +30 s or Change. "Last time" is `dim`, not `muted`, on p3 and the laptop
+  plate, and sits after Add set there. Plate p8 says "Sat 20 Sep"; it is a Sunday. Correct the plates. From 2.11.
+- **Later step** — `ImportConfirmSheet.tsx:103` puts its error at the end of the scrolling body, not above the buttons as p10b
+  shows. `ResumePrompt.tsx:154` copies the `PrimaryButton` classes by hand. From 2.11.
 
 ## Phases
 
 - [x] Phase 0 — Foundation (11 steps) · `docs/plan/00-phase-0.md`
 - [x] Phase 1 — Daily tracker (19 steps) · `docs/plan/phase-1/index.md`
-- [ ] Phase 2 — Workout log and import (22 steps) · `docs/plan/phase-2/index.md`
-- [ ] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
+- [x] Phase 2 — Workout log and import (23 steps) · `docs/plan/phase-2/index.md`
+- [x] Phase 2 — Workout log and import (11 steps) · `docs/plan/02-phase-2.md`
 
 ## Rules that block you
 

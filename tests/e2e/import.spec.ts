@@ -1,46 +1,7 @@
-import { readFileSync } from 'node:fs'
-
+import { sheetDates, shiftedSheet } from './support/sheet'
 import { expect, heroValue, test, waitForLocalDays } from './support/signedIn'
 
-import type { TestDay } from './support/signedIn'
-
-const FIXTURE = readFileSync('tests/fixtures/gym-sheet.csv', 'utf8')
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
-
-const FIRST_OFFSET = -15
-
 const REVIEW_CELLS = 11
-
-function sheetDates(day: TestDay): string[] {
-  return Array.from({ length: 16 }, (_, index) => day.plus(FIRST_OFFSET + index))
-}
-
-function sheetDay(iso: string): string {
-  return `${MONTHS[Number(iso.slice(5, 7)) - 1] ?? ''} ${String(Number(iso.slice(8, 10)))}`
-}
-
-function shiftedSheet(dates: string[]): string {
-  const [header, ...rows] = FIXTURE.trimEnd().split('\n')
-
-  return [
-    header,
-    ...rows.map((row, index) => row.replace(/^[A-Za-z]+ \d+/, sheetDay(dates[index] ?? ''))),
-  ].join('\n')
-}
 
 test('imports the sheet, merges a logged date and fills the dashboard', async ({
   page,

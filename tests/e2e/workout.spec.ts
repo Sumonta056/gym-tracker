@@ -1,8 +1,15 @@
 import AxeBuilder from '@axe-core/playwright'
 
 import { expect, navLink, readStore, test, waitForServiceWorker } from './support/signedIn'
+import {
+  benchCard,
+  pickBench,
+  pullOnlyThisWindow,
+  startSession,
+  SUPABASE,
+  waitForExercises,
+} from './support/workout'
 
-import type { TestDay } from './support/signedIn'
 import type { BrowserContext, Page } from '@playwright/test'
 
 type LocalSession = {
@@ -20,10 +27,6 @@ type LocalSet = {
   deleted_at: string | null
 }
 
-const SUPABASE = /\.supabase\.co\//
-
-const SESSIONS = /\/rest\/v1\/workout_sessions/
-
 const WIDTHS = [390, 768, 1440]
 
 const CLOCK_AHEAD_MS = 60000
@@ -39,44 +42,6 @@ test.use({
 test.beforeEach(async ({ context, day }) => {
   await pullOnlyThisWindow(context, day)
 })
-
-async function pullOnlyThisWindow(context: BrowserContext, day: TestDay): Promise<void> {
-  await context.route(SESSIONS, async (route) => {
-    if (route.request().method() !== 'GET') {
-      await route.fallback()
-      return
-    }
-
-    let response: Awaited<ReturnType<typeof route.fetch>>
-
-    try {
-      response = await route.fetch()
-    } catch {
-      await route.abort('failed')
-      return
-    }
-
-    if (!response.ok()) {
-      await route.fulfill({ response })
-      return
-    }
-
-    const rows = (await response.json()) as { entry_date: string }[]
-    await route.fulfill({
-      response,
-      json: rows.filter((row) => row.entry_date >= day.from && row.entry_date <= day.to),
-    })
-  })
-}
-
-async function waitForExercises(page: Page): Promise<void> {
-  await expect
-    .poll(async () => (await readStore<{ id: string }>(page, 'exercises')).length, {
-      message: 'the built-in exercises reach this device',
-      timeout: 15000,
-    })
-    .toBeGreaterThan(0)
-}
 
 async function cutOffTheServer(
   page: Page,
@@ -102,27 +67,6 @@ async function openWithExercises(page: Page): Promise<void> {
   await page.goto('/workouts')
   await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()
   await waitForExercises(page)
-}
-
-async function startSession(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Start a session' }).click()
-  await expect(page).toHaveURL(/\/workout$/)
-  await expect(page.getByRole('heading', { level: 1, name: 'Session' })).toBeVisible()
-}
-
-async function pickBench(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Add exercise' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Pick an exercise' })
-  await dialog.getByRole('searchbox', { name: 'Search exercises' }).fill('Bench Press')
-  await dialog
-    .getByRole('button', { name: /^Bench Press/ })
-    .first()
-    .click()
-  await expect(page.getByRole('region', { name: 'Bench Press' })).toBeVisible()
-}
-
-function benchCard(page: Page) {
-  return page.getByRole('region', { name: 'Bench Press' })
 }
 
 async function addSet(page: Page, count: number): Promise<void> {

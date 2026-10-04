@@ -1,12 +1,14 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+import { openImportReview } from './support/sheet'
 import {
   openRoute,
   openWithWeek,
   SIGNED_IN_ROUTES as LIVE_ROUTES,
   test as signedIn,
 } from './support/signedIn'
+import { openLiftCharts, openLiveSession, openPicker } from './support/workout'
 
 import type { Page } from '@playwright/test'
 
@@ -163,3 +165,45 @@ for (const route of LIVE_ROUTES) {
     })
   })
 }
+
+signedIn.describe('signed in on /workout', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openLiveSession(page, context)
+  })
+
+  signedIn(
+    'reports no serious or critical accessibility issue with a set logged',
+    async ({ page }) => {
+      expect(await blocking(page)).toEqual([])
+    },
+  )
+
+  signedIn(
+    'reports no serious or critical accessibility issue with the exercise picker open',
+    async ({ page }) => {
+      await openPicker(page)
+
+      expect(await blocking(page)).toEqual([])
+    },
+  )
+})
+
+signedIn(
+  'reports no serious or critical accessibility issue on the import review',
+  async ({ page, account, day }) => {
+    await openImportReview(page, account, day)
+
+    expect(await blocking(page)).toEqual([])
+  },
+)
+
+signedIn(
+  'reports no serious or critical accessibility issue on /analytics with lift and week charts',
+  async ({ page, context, account, day }) => {
+    await openLiftCharts(page, context, account, day)
+
+    expect(await blocking(page)).toEqual([])
+  },
+)

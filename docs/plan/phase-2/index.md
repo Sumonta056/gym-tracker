@@ -45,7 +45,7 @@ Phase 1 branch merges.
 | 2.9b | `S2.9b-import-review.md`       | The import review screen                 | M    | 2.0, 2.9a        | done  |
 | 2.9c | `S2.9c-import-apply.md`        | Apply the import: Skip, Overwrite, Merge | M    | 2.9b             | done  |
 | 2.10 | `S2.10-csv-export.md`          | The CSV export and the round trip        | S    | 2.9a             | done  |
-| 2.11 | `S2.11-verification.md`        | Phase 2 verification and device check    | S    | all              | —     |
+| 2.11 | `S2.11-verification.md`        | Phase 2 verification and device check    | S    | all              | done  |
 
 ## Order
 
