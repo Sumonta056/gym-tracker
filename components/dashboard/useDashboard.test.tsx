@@ -56,6 +56,9 @@ describe('useDashboard', () => {
       }),
     )
     const { result, unmount } = renderHook(() => useDashboard(clock))
+    await waitFor(() => {
+      expect(listRange).toHaveBeenCalled()
+    })
     unmount()
     finish([])
     await Promise.resolve()
@@ -70,6 +73,9 @@ describe('useDashboard', () => {
       }),
     )
     const { result, unmount } = renderHook(() => useDashboard(clock))
+    await waitFor(() => {
+      expect(listRange).toHaveBeenCalled()
+    })
     unmount()
     fail(new Error('late'))
     await Promise.resolve()

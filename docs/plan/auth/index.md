@@ -59,7 +59,7 @@ One step is one session. Never do two steps in one session.
 
 The owner, on a laptop and on the iPhone at 390 px:
 
-- [ ] Registers a new account at `/sign-up`, lands on Today, the profile shows the name.
+- [ ] Registers a new account at `/sign-up`, lands on Today, the Today header shows the name's initial with no reload.
 - [ ] Signs out, signs in with the same email and password.
 - [ ] Sees no magic link anywhere.
 - [ ] Deletes the test accounts in the Supabase dashboard.

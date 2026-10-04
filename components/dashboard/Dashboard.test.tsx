@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { animate } from 'motion/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { db, LOCAL_PROFILE_ID } from '../../lib/db/dexie'
 import { getProfile, listRange } from '../../lib/db/repository'
 import { formatDuration } from '../../lib/duration'
 import { streak } from '../../lib/metrics/streak'
@@ -10,6 +11,8 @@ import { setReducedMotion } from '../../tests/fixtures/motion'
 
 import { Dashboard, DashboardView, stepsHint } from './Dashboard'
 import { summarise } from './summary'
+
+import type * as Repository from '../../lib/db/repository'
 
 vi.mock('../../lib/db/repository', async () => {
   const { syncedStatus } = await import('../../tests/fixtures/sync')
@@ -67,6 +70,23 @@ describe('DashboardView motion', () => {
 })
 
 describe('Dashboard', () => {
+  it('shows the profile initial once a pull writes the profile row, with no remount', async () => {
+    const actual = await vi.importActual<typeof Repository>('../../lib/db/repository')
+    vi.mocked(getProfile).mockImplementation(actual.getProfile)
+    vi.mocked(listRange).mockImplementation(actual.listRange)
+    await db.open()
+    await db.profiles.clear()
+
+    render(<Dashboard clock={clock} />)
+    const avatar = await screen.findByRole('link', { name: 'Profile' })
+    expect(within(avatar).getByText('☰')).toBeInTheDocument()
+
+    await db.profiles.put({ ...PROFILE, id: LOCAL_PROFILE_ID, display_name: 'A3 Check' })
+
+    expect(await within(avatar).findByText('A')).toBeInTheDocument()
+    db.close()
+  })
+
   it('says it is reading the device while the entries load', () => {
     render(<Dashboard clock={clock} />)
     expect(screen.getByRole('status')).toHaveTextContent('Reading this device')

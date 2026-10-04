@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 
 import { getProfile, listRange } from '../../lib/db/repository'
 import { localDate } from '../../lib/schema/dailyEntry'
@@ -16,35 +16,25 @@ export type DashboardState =
 
 export const READ_ERROR = 'The entries on this device could not be read.'
 
+const LOADING: DashboardState = { status: 'loading' }
+
 function systemClock(): Date {
   return new Date()
 }
 
+async function readDashboard(clock: () => Date): Promise<DashboardState> {
+  const now = clock()
+  const today = localDate(now)
+
+  try {
+    const [entries, profile] = await Promise.all([listRange(HISTORY_START, today), getProfile()])
+
+    return { status: 'ready', summary: summarise(entries, profile, today, now) }
+  } catch {
+    return { status: 'error', message: READ_ERROR }
+  }
+}
+
 export function useDashboard(clock: () => Date = systemClock): DashboardState {
-  const [state, setState] = useState<DashboardState>({ status: 'loading' })
-
-  useEffect(() => {
-    let cancelled = false
-    const now = clock()
-    const today = localDate(now)
-
-    void Promise.all([listRange(HISTORY_START, today), getProfile()]).then(
-      ([entries, profile]) => {
-        if (!cancelled) {
-          setState({ status: 'ready', summary: summarise(entries, profile, today, now) })
-        }
-      },
-      () => {
-        if (!cancelled) {
-          setState({ status: 'error', message: READ_ERROR })
-        }
-      },
-    )
-
-    return () => {
-      cancelled = true
-    }
-  }, [clock])
-
-  return state
+  return useLiveQuery(() => readDashboard(clock), [clock], LOADING)
 }

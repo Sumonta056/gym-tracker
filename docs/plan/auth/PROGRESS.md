@@ -45,6 +45,10 @@
 - A3: `page.test.tsx` for sign-in changed too. It mocked `sendMagicLink`.
 - A3: sign-in at 390 px checked against p0 by structure and by the report screenshots.
 - A3: the e2e fixture cleanup can fail with "JWT issued at future" (`tests/e2e/support/account.ts:275`). Clock skew with the live project, not auth code. A `fix(test)` outside this track.
+- Checkpoint A: "Confirm email" was on in the dashboard. Sign-up sent the default link and `needs-code`. The owner turned it off on 2026-10-04.
+- Checkpoint A: the name shows only as the initial in the Today header. Profile shows the email, no name. Checkpoint text changed to match. A name on Profile needs a plate first.
+- Checkpoint A: Today did not re-render after the first pull wrote the profile. Fixed in a `fix(ui)` commit before the checkpoint.
+- Checkpoint A: a sign-in by an unconfirmed user shows "That email and password do not match." B1 maps `email_not_confirmed` to `/verify`.
 - M1: drop "the magic link" from `.claude/rules/architecture.md:15`. Drop the magic link, `SITE_URL` and `/auth/callback` lines from root `PROGRESS.md`.
 - A2: `supabase/config.toml` sets `enable_signup = true` at :175 and :220. `enable_confirmations` stays false. Local stack only.
 
@@ -58,7 +62,7 @@
 
 | Setting                          | Now |
 | -------------------------------- | --- |
-| Allow new users to sign up       | off |
+| Allow new users to sign up       | on  |
 | Custom SMTP (Resend)             | off |
 | Confirm email                    | off |
 | "Confirm signup" template = code | no  |
