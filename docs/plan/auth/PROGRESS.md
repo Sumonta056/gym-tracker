@@ -4,9 +4,9 @@
 
 **Worktree:** `/Users/cefalo_1/Documents/Projects/gym-tracker-auth`
 **Branch:** `feat/email-registration`, cut from `feat/phase-2-workout-log` at `c9ffdc0`.
-**Next step:** M1, phase A only. Merge into Phase 2 → `docs/plan/auth/M1-merge.md`. Phase B waits for a domain.
-**Last commit:** `fix(ui): refresh today when the profile arrives from a pull`.
-**Phase 2 branch last seen at:** `37baf7f`. M1 merges from its tip.
+**Next step:** M1 step 5, fast-forward Phase 2 → `docs/plan/auth/M1-merge.md`. Phase B waits for a domain.
+**Last commit:** `docs(docs): record checkpoint a and pause phase b`, then the merge of Phase 2 at `69d2d8c`.
+**Phase 2 branch last seen at:** `69d2d8c`. Merged into this branch in M1.
 
 ## Resume here
 
@@ -17,6 +17,7 @@
 - 2026-10-04: A3 done. Magic link, `/auth/callback`, `lib/auth/session.ts` and `SITE_URL` removed. Verify passed on the second run.
 - 2026-10-04: `fix(ui)` Today reads the profile live. Checkpoint A passed, ticked by the owner.
 - 2026-10-04: B0 paused at step 1, no domain. Phase B paused. Next is M1 with phase A only.
+- 2026-10-04: M1 steps 1 to 4. Phase 2 merged with no conflicts. Prototype and docs fixed. Local `feat/password-sign-in` and `feat/phase-1-daily-tracker` deleted.
 - PATH: `export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:$PATH"`. Node 20 breaks jsdom tests.
 - Before any e2e run, port 3100 must be free. See index rule 3.
 
@@ -57,6 +58,10 @@
 - B0: paused at step 1 on 2026-10-04. No domain yet. M1 runs with phase A only, as `index.md` "Order" allows. B0, B1, B2 and Checkpoint B continue later on a new branch from the merged result.
 - M1: spec :251 must not name `/verify` yet. Phase A ships `/sign-up` only.
 - B0: Resend refuses `*.vercel.app`. The owner buys a domain. The sender is a subdomain, `mail.<domain>`.
+- M1: the prototype rail drops its side gutter below 430 px. 390 px has no sideways scroll. 320 px still scrolls, because a plate is a fixed 390 px frame.
+- M1: `.claude/rules/architecture.md:126` also said "one user". Changed with :69, so the M1 grep passes.
+- M1: the spec end to end list at :408 dropped "The magic link is the fallback".
+- M1: `git merge` made the merge commit with no gate report. The hook watches `git commit` only.
 - B0: the first Resend API key was pasted in a chat. The owner revokes it. The real key is made in step 3 and goes only into the Supabase SMTP password.
 
 ## Open, with the step that closes each one

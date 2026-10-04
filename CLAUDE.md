@@ -1,6 +1,7 @@
 # Gym Tracker
 
-A personal gym log. It replaces an Excel sheet. One user. Installable on an iPhone.
+A personal gym log. It replaces an Excel sheet. Open registration. Each account sees only its own rows.
+Installable on an iPhone.
 It works with no network in the gym. It also works on a laptop.
 
 **Start here:** `PROGRESS.md` names the next step. Never skip it.

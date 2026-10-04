@@ -51,9 +51,8 @@ The owner approved Checkpoint C on 2026-10-04.
   named exceptions in `responsive.md`. A bar chart's goal label sits inside the plot. From 1.15.
 - **Signed-in e2e tests use the test account** `E2E_EMAIL` in `.env.test.local` and CI secrets.
   A setup project signs in with the password and the anon key. No service-role key. From 1.16.
-- **Password sign-in is the default, the magic link is the fallback.** The email is the
-  login name. No sign-up screen and no set-password screen. The owner sets the password
-  in the Supabase dashboard. One generic error for every refusal. From 2026-09-26.
+- **Email and password, open registration.** `/sign-up` makes an account. The magic link,
+  `/auth/callback` and `SITE_URL` are gone. Every decision: `docs/plan/auth/PROGRESS.md`.
 - **The Phase 2 plates follow the plan for behaviour.** One muscle group warns. The rest card
   has +30 s and Change. The p8 card, with both values, is the gym time offer on `/log`
   and on p2. `15.54` reads `15m 54s` or `15m 32s`. The Month volume chart labels its
@@ -117,9 +116,6 @@ The owner approved Checkpoint C on 2026-10-04.
   outbox 0. Both timers right after a reload and a hidden tab. WebKit offline cuts Supabase only. 2026-10-01.
 - **Safe area insets.** The shell, the sign-in and the offline page pad the top by the inset. The tab bar pads
   `max(inset, 10px)`. The session timer reads the clock on `visibilitychange`. From fix(ui), 2026-10-01.
-- **The magic link.** `shouldCreateUser: false`. The 422 `otp_disabled` refusal for an unknown email reads as sent;
-  every other error stays `SEND_FAILED`. The redirect is the origin of the server-only `SITE_URL`, never the
-  `Origin` header; unset, invalid or a `null` origin omits it. Local `config.toml` refuses sign-ups, passwords under 8. From 2.5b B.
 - **No Supabase response in Cache Storage.** The Supabase rule in `app/sw.ts` is `NetworkOnly`; `activate` deletes the old
   `supabase` cache. `waitForServiceWorker` lives in `tests/e2e/support/signedIn.ts`. `security.spec.ts` skips WebKit and
   closes the "Session running" prompt with Close, never Discard. The host matcher stays `.supabase.co`. From 2.5b A.
@@ -195,9 +191,6 @@ The owner approved Checkpoint C on 2026-10-04.
 - **Later step** — match the Supabase rule in `app/sw.ts` on the origin of `NEXT_PUBLIC_SUPABASE_URL`, not on the
   `.supabase.co` host, so a custom domain or a local stack is not cached. From 2.5b A.
 - **Owner** — `get_advisors` warns that leaked password protection is off. An Auth setting. From 2.1a.
-- **Owner, at deploy** — set `SITE_URL=https://<production-host>` in Vercel, Production, and Preview if previews
-  need their own link. Supabase Redirect URLs must hold `${SITE_URL}/auth/callback` and
-  `http://localhost:3000/auth/callback`. Then send one real link on production. From 2.5b B.
 - **Owner** — no unique index on global exercise names. Only the seed adds global rows. The owner
   deferred it. From 2.1b.
 - **Owner** — add plates for the edit sheet, the undo toast, the resume prompt and the rest Change sheet. From 2.4b.

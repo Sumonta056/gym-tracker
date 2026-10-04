@@ -27,7 +27,7 @@ workout, syncs to the cloud, and shows progress charts.
 | ------------ | ------------------------------------------------------------------------- |
 | Platform     | Next.js Progressive Web App only. No App Store, no Play Store.            |
 | Scope        | Daily summary (8 columns) **and** a live exercise log (sets, reps, load). |
-| Users        | One user, but with real login and row level security.                     |
+| Users        | One user per account. Open registration, row level security.              |
 | Data entry   | Manual form, plus a one-time CSV import of the 16 old rows.               |
 | Offline      | Offline first. IndexedDB is the local truth. An outbox syncs to Supabase. |
 | Sync engine  | Dexie plus a hand-written outbox. No third service.                       |
@@ -94,7 +94,7 @@ The repository writes to Dexie and returns at once. The sync worker is the only 
 that talks to Supabase. This keeps the whole app fast and testable.
 
 **Conflict rule.** Last write wins, compared on `updated_at`. This is safe because
-there is one user. A `deleted_at` column gives soft delete, so a delete also syncs.
+there is one user per account. A `deleted_at` column gives soft delete, so a delete also syncs.
 
 **Identity rule.** The client generates every `id` as a UUID. An offline write keeps
 its identity when it syncs later, so a retry never creates a duplicate row.
@@ -246,15 +246,15 @@ test keeps in step with `app/globals.css`.
 
 ## 7. Screens
 
-| #   | Route            | Purpose                                                                       |
-| --- | ---------------- | ----------------------------------------------------------------------------- |
-| 0   | `/sign-in`       | Email and password, magic link fallback. Plus the iPhone install hint.        |
-| 1   | `/`              | Dashboard: hero gym time, streak, 2 stat cards, heart rate zones, week totals |
-| 2   | `/log`           | The 8-column daily form. It offers the finished session length for Gym Time.  |
-| 3   | `/workout`       | Live session: timer, set rows, rest timer, running volume                     |
-| 4   | `/workout` sheet | Exercise picker: search, muscle filter, recent list                           |
-| 5   | `/analytics`     | Day / Week / Month tabs with the charts of section 8                          |
-| 6   | `/profile`       | Units, targets, CSV import and export, sync state, sign out                   |
+| #   | Route            | Purpose                                                                        |
+| --- | ---------------- | ------------------------------------------------------------------------------ |
+| 0   | `/sign-in`       | Email and password. `/sign-up` makes an account. Plus the iPhone install hint. |
+| 1   | `/`              | Dashboard: hero gym time, streak, 2 stat cards, heart rate zones, week totals  |
+| 2   | `/log`           | The 8-column daily form. It offers the finished session length for Gym Time.   |
+| 3   | `/workout`       | Live session: timer, set rows, rest timer, running volume                      |
+| 4   | `/workout` sheet | Exercise picker: search, muscle filter, recent list                            |
+| 5   | `/analytics`     | Day / Week / Month tabs with the charts of section 8                           |
+| 6   | `/profile`       | Units, targets, CSV import and export, sync state, sign out                    |
 
 ## 8. Charts
 
@@ -405,7 +405,7 @@ Two helpers carry most of the risk. Write them test-first:
 
 **End to end (Playwright)**
 
-1. Sign in with email and password. The magic link is the fallback.
+1. Sign in with email and password.
 2. Record a day. Confirm the dashboard number changes.
 3. Set the browser context offline. Record a second day. Confirm it appears.
 4. Go online. Confirm the chip turns green and Supabase holds both rows.

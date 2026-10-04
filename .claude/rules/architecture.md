@@ -12,7 +12,7 @@ to Supabase. ESLint enforces this.
 - Allowed: `app/**` and `components/**` import `lib/db/repository.ts`.
 - Forbidden: `app/**` or `components/**` import `@supabase/*` or `lib/sync/**`.
 - Exception: `lib/auth/**` may call Supabase auth, in the browser or a server action:
-  password sign-in, the magic link, session read and sign out. Nothing else. ESLint
+  password sign-in, the sign-up, session read and sign out. Nothing else. ESLint
   already exempts it.
 
 ## 2. The UUID rule
@@ -66,7 +66,7 @@ every synced table.
 - A stale offline edit can undo a change or a soft delete made on another device.
 - The pull keeps a local row that still has a queued write, and writes a newer server
   row over any other local row.
-- Kept on purpose. This app has one user, who rarely edits one row on 2 devices at
+- Kept on purpose. Each account has one person, who rarely edits one row on 2 devices at
   once. A server guard compares a device clock with a server clock, the same limit
   as the server id rule above.
 
@@ -123,7 +123,7 @@ Two known limits:
   guard in IndexedDB that knows which session is signing out. That guard would compare
   a device clock or a session id against the server, and a wrong answer leaves the
   device stuck with no sync and no save. That risk is worse than the case it closes.
-  This app has one user on a current iPhone and a current laptop browser.
+  Each account has one person, on a current iPhone and a current laptop browser.
 
 ## Shapes
 

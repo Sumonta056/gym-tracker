@@ -109,6 +109,12 @@
         flex: 0 0 390px;
       }
 
+      @media (max-width: 429px) {
+        .rail {
+          padding-inline: 0;
+        }
+      }
+
       .plate-label {
         display: flex;
         align-items: baseline;
@@ -1200,7 +1206,7 @@
     <header class="sheet-head">
       <h1>Gym Tracker — the visual contract</h1>
       <p>
-        Thirteen plates at 390 px, and the live workout and the import review at 1440 px below
+        Seventeen plates at 390 px, and the live workout and the import review at 1440 px below
         them. Every colour is a
         token declared once on
         <code>:root</code>. This file imports no project code, so it cannot drift by
