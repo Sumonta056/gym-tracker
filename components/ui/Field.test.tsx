@@ -33,6 +33,25 @@ describe('Field', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a number.')
   })
 
+  it('announces an error that holds a link, and ties its text to the input', () => {
+    render(
+      <Field
+        label="Email"
+        error={
+          <>
+            Taken. <a href="/sign-in">Sign in instead.</a>
+          </>
+        }
+      />,
+    )
+    const input = screen.getByLabelText('Email')
+    expect(screen.getByRole('alert')).toContainElement(
+      screen.getByRole('link', { name: 'Sign in instead.' }),
+    )
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(input).toHaveAccessibleDescription('Taken. Sign in instead.')
+  })
+
   it('ties both the hint and the error to the input', () => {
     render(<Field label="Weight" hint="In kilograms." error="Enter a number." />)
     expect(screen.getByLabelText('Weight')).toHaveAccessibleDescription(

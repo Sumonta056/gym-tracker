@@ -27,6 +27,10 @@ describe('isPublicPath', () => {
     expect(isPublicPath('/sign-in')).toBe(true)
   })
 
+  it('lets an anonymous visitor reach the sign up screen', () => {
+    expect(isPublicPath('/sign-up')).toBe(true)
+  })
+
   it('lets an anonymous visitor reach the callback', () => {
     expect(isPublicPath('/auth/callback')).toBe(true)
   })
@@ -78,6 +82,20 @@ describe('middleware', () => {
   it('sends a signed in user away from the sign in screen', async () => {
     mocks.updateSession.mockResolvedValue(session({ id: 'user-1' }))
     const response = await middleware(new NextRequest('https://gym.example/sign-in'))
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('https://gym.example/')
+  })
+
+  it('lets an anonymous visitor through to the sign up screen', async () => {
+    mocks.updateSession.mockResolvedValue(session(null))
+    const response = await middleware(new NextRequest('https://gym.example/sign-up'))
+    expect(response.status).toBe(200)
+    expect(response.headers.get('location')).toBeNull()
+  })
+
+  it('sends a signed in user away from the sign up screen', async () => {
+    mocks.updateSession.mockResolvedValue(session({ id: 'user-1' }))
+    const response = await middleware(new NextRequest('https://gym.example/sign-up'))
     expect(response.status).toBe(307)
     expect(response.headers.get('location')).toBe('https://gym.example/')
   })

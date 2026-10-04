@@ -4,8 +4,8 @@
 
 **Worktree:** `/Users/cefalo_1/Documents/Projects/gym-tracker-auth`
 **Branch:** `feat/email-registration`, cut from `feat/phase-2-workout-log` at `c9ffdc0`.
-**Next step:** A2, `/sign-up`, the middleware, the sign-in link → `docs/plan/auth/A2-sign-up-screen.md`
-**Last commit:** A1, `feat(auth): add the sign-up schema and server action`.
+**Next step:** A3, remove the magic link and the callback → `docs/plan/auth/A3-remove-magic-link.md`
+**Last commit:** A2, `feat(auth): add the sign-up screen and the sign-in link`.
 **Phase 2 branch last seen at:** `c9ffdc0`. M1 merges from its tip.
 
 ## Resume here
@@ -13,6 +13,7 @@
 - 2026-10-02: worktree made, `.env.local` and `.env.test.local` copied, `pnpm install` done.
 - 2026-10-03: A0 done. Plates p0, p0b and p0c approved by the owner. Plan docs in git.
 - 2026-10-03: A1 done. `signUpSchema` in `lib/schema/signUp.ts`, `signUp` in `lib/auth/actions.ts`. Verify passed.
+- 2026-10-04: A2 done. `/sign-up`, `AuthHeader`, the middleware and the sign-in link. Verify passed. Manual registration skipped: the dashboard sign-up switch is off.
 - PATH: `export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:$PATH"`. Node 20 breaks jsdom tests.
 - Before any e2e run, port 3100 must be free. See index rule 3.
 
@@ -31,6 +32,14 @@
 - A1: the password limit counts 72 characters, not 72 bytes. A multi-byte password over 72 bytes gets the generic error.
 - A1: the Supabase docs (MCP `search_docs`) and `@supabase/auth-js@2.116.0` replaced Context7 as the source for the codes.
 - A1: `needs-code` is in `SignUpResult` now, so the union keeps its shape for B1.
+- A2: the sign-in header moved to `app/(auth)/AuthHeader.tsx`. Both forms use it.
+- A2: `EmailField` and `PasswordField` widen `error` to a `ReactNode`, to match `Field`.
+- A2: a server error shows as a centred danger line above "Create account". p0b has no such state. Add it in the A3 or M1 prototype pass.
+- A2: `needs-code` sends the user to `/verify?email=`. Until B2, the middleware sends that visit to `/sign-in`.
+- A2: the axe check for `/sign-up` is in `auth.spec.ts`. M1 adds `/sign-up` to `a11y.spec.ts`.
+- A2: no `/styleguide` entry for `/sign-up`, the same as `/sign-in`.
+- A2: `/sign-up` first load is 219 kB against 124 kB for `/sign-in`, because zod ships with `signUpSchema`. Accepted.
+- A2: `supabase/config.toml` sets `enable_signup = true` at :175 and :220. `enable_confirmations` stays false. Local stack only.
 
 ## Open, with the step that closes each one
 
@@ -48,7 +57,7 @@
 
 ## Steps
 
-- [x] A0 · [x] A1 · [ ] A2 · [ ] A3 · [ ] Checkpoint A
+- [x] A0 · [x] A1 · [x] A2 · [ ] A3 · [ ] Checkpoint A
 - [ ] B0 · [ ] B1 · [ ] B2 · [ ] Checkpoint B
 - [ ] M1
 

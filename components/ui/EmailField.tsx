@@ -2,12 +2,12 @@
 
 import { Field } from './Field'
 
-import type { ComponentPropsWithoutRef } from 'react'
+import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 
 export type EmailFieldProps = Omit<ComponentPropsWithoutRef<'input'>, 'type'> & {
   label: string
   hint?: string
-  error?: string
+  error?: ReactNode
 }
 
 export function EmailField({

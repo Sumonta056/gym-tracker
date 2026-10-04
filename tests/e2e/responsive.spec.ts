@@ -9,7 +9,7 @@ import {
 
 import type { Page } from '@playwright/test'
 
-const PUBLIC_ROUTES = ['/sign-in', '/styleguide', '/~offline']
+const PUBLIC_ROUTES = ['/sign-in', '/sign-up', '/styleguide', '/~offline']
 const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/profile']
 const SHELL_ROUTES = ['/styleguide']
 const STEP_WIDTHS = [320, 390, 430, 768, 1024, 1440, 2560]

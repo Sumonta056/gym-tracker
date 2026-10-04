@@ -4,7 +4,9 @@ import { updateSession } from './lib/supabase/middleware'
 
 import type { NextRequest } from 'next/server'
 
-export const PUBLIC_PATHS = ['/sign-in', '/auth/callback', '/styleguide', '/~offline']
+export const PUBLIC_PATHS = ['/sign-in', '/sign-up', '/auth/callback', '/styleguide', '/~offline']
+
+const SIGNED_OUT_PATHS = ['/sign-in', '/sign-up']
 
 export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
@@ -29,7 +31,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return redirectTo(request, '/sign-in', response)
   }
 
-  if (user !== null && pathname === '/sign-in') {
+  if (user !== null && SIGNED_OUT_PATHS.includes(pathname)) {
     return redirectTo(request, '/', response)
   }
 

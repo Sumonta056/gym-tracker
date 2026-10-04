@@ -162,6 +162,17 @@ describe('SignInForm in password mode', () => {
     expect(screen.getByLabelText('Email')).toHaveValue('you@example.com')
   })
 
+  it('links a new person to the create account screen', () => {
+    render(<SignInForm />)
+    expect(screen.getByText(/New here\?/)).toContainElement(
+      screen.getByRole('link', { name: 'Create an account' }),
+    )
+    expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute(
+      'href',
+      '/sign-up',
+    )
+  })
+
   it('tells the user how to install the app on iPhone', () => {
     render(<SignInForm />)
     expect(screen.getByText('Install on iPhone')).toBeInTheDocument()

@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 test('sends an anonymous visitor from the dashboard to the sign in screen', async ({ page }) => {
@@ -53,5 +54,55 @@ test('switches to the magic link form and back', async ({ page }) => {
   await expect(page.getByLabel('Password')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Use password instead' }).click()
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+})
+
+test('lets an anonymous visitor reach the sign up screen directly', async ({ page }) => {
+  const response = await page.goto('/sign-up')
+
+  expect(response?.status()).toBe(200)
+  await expect(page).toHaveURL(/\/sign-up$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Gym Tracker' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible()
+})
+
+test('shows every field error on an empty sign up without leaving the screen', async ({ page }) => {
+  await page.goto('/sign-up')
+
+  await page.getByRole('button', { name: 'Create account' }).click()
+
+  await expect(page.getByLabel('Name')).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByLabel('Password')).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByText('Enter your name.')).toBeVisible()
+  await expect(page.getByText('Enter an email address like you@example.com.')).toBeVisible()
+  await expect(page.getByText('Use 8 or more characters.')).toBeVisible()
+  await expect(page).toHaveURL(/\/sign-up$/)
+})
+
+test('reports no serious or critical axe issue on the sign up screen with its errors shown', async ({
+  page,
+}) => {
+  await page.goto('/sign-up')
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByLabel('Password')).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByText('Use 8 or more characters.')).toBeVisible()
+
+  const results = await new AxeBuilder({ page }).analyze()
+  const blocking = results.violations
+    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .map((violation) => violation.id)
+  expect(blocking).toEqual([])
+})
+
+test('goes from sign in to sign up and back by the links', async ({ page }) => {
+  await page.goto('/sign-in')
+
+  await page.getByRole('link', { name: 'Create an account' }).click()
+  await expect(page).toHaveURL(/\/sign-up$/)
+  await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/sign-in$/)
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
 })

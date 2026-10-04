@@ -1,9 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
-import { BrandMark } from '../../../components/ui/BrandMark'
 import { Card } from '../../../components/ui/Card'
 import { EmailField } from '../../../components/ui/EmailField'
 import { MicroLabel } from '../../../components/ui/MicroLabel'
@@ -12,6 +12,7 @@ import { PrimaryButton } from '../../../components/ui/PrimaryButton'
 import { SecondaryButton } from '../../../components/ui/SecondaryButton'
 import { sendMagicLink, signInWithPassword } from '../../../lib/auth/actions'
 import { isValidEmail } from '../../../lib/auth/email'
+import { AuthHeader } from '../AuthHeader'
 
 type Mode = 'password' | 'link'
 
@@ -87,7 +88,7 @@ function PasswordSignIn({ email, onEmailChange, onUseLink }: PasswordSignInProps
 
   return (
     <div className="flex flex-col gap-3">
-      <SignInHeader />
+      <AuthHeader />
       <form
         noValidate
         className="flex flex-col gap-3"
@@ -125,6 +126,16 @@ function PasswordSignIn({ email, onEmailChange, onUseLink }: PasswordSignInProps
           {signingIn ? 'Signing in…' : 'Sign in'}
         </PrimaryButton>
       </form>
+
+      <p className="text-muted text-center text-[13px]">
+        New here?{' '}
+        <Link
+          href="/sign-up"
+          className="text-text inline-flex min-h-11 items-center font-bold underline"
+        >
+          Create an account
+        </Link>
+      </p>
 
       <SecondaryButton type="button" disabled={signingIn} onClick={onUseLink}>
         Email me a link instead
@@ -176,7 +187,7 @@ function MagicLinkSignIn({ email, onEmailChange, onUsePassword }: MagicLinkSignI
   if (status === 'sent') {
     return (
       <div className="flex flex-col gap-3">
-        <SignInHeader />
+        <AuthHeader />
         <Card
           ref={confirmation}
           tabIndex={-1}
@@ -207,7 +218,7 @@ function MagicLinkSignIn({ email, onEmailChange, onUsePassword }: MagicLinkSignI
 
   return (
     <div className="flex flex-col gap-3">
-      <SignInHeader />
+      <AuthHeader />
       <form
         noValidate
         className="flex flex-col gap-3"
@@ -256,15 +267,5 @@ function InstallCard() {
         screen and logs offline.
       </p>
     </Card>
-  )
-}
-
-function SignInHeader() {
-  return (
-    <div className="mb-2 flex flex-col items-center text-center">
-      <BrandMark className="mb-[18px]" />
-      <h1 className="text-text text-[23px] font-bold tracking-[-0.6px]">Gym Tracker</h1>
-      <p className="text-muted mt-2 text-[13px]">One log. Works with no signal in the gym.</p>
-    </div>
   )
 }

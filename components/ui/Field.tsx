@@ -13,7 +13,7 @@ export const FIELD_INPUT_CLASS =
 export type FieldProps = ComponentPropsWithoutRef<'input'> & {
   label: string
   hint?: ReactNode
-  error?: string
+  error?: ReactNode
   adornment?: ReactNode
   wrapperClassName?: string
 }
