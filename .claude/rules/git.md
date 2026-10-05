@@ -60,6 +60,10 @@ For example `feat/daily-tracker-shell`, `fix/duration-round-trip`,
 
 Phase 0 is the one agreed exception: it runs on `main`.
 
+The fix track runs 1 step per worktree: `../gym-tracker-<step>` on branch
+`fix/<step>-<slug>`, cut from `fix/feedback-fixes`. Each worktree has its own `reports/`. The commit
+gate reads the worktree it runs in.
+
 ## Never without being told
 
 Never run `git commit`, `git push`, or any destructive git operation unless the user

@@ -12,7 +12,8 @@
 
 set -uo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$SCRIPT_ROOT")"
 HASH_FILE="$REPO_ROOT/reports/.last-report-hash"
 
 # Read the hook payload only when stdin is a pipe or a file. A terminal would hang.

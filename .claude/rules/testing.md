@@ -59,3 +59,11 @@ suite. It must pass before any step is done.
 Continuous integration runs the same gates in three parallel jobs: **Static**,
 **Unit tests** and **Browser**, where Browser is a matrix of iPhone 14, Pixel 7 and
 desktop 1440.
+
+## Parallel steps
+
+When more than 1 worktree runs a step at the same time, run `pnpm verify:parallel`,
+not `pnpm verify`. It waits for a machine-wide lock before the e2e suite, so only 1
+suite uses port 3100 and the shared test account at a time. A lock left by a dead
+process is removed on the next run. To clear it by hand:
+`rm -rf "$(node -p "require('os').tmpdir()")/gym-tracker-e2e.lock"`.
