@@ -3,12 +3,12 @@
 **Start of every session:** read `CLAUDE.md`, then the step file named below, then do
 that one step only. Stop and report when the step is done.
 
-**Current phase:** 3 — Coach plans · `docs/plan/03-phase-3.md`
-**Step index:** `docs/plan/phase-3/index.md`
-**Next step:** 3.1, the prototype plates and the docs → `docs/plan/phase-3/S3.1-design-contract.md`
-**Branch:** a new branch cut from `main` after the Phase 2 merge, for example `feat/phase-3-coach-plans`.
-**Last commit:** `docs(docs)`, `f0f4eed`. Phase 2 and the auth track phase A are merged.
-The owner approved Phase 2 Checkpoint D on 2026-10-04.
+**Current phase:** the fix track — the owner feedback · `docs/plan/04-feedback-fixes.md`
+**Step index:** `docs/plan/feedback/index.md`
+**Next step:** wave 0, W0, the e2e lock and the worktree commit gate → `docs/plan/feedback/W0-parallel-setup.md`
+**Branch:** `fix/feedback-fixes`, cut from `main`. Each step runs in its own worktree and branch, cut from it.
+**Last commit:** `docs(docs)`, the plan of the fix track.
+**Phase 3 waits.** It returns to step 3.1 (`docs/plan/phase-3/S3.1-design-contract.md`) when the fix track closes.
 
 ## Resume here
 
