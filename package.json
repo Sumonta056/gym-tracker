@@ -39,6 +39,7 @@
     "test:required:staged": "node scripts/require-tests.mjs --staged",
     "static": "pnpm format:check && pnpm lint --max-warnings=0 && pnpm typecheck && pnpm design:check && pnpm test:required",
     "verify": "pnpm static && pnpm test:cov && pnpm build && pnpm e2e",
+    "verify:parallel": "pnpm static && pnpm test:cov && pnpm build && node scripts/e2e-lock.mjs pnpm e2e",
     "prepare": "husky"
   },
   "dependencies": {
