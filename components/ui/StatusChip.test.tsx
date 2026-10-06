@@ -76,4 +76,9 @@ describe('StatusChip', () => {
     render(<StatusChip status="offline" />)
     expect(screen.getByRole('status')).toHaveTextContent('Offline')
   })
+
+  it('names the unknown state in words', () => {
+    render(<StatusChip status="unknown" />)
+    expect(screen.getByRole('status')).toHaveTextContent('Unknown')
+  })
 })
