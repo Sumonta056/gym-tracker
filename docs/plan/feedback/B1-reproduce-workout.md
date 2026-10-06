@@ -423,34 +423,78 @@ Filled in by the executor. Keep the numbers exactly as measured.
 
 ### Failures
 
+No scenario fails in Playwright. All 5 scenarios pass on `mobile-safari`,
+`mobile-chrome` and `desktop`, at 320, 375, 390 and 430 px, at the top and the foot.
+
 | Scenario | Project | Width | Top or foot | Problem, as the spec printed it | Screenshot |
 | -------- | ------- | ----- | ----------- | ------------------------------- | ---------- |
-|          |         |       |             |                                 |            |
+| none     | all 3   | all 4 | both        | none                            | none       |
+
+One run had 1 failure that is not a layout failure: `mobile-safari`, "stays inside the
+screen with no session", `Error: Removing the test rows failed: JWT issued at future`
+at `tests/e2e/support/account.ts:322`. It is the `day` fixture clearing the test
+account. Run again alone on `mobile-safari`, all 6 tests passed. It is flaky.
 
 ### The real iPhone probe
 
-Paste the probe output here, or write "Not needed: Playwright reproduced it."
+No probe numbers exist, by owner decision. The break shows only in the installed
+home-screen app, not in the Safari tab, and the owner cannot read the console of the
+installed app. The owner chose to use the screenshot only and accepts that risk.
+
+The owner's evidence, from the installed app:
+
+- The owner wrote: "bottom bar come top little bit when session start".
+- The screenshot was taken right after "Start a session", on `/workout`, with a fresh
+  session: "Session, Started 23:17", the PENDING chip, Elapsed 0:07, "Add an exercise
+  to log your first set.", Add exercise, Finish session.
+- The image is 588 × 1280. That fits a 393 × 852 CSS px phone, at a scale of about 1.5.
+- In CSS px, the bottom bar runs from about y = 700 to y = 794. A black empty strip of
+  about 58 px sits below it, down to the screen edge at 852.
+- The bar keeps its normal height, with its safe area padding inside. The whole bar is
+  lifted, not stretched.
+- No sideways spill is visible. Every card fits the width.
+- Standalone mode only, right after a session starts. Not seen in the Safari tab.
 
 ### Root cause
 
-1 paragraph. Name the element, the file and line, the CSS rule, and why the iPhone
-shows it. Name the scenario where it starts.
+Not confirmed. Playwright cannot emulate the iOS standalone mode
+(`navigator.standalone`, the `black-translucent` status bar of `appleWebApp` in
+`app/layout.tsx:21-25`, and `viewportFit: 'cover'` at `app/layout.tsx:39`), so the
+spec cannot fail for it, and no probe numbers exist. What the screenshot shows: the
+fixed bottom `nav` (`components/ui/AppShell.tsx:104-106`, `fixed inset-x-0 bottom-0`)
+ends at y ≈ 794, about 58 px above the 852 px screen foot. 852 − 58 ≈ 794 matches the
+top safe area inset of a 393 × 852 iPhone (59 px). This points to a layout viewport
+that is short by the status bar height, so `bottom: 0` anchors above the screen foot.
+It starts in the "a new session" scenario, the one path that loads `/workout` as a full
+document: `window.location.assign('/workout')` in `goToWorkout`,
+`app/(app)/workouts/page.tsx:22-24`.
 
 ### The suspects
 
-| Id  | Confirmed or ruled out | Evidence |
-| --- | ---------------------- | -------- |
-| S1  |                        |          |
-| S2  |                        |          |
-| S3  |                        |          |
-| S4  |                        |          |
-| S5  |                        |          |
-| S6  |                        |          |
+Ranked hypotheses for B2. Playwright clears each one only in emulation, not in the
+standalone app.
+
+| Id  | Confirmed or ruled out                                             | Evidence                                                                                                                                                                                                                                                                                           |
+| --- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5  | Most likely, hypothesis 1. Not confirmed.                          | The break starts right after Start, the one path that is a full document load. In the standalone app with `black-translucent` and `viewport-fit=cover`, a document load can size the layout viewport without the status bar: the strip (≈ 58 px) equals the top inset (59 px). Playwright: passes. |
+| S6  | Confirmed as the symptom. The cause behind it is S5 or overscroll. | The screenshot: bar bottom ≈ 794 in an 852 px screen, a 58 px gap, the bar lifted with its padding intact. Playwright: the bar ends at the viewport foot in every scenario, `scale` 1.                                                                                                             |
+| S3  | Ruled out on the device and in Playwright.                         | No sideways spill in the screenshot. Playwright: `spills` empty, `scrollX` 0, `scrollWidth` = `clientWidth` at 320 to 430 px.                                                                                                                                                                      |
+| S1  | Ruled out on the device and in Playwright.                         | No dialog in the screenshot. Playwright: `dialogs` 0 after the Resume link.                                                                                                                                                                                                                        |
+| S2  | Unlikely. Ruled out in Playwright only.                            | A transform moves elements inside the frame. The bar is outside `PageTransition` (`AppShell.tsx:99` vs `:104`). Playwright: `transform` `none`, no `will-change` after 400 ms.                                                                                                                     |
+| S4  | Unlikely. Ruled out in Playwright only.                            | The screen opens with no sheet, so `SheetModal` moves no focus. A scroll would move the content, not leave a gap under a fixed bar. Playwright: `scrollY` 0.                                                                                                                                       |
 
 ### The fix B2 should apply
 
-Name the candidate fix ids from `B2-fix-workout-layout.md`. Add a new one if the
-cause is none of S1 to S6, with the exact code change.
+Hypotheses, in this order. Each needs the owner to check on the installed app, since no
+e2e test can see it.
+
+1. **F5**, Start moves inside the app with `router.push`, with no document load. B2
+   must ask the owner first, as its "Stop and ask the owner" says. Check on the iPhone:
+   Start a session, and the bar stays at the foot.
+2. **F6**, `overscroll-behavior-y: none` on `html` and `body`, if F5 alone does not
+   bring the bar to the foot.
+
+F1 to F4 are not needed for this break.
 
 ## Acceptance criteria
 
