@@ -25,6 +25,7 @@ import { AppShell } from '../../components/ui/AppShell'
 import { BrandMark } from '../../components/ui/BrandMark'
 import { Card } from '../../components/ui/Card'
 import { DurationField } from '../../components/ui/DurationField'
+import { DurationPicker, REST_PRESETS, SESSION_PRESETS } from '../../components/ui/DurationPicker'
 import { EmailField } from '../../components/ui/EmailField'
 import { HeroCard } from '../../components/ui/HeroCard'
 import { MicroLabel } from '../../components/ui/MicroLabel'
@@ -47,6 +48,7 @@ import { UndoToast } from '../../components/workout/UndoToast'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
+import { MAX_REST_SECONDS } from '../../lib/schema/profile'
 
 import type { RangeTab } from '../../components/charts/rangeData'
 import type { LiftSource } from '../../components/charts/useLiftData'
@@ -618,6 +620,8 @@ function Styleguide() {
   )
   const [durationText, setDurationText] = useState(formatDuration(4325, 'clock'))
   const [nudgeWeight, setNudgeWeight] = useState(73.4)
+  const [pickerRest, setPickerRest] = useState(90)
+  const [pickerGym, setPickerGym] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
@@ -999,6 +1003,35 @@ function Styleguide() {
               }}
             />
             <p className="text-muted text-xs">{`Stored seconds: ${storedSeconds === null ? 'none' : String(storedSeconds)}`}</p>
+          </Card>
+          <Card
+            className="flex flex-col gap-4"
+            data-testid="duration-picker-sample"
+            data-ready={hydrated ? 'true' : 'false'}
+          >
+            <DurationPicker
+              id="sample-rest-picker"
+              label="Rest time"
+              value={pickerRest}
+              onChange={(next) => {
+                if (next !== null) {
+                  setPickerRest(next)
+                }
+              }}
+              presets={REST_PRESETS}
+              max={MAX_REST_SECONDS}
+            />
+            <DurationPicker
+              id="sample-gym-picker"
+              label="Gym time"
+              value={pickerGym}
+              onChange={setPickerGym}
+              presets={SESSION_PRESETS}
+              allowClear
+            />
+            <p className="text-muted text-xs">
+              {`Rest seconds: ${String(pickerRest)} · Gym seconds: ${pickerGym === null ? 'none' : String(pickerGym)}`}
+            </p>
           </Card>
           <Card className="flex flex-col gap-2" data-testid="nudge-sample">
             <NumberField
