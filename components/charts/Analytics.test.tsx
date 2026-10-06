@@ -1,12 +1,14 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { listRange, listSetsInRange } from '../../lib/db/repository'
 import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
+import { setReducedMotion } from '../../tests/fixtures/motion'
 
 import { Analytics, AnalyticsHeader, AnalyticsView } from './Analytics'
 import { analyse } from './rangeData'
+import { DRAW_CLASS } from './useLineDraw'
 
 vi.mock('recharts', async (importOriginal) => {
   const { withFixedContainer } = await import('../../tests/fixtures/recharts')
@@ -28,42 +30,66 @@ vi.mock('../../lib/db/repository', async () => {
 
 const clock = () => NOW
 
-function rangeReads(): string[][] {
-  return vi
-    .mocked(listRange)
-    .mock.calls.filter(([from]) => from !== '0000-01-01')
-    .map(([from, to]) => [from, to])
-}
-
 beforeEach(() => {
   vi.mocked(listRange).mockReset()
   vi.mocked(listRange).mockResolvedValue([])
 })
 
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
+
+const WEEK_ENTRIES = ['2026-09-21', '2026-09-22', TODAY].map((date) => entryOn(date))
+
 describe('Analytics', () => {
-  it('opens on the week tab and reads the week', async () => {
+  it('opens on the week tab and reads the history once', async () => {
     render(<Analytics clock={clock} />)
     expect(await screen.findByText('21 – 27 September')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Week' })).toHaveAttribute('aria-pressed', 'true')
-    expect(rangeReads()).toEqual([['2026-09-15', '2026-09-27']])
+    expect(vi.mocked(listRange).mock.calls).toEqual([['0000-01-01', '9999-12-31']])
   })
 
-  it('changes the range passed to listRange when the tab changes', async () => {
+  it('changes the range label on the click, with no new read', async () => {
     const user = userEvent.setup()
     render(<Analytics clock={clock} />)
     await screen.findByText('21 – 27 September')
 
     await user.click(screen.getByRole('button', { name: 'Month' }))
-    expect(await screen.findByText('1 – 30 September')).toBeVisible()
+    expect(screen.getByText('1 – 30 September')).toBeVisible()
 
     await user.click(screen.getByRole('button', { name: 'Day' }))
-    expect(await screen.findByText('23 September', { selector: 'p' })).toBeVisible()
+    expect(screen.getByText('23 September', { selector: 'p' })).toBeVisible()
 
-    expect(rangeReads()).toEqual([
-      ['2026-09-15', '2026-09-27'],
-      ['2026-08-26', '2026-09-30'],
-      ['2026-09-17', '2026-09-23'],
-    ])
+    expect(listRange).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps every card in the document during a tab switch', async () => {
+    vi.mocked(listRange).mockResolvedValue(WEEK_ENTRIES)
+    render(<Analytics clock={clock} />)
+    await screen.findByTestId('lift-grid')
+    const grid = screen.getByTestId('analytics-grid')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Month' }))
+
+    expect(screen.getByTestId('analytics-grid')).toBe(grid)
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(13)
+    expect(screen.queryByText('Reading this device…')).not.toBeInTheDocument()
+  })
+
+  it('does not replay the line draw on a chart that comes back after a tab switch', async () => {
+    vi.useFakeTimers()
+    setReducedMotion(false)
+    vi.mocked(listRange).mockResolvedValue(WEEK_ENTRIES)
+    render(<Analytics clock={clock} />)
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Day' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Week' }))
+
+    expect(document.querySelectorAll(`.${DRAW_CLASS}`)).toHaveLength(0)
   })
 
   it('shows the loading state before the read settles', () => {

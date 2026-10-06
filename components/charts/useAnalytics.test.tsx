@@ -2,9 +2,9 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getProfile, listRange } from '../../lib/db/repository'
-import { entryOn, NOW, PROFILE } from '../../tests/fixtures/dashboard'
+import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 
-import { READ_ERROR, useAnalytics } from './useAnalytics'
+import { entriesIn, READ_ERROR, useAnalytics } from './useAnalytics'
 
 vi.mock('../../lib/db/repository', async () => {
   const { PROFILE } = await import('../../tests/fixtures/dashboard')
@@ -19,6 +19,7 @@ const clock = () => NOW
 beforeEach(() => {
   vi.mocked(listRange).mockReset()
   vi.mocked(listRange).mockResolvedValue([])
+  vi.mocked(getProfile).mockClear()
 })
 
 describe('useAnalytics', () => {
@@ -27,12 +28,26 @@ describe('useAnalytics', () => {
     expect(result.current.status).toBe('loading')
   })
 
-  it('reads the week, with six days before it, and the whole history', async () => {
+  it('reads the whole history once, with no range read', async () => {
     renderHook(() => useAnalytics('week', clock))
     await waitFor(() => {
-      expect(listRange).toHaveBeenCalledWith('2026-09-15', '2026-09-27')
+      expect(listRange).toHaveBeenCalledTimes(1)
     })
-    expect(listRange).toHaveBeenCalledWith('0000-01-01', '2026-09-23')
+    expect(listRange).toHaveBeenCalledWith('0000-01-01', '9999-12-31')
+  })
+
+  it('keeps the data ready through a tab switch, with no second read', async () => {
+    vi.mocked(listRange).mockResolvedValue([entryOn('2026-09-21'), entryOn(TODAY)])
+    const { result, rerender } = renderHook(({ tab }) => useAnalytics(tab, clock), {
+      initialProps: { tab: 'week' as 'week' | 'month' },
+    })
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    rerender({ tab: 'month' })
+    expect(result.current.status === 'ready' && result.current.data.tab).toBe('month')
+    expect(listRange).toHaveBeenCalledTimes(1)
+    expect(getProfile).toHaveBeenCalledTimes(1)
   })
 
   it('settles with the analysed data', async () => {
@@ -67,18 +82,6 @@ describe('useAnalytics', () => {
     })
   })
 
-  it('goes back to loading while a new range is read', async () => {
-    const { result, rerender } = renderHook(({ tab }) => useAnalytics(tab, clock), {
-      initialProps: { tab: 'week' as 'week' | 'month' },
-    })
-    await waitFor(() => {
-      expect(result.current.status).toBe('ready')
-    })
-    vi.mocked(listRange).mockReturnValue(new Promise(() => undefined))
-    rerender({ tab: 'month' })
-    expect(result.current.status).toBe('loading')
-  })
-
   it('ignores a read that settles after unmount', async () => {
     let resolve: (value: []) => void = () => undefined
     vi.mocked(listRange).mockReturnValue(
@@ -110,7 +113,24 @@ describe('useAnalytics', () => {
   it('uses the system clock when none is given', async () => {
     renderHook(() => useAnalytics('day'))
     await waitFor(() => {
-      expect(listRange).toHaveBeenCalledTimes(2)
+      expect(listRange).toHaveBeenCalledTimes(1)
     })
+  })
+})
+
+describe('entriesIn', () => {
+  it('keeps the rows from six days before the week to its Sunday', () => {
+    const history = ['2026-09-14', '2026-09-15', TODAY, '2026-09-27', '2026-09-28'].map((date) =>
+      entryOn(date),
+    )
+    expect(entriesIn(history, 'week', TODAY).map((row) => row.entry_date)).toEqual([
+      '2026-09-15',
+      TODAY,
+      '2026-09-27',
+    ])
+  })
+
+  it('returns no row for an empty history', () => {
+    expect(entriesIn([], 'month', TODAY)).toEqual([])
   })
 })
