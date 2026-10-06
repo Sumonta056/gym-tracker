@@ -116,7 +116,12 @@ export function Analytics({ clock }: AnalyticsProps) {
               today={state.data.today}
               unit={state.data.unitSystem}
             />
-            <WeekCharts source={lifts.source} days={state.data.days} today={state.data.today} />
+            <WeekCharts
+              source={lifts.source}
+              days={state.data.days}
+              sessionDates={state.data.sessionDates}
+              today={state.data.today}
+            />
           </>
         ) : null}
 

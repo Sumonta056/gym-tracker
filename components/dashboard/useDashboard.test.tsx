@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getProfile, listRange } from '../../lib/db/repository'
+import { getProfile, listRange, listSessions } from '../../lib/db/repository'
 import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 
 import { HISTORY_START } from './summary'
@@ -10,6 +10,7 @@ import { READ_ERROR, useDashboard } from './useDashboard'
 vi.mock('../../lib/db/repository', () => ({
   getProfile: vi.fn(),
   listRange: vi.fn(),
+  listSessions: vi.fn(),
 }))
 
 const clock = () => NOW
@@ -17,6 +18,7 @@ const clock = () => NOW
 beforeEach(() => {
   vi.mocked(listRange).mockResolvedValue([entryOn(TODAY)])
   vi.mocked(getProfile).mockResolvedValue(PROFILE)
+  vi.mocked(listSessions).mockResolvedValue([])
 })
 
 describe('useDashboard', () => {
@@ -29,6 +31,13 @@ describe('useDashboard', () => {
     renderHook(() => useDashboard(clock))
     await waitFor(() => {
       expect(listRange).toHaveBeenCalledWith(HISTORY_START, TODAY)
+    })
+  })
+
+  it('reads the sessions of the current week up to today', async () => {
+    renderHook(() => useDashboard(clock))
+    await waitFor(() => {
+      expect(listSessions).toHaveBeenCalledWith('2026-09-21', TODAY)
     })
   })
 

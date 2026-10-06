@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { getProfile, listRange } from '../../lib/db/repository'
+import { getProfile, listRange, listSessions } from '../../lib/db/repository'
 import { localDate } from '../../lib/schema/dailyEntry'
 import { HISTORY_START } from '../dashboard/summary'
 
@@ -10,14 +10,20 @@ import { analyse, rangeFor, readWindow } from './rangeData'
 import { HISTORY_END } from './useLiftData'
 
 import type { AnalyticsData, RangeTab } from './rangeData'
-import type { DailyEntry, Profile } from '../../lib/db/dexie'
+import type { DailyEntry, Profile, WorkoutSession } from '../../lib/db/dexie'
 
 export type AnalyticsState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; data: AnalyticsData }
 
-type Source = { history: DailyEntry[]; profile: Profile; today: string; now: Date }
+type Source = {
+  history: DailyEntry[]
+  sessions: WorkoutSession[]
+  profile: Profile
+  today: string
+  now: Date
+}
 
 type Loaded =
   { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; source: Source }
@@ -46,10 +52,14 @@ export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): An
     const now = clock()
     const today = localDate(now)
 
-    void Promise.all([listRange(HISTORY_START, HISTORY_END), getProfile()]).then(
-      ([history, profile]) => {
+    void Promise.all([
+      listRange(HISTORY_START, HISTORY_END),
+      listSessions(HISTORY_START, HISTORY_END),
+      getProfile(),
+    ]).then(
+      ([history, sessions, profile]) => {
         if (!cancelled) {
-          setLoaded({ status: 'ready', source: { history, profile, today, now } })
+          setLoaded({ status: 'ready', source: { history, sessions, profile, today, now } })
         }
       },
       () => {
@@ -69,7 +79,7 @@ export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): An
       return loaded
     }
 
-    const { history, profile, today, now } = loaded.source
+    const { history, sessions, profile, today, now } = loaded.source
 
     return {
       status: 'ready',
@@ -81,6 +91,7 @@ export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): An
         now,
         profile.step_goal,
         profile.unit_system,
+        sessions,
       ),
     }
   }, [loaded, tab])

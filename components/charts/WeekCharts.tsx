@@ -15,6 +15,7 @@ import type { MuscleGroup } from '../../lib/schema/exercise'
 export type WeekChartsProps = {
   source: LiftSource
   days: DayPoint[]
+  sessionDates: string[]
   today: string
   testId?: string
 }
@@ -36,15 +37,17 @@ export function weekBalance(source: LiftSource, today: string): MuscleBalance {
   )
 }
 
-export function rowDates(days: readonly DayPoint[]): string[] {
-  return days.filter((day) => day.logged).map((day) => day.date)
-}
-
-export function WeekCharts({ source, days, today, testId = 'week-grid' }: WeekChartsProps) {
+export function WeekCharts({
+  source,
+  days,
+  sessionDates,
+  today,
+  testId = 'week-grid',
+}: WeekChartsProps) {
   return (
     <div data-testid={testId} className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
       <MuscleBalanceChart balance={weekBalance(source, today)} />
-      <SessionGapChart dates={rowDates(days)} />
+      <SessionGapChart dates={sessionDates} />
       <CaloriesPerMinuteChart days={days} className="md:col-span-2" />
     </div>
   )

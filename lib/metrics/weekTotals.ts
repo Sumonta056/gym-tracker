@@ -1,3 +1,7 @@
+import { effectiveGymSeconds } from './gymTime'
+import { sessionsByDate } from './sessionDays'
+
+import type { SessionRow } from './sessionDays'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 
 export type WeekRow = Pick<
@@ -18,11 +22,15 @@ export interface WeekTotals {
   steps: number
 }
 
-function inRange(row: WeekRow, range: WeekRange | undefined): boolean {
-  return range === undefined || (row.entry_date >= range.from && row.entry_date <= range.to)
+function inRange(date: string, range: WeekRange | undefined): boolean {
+  return range === undefined || (date >= range.from && date <= range.to)
 }
 
-export function weekTotals(rows: readonly WeekRow[], range?: WeekRange): WeekTotals {
+export function weekTotals(
+  rows: readonly WeekRow[],
+  range?: WeekRange,
+  sessions: readonly SessionRow[] = [],
+): WeekTotals {
   const totals: WeekTotals = {
     sessions: 0,
     gymSeconds: 0,
@@ -30,19 +38,21 @@ export function weekTotals(rows: readonly WeekRow[], range?: WeekRange): WeekTot
     calories: 0,
     steps: 0,
   }
+  const inside = rows.filter((row) => inRange(row.entry_date, range))
+  const entries = new Map(inside.map((row) => [row.entry_date, row]))
+  const byDate = sessionsByDate(sessions.filter((session) => inRange(session.entry_date, range)))
 
-  for (const row of rows) {
-    if (!inRange(row, range)) {
-      continue
-    }
-
-    const gym = row.gym_seconds ?? 0
-
-    totals.sessions += gym > 0 ? 1 : 0
-    totals.gymSeconds += gym
+  for (const row of inside) {
     totals.walkSeconds += row.walk_seconds ?? 0
     totals.calories += row.calories_burnt ?? 0
     totals.steps += row.steps ?? 0
+  }
+
+  for (const date of new Set([...entries.keys(), ...byDate.keys()])) {
+    const gym = effectiveGymSeconds(entries.get(date), byDate.get(date) ?? []).seconds
+
+    totals.gymSeconds += gym
+    totals.sessions += gym > 0 ? 1 : 0
   }
 
   return totals
