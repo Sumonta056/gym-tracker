@@ -301,6 +301,22 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.getByText('Stored seconds: 4325')).toBeInTheDocument()
   })
 
+  it('sets the picker sample with taps only', async () => {
+    const sample = within(screen.getByTestId('duration-picker-sample'))
+    await userEvent.click(
+      within(sample.getByRole('group', { name: 'Gym time' })).getByRole('button', { name: '45m' }),
+    )
+    expect(sample.getByText('Rest seconds: 90 · Gym seconds: 2700')).toBeInTheDocument()
+  })
+
+  it('sets the rest time on the picker sample with a preset', async () => {
+    const sample = within(screen.getByTestId('duration-picker-sample'))
+    await userEvent.click(
+      within(sample.getByRole('group', { name: 'Rest time' })).getByRole('button', { name: '2m' }),
+    )
+    expect(sample.getByText('Rest seconds: 120 · Gym seconds: none')).toBeInTheDocument()
+  })
+
   it('shows the weight nudge pair from the daily log', async () => {
     const sample = within(screen.getByTestId('nudge-sample'))
     const weight = sample.getByLabelText('Weight (kg)')

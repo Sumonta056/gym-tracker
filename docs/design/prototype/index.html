@@ -819,6 +819,50 @@
         color: var(--color-accent-ink);
       }
 
+      .dp {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .dp-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 4px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-input);
+        background: var(--color-surface);
+      }
+
+      .dp-step {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+        color: var(--color-text);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .dp-step:disabled {
+        opacity: 0.5;
+      }
+
+      .dp-value {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.4px;
+      }
+
+      .dp-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
       .pickrow {
         display: flex;
         align-items: center;
@@ -5995,6 +6039,53 @@
               <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
               <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
             </nav>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 13 · duration picker ============
+           New classes: dp, dp-row, dp-step, dp-value, dp-chips. -->
+      <section class="plate" aria-labelledby="p-duration-picker">
+        <div class="plate-label">
+          <span class="n">13</span>
+          <span class="name" id="p-duration-picker">Duration picker</span>
+          <span class="route">/workout · rest sheet</span>
+        </div>
+        <div class="frame">
+          <div class="screen" aria-hidden="true">
+            <div class="topbar">
+              <div>
+                <h2>Session</h2>
+                <p class="sub">Started 17:30</p>
+              </div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="bottomsheet" role="dialog" aria-modal="true" aria-labelledby="dp-title">
+            <div class="grabber" aria-hidden="true"></div>
+            <span class="micro" id="dp-title">Rest for Bench press</span>
+            <p class="muted" style="margin: 0">
+              The next rest after this exercise uses the new time.
+            </p>
+            <div class="dp" role="group" aria-labelledby="dp-label">
+              <span class="micro" id="dp-label">Rest time</span>
+              <div class="dp-row">
+                <button class="dp-step" type="button" aria-label="Decrease Rest time by 15 seconds">
+                  <span aria-hidden="true">−</span>
+                </button>
+                <output class="dp-value">1:30</output>
+                <button class="dp-step" type="button" aria-label="Increase Rest time by 15 seconds">
+                  <span aria-hidden="true">+</span>
+                </button>
+              </div>
+              <div class="dp-chips">
+                <button class="pill" type="button" aria-pressed="false">1m</button>
+                <button class="pill" type="button" aria-pressed="true">1:30</button>
+                <button class="pill" type="button" aria-pressed="false">2m</button>
+                <button class="pill" type="button" aria-pressed="false">3m</button>
+              </div>
+            </div>
+            <button class="btn" type="button">Save rest time</button>
           </div>
         </div>
       </section>
