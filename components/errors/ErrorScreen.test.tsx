@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { CHUNK_RELOAD_KEY } from '../../lib/errors/chunk'
 import { reportError } from '../../lib/errors/report'
 
 import {
@@ -80,11 +81,42 @@ describe('ErrorScreenView', () => {
 })
 
 describe('ErrorScreen', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear()
+  })
+
   it('reports the error once with the boundary source', () => {
     const error = boom()
     render(<ErrorScreen error={error} />)
 
     expect(reportError).toHaveBeenCalledTimes(1)
     expect(reportError).toHaveBeenCalledWith(error, { route: '/', source: 'boundary' })
+  })
+
+  it('reloads once for a stale chunk', () => {
+    const reload = vi.fn()
+    const error = Object.assign(new Error('Loading chunk 812 failed.'), { name: 'ChunkLoadError' })
+
+    render(<ErrorScreen error={error} reload={reload} />)
+
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not reload a stale chunk a second time in the same session', () => {
+    const reload = vi.fn()
+    const error = Object.assign(new Error('Loading chunk 812 failed.'), { name: 'ChunkLoadError' })
+    window.sessionStorage.setItem(CHUNK_RELOAD_KEY, '2026-10-05T10:00:00.000Z')
+
+    render(<ErrorScreen error={error} reload={reload} />)
+
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('does not reload by itself for an ordinary error', () => {
+    const reload = vi.fn()
+
+    render(<ErrorScreen error={new Error('boom')} reload={reload} />)
+
+    expect(reload).not.toHaveBeenCalled()
   })
 })

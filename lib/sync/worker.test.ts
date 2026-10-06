@@ -76,6 +76,7 @@ import {
 
 import type { SyncState } from './worker'
 import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
+import type * as Report from '../errors/report'
 import type { Database } from '../supabase/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Table } from 'dexie'
@@ -92,10 +93,16 @@ const GLOBAL_EXERCISE = 'c9fca3c0-08f3-4abe-aed2-50424b8342fc'
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  reportError: vi.fn(),
 }))
 
 vi.mock('../supabase/client', () => ({
   createClient: mocks.createClient,
+}))
+
+vi.mock('../errors/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof Report>()),
+  reportError: mocks.reportError,
 }))
 
 interface Failure {
@@ -503,6 +510,7 @@ function installLocks(locks: FakeLocks): void {
 
 beforeEach(async () => {
   mocks.createClient.mockReset()
+  mocks.reportError.mockReset()
   await db.open()
   await Promise.all([
     db.dailyEntries.clear(),
@@ -3475,5 +3483,24 @@ describe('startSync', () => {
 
     expect(fake.upserted.map((call) => call.row.id)).toEqual([ROW_A])
     expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('reports a drain that rejects, so it is never an unhandled rejection', async () => {
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+    Object.defineProperty(globalThis.navigator, 'locks', {
+      configurable: true,
+      value: { request: () => Promise.reject(new Error('lock manager gone')) },
+    })
+
+    const stop = startSync()
+
+    await vi.waitFor(() => {
+      expect(mocks.reportError).toHaveBeenCalledWith(expect.any(Error), {
+        route: '/',
+        source: 'sync',
+      })
+    })
+    stop()
   })
 })

@@ -1,9 +1,20 @@
 import 'fake-indexeddb/auto'
 
 import Dexie from 'dexie'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createDatabase, DATABASE_NAME, DATABASE_VERSION, db, STORES_V1 } from './dexie'
+import {
+  createDatabase,
+  createVersionWatch,
+  DATABASE_NAME,
+  DATABASE_VERSION,
+  db,
+  getVersionState,
+  STORES,
+  STORES_V1,
+  subscribeVersionState,
+  versionWatch,
+} from './dexie'
 
 describe('createDatabase', () => {
   const opened: { close: () => void; delete: () => Promise<void> }[] = []
@@ -223,5 +234,115 @@ describe('createDatabase', () => {
 describe('db', () => {
   it('is a single shared instance of the gym tracker database', () => {
     expect(db.name).toBe(DATABASE_NAME)
+  })
+})
+
+describe('the version watch', () => {
+  const opened: Dexie[] = []
+
+  afterEach(async () => {
+    for (const instance of opened) {
+      instance.close()
+      await instance.delete()
+    }
+
+    opened.length = 0
+  })
+
+  it('starts current', () => {
+    expect(createVersionWatch().get()).toBe('current')
+  })
+
+  it('tells a listener when the state changes', () => {
+    const watch = createVersionWatch()
+    const listener = vi.fn()
+    watch.subscribe(listener)
+
+    watch.set('stale')
+
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not tell a listener when the state stays the same', () => {
+    const watch = createVersionWatch()
+    const listener = vi.fn()
+    watch.subscribe(listener)
+
+    watch.set('current')
+
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('stops telling a listener after it unsubscribes', () => {
+    const watch = createVersionWatch()
+    const listener = vi.fn()
+    const stop = watch.subscribe(listener)
+
+    stop()
+    watch.set('stale')
+
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('turns stale and closes the database when another tab opens a newer version', async () => {
+    const name = 'gym-tracker-versionchange'
+    const watch = createVersionWatch()
+    const instance = createDatabase(name, watch)
+    await instance.open()
+
+    const newer = new Dexie(name)
+    newer.version(DATABASE_VERSION + 1).stores(STORES)
+    opened.push(newer)
+    await newer.open()
+
+    expect(watch.get()).toBe('stale')
+    expect(instance.isOpen()).toBe(false)
+  })
+
+  it('refuses every read after it turned stale, so no old code writes to a new schema', async () => {
+    const name = 'gym-tracker-stale-read'
+    const watch = createVersionWatch()
+    const instance = createDatabase(name, watch)
+    await instance.open()
+
+    const newer = new Dexie(name)
+    newer.version(DATABASE_VERSION + 1).stores(STORES)
+    opened.push(newer)
+    await newer.open()
+
+    await expect(instance.syncMeta.count()).rejects.toThrow()
+  })
+
+  it('turns blocked while an old tab holds the database open, then current once it opens', async () => {
+    const name = 'gym-tracker-blocked'
+    const old = new Dexie(name)
+    old.version(1).stores(STORES_V1)
+    old.on('versionchange', () => false)
+    await old.open()
+
+    const watch = createVersionWatch()
+    const instance = createDatabase(name, watch)
+    opened.push(instance)
+    const opening = instance.open()
+
+    await vi.waitFor(() => {
+      expect(watch.get()).toBe('blocked')
+    })
+    old.close()
+    await opening
+
+    expect(watch.get()).toBe('current')
+  })
+
+  it('reads and subscribes to the shared watch of the app database', () => {
+    const listener = vi.fn()
+    const stop = subscribeVersionState(listener)
+
+    versionWatch.set('blocked')
+    expect(getVersionState()).toBe('blocked')
+    versionWatch.set('current')
+    stop()
+
+    expect(listener).toHaveBeenCalledTimes(2)
   })
 })

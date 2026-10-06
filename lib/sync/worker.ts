@@ -9,6 +9,7 @@ import {
   SET_CURSOR_KEY,
   SIGNED_OUT_KEY,
 } from '../db/dexie'
+import { currentRoute, reportError } from '../errors/report'
 import { newId } from '../id'
 import { createClient } from '../supabase/client'
 
@@ -1048,7 +1049,9 @@ let triggers: { callers: number; teardown: () => void } | null = null
 
 function mountTriggers(): () => void {
   const tick = (): void => {
-    void sync()
+    sync().catch((cause: unknown) => {
+      reportError(cause, { route: currentRoute(), source: 'sync' })
+    })
   }
 
   channel = openChannel()

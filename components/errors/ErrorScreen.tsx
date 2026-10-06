@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { copyText, reloadPage } from '../../lib/errors/browser'
+import { isChunkLoadError, reloadOnce, sessionStore } from '../../lib/errors/chunk'
 import { currentRoute, errorText, reportError } from '../../lib/errors/report'
 import { Card } from '../ui/Card'
 import { MicroLabel } from '../ui/MicroLabel'
@@ -71,11 +72,15 @@ export function ErrorScreenView({ error, reload = reloadPage, copy = copyText }:
 }
 
 export function ErrorScreen(props: ErrorScreenProps) {
-  const { error } = props
+  const { error, reload = reloadPage } = props
 
   useEffect(() => {
     reportError(error, { route: currentRoute(), source: 'boundary' })
-  }, [error])
+
+    if (isChunkLoadError(error)) {
+      reloadOnce(sessionStore(), reload)
+    }
+  }, [error, reload])
 
   return <ErrorScreenView {...props} />
 }

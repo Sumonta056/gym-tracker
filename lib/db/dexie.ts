@@ -129,12 +129,79 @@ export const STORES = {
   workoutSets: '&id, session_id, updated_at',
 } as const
 
-export function createDatabase(name: string = DATABASE_NAME): GymDatabase {
+export type VersionState = 'current' | 'stale' | 'blocked'
+
+export interface VersionWatch {
+  get: () => VersionState
+  subscribe: (listener: () => void) => () => void
+  set: (next: VersionState) => void
+}
+
+export function createVersionWatch(): VersionWatch {
+  let state: VersionState = 'current'
+  const listeners = new Set<() => void>()
+
+  return {
+    get: () => state,
+    subscribe: (listener) => {
+      listeners.add(listener)
+
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+    set: (next) => {
+      if (next === state) {
+        return
+      }
+
+      state = next
+
+      for (const listener of listeners) {
+        listener()
+      }
+    },
+  }
+}
+
+export const versionWatch = createVersionWatch()
+
+export function getVersionState(): VersionState {
+  return versionWatch.get()
+}
+
+export function subscribeVersionState(listener: () => void): () => void {
+  return versionWatch.subscribe(listener)
+}
+
+export function createDatabase(
+  name: string = DATABASE_NAME,
+  watch: VersionWatch = versionWatch,
+): GymDatabase {
   const instance = new Dexie(name) as GymDatabase
 
   instance.version(1).stores(STORES_V1)
   instance.version(2).stores(STORES_V2)
   instance.version(DATABASE_VERSION).stores(STORES)
+
+  instance.on('versionchange', () => {
+    instance.close({ disableAutoOpen: true })
+    watch.set('stale')
+
+    return false
+  })
+  instance.on('blocked', () => {
+    watch.set('blocked')
+  })
+  instance.on(
+    'ready',
+    () => {
+      if (watch.get() === 'blocked') {
+        watch.set('current')
+      }
+    },
+    true,
+  )
 
   return instance
 }

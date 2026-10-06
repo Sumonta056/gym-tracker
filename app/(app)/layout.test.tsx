@@ -7,6 +7,7 @@ import AppLayout from './layout'
 
 const mocks = vi.hoisted(() => ({
   stop: vi.fn(),
+  version: 'current',
   active: undefined as
     | undefined
     | {
@@ -21,6 +22,8 @@ vi.mock('../../lib/db/repository', () => ({
   listSets: vi.fn(() => Promise.resolve([])),
   discardSession: vi.fn(() => Promise.resolve()),
   SignedOutOnThisDevice: class extends Error {},
+  getVersionState: () => mocks.version,
+  subscribeVersionState: () => () => undefined,
 }))
 
 vi.mock('next/navigation', () => ({
@@ -65,5 +68,12 @@ describe('AppLayout', () => {
 
     expect(await screen.findByRole('dialog', { name: 'Session running' })).toBeInTheDocument()
     mocks.active = undefined
+  })
+
+  it('shows the reload banner when the database turned stale', () => {
+    mocks.version = 'stale'
+    setup()
+    expect(screen.getByRole('alert')).toHaveTextContent('A new version is ready.')
+    mocks.version = 'current'
   })
 })
