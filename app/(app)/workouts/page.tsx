@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { MicroLabel } from '../../../components/ui/MicroLabel'
@@ -19,11 +20,8 @@ const START_FAILED = 'The session could not be started on this device.'
 
 type Launch = 'reading' | 'idle' | 'active'
 
-function goToWorkout(): void {
-  window.location.assign(WORKOUT_PATH)
-}
-
 function SessionLauncher() {
+  const router = useRouter()
   const [launch, setLaunch] = useState<Launch>('reading')
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -52,11 +50,11 @@ function SessionLauncher() {
     setError(null)
     startSession(localDate()).then(
       () => {
-        goToWorkout()
+        router.push(WORKOUT_PATH)
       },
       (cause: unknown) => {
         if (cause instanceof SessionAlreadyActive) {
-          goToWorkout()
+          router.push(WORKOUT_PATH)
           return
         }
 
