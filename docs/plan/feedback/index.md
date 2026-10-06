@@ -118,36 +118,36 @@ Every step follows these. They are not repeated in each step file.
 
 ## The steps
 
-| Step | File                       | Title                                         | Items  | Size | Depends on          | State |
-| ---- | -------------------------- | --------------------------------------------- | ------ | ---- | ------------------- | ----- |
-| W0   | `W0-parallel-setup.md`     | The e2e lock and the worktree commit gate     | —      | S    | —                   | —     |
-| A1   | `A1-error-boundaries.md`   | Error boundaries and guarded live queries     | 16     | M    | W0                  | —     |
-| A2   | `A2-version-and-chunks.md` | Version change, stale chunk, sync catch       | 16     | S    | A1                  | —     |
-| A3   | `A3-error-log.md`          | The local error log, Dexie v4, Profile card   | 16     | M    | A2                  | —     |
-| B1   | `B1-reproduce-workout.md`  | Reproduce the `/workout` break on the iPhone  | 5      | S    | W0                  | —     |
-| B2   | `B2-fix-workout-layout.md` | Fix the `/workout` layout                     | 5      | M    | B1                  | —     |
-| B3   | `B3-sheet-portal.md`       | The sheet: portal, iOS scroll lock, keyboard  | 2      | M    | B2                  | —     |
-| B4   | `B4-saved-toast.md`        | The Saved toast, Finish with no reload        | 2      | S    | B3                  | —     |
-| B5   | `B5-hidden-scrollbars.md`  | Hidden scrollbars and the chip fade           | 13     | S    | B2                  | —     |
-| C1   | `C1-stats-no-flicker.md`   | Keep the Stats data during a tab switch       | 7      | M    | W0                  | —     |
-| C2   | `C2-gym-time-metric.md`    | `effectiveGymSeconds`, one source of gym time | 9      | S    | W0                  | —     |
-| C3   | `C3-session-gaps.md`       | Session gaps from all history, one meaning    | 12     | S    | C1, C2              | —     |
-| C4   | `C4-day-labels.md`         | Heat map and week labels                      | 12, 17 | M    | C3                  | —     |
-| D1   | `D1-schema.md`             | The migration, Dexie v5, schemas, mappings    | —      | M    | A3                  | —     |
-| E1   | `E1-duration-picker.md`    | The `DurationPicker` primitive                | 3      | M    | W0                  | —     |
-| E2   | `E2-picker-in-use.md`      | The picker for rest, gym and walk time        | 3      | S    | E1, B3, B4          | —     |
-| E3   | `E3-gym-time-in-log.md`    | Gym time from sessions in `/log`, no offer    | 9      | M    | C2, E2, B4          | —     |
-| E4   | `E4-old-days.md`           | `/log?date=`, previous, next, date picker     | 6      | M    | E3, C4              | —     |
-| E5   | `E5-swim-card.md`          | The Swimming card                             | 1      | M    | D1, E2, E4          | —     |
-| F1   | `F1-finish-summary.md`     | The finish summary                            | 4      | M    | B4, E3              | —     |
-| F2   | `F2-session-history.md`    | `/workouts` history and session detail        | 4      | M    | F1, E4, A1          | —     |
-| G1   | `G1-goals-in-profile.md`   | 6 goals in Profile, the week start fact       | 14, 17 | M    | D1, E1, B4          | —     |
-| G2   | `G2-goal-lines.md`         | A goal line on each chart, the Walk chart     | 14     | M    | G1, C1, C4          | —     |
-| G3a  | `G3a-today-data.md`        | Today: the data in `summary.ts`               | 8      | M    | C3, G2, E5, F1      | —     |
-| G3b  | `G3b-today-cards.md`       | Today: the cards                              | 8      | M    | G3a, F2, H1         | —     |
-| H1   | `H1-max-heart-rate.md`     | Zones from a true maximum heart rate          | 10     | M    | C3, D1, G1, G2, G3a | —     |
-| H2   | `H2-zone-explained.md`     | Zone bpm ranges and the info sheet            | 15     | S    | H1, B3              | —     |
-| I1   | `I1-stats-layout.md`       | Reorder and hide the Stats cards              | 11     | M    | C3, D1, G2, H2      | —     |
+| Step | File                       | Title                                         | Items  | Size | Depends on          | State          |
+| ---- | -------------------------- | --------------------------------------------- | ------ | ---- | ------------------- | -------------- |
+| W0   | `W0-parallel-setup.md`     | The e2e lock and the worktree commit gate     | —      | S    | —                   | done `cb7e9bb` |
+| A1   | `A1-error-boundaries.md`   | Error boundaries and guarded live queries     | 16     | M    | W0                  | done `6e47e39` |
+| A2   | `A2-version-and-chunks.md` | Version change, stale chunk, sync catch       | 16     | S    | A1                  | —              |
+| A3   | `A3-error-log.md`          | The local error log, Dexie v4, Profile card   | 16     | M    | A2                  | —              |
+| B1   | `B1-reproduce-workout.md`  | Reproduce the `/workout` break on the iPhone  | 5      | S    | W0                  | done `5eabf7f` |
+| B2   | `B2-fix-workout-layout.md` | Fix the `/workout` layout                     | 5      | M    | B1                  | —              |
+| B3   | `B3-sheet-portal.md`       | The sheet: portal, iOS scroll lock, keyboard  | 2      | M    | B2                  | —              |
+| B4   | `B4-saved-toast.md`        | The Saved toast, Finish with no reload        | 2      | S    | B3                  | —              |
+| B5   | `B5-hidden-scrollbars.md`  | Hidden scrollbars and the chip fade           | 13     | S    | B2                  | —              |
+| C1   | `C1-stats-no-flicker.md`   | Keep the Stats data during a tab switch       | 7      | M    | W0                  | done `ace246f` |
+| C2   | `C2-gym-time-metric.md`    | `effectiveGymSeconds`, one source of gym time | 9      | S    | W0                  | done `7cd2874` |
+| C3   | `C3-session-gaps.md`       | Session gaps from all history, one meaning    | 12     | S    | C1, C2              | —              |
+| C4   | `C4-day-labels.md`         | Heat map and week labels                      | 12, 17 | M    | C3                  | —              |
+| D1   | `D1-schema.md`             | The migration, Dexie v5, schemas, mappings    | —      | M    | A3                  | —              |
+| E1   | `E1-duration-picker.md`    | The `DurationPicker` primitive                | 3      | M    | W0                  | done `93c6267` |
+| E2   | `E2-picker-in-use.md`      | The picker for rest, gym and walk time        | 3      | S    | E1, B3, B4          | —              |
+| E3   | `E3-gym-time-in-log.md`    | Gym time from sessions in `/log`, no offer    | 9      | M    | C2, E2, B4          | —              |
+| E4   | `E4-old-days.md`           | `/log?date=`, previous, next, date picker     | 6      | M    | E3, C4              | —              |
+| E5   | `E5-swim-card.md`          | The Swimming card                             | 1      | M    | D1, E2, E4          | —              |
+| F1   | `F1-finish-summary.md`     | The finish summary                            | 4      | M    | B4, E3              | —              |
+| F2   | `F2-session-history.md`    | `/workouts` history and session detail        | 4      | M    | F1, E4, A1          | —              |
+| G1   | `G1-goals-in-profile.md`   | 6 goals in Profile, the week start fact       | 14, 17 | M    | D1, E1, B4          | —              |
+| G2   | `G2-goal-lines.md`         | A goal line on each chart, the Walk chart     | 14     | M    | G1, C1, C4          | —              |
+| G3a  | `G3a-today-data.md`        | Today: the data in `summary.ts`               | 8      | M    | C3, G2, E5, F1      | —              |
+| G3b  | `G3b-today-cards.md`       | Today: the cards                              | 8      | M    | G3a, F2, H1         | —              |
+| H1   | `H1-max-heart-rate.md`     | Zones from a true maximum heart rate          | 10     | M    | C3, D1, G1, G2, G3a | —              |
+| H2   | `H2-zone-explained.md`     | Zone bpm ranges and the info sheet            | 15     | S    | H1, B3              | —              |
+| I1   | `I1-stats-layout.md`       | Reorder and hide the Stats cards              | 11     | M    | C3, D1, G2, H2      | —              |
 
 28 steps: W0 and 27 fix steps. G3 is split in 2 because it does not fit 1 session.
 The "Depends on" column lists only what a step needs. The waves above also keep apart

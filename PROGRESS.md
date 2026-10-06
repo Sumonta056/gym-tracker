@@ -5,9 +5,9 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** the fix track — the owner feedback · `docs/plan/04-feedback-fixes.md`
 **Step index:** `docs/plan/feedback/index.md`
-**Next step:** wave 0, W0, the e2e lock and the worktree commit gate → `docs/plan/feedback/W0-parallel-setup.md`
+**Next step:** wave 2: A2, B2 and C3, 1 agent each → `docs/plan/feedback/index.md`, "Waves". B2 needs the owner's iPhone and an owner decision first.
 **Branch:** `fix/feedback-fixes`, cut from `main`. Each step runs in its own worktree and branch, cut from it.
-**Last commit:** `docs(docs)`, the plan of the fix track.
+**Last commit:** `f5ffb48`, the merge that closes wave 1 (W0, A1, B1, C1, C2, E1 are done).
 **Phase 3 waits.** It returns to step 3.1 (`docs/plan/phase-3/S3.1-design-contract.md`) when the fix track closes.
 
 ## Resume here
