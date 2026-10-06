@@ -19,6 +19,7 @@ import { ImportNoticeView } from '../../components/dashboard/ImportNotice'
 import { TodayHero } from '../../components/dashboard/TodayHero'
 import { WeekTotalsCard } from '../../components/dashboard/WeekTotalsCard'
 import { ErrorScreenView } from '../../components/errors/ErrorScreen'
+import { VersionBannerView } from '../../components/errors/VersionBanner'
 import { DataCard } from '../../components/profile/DataCard'
 import { ProfileView } from '../../components/profile/ProfileView'
 import { SyncCard } from '../../components/profile/SyncCard'
@@ -134,6 +135,10 @@ function sampleImportSource(): ImportSource {
 }
 
 function ignoreImport(): void {
+  return undefined
+}
+
+function ignoreReload(): void {
   return undefined
 }
 
@@ -966,6 +971,13 @@ function Styleguide() {
           reload={() => undefined}
           copy={() => Promise.resolve()}
         />
+      </Section>
+
+      <Section title="Version banner">
+        <div data-testid="version-banner-sample" className="flex flex-col gap-3">
+          <VersionBannerView state="stale" onReload={ignoreReload} />
+          <VersionBannerView state="blocked" onReload={ignoreReload} />
+        </div>
       </Section>
 
       <Section title="Segmented tabs">

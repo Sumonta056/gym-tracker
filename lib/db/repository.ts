@@ -35,6 +35,10 @@ import type { GymTimeOffer } from '../workout/gymTime'
 
 export { LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY } from './dexie'
 
+export { getVersionState, subscribeVersionState } from './dexie'
+
+export type { VersionState } from './dexie'
+
 export { useDeadLetters, useSyncStatus } from '../sync/useSyncStatus'
 
 export type { SyncStatus, SyncStatusReport } from '../sync/useSyncStatus'

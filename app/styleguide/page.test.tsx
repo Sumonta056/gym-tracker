@@ -356,7 +356,10 @@ describe('the styleguide page', { timeout: 15000 }, () => {
   })
 
   it('holds the error state back until it is asked for, so nothing shouts on arrival', () => {
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    const banners = screen.getByTestId('version-banner-sample')
+    expect(screen.queryAllByRole('alert').filter((alert) => !banners.contains(alert))).toHaveLength(
+      0,
+    )
     expect(within(screen.getByTestId('number-sample')).getByLabelText('Steps')).not.toHaveAttribute(
       'aria-invalid',
     )
@@ -643,6 +646,18 @@ describe('the styleguide page', { timeout: 15000 }, () => {
 
   it('renders the error screen sample with its heading', () => {
     expect(screen.getByRole('heading', { name: 'Something went wrong.' })).toBeInTheDocument()
+  })
+
+  it('renders the version banner sample with its reload message', () => {
+    expect(
+      within(screen.getByTestId('version-banner-sample')).getAllByRole('alert')[0],
+    ).toHaveTextContent('A new version is ready.')
+  })
+
+  it('keeps the version banner sample still when its Reload is pressed', async () => {
+    const sample = within(screen.getByTestId('version-banner-sample'))
+    await userEvent.click(sample.getByRole('button', { name: 'Reload' }))
+    expect(sample.getAllByRole('alert')).toHaveLength(2)
   })
 
   it('renders the unknown sync chip as a status', () => {
