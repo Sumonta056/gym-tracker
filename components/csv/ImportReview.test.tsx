@@ -583,6 +583,23 @@ describe('ImportReview, applying the import', () => {
     expect(applyButton()).toBeDisabled()
   })
 
+  it('keeps Apply disabled with a reason when the first sync state cannot be read', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    renderReview([HEADER, 'August 12,20,,,,,,'].join('\n'), {
+      source: {
+        firstPullDone: () => Promise.reject(new Error('closed')),
+        loggedDates: () => Promise.resolve(new Set<string>()),
+        importDays: vi.fn(),
+      },
+    })
+
+    await waitFor(() => {
+      expect(applyButton()).toHaveAccessibleDescription(LOGGED_READ_FAILED)
+    })
+    expect(applyButton()).toBeDisabled()
+    quiet.mockRestore()
+  })
+
   it('leaves out a later row that repeats a date of the sheet', async () => {
     renderReview([HEADER, 'August 12,20,,,,,,', 'August 12,30,,,,,,'].join('\n'))
     const row = rowCard('Row 2 · 12 Aug')

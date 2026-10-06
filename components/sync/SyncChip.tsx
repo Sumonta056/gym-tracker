@@ -7,7 +7,7 @@ import type { SyncStatusReport } from '../../lib/db/repository'
 import type { SyncStatus as ChipStatus } from '../ui/StatusChip'
 
 export function chipStatus({ status, pending, failed }: SyncStatusReport): ChipStatus {
-  if (status === 'offline' || status === 'syncing') {
+  if (status === 'offline' || status === 'syncing' || status === 'unknown') {
     return status
   }
 

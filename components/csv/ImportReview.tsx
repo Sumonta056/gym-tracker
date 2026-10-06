@@ -13,6 +13,7 @@ import {
   loggedDates,
   SignedOutOnThisDevice,
 } from '../../lib/db/repository'
+import { safeQuery } from '../../lib/db/safeQuery'
 import { Card } from '../ui/Card'
 import { MicroLabel } from '../ui/MicroLabel'
 import { NumberField } from '../ui/NumberField'
@@ -444,11 +445,14 @@ export function ImportReview({
     )
   }
 
-  const pulled = useLiveQuery(() => source.firstPullDone(), [source], null)
+  const pulled = useLiveQuery(
+    safeQuery(() => source.firstPullDone(), 'import first pull'),
+    [source],
+  )
   const ready = pulled === true && logged !== null && left === 0 && plan.writes > 0
 
   function hint(): string {
-    if (loggedFailed) {
+    if (loggedFailed || pulled === null) {
       return LOGGED_READ_FAILED
     }
 
@@ -456,7 +460,7 @@ export function ImportReview({
       return WAITING_FOR_FIRST_SYNC
     }
 
-    if (logged === null || pulled === null) {
+    if (logged === null || pulled === undefined) {
       return 'Reading the days on this device…'
     }
 

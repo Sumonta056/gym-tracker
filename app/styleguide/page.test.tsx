@@ -624,4 +624,13 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Keep 1:05:00' }))
     expect(screen.queryByRole('dialog', { name: 'Session finished' })).toBeNull()
   })
+
+  it('renders the error screen sample with its heading', () => {
+    expect(screen.getByRole('heading', { name: 'Something went wrong.' })).toBeInTheDocument()
+  })
+
+  it('renders the unknown sync chip as a status', () => {
+    const chips = within(screen.getByTestId('status-chips'))
+    expect(chips.getAllByRole('status').map((chip) => chip.textContent)).toContain('Unknown')
+  })
 })

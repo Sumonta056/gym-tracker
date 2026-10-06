@@ -37,6 +37,10 @@ describe('chipStatus', () => {
   it('reports pending after a failed drain', () => {
     expect(chipStatus({ status: 'error', pending: 0, failed: 0 })).toBe('pending')
   })
+
+  it('reports unknown when the counts could not be read', () => {
+    expect(chipStatus({ status: 'unknown', pending: 0, failed: 0 })).toBe('unknown')
+  })
 })
 
 describe('SyncChipView', () => {
@@ -56,5 +60,11 @@ describe('SyncChip', () => {
   it('shows synced when the outbox is empty and the last drain passed', () => {
     render(<SyncChip />)
     expect(screen.getByRole('status')).toHaveTextContent('Synced')
+  })
+
+  it('shows unknown when the repository cannot read the counts', () => {
+    vi.mocked(useSyncStatus).mockReturnValue({ status: 'unknown', pending: 0, failed: 0 })
+    render(<SyncChip />)
+    expect(screen.getByRole('status')).toHaveTextContent('Unknown')
   })
 })

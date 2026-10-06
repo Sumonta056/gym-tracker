@@ -18,6 +18,7 @@ import { HeartRateZonesCard } from '../../components/dashboard/HeartRateZonesCar
 import { ImportNoticeView } from '../../components/dashboard/ImportNotice'
 import { TodayHero } from '../../components/dashboard/TodayHero'
 import { WeekTotalsCard } from '../../components/dashboard/WeekTotalsCard'
+import { ErrorScreenView } from '../../components/errors/ErrorScreen'
 import { DataCard } from '../../components/profile/DataCard'
 import { ProfileView } from '../../components/profile/ProfileView'
 import { SyncCard } from '../../components/profile/SyncCard'
@@ -951,7 +952,16 @@ function Styleguide() {
           <StatusChip status="syncing" />
           <StatusChip status="offline" />
           <StatusChip status="pending" />
+          <StatusChip status="unknown" />
         </Card>
+      </Section>
+
+      <Section title="Error screen">
+        <ErrorScreenView
+          error={new Error('Sample error')}
+          reload={() => undefined}
+          copy={() => Promise.resolve()}
+        />
       </Section>
 
       <Section title="Segmented tabs">
