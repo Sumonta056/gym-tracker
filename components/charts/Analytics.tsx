@@ -14,6 +14,7 @@ import { StreakHeatMap } from './StreakHeatMap'
 import { TotalsChart } from './TotalsChart'
 import { useAnalytics } from './useAnalytics'
 import { useLiftData } from './useLiftData'
+import { LineDrawContext } from './useLineDraw'
 import { WeekCharts } from './WeekCharts'
 import { WeightChart } from './WeightChart'
 import { ZoneSplitChart } from './ZoneSplitChart'
@@ -80,49 +81,57 @@ export function Analytics({ clock }: AnalyticsProps) {
   const [tab, setTab] = useState<RangeTab>('week')
   const state = useAnalytics(tab, clock)
   const lifts = useLiftData()
+  const [switched, setSwitched] = useState(false)
+
+  function changeTab(next: RangeTab) {
+    setSwitched(true)
+    setTab(next)
+  }
 
   return (
     <>
       <AnalyticsHeader label={state.status === 'ready' ? state.data.label : null} />
-      <RangeTabs value={tab} onValueChange={setTab} />
+      <RangeTabs value={tab} onValueChange={changeTab} />
 
-      {state.status === 'loading' ? (
-        <p role="status" className="text-muted mt-4 text-sm">
-          Reading this device…
-        </p>
-      ) : null}
+      <LineDrawContext value={!switched}>
+        {state.status === 'loading' ? (
+          <p role="status" className="text-muted mt-4 text-sm">
+            Reading this device…
+          </p>
+        ) : null}
 
-      {state.status === 'error' ? (
-        <p role="alert" className="text-danger mt-4 text-sm">
-          {state.message}
-        </p>
-      ) : null}
+        {state.status === 'error' ? (
+          <p role="alert" className="text-danger mt-4 text-sm">
+            {state.message}
+          </p>
+        ) : null}
 
-      {state.status === 'ready' ? <AnalyticsView data={state.data} /> : null}
+        {state.status === 'ready' ? <AnalyticsView data={state.data} /> : null}
 
-      {state.status === 'ready' && lifts.status === 'ready' ? (
-        <>
-          <LiftCharts
-            source={lifts.source}
-            tab={state.data.tab}
-            today={state.data.today}
-            unit={state.data.unitSystem}
-          />
-          <WeekCharts source={lifts.source} days={state.data.days} today={state.data.today} />
-        </>
-      ) : null}
+        {state.status === 'ready' && lifts.status === 'ready' ? (
+          <>
+            <LiftCharts
+              source={lifts.source}
+              tab={state.data.tab}
+              today={state.data.today}
+              unit={state.data.unitSystem}
+            />
+            <WeekCharts source={lifts.source} days={state.data.days} today={state.data.today} />
+          </>
+        ) : null}
 
-      {state.status === 'ready' && lifts.status === 'loading' ? (
-        <p role="status" className="text-muted mt-4 text-sm">
-          Reading the workouts…
-        </p>
-      ) : null}
+        {state.status === 'ready' && lifts.status === 'loading' ? (
+          <p role="status" className="text-muted mt-4 text-sm">
+            Reading the workouts…
+          </p>
+        ) : null}
 
-      {lifts.status === 'error' ? (
-        <p role="alert" className="text-danger mt-4 text-sm">
-          {lifts.message}
-        </p>
-      ) : null}
+        {lifts.status === 'error' ? (
+          <p role="alert" className="text-danger mt-4 text-sm">
+            {lifts.message}
+          </p>
+        ) : null}
+      </LineDrawContext>
     </>
   )
 }
