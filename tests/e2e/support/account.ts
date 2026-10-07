@@ -21,6 +21,10 @@ const ACTIVE_SLOT_WAIT_MS = 60000
 
 const UNIQUE_VIOLATION = '23505'
 
+const TRANSIENT_ERROR = /JWT issued at future|fetch failed/
+
+const RETRY_DELAYS_MS = [500, 1000, 2000] as const
+
 const CREDENTIALS_HELP =
   'The signed-in end-to-end tests sign in as the test account. Put E2E_EMAIL and E2E_PASSWORD in .env.test.local, or set them in the environment. CI reads them from the repository secrets.'
 
@@ -46,6 +50,44 @@ type Client = SupabaseClient<Database>
 type StoredState = { cookies: Cookie[]; origins: unknown[] }
 
 type Session = { access_token: string; user: { id: string } }
+
+type Outcome = { error: { message: string } | null }
+
+type SeedTable = 'daily_entries' | 'workout_sessions' | 'workout_sets'
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function retryTransient<Result extends Outcome>(
+  call: () => PromiseLike<Result>,
+): Promise<Result> {
+  for (let attempt = 0; ; attempt += 1) {
+    const delay = RETRY_DELAYS_MS[attempt]
+
+    try {
+      const result = await call()
+
+      if (
+        result.error === null ||
+        delay === undefined ||
+        !TRANSIENT_ERROR.test(result.error.message)
+      ) {
+        return result
+      }
+    } catch (thrown) {
+      if (
+        delay === undefined ||
+        !(thrown instanceof TypeError) ||
+        !TRANSIENT_ERROR.test(thrown.message)
+      ) {
+        throw thrown
+      }
+    }
+
+    await wait(delay)
+  }
+}
 
 function required(name: string, help: string): string {
   const value = process.env[name]
@@ -92,7 +134,7 @@ export async function signIn(host: string): Promise<Cookie[]> {
     },
   })
 
-  const { error } = await client.auth.signInWithPassword({ email, password })
+  const { error } = await retryTransient(() => client.auth.signInWithPassword({ email, password }))
 
   if (error !== null) {
     throw new Error(`The test account could not sign in: ${error.message}. ${CREDENTIALS_HELP}`)
@@ -173,12 +215,14 @@ export class Account {
   }
 
   async rowsBetween(from: string, to: string): Promise<DailyRow[]> {
-    const { data, error } = await this.client
-      .from('daily_entries')
-      .select('*')
-      .gte('entry_date', from)
-      .lte('entry_date', to)
-      .order('entry_date')
+    const { data, error } = await retryTransient(() =>
+      this.client
+        .from('daily_entries')
+        .select('*')
+        .gte('entry_date', from)
+        .lte('entry_date', to)
+        .order('entry_date'),
+    )
 
     if (error !== null) {
       throw new Error(`Reading the test rows failed: ${error.message}`)
@@ -192,12 +236,14 @@ export class Account {
   }
 
   async sessionsBetween(from: string, to: string): Promise<SessionRow[]> {
-    const { data, error } = await this.client
-      .from('workout_sessions')
-      .select('*')
-      .gte('entry_date', from)
-      .lte('entry_date', to)
-      .order('entry_date')
+    const { data, error } = await retryTransient(() =>
+      this.client
+        .from('workout_sessions')
+        .select('*')
+        .gte('entry_date', from)
+        .lte('entry_date', to)
+        .order('entry_date'),
+    )
 
     if (error !== null) {
       throw new Error(`Reading the test sessions failed: ${error.message}`)
@@ -208,17 +254,15 @@ export class Account {
 
   async clearSessions(from: string, to: string): Promise<void> {
     for (let round = 0; round < CLEAR_ROUNDS; round += 1) {
-      const { error } = await this.client
-        .from('workout_sessions')
-        .delete()
-        .gte('entry_date', from)
-        .lte('entry_date', to)
+      const { error } = await retryTransient(() =>
+        this.client.from('workout_sessions').delete().gte('entry_date', from).lte('entry_date', to),
+      )
 
       if (error !== null) {
         throw new Error(`Removing the test sessions failed: ${error.message}`)
       }
 
-      await new Promise((resolve) => setTimeout(resolve, LATE_WRITE_MS))
+      await wait(LATE_WRITE_MS)
 
       if ((await this.sessionsBetween(from, to)).length === 0) {
         return
@@ -232,27 +276,36 @@ export class Account {
     const deadline = Date.now() + ACTIVE_SLOT_WAIT_MS
 
     for (;;) {
-      const { data, error } = await this.client
-        .from('workout_sessions')
-        .insert({
-          ...session,
-          id: randomUUID(),
-          user_id: this.userId,
-          status: 'active',
-          ended_at: null,
-        })
-        .select('*')
-        .single()
+      const id = randomUUID()
+      const { data, error } = await retryTransient(() =>
+        this.client
+          .from('workout_sessions')
+          .insert({
+            ...session,
+            id,
+            user_id: this.userId,
+            status: 'active',
+            ended_at: null,
+          })
+          .select('*')
+          .single(),
+      )
 
       if (error === null) {
         return data
+      }
+
+      const [landed] = (await this.landed('workout_sessions', error, [id])) ?? []
+
+      if (landed !== undefined) {
+        return landed
       }
 
       if (error.code !== UNIQUE_VIOLATION || Date.now() > deadline) {
         throw new Error(`Seeding the test session failed: ${error.message}`)
       }
 
-      await new Promise((resolve) => setTimeout(resolve, LATE_WRITE_MS))
+      await wait(LATE_WRITE_MS)
     }
   }
 
@@ -267,62 +320,111 @@ export class Account {
       sets,
     }))
 
-    const { error: sessionError } = await this.client
-      .from('workout_sessions')
-      .insert(rows.map((row) => row.session))
+    const { error: sessionError } = await retryTransient(() =>
+      this.client.from('workout_sessions').insert(rows.map((row) => row.session)),
+    )
 
-    if (sessionError !== null) {
+    if (
+      sessionError !== null &&
+      (await this.landed(
+        'workout_sessions',
+        sessionError,
+        rows.map((row) => row.session.id),
+      )) === null
+    ) {
       throw new Error(`Seeding the finished sessions failed: ${sessionError.message}`)
     }
 
-    const { data, error } = await this.client
-      .from('workout_sets')
-      .insert(
-        rows.flatMap((row) =>
-          row.sets.map((set, index) => ({
-            ...set,
-            id: randomUUID(),
-            session_id: row.session.id,
-            set_index: index,
-            completed_at: row.session.started_at,
-          })),
-        ),
-      )
-      .select('*')
+    const sets = rows.flatMap((row) =>
+      row.sets.map((set, index) => ({
+        ...set,
+        id: randomUUID(),
+        session_id: row.session.id,
+        set_index: index,
+        completed_at: row.session.started_at,
+      })),
+    )
 
-    if (error !== null) {
+    const { data, error } = await retryTransient(() =>
+      this.client.from('workout_sets').insert(sets).select('*'),
+    )
+
+    if (error === null) {
+      return data
+    }
+
+    const landed = await this.landed(
+      'workout_sets',
+      error,
+      sets.map((set) => set.id),
+    )
+
+    if (landed === null) {
       throw new Error(`Seeding the finished sets failed: ${error.message}`)
     }
 
-    return data
+    return landed
   }
 
   async seed(rows: readonly SeedRow[]): Promise<DailyRow[]> {
-    const { data, error } = await this.client
-      .from('daily_entries')
-      .insert(rows.map((row) => ({ ...row, id: randomUUID(), user_id: this.userId })))
-      .select('*')
+    const inserts = rows.map((row) => ({ ...row, id: randomUUID(), user_id: this.userId }))
+    const { data, error } = await retryTransient(() =>
+      this.client.from('daily_entries').insert(inserts).select('*'),
+    )
 
-    if (error !== null) {
+    if (error === null) {
+      return data
+    }
+
+    const landed = await this.landed(
+      'daily_entries',
+      error,
+      inserts.map((row) => row.id),
+    )
+
+    if (landed === null) {
       throw new Error(`Seeding the test rows failed: ${error.message}`)
     }
 
-    return data
+    return landed
+  }
+
+  private async landed<Table extends SeedTable>(
+    table: Table,
+    insertError: { code: string },
+    ids: readonly string[],
+  ): Promise<Tables<Table>[] | null> {
+    if (insertError.code !== UNIQUE_VIOLATION) {
+      return null
+    }
+
+    const { data, error } = await retryTransient(() =>
+      this.client
+        .from(table)
+        .select('*')
+        .filter('id', 'in', `(${ids.join(',')})`),
+    )
+
+    if (error !== null || data.length !== ids.length) {
+      return null
+    }
+
+    const byId = new Map((data as Tables<Table>[]).map((row) => [row.id, row]))
+
+    return ids.flatMap((id) => byId.get(id) ?? [])
   }
 
   async clear(from: string, to: string): Promise<void> {
     for (let round = 0; round < CLEAR_ROUNDS; round += 1) {
-      const { error } = await this.client
-        .from('daily_entries')
-        .delete()
-        .gte('entry_date', from)
-        .lte('entry_date', to)
+      const { error } = await retryTransient(() =>
+        this.client.from('daily_entries').delete().gte('entry_date', from).lte('entry_date', to),
+      )
 
       if (error !== null) {
         throw new Error(`Removing the test rows failed: ${error.message}`)
       }
 
-      await new Promise((resolve) => setTimeout(resolve, LATE_WRITE_MS))
+      await wait(LATE_WRITE_MS)
 
       if ((await this.rowsBetween(from, to)).length === 0) {
         return
