@@ -1,11 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { colorTokens } from '../../lib/design/tokens'
 import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
 
 import { analyse } from './rangeData'
-import { cellFill, days, heatMapLabel, StreakHeatMap } from './StreakHeatMap'
+import { cellClass, days, heatMapLabel, StreakHeatMap, WEEKDAY_LABELS } from './StreakHeatMap'
 
 vi.mock('recharts', async (importOriginal) => {
   const { withFixedContainer } = await import('../../tests/fixtures/recharts')
@@ -36,25 +35,55 @@ describe('StreakHeatMap', () => {
     render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
     expect(screen.getByText('3 days · longest 3 days')).toBeVisible()
   })
+})
 
-  it('draws one cell per day of the twelve weeks', () => {
+describe('StreakHeatMap grid', () => {
+  it('labels the 7 rows Mon to Sun, Monday first', () => {
     const { container } = render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
-    expect(container.querySelectorAll('.recharts-bar-rectangle')).toHaveLength(84)
+    expect(
+      Array.from(container.querySelectorAll('[data-weekday-label]'), (node) => node.textContent),
+    ).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+  })
+
+  it('draws 84 square cells', () => {
+    const { container } = render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    const cells = container.querySelectorAll('[data-state]')
+    expect(cells).toHaveLength(84)
+    for (const cell of cells) {
+      expect(cell).toHaveClass('aspect-square')
+    }
+  })
+
+  it('outlines a future day so it stays visible', () => {
+    const { container } = render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    const future = container.querySelector('[data-state="future"]')
+    expect(future).toHaveClass('border-dashed', 'border-dim')
+    expect(future).not.toHaveClass('bg-dim')
+  })
+
+  it('names the 3 states in the legend', () => {
+    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'Logged',
+      'Not logged',
+      'Ahead',
+    ])
   })
 })
 
-describe('cellFill', () => {
+describe('cellClass', () => {
   it('fills a logged day with the accent', () => {
-    expect(cellFill(full.heatMap, 11, 0)).toBe(colorTokens.accent)
+    expect(cellClass('logged')).toBe('bg-accent')
   })
 
-  it('fills a missed day with the dim token, at 3:1 or better against the card', () => {
-    expect(cellFill(full.heatMap, 0, 0)).toBe(colorTokens.dim)
+  it('fills a missed day with the dim token', () => {
+    expect(cellClass('missed')).toBe('bg-dim')
   })
+})
 
-  it('fills a future day, or a cell outside the map, with the card surface', () => {
-    expect(cellFill(full.heatMap, 11, 6)).toBe(colorTokens.surface)
-    expect(cellFill(full.heatMap, 99, 0)).toBe(colorTokens.surface)
+describe('WEEKDAY_LABELS', () => {
+  it('runs from Monday to Sunday', () => {
+    expect(WEEKDAY_LABELS).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
   })
 })
 

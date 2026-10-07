@@ -70,11 +70,12 @@ test('renders every analytics chart with no console error', async ({ page, accou
   const drawn = await grid
     .locator(':scope > *')
     .evaluateAll((cards) =>
-      cards.map((card) =>
-        Array.from(card.querySelectorAll('svg')).some(
-          (svg) =>
-            svg.getBoundingClientRect().width > 0 && svg.querySelector('path, rect') !== null,
-        ),
+      cards.map(
+        (card) =>
+          Array.from(card.querySelectorAll('svg')).some(
+            (svg) =>
+              svg.getBoundingClientRect().width > 0 && svg.querySelector('path, rect') !== null,
+          ) || card.querySelector('[data-state]') !== null,
       ),
     )
   expect(drawn).toEqual([true, true, true, true, true, true, true])

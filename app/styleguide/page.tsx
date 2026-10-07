@@ -787,7 +787,11 @@ function Styleguide() {
           <TodayHero entry={SAMPLE_DAY} streak={4} name="Today, logged" />
           <TodayHero entry={undefined} streak={0} name="Today, empty state" />
           <HeartRateZonesCard zones={SAMPLE_ZONES} />
-          <WeekTotalsCard totals={SAMPLE_WEEK} className="md:col-span-2 lg:col-span-3" />
+          <WeekTotalsCard
+            totals={SAMPLE_WEEK}
+            range={{ from: '2026-09-07', to: '2026-09-13' }}
+            className="md:col-span-2 lg:col-span-3"
+          />
         </div>
         <h3 className="text-text mt-6 text-base font-bold">The full screen, a heavy day</h3>
         <div className="mt-4" data-testid="dashboard-sample">

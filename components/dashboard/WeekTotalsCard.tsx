@@ -3,16 +3,17 @@ import { Card } from '../ui/Card'
 import { cn } from '../ui/cn'
 import { MicroLabel } from '../ui/MicroLabel'
 
-import { formatCount } from './summary'
+import { formatCount, weekRangeLabel } from './summary'
 
-import type { WeekTotals } from '../../lib/metrics/weekTotals'
+import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
 
 export type WeekTotalsCardProps = {
   totals: WeekTotals
+  range: WeekRange
   className?: string
 }
 
-export function WeekTotalsCard({ totals, className }: WeekTotalsCardProps) {
+export function WeekTotalsCard({ totals, range, className }: WeekTotalsCardProps) {
   const cells = [
     { label: 'sessions', value: String(totals.sessions) },
     { label: 'gym time', value: formatDuration(totals.gymSeconds, 'short') },
@@ -22,9 +23,12 @@ export function WeekTotalsCard({ totals, className }: WeekTotalsCardProps) {
 
   return (
     <Card className={cn('flex flex-col gap-2.5', className)}>
-      <h2>
-        <MicroLabel>This week</MicroLabel>
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2>
+          <MicroLabel>This week</MicroLabel>
+        </h2>
+        <p className="text-muted text-[13px]">{weekRangeLabel(range)}</p>
+      </div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-4">
         {cells.map((cell) => (
           <div key={cell.label} className="flex min-w-0 flex-col-reverse">
