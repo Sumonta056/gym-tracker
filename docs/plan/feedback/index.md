@@ -122,16 +122,16 @@ Every step follows these. They are not repeated in each step file.
 | ---- | -------------------------- | --------------------------------------------- | ------ | ---- | ------------------- | -------------- |
 | W0   | `W0-parallel-setup.md`     | The e2e lock and the worktree commit gate     | —      | S    | —                   | done `cb7e9bb` |
 | A1   | `A1-error-boundaries.md`   | Error boundaries and guarded live queries     | 16     | M    | W0                  | done `6e47e39` |
-| A2   | `A2-version-and-chunks.md` | Version change, stale chunk, sync catch       | 16     | S    | A1                  | —              |
+| A2   | `A2-version-and-chunks.md` | Version change, stale chunk, sync catch       | 16     | S    | A1                  | done `d17754b` |
 | A3   | `A3-error-log.md`          | The local error log, Dexie v4, Profile card   | 16     | M    | A2                  | —              |
 | B1   | `B1-reproduce-workout.md`  | Reproduce the `/workout` break on the iPhone  | 5      | S    | W0                  | done `5eabf7f` |
-| B2   | `B2-fix-workout-layout.md` | Fix the `/workout` layout                     | 5      | M    | B1                  | —              |
+| B2   | `B2-fix-workout-layout.md` | Fix the `/workout` layout                     | 5      | M    | B1                  | done `3c1a28b` |
 | B3   | `B3-sheet-portal.md`       | The sheet: portal, iOS scroll lock, keyboard  | 2      | M    | B2                  | —              |
 | B4   | `B4-saved-toast.md`        | The Saved toast, Finish with no reload        | 2      | S    | B3                  | —              |
 | B5   | `B5-hidden-scrollbars.md`  | Hidden scrollbars and the chip fade           | 13     | S    | B2                  | —              |
 | C1   | `C1-stats-no-flicker.md`   | Keep the Stats data during a tab switch       | 7      | M    | W0                  | done `ace246f` |
 | C2   | `C2-gym-time-metric.md`    | `effectiveGymSeconds`, one source of gym time | 9      | S    | W0                  | done `7cd2874` |
-| C3   | `C3-session-gaps.md`       | Session gaps from all history, one meaning    | 12     | S    | C1, C2              | —              |
+| C3   | `C3-session-gaps.md`       | Session gaps from all history, one meaning    | 12     | S    | C1, C2              | done `692da98` |
 | C4   | `C4-day-labels.md`         | Heat map and week labels                      | 12, 17 | M    | C3                  | —              |
 | D1   | `D1-schema.md`             | The migration, Dexie v5, schemas, mappings    | —      | M    | A3                  | —              |
 | E1   | `E1-duration-picker.md`    | The `DurationPicker` primitive                | 3      | M    | W0                  | done `93c6267` |
@@ -333,11 +333,11 @@ differs. The step file wins over this index.
 The step that meets each one stops and asks.
 
 1. **Finish and Start load `/workouts` and `/workout` as a document today, on purpose,**
-   so they open offline from the cache. B4 changes Finish to `router.push`. B2 may change
-   Start. The offline e2e test guards it.
-2. **B2 fix F2b** makes the page transition opacity only. It changes the motion contract.
+   so they open offline from the cache. B4 changes Finish to `router.push`. B2 changed
+   Start to `router.push` on 2026-10-06, with the owner's yes (F5). The offline e2e test guards it.
+2. ~~**B2 fix F2b** makes the page transition opacity only.~~ Answered 2026-10-06: no. The page keeps the 8 px rise.
 3. **E2 step size:** 60 s for gym, walk and swim time instead of 15 s.
-4. **C3:** the Streak heat map keeps counting logged days, not session days.
+4. ~~**C3:** the Streak heat map keeps counting logged days, not session days.~~ Answered 2026-10-06: keep logged days.
 5. **Phase 3 conflict:** S3.9 still uses the gym time offer that E3 removes. S3.9 must use
    `sessionStats` and `SessionSummary` from F1. S3.7 puts the plan picker above the F2
    history.

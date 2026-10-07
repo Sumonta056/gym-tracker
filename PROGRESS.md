@@ -5,9 +5,10 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** the fix track — the owner feedback · `docs/plan/04-feedback-fixes.md`
 **Step index:** `docs/plan/feedback/index.md`
-**Next step:** wave 2: A2, B2 and C3, 1 agent each → `docs/plan/feedback/index.md`, "Waves". B2 needs the owner's iPhone and an owner decision first.
+**Next step:** wave 3: A3, B3, B5 and C4, 1 agent each → `docs/plan/feedback/index.md`, "Waves".
+**Open from wave 2:** the owner checks the B2 bar in the home-screen app at the wave 4 checkpoint. If the bar is still about 58 px high after Start, apply F6 (`overscroll-behavior-y: none` on `html` and `body`).
 **Branch:** `fix/feedback-fixes`, cut from `main`. Each step runs in its own worktree and branch, cut from it.
-**Last commit:** `f5ffb48`, the merge that closes wave 1 (W0, A1, B1, C1, C2, E1 are done).
+**Last commit:** `5be42a8`, the merge that closes wave 2 (W0, A1, A2, B1, B2, C1, C2, C3, E1 are done).
 **Phase 3 waits.** It returns to step 3.1 (`docs/plan/phase-3/S3.1-design-contract.md`) when the fix track closes.
 
 ## Resume here
