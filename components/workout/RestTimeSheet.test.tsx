@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -50,6 +50,16 @@ describe('readRestText', () => {
 })
 
 describe('RestTimeSheet', () => {
+  it('keeps Save rest time in the sheet footer, so it stays above the keyboard', () => {
+    renderSheet()
+
+    const save = within(screen.getByTestId('sheet-footer')).getByRole('button', {
+      name: 'Save rest time',
+    })
+    expect(save).toHaveAttribute('type', 'submit')
+    expect(document.getElementById(save.getAttribute('form') ?? '')).toBeInstanceOf(HTMLFormElement)
+  })
+
   it('opens with the exercise in the title and its rest in the field', () => {
     renderSheet()
 
