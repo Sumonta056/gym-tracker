@@ -101,3 +101,36 @@ const COUNT = new Intl.NumberFormat('en-GB')
 export function formatCount(value: number): string {
   return COUNT.format(value)
 }
+
+const SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+function dayMonthShort(date: string): { day: string; month: string } {
+  return {
+    day: String(Number(date.slice(8, 10))),
+    month: SHORT_MONTHS[Number(date.slice(5, 7)) - 1] ?? '',
+  }
+}
+
+export function weekRangeLabel(range: WeekRange): string {
+  const from = dayMonthShort(range.from)
+  const to = dayMonthShort(range.to)
+
+  if (from.month === to.month) {
+    return `${from.day} – ${to.day} ${to.month}`
+  }
+
+  return `${from.day} ${from.month} – ${to.day} ${to.month}`
+}

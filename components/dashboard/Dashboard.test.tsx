@@ -158,6 +158,11 @@ describe('DashboardView', () => {
     expect(grid).toHaveClass('grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3')
   })
 
+  it('shows the dates of this week on the week card', () => {
+    view()
+    expect(screen.getByText('21 – 27 Sep')).toBeVisible()
+  })
+
   it('shows the steps against the goal from the profile', () => {
     view([entryOn('2026-09-22', { steps: 1000 }), entryOn(TODAY, { steps: 5909 })])
     expect(screen.getByText('5,909')).toBeInTheDocument()

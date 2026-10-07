@@ -5,7 +5,7 @@ import { streak } from '../../lib/metrics/streak'
 import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 import { sessionOn } from '../../tests/fixtures/lifts'
 
-import { daysBefore, formatCount, headerDate, summarise, weekOf } from './summary'
+import { daysBefore, formatCount, headerDate, summarise, weekOf, weekRangeLabel } from './summary'
 
 describe('weekOf', () => {
   it('runs from the Monday to the Sunday around a Wednesday', () => {
@@ -124,5 +124,15 @@ describe('headerDate', () => {
 describe('formatCount', () => {
   it('groups thousands with a comma', () => {
     expect(formatCount(12480)).toBe('12,480')
+  })
+})
+
+describe('weekRangeLabel', () => {
+  it('names both months across a month end', () => {
+    expect(weekRangeLabel({ from: '2026-09-29', to: '2026-10-05' })).toBe('29 Sep – 5 Oct')
+  })
+
+  it('names the month once inside one month', () => {
+    expect(weekRangeLabel({ from: '2026-09-21', to: '2026-09-27' })).toBe('21 – 27 Sep')
   })
 })

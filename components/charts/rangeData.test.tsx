@@ -267,9 +267,9 @@ describe('the number helpers', () => {
 })
 
 describe('dayTick', () => {
-  it('writes the weekday initial on the week', () => {
-    expect(dayTick('2026-09-21', 'week')).toBe('M')
-    expect(dayTick('2026-09-27', 'week')).toBe('S')
+  it('writes the short weekday on the week', () => {
+    expect(dayTick('2026-09-21', 'week')).toBe('Mon')
+    expect(dayTick('2026-09-27', 'week')).toBe('Sun')
   })
 
   it('writes the weekday and the date on the day tab', () => {

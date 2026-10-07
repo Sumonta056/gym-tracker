@@ -153,7 +153,7 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
             axisLine={false}
             tickLine={false}
             height={22}
-            padding={{ left: 10, right: 10 }}
+            padding={{ left: 14, right: 10 }}
           />
           <YAxis
             width={rangeAxisWidth(rangeTicks.map(formatKg))}

@@ -265,7 +265,7 @@ export function dayTick(date: string, tab: RangeTab): string {
   const day = at(date)
 
   if (tab === 'week') {
-    return WEEKDAY_SHORT.format(day).charAt(0)
+    return WEEKDAY_SHORT.format(day)
   }
 
   if (tab === 'day') {

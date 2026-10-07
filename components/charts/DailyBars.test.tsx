@@ -72,8 +72,16 @@ describe('DailyBars', () => {
     expect(fills.filter((fill) => fill === colorTokens['surface-2'])).toHaveLength(6)
   })
 
-  it('labels the week days M T W T F S S under the bars', () => {
-    expect(svgTexts(bars('week'), AXIS_TICKS)).toEqual(['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+  it('labels the week days Mon to Sun under the bars', () => {
+    expect(svgTexts(bars('week'), AXIS_TICKS)).toEqual([
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun',
+    ])
   })
 
   it('labels the month on the 1st, 8th, 15th, 22nd and 29th', () => {

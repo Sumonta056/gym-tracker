@@ -106,7 +106,15 @@ describe('WeightChart', () => {
 
   it('labels the week days under the lines', () => {
     const { container } = render(<WeightChart days={full.days} tab="week" />)
-    expect(svgTexts(container, AXIS_TICKS)).toEqual(['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+    expect(svgTexts(container, AXIS_TICKS)).toEqual([
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun',
+    ])
   })
 
   it('shows the latest weight and the change over the week', () => {

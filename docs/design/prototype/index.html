@@ -296,6 +296,43 @@
         background: var(--color-warn);
       }
 
+      .dot-ahead {
+        border: 1px solid var(--color-dim);
+      }
+
+      .heat {
+        display: grid;
+        grid-template-columns: auto repeat(12, minmax(0, 1fr));
+        align-items: center;
+        gap: 3px;
+        width: 100%;
+        max-width: 440px;
+      }
+
+      .heat-label {
+        padding-right: 6px;
+        font-size: 11px;
+        line-height: 1;
+        color: var(--color-muted);
+      }
+
+      .heat-cell {
+        aspect-ratio: 1;
+        border-radius: 4px;
+      }
+
+      .heat-logged {
+        background: var(--color-accent);
+      }
+
+      .heat-missed {
+        background: var(--color-dim);
+      }
+
+      .heat-future {
+        border: 1px dashed var(--color-dim);
+      }
+
       .dot-cyan {
         background: var(--color-data-cyan);
       }
@@ -1675,7 +1712,10 @@
               </div>
 
               <div class="card">
-                <h3 class="micro">This week</h3>
+                <div class="row" style="min-height: 0">
+                  <h3 class="micro">This week</h3>
+                  <span class="muted" style="font-size: 13px">7 – 13 Sep</span>
+                </div>
                 <dl class="week-grid">
                   <div><dt>sessions</dt><dd>3</dd></div>
                   <div><dt>gym time</dt><dd>2h 32m</dd></div>
@@ -2205,27 +2245,13 @@
                   >
                     73.8
                   </text>
-                  <text class="axis" x="34" y="110" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="75.7" y="110" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="117.3" y="110" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="159" y="110" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="200.7" y="110" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="242.3" y="110" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="284" y="110" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="34" y="110" text-anchor="middle">Mon</text>
+                  <text class="axis" x="75.7" y="110" text-anchor="middle">Tue</text>
+                  <text class="axis" x="117.3" y="110" text-anchor="middle">Wed</text>
+                  <text class="axis" x="159" y="110" text-anchor="middle">Thu</text>
+                  <text class="axis" x="200.7" y="110" text-anchor="middle">Fri</text>
+                  <text class="axis" x="242.3" y="110" text-anchor="middle">Sat</text>
+                  <text class="axis" x="284" y="110" text-anchor="middle">Sun</text>
                 </svg>
                 <div class="legend">
                   <span
@@ -2337,27 +2363,13 @@
                   <text class="val" x="297.2" y="33" text-anchor="middle">
                     705
                   </text>
-                  <text class="axis" x="22.8" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="68.5" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="114.3" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="160" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="205.7" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="251.5" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="297.2" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
                 </svg>
               </div>
 
@@ -2453,27 +2465,13 @@
                   <text class="val" x="297.2" y="41" text-anchor="middle">
                     9.9k
                   </text>
-                  <text class="axis" x="22.8" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="68.5" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="114.3" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="160" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="205.7" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="251.5" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="297.2" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
                 </svg>
               </div>
 
@@ -2604,25 +2602,13 @@
                   >
                     113
                   </text>
-                  <text class="axis" x="10" y="96" text-anchor="middle">M</text>
-                  <text class="axis" x="55.7" y="96" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="101.3" y="96" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="147" y="96" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="192.7" y="96" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="238.3" y="96" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="284" y="96" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="10" y="96" text-anchor="middle">Mon</text>
+                  <text class="axis" x="55.7" y="96" text-anchor="middle">Tue</text>
+                  <text class="axis" x="101.3" y="96" text-anchor="middle">Wed</text>
+                  <text class="axis" x="147" y="96" text-anchor="middle">Thu</text>
+                  <text class="axis" x="192.7" y="96" text-anchor="middle">Fri</text>
+                  <text class="axis" x="238.3" y="96" text-anchor="middle">Sat</text>
+                  <text class="axis" x="284" y="96" text-anchor="middle">Sun</text>
                 </svg>
                 <div class="legend">
                   <span
@@ -2693,685 +2679,103 @@
                   <span class="micro">Streak</span>
                   <span class="muted">12 days · longest 12 days</span>
                 </div>
-                <svg
-                  class="chart"
-                  viewBox="0 0 320 140"
+                <div
+                  class="heat"
                   role="img"
-                  aria-label="Streak over the last 12 weeks: logged 12 of 84 days. Current streak 12 days, longest 12 days."
+                  aria-label="Streak over the last 12 weeks: logged 12 of 81 days. Current streak 12 days, longest 12 days."
                 >
-                  <rect
-                    x="1.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                </svg>
+                  <span class="heat-label">Mon</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Tue</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Wed</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Thu</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Fri</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-future"></span>
+                  <span class="heat-label">Sat</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-future"></span>
+                  <span class="heat-label">Sun</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-future"></span>
+                </div>
                 <div class="legend">
                   <span
                     ><i class="dot" style="background: var(--color-accent)"></i
@@ -3381,9 +2785,12 @@
                     ><i class="dot" style="background: var(--color-dim)"></i>Not
                     logged</span
                   >
+                  <span
+                    ><i class="dot dot-ahead"></i>Ahead</span
+                  >
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Each column is a week, Monday at the top.
+                  Each column is a week. Weeks start on Monday.
                 </p>
               </div>
 
@@ -3476,27 +2883,13 @@
                   <text class="val" x="297.2" y="12" text-anchor="middle">
                     72m
                   </text>
-                  <text class="axis" x="22.8" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="68.5" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="114.3" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="160" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="205.7" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="251.5" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="297.2" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
                 </svg>
                 <dl class="week-grid">
                   <div>
@@ -3923,27 +3316,13 @@
                   <text class="val" x="248.9" y="12" text-anchor="middle">
                     705
                   </text>
-                  <text class="axis" x="19.1" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="57.4" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="95.7" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="134" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="172.3" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="210.6" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="248.9" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="19.1" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="57.4" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="95.7" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="134" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="172.3" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="210.6" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="248.9" y="106" text-anchor="middle">Sun</text>
                 </svg>
               </div>
 
@@ -4021,27 +3400,13 @@
                   <text class="val" x="297.2" y="24.9" text-anchor="middle">
                     9.9k
                   </text>
-                  <text class="axis" x="22.8" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="68.5" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="114.3" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="160" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="205.7" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="251.5" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="297.2" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
                 </svg>
               </div>
 
@@ -4110,685 +3475,103 @@
                   <span class="micro">Streak</span>
                   <span class="muted">1 day · longest 1 day</span>
                 </div>
-                <svg
-                  class="chart"
-                  viewBox="0 0 320 140"
+                <div
+                  class="heat"
                   role="img"
-                  aria-label="Streak over the last 12 weeks: logged 1 of 84 days. Current streak 1 day, longest 1 day."
+                  aria-label="Streak over the last 12 weeks: logged 1 of 81 days. Current streak 1 day, longest 1 day."
                 >
-                  <rect
-                    x="1.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                </svg>
+                  <span class="heat-label">Mon</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-label">Tue</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-label">Wed</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-label">Thu</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Fri</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-future"></span>
+                  <span class="heat-label">Sat</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-future"></span>
+                  <span class="heat-label">Sun</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-future"></span>
+                </div>
                 <div class="legend">
                   <span
                     ><i class="dot" style="background: var(--color-accent)"></i
@@ -4798,9 +3581,12 @@
                     ><i class="dot" style="background: var(--color-dim)"></i>Not
                     logged</span
                   >
+                  <span
+                    ><i class="dot dot-ahead"></i>Ahead</span
+                  >
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Each column is a week, Monday at the top.
+                  Each column is a week. Weeks start on Monday.
                 </p>
               </div>
 
@@ -4874,27 +3660,13 @@
                   <text class="val" x="248.9" y="12" text-anchor="middle">
                     72m
                   </text>
-                  <text class="axis" x="19.1" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="57.4" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="95.7" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="134" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="172.3" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="210.6" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="248.9" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="19.1" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="57.4" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="95.7" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="134" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="172.3" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="210.6" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="248.9" y="106" text-anchor="middle">Sun</text>
                 </svg>
                 <dl class="week-grid">
                   <div>
