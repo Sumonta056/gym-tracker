@@ -110,11 +110,16 @@ still holds the lock.
   session has ended, still inside the lock. The 15 s limit only covers a tab that
   closes halfway through a sign-out.
 
-Two known limits:
+Three known limits:
 
 - **A save right after a new sign-in can be refused.** `signed_out` stays until the
   first drain after the new sign-in reads the user. If the device goes offline before
   that drain runs, saves are refused until it comes back online.
+- **The error log drops an error while `signed_out` is set.** `recordError` reads the
+  flag in its own transaction and writes nothing, so no error passes to the next
+  account. The console still shows it. This covers the sign-in screen, the time after a
+  failed sign-out until sync resumes, and the time after a new sign-in until the first
+  drain lifts the flag.
 - **Kept on purpose: no Web Locks and no `localStorage`.** In a browser with neither,
   for example Safari before 15.4 in a private window, another tab can drain during a
   sign-out and fill the device again, or lift `signed_out` early. That drain can also

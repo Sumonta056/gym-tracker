@@ -6,6 +6,33 @@ steps in one session.
 
 The design: `docs/specs/2026-10-05-feedback-fixes-design.md`. Read it once, before W0.
 
+## From wave 4: one step at a time
+
+The owner changed the process on 2026-10-07. Parallel waves used too much CPU on this Mac.
+This section wins over the step files, "How a step runs", "Merge a wave" and the testing
+rule's `pnpm verify` gate, for the rest of the track.
+
+1. **Order.** Run the steps 1 at a time, in the order of the wave table: B4, D1, E2, G1,
+   E3, G2, E4, F1, E5, F2, G3a, H1, G3b, H2, I1. The next step starts only after the
+   step before it is committed.
+2. **1 agent per step.** The coordinator starts it with "Do the step in
+   `docs/plan/feedback/<file>.md`."
+3. **No worktree, no step branch, no merge.** The agent works in the main folder on
+   `fix/feedback-fixes`. It skips the worktree block of the step file. It still runs the
+   dependency checks.
+4. **Tests per step.** Test first, as the step file says. Before the commit, all 3 pass:
+   - `pnpm static`
+   - `pnpm test:cov`, all unit tests with the coverage floors
+   - the e2e specs that the step adds or changes, on 1 project only:
+     `pnpm exec playwright test <specs> --project=mobile-safari`
+5. **Acceptance.** The agent checks each acceptance box: match or no match. A box that
+   needs the full suite or the iPhone waits for the checkpoint.
+6. **Commit.** The `commit-report` skill, then 1 commit on `fix/feedback-fixes`. A UI
+   change still puts screenshots in the report. Then the agent sets the State column.
+7. **Full verify at the checkpoints only.** The coordinator runs the full `pnpm verify`
+   after D1, F2, H2 and I1, before each owner checkpoint. It waits for a 1-minute load
+   under 20. A break found there is fixed in 1 commit with its own report.
+
 ## One branch
 
 Every step of the track ends on 1 branch: `fix/feedback-fixes`. A step runs in a
@@ -123,16 +150,16 @@ Every step follows these. They are not repeated in each step file.
 | W0   | `W0-parallel-setup.md`     | The e2e lock and the worktree commit gate     | —      | S    | —                   | done `cb7e9bb` |
 | A1   | `A1-error-boundaries.md`   | Error boundaries and guarded live queries     | 16     | M    | W0                  | done `6e47e39` |
 | A2   | `A2-version-and-chunks.md` | Version change, stale chunk, sync catch       | 16     | S    | A1                  | done `d17754b` |
-| A3   | `A3-error-log.md`          | The local error log, Dexie v4, Profile card   | 16     | M    | A2                  | —              |
+| A3   | `A3-error-log.md`          | The local error log, Dexie v4, Profile card   | 16     | M    | A2                  | done `9b662e0` |
 | B1   | `B1-reproduce-workout.md`  | Reproduce the `/workout` break on the iPhone  | 5      | S    | W0                  | done `5eabf7f` |
 | B2   | `B2-fix-workout-layout.md` | Fix the `/workout` layout                     | 5      | M    | B1                  | done `3c1a28b` |
-| B3   | `B3-sheet-portal.md`       | The sheet: portal, iOS scroll lock, keyboard  | 2      | M    | B2                  | —              |
+| B3   | `B3-sheet-portal.md`       | The sheet: portal, iOS scroll lock, keyboard  | 2      | M    | B2                  | done `d24bbd1` |
 | B4   | `B4-saved-toast.md`        | The Saved toast, Finish with no reload        | 2      | S    | B3                  | —              |
-| B5   | `B5-hidden-scrollbars.md`  | Hidden scrollbars and the chip fade           | 13     | S    | B2                  | —              |
+| B5   | `B5-hidden-scrollbars.md`  | Hidden scrollbars and the chip fade           | 13     | S    | B2                  | done `e16f3bc` |
 | C1   | `C1-stats-no-flicker.md`   | Keep the Stats data during a tab switch       | 7      | M    | W0                  | done `ace246f` |
 | C2   | `C2-gym-time-metric.md`    | `effectiveGymSeconds`, one source of gym time | 9      | S    | W0                  | done `7cd2874` |
 | C3   | `C3-session-gaps.md`       | Session gaps from all history, one meaning    | 12     | S    | C1, C2              | done `692da98` |
-| C4   | `C4-day-labels.md`         | Heat map and week labels                      | 12, 17 | M    | C3                  | —              |
+| C4   | `C4-day-labels.md`         | Heat map and week labels                      | 12, 17 | M    | C3                  | done `bacce1a` |
 | D1   | `D1-schema.md`             | The migration, Dexie v5, schemas, mappings    | —      | M    | A3                  | —              |
 | E1   | `E1-duration-picker.md`    | The `DurationPicker` primitive                | 3      | M    | W0                  | done `93c6267` |
 | E2   | `E2-picker-in-use.md`      | The picker for rest, gym and walk time        | 3      | S    | E1, B3, B4          | —              |

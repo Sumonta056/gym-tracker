@@ -5,10 +5,11 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** the fix track — the owner feedback · `docs/plan/04-feedback-fixes.md`
 **Step index:** `docs/plan/feedback/index.md`
-**Next step:** wave 3: A3, B3, B5 and C4, 1 agent each → `docs/plan/feedback/index.md`, "Waves".
+**Next step:** B4, then D1, 1 step at a time → `docs/plan/feedback/index.md`, "From wave 4: one step at a time". Then the full verify and the owner checkpoint of sub-plans A, B, C and D.
 **Open from wave 2:** the owner checks the B2 bar in the home-screen app at the wave 4 checkpoint. If the bar is still about 58 px high after Start, apply F6 (`overscroll-behavior-y: none` on `html` and `body`).
-**Branch:** `fix/feedback-fixes`, cut from `main`. Each step runs in its own worktree and branch, cut from it.
-**Last commit:** `5be42a8`, the merge that closes wave 2 (W0, A1, A2, B1, B2, C1, C2, C3, E1 are done).
+**Open from wave 3:** an error at the same moment as a navigation can miss the log (deferred write, A3). The Errors card loop guard matches a text prefix. No plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
+**Branch:** `fix/feedback-fixes`, cut from `main`. From wave 4, each step commits on it directly, in the main folder.
+**Last commit:** `d70d01c`, the merge that closes wave 3 (W0, A1–A3, B1–B3, B5, C1–C4, E1 are done). Wave 3 reports: `reports/wave-3/`.
 **Phase 3 waits.** It returns to step 3.1 (`docs/plan/phase-3/S3.1-design-contract.md`) when the fix track closes.
 
 ## Resume here
