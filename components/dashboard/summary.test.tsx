@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { heartRateZones } from '../../lib/metrics/heartRateZones'
 import { streak } from '../../lib/metrics/streak'
 import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
+import { sessionOn } from '../../tests/fixtures/lifts'
 
 import { daysBefore, formatCount, headerDate, summarise, weekOf } from './summary'
 
@@ -70,6 +71,12 @@ describe('summarise', () => {
       entryOn(TODAY, { steps: 30 }),
     ]
     expect(summarise(entries, PROFILE, TODAY, NOW).week.steps).toBe(230)
+  })
+
+  it('counts a finished session with no typed gym time in the week', () => {
+    const entries = [entryOn('2026-09-22', { gym_seconds: null })]
+    const week = summarise(entries, PROFILE, TODAY, NOW, [sessionOn('2026-09-22')]).week
+    expect(week).toMatchObject({ sessions: 1, gymSeconds: 3600 })
   })
 
   it('keeps the latest logged weight when the newest days have none', () => {

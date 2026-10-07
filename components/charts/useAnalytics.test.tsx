@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getProfile, listRange } from '../../lib/db/repository'
+import { getProfile, listRange, listSessions } from '../../lib/db/repository'
 import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 
 import { entriesIn, READ_ERROR, useAnalytics } from './useAnalytics'
@@ -10,6 +10,7 @@ vi.mock('../../lib/db/repository', async () => {
   const { PROFILE } = await import('../../tests/fixtures/dashboard')
   return {
     listRange: vi.fn(),
+    listSessions: vi.fn(() => Promise.resolve([])),
     getProfile: vi.fn(() => Promise.resolve({ ...PROFILE, step_goal: 10000 })),
   }
 })
@@ -20,6 +21,7 @@ beforeEach(() => {
   vi.mocked(listRange).mockReset()
   vi.mocked(listRange).mockResolvedValue([])
   vi.mocked(getProfile).mockClear()
+  vi.mocked(listSessions).mockClear()
 })
 
 describe('useAnalytics', () => {
@@ -34,6 +36,17 @@ describe('useAnalytics', () => {
       expect(listRange).toHaveBeenCalledTimes(1)
     })
     expect(listRange).toHaveBeenCalledWith('0000-01-01', '9999-12-31')
+  })
+
+  it('reads the sessions of the whole history once', async () => {
+    const { rerender } = renderHook(({ tab }) => useAnalytics(tab, clock), {
+      initialProps: { tab: 'week' as 'week' | 'month' },
+    })
+    await waitFor(() => {
+      expect(listSessions).toHaveBeenCalledWith('0000-01-01', '9999-12-31')
+    })
+    rerender({ tab: 'month' })
+    expect(listSessions).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the data ready through a tab switch, with no second read', async () => {

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { movingAverage } from '../../lib/metrics/movingAverage'
 import { streak } from '../../lib/metrics/streak'
 import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
+import { sessionOn } from '../../tests/fixtures/lifts'
 
 import {
   analyse,
@@ -185,6 +186,21 @@ describe('analyse', () => {
 
   it('splits the heart rate zones of today', () => {
     expect(data.zones.warmSeconds + data.zones.peakSeconds).toBeGreaterThan(0)
+  })
+
+  it('puts a session day from before the range into the session dates', () => {
+    const data = analyse([], [], 'week', TODAY, NOW, 12000, 'metric', [sessionOn('2026-08-30')])
+    expect(data.sessionDates).toEqual(['2026-08-30'])
+  })
+
+  it('gives a day with only a finished session its length as gym time', () => {
+    const data = analyse([], [], 'week', TODAY, NOW, 12000, 'metric', [sessionOn('2026-09-22')])
+    expect(data.days.find((day) => day.date === '2026-09-22')?.gymSeconds).toBe(3600)
+  })
+
+  it('leaves out a session dated after today from the session dates', () => {
+    const data = analyse([], [], 'week', TODAY, NOW, 12000, 'metric', [sessionOn('2026-09-25')])
+    expect(data.sessionDates).toEqual([])
   })
 
   it('returns zero zones when today has no entry', () => {

@@ -3,7 +3,7 @@ import { heartRateZones } from '../../lib/metrics/heartRateZones'
 import { streak } from '../../lib/metrics/streak'
 import { weekTotals } from '../../lib/metrics/weekTotals'
 
-import type { DailyEntry, Profile } from '../../lib/db/dexie'
+import type { DailyEntry, Profile, WorkoutSession } from '../../lib/db/dexie'
 import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
 import type { UnitSystem } from '../../lib/schema/profile'
@@ -49,6 +49,7 @@ export function summarise(
   profile: Profile,
   today: string,
   now: Date,
+  sessions: readonly WorkoutSession[] = [],
 ): DashboardSummary {
   const past = entries
     .filter((row) => row.entry_date <= today)
@@ -71,7 +72,7 @@ export function summarise(
     zones: heartRateZones(
       entry ?? { gym_seconds: null, avg_heart_rate: null, max_heart_rate: null },
     ),
-    week: weekTotals(past, weekRange),
+    week: weekTotals(past, weekRange, sessions),
     weekRange,
     stepGoal: profile.step_goal,
     latestWeightKg: latest?.kg ?? null,

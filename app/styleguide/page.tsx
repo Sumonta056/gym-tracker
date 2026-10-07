@@ -50,6 +50,7 @@ import { UndoToast } from '../../components/workout/UndoToast'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration, parseInput } from '../../lib/duration'
+import { sessionDays } from '../../lib/metrics/sessionDays'
 import { MAX_REST_SECONDS } from '../../lib/schema/profile'
 
 import type { RangeTab } from '../../components/charts/rangeData'
@@ -378,6 +379,13 @@ const SAMPLE_WEEK_ONE_SESSION: LiftSource = {
 
 function sampleWeekDays(entries: DailyEntry[], tab: RangeTab) {
   return analyse(entries, entries, tab, SAMPLE_WEEK_TODAY, SAMPLE_WEEK_NOW, SAMPLE_STEP_GOAL).days
+}
+
+function sampleSessionDates(entries: DailyEntry[], source: LiftSource) {
+  return sessionDays(
+    entries,
+    source.sessions.filter((session) => session.entry_date <= SAMPLE_WEEK_TODAY),
+  )
 }
 
 function sampleStats(entries: DailyEntry[], tab: RangeTab) {
@@ -774,12 +782,14 @@ function Styleguide() {
         <WeekCharts
           source={SAMPLE_LIFTS}
           days={sampleWeekDays(SAMPLE_WEEK_ENTRIES, statsTab)}
+          sessionDates={sampleSessionDates(SAMPLE_WEEK_ENTRIES, SAMPLE_LIFTS)}
           today={SAMPLE_WEEK_TODAY}
         />
         <h3 className="text-text mt-6 text-base font-bold">The week charts, one session</h3>
         <WeekCharts
           source={SAMPLE_WEEK_ONE_SESSION}
           days={sampleWeekDays(SAMPLE_WEEK_ONE_DAY, statsTab)}
+          sessionDates={sampleSessionDates(SAMPLE_WEEK_ONE_DAY, SAMPLE_WEEK_ONE_SESSION)}
           today={SAMPLE_WEEK_TODAY}
           testId="week-grid-one-session"
         />
@@ -813,6 +823,7 @@ function Styleguide() {
         <WeekCharts
           source={SAMPLE_NO_LIFTS}
           days={sampleWeekDays([], statsTab)}
+          sessionDates={sampleSessionDates([], SAMPLE_NO_LIFTS)}
           today={SAMPLE_WEEK_TODAY}
           testId="week-grid-empty"
         />

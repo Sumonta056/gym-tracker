@@ -1,11 +1,13 @@
 import { toDayNumber } from '../../lib/metrics/day'
+import { effectiveGymSeconds } from '../../lib/metrics/gymTime'
 import { heartRateZones } from '../../lib/metrics/heartRateZones'
 import { DEFAULT_WINDOW_DAYS, movingAverage } from '../../lib/metrics/movingAverage'
+import { sessionDays, sessionsByDate } from '../../lib/metrics/sessionDays'
 import { streak } from '../../lib/metrics/streak'
 import { weekTotals } from '../../lib/metrics/weekTotals'
 import { daysBefore, formatCount, weekOf } from '../dashboard/summary'
 
-import type { DailyEntry } from '../../lib/db/dexie'
+import type { DailyEntry, WorkoutSession } from '../../lib/db/dexie'
 import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
 import type { Streak } from '../../lib/metrics/streak'
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
@@ -61,6 +63,7 @@ export type AnalyticsData = {
   totals: WeekTotals
   streak: Streak
   heatMap: HeatWeek[]
+  sessionDates: string[]
   stepGoal: number
   unitSystem: UnitSystem
 }
@@ -166,9 +169,11 @@ export function analyse(
   now: Date,
   stepGoal: number,
   unitSystem: UnitSystem = 'metric',
+  sessions: readonly WorkoutSession[] = [],
 ): AnalyticsData {
   const range = rangeFor(tab, today)
   const byDate = new Map(entries.map((row) => [row.entry_date, row]))
+  const sessionsOn = sessionsByDate(sessions)
   const averages = new Map(
     movingAverage(entries.map((row) => ({ date: row.entry_date, value: row.weight_kg }))).map(
       (point) => [point.date, point.average],
@@ -176,6 +181,7 @@ export function analyse(
   )
   const days = datesIn(range).map((date): DayPoint => {
     const row = byDate.get(date)
+    const gym = effectiveGymSeconds(row, sessionsOn.get(date) ?? [])
 
     return {
       date,
@@ -186,7 +192,7 @@ export function analyse(
       steps: row?.steps ?? null,
       avgHeartRate: row?.avg_heart_rate ?? null,
       maxHeartRate: row?.max_heart_rate ?? null,
-      gymSeconds: row?.gym_seconds ?? null,
+      gymSeconds: gym.source === 'none' ? null : gym.seconds,
     }
   })
   const past = history.filter((row) => row.entry_date <= today)
@@ -201,12 +207,16 @@ export function analyse(
     zones: heartRateZones(
       todayEntry ?? { gym_seconds: null, avg_heart_rate: null, max_heart_rate: null },
     ),
-    totals: weekTotals(entries, range),
+    totals: weekTotals(entries, range, sessions),
     streak: streak(
       past.map((row) => row.entry_date),
       now,
     ),
     heatMap: heatMapFor(new Set(past.map((row) => row.entry_date)), today),
+    sessionDates: sessionDays(
+      past,
+      sessions.filter((session) => session.entry_date <= today),
+    ),
     stepGoal,
     unitSystem,
   }

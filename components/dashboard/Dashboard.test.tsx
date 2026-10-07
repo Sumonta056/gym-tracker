@@ -3,7 +3,7 @@ import { animate } from 'motion/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db, LOCAL_PROFILE_ID } from '../../lib/db/dexie'
-import { getProfile, listRange } from '../../lib/db/repository'
+import { getProfile, listRange, listSessions } from '../../lib/db/repository'
 import { formatDuration } from '../../lib/duration'
 import { streak } from '../../lib/metrics/streak'
 import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
@@ -19,6 +19,7 @@ vi.mock('../../lib/db/repository', async () => {
   return {
     getProfile: vi.fn(),
     listRange: vi.fn(),
+    listSessions: vi.fn(),
     useSyncStatus: syncedStatus,
   }
 })
@@ -35,6 +36,7 @@ const STREAK_DATES = ['2026-09-19', '2026-09-20', '2026-09-21', '2026-09-22', TO
 beforeEach(() => {
   vi.mocked(listRange).mockResolvedValue([])
   vi.mocked(getProfile).mockResolvedValue(PROFILE)
+  vi.mocked(listSessions).mockResolvedValue([])
   vi.mocked(animate).mockClear()
 })
 
@@ -74,6 +76,7 @@ describe('Dashboard', () => {
     const actual = await vi.importActual<typeof Repository>('../../lib/db/repository')
     vi.mocked(getProfile).mockImplementation(actual.getProfile)
     vi.mocked(listRange).mockImplementation(actual.listRange)
+    vi.mocked(listSessions).mockImplementation(actual.listSessions)
     await db.open()
     await db.profiles.clear()
 
