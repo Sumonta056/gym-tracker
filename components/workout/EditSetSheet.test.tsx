@@ -56,6 +56,16 @@ describe('editTitle', () => {
 })
 
 describe('EditSetSheet', () => {
+  it('keeps Save and Delete in the sheet footer, so they stay above the keyboard', () => {
+    renderSheet()
+
+    const footer = screen.getByTestId('sheet-footer')
+    const save = within(footer).getByRole('button', { name: 'Save set' })
+    expect(within(footer).getByRole('button', { name: 'Delete set' })).toBeInTheDocument()
+    expect(save).toHaveAttribute('type', 'submit')
+    expect(document.getElementById(save.getAttribute('form') ?? '')).toBeInstanceOf(HTMLFormElement)
+  })
+
   it('renders nothing when no set is being edited', () => {
     renderSheet({ editing: null })
 

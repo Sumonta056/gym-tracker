@@ -915,7 +915,7 @@ describe('deleting a set and the undo', () => {
     const dialog = await openEdit(1)
     const save = within(dialog).getByRole('button', { name: 'Save set' })
     await userEvent.click(save)
-    fireEvent.submit(save.closest('form') as HTMLFormElement)
+    fireEvent.submit(document.getElementById(save.getAttribute('form') ?? '') as HTMLFormElement)
 
     expect(updateSet).toHaveBeenCalledTimes(1)
   })

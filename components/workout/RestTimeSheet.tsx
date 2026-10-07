@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 import { formatDuration, parseInput } from '../../lib/duration'
 import { profileSchema } from '../../lib/schema/profile'
@@ -53,17 +53,26 @@ export function RestTimeSheet({
   onSave,
   onClose,
 }: RestTimeSheetProps) {
+  const formId = useId()
+
   return (
     <SheetModal
       open={changing !== null}
       title={changing === null ? '' : restSheetTitle(changing.exerciseName)}
       onClose={onClose}
+      footer={
+        changing === null ? undefined : (
+          <PrimaryButton type="submit" form={formId} disabled={busy}>
+            Save rest time
+          </PrimaryButton>
+        )
+      }
     >
       {changing === null ? null : (
         <RestTimeForm
           key={changing.exerciseId}
+          id={formId}
           changing={changing}
-          busy={busy}
           error={error}
           onSave={onSave}
         />
@@ -73,18 +82,19 @@ export function RestTimeSheet({
 }
 
 type RestTimeFormProps = {
+  id: string
   changing: ChangingRest
-  busy: boolean
   error: string | null
   onSave: (seconds: number) => void
 }
 
-function RestTimeForm({ changing, busy, error, onSave }: RestTimeFormProps) {
+function RestTimeForm({ id, changing, error, onSave }: RestTimeFormProps) {
   const [text, setText] = useState(() => formatDuration(changing.seconds, 'clock'))
   const [reason, setReason] = useState<string | undefined>(undefined)
 
   return (
     <form
+      id={id}
       noValidate
       className="flex flex-col gap-3"
       onSubmit={(event) => {
@@ -119,9 +129,6 @@ function RestTimeForm({ changing, busy, error, onSave }: RestTimeFormProps) {
           {error}
         </p>
       )}
-      <PrimaryButton type="submit" disabled={busy}>
-        Save rest time
-      </PrimaryButton>
     </form>
   )
 }
