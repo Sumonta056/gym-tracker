@@ -17,6 +17,7 @@ import {
   upsertDay,
 } from '../../lib/db/repository'
 import { dailyEntrySchema } from '../../lib/schema/dailyEntry'
+import { SAVED_MESSAGE, ToastProvider } from '../ui/Toast'
 
 import { READING_LAST_SET } from './ExerciseCard'
 import { PICK_TITLE } from './ExercisePicker'
@@ -28,7 +29,6 @@ import {
   exerciseSummary,
   FINISH_FAILED,
   finishSummary,
-  goToWorkouts,
   heroFooter,
   lastOf,
   lastTimeSet,
@@ -48,6 +48,12 @@ import { SWIPE_PX } from './SetRow'
 
 import type { LiveSessionSource } from './LiveSession'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
+
+const router = vi.hoisted(() => ({ push: vi.fn() }))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => router,
+}))
 
 vi.mock('../sync/SyncChip', () => ({
   SyncChip: () => <span>Synced</span>,
@@ -359,17 +365,19 @@ describe('LiveSession', () => {
     expect((await db.workoutSessions.get(session.id))?.status).toBe('finished')
   })
 
-  it('returns to the workouts screen after Finish by default', async () => {
+  it('moves to the workouts screen inside the app after Finish, with no page load', async () => {
     const assign = vi.fn()
     vi.stubGlobal('location', { assign })
+    router.push.mockClear()
     await startSession('2026-09-01')
     render(<LiveSession />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Finish session' }))
 
     await waitFor(() => {
-      expect(assign).toHaveBeenCalledWith(WORKOUTS_PATH)
+      expect(router.push).toHaveBeenCalledWith(WORKOUTS_PATH)
     })
+    expect(assign).not.toHaveBeenCalled()
   })
 
   it('still names a set of an archived exercise', async () => {
@@ -652,17 +660,6 @@ describe('volumeText and heroFooter', () => {
   })
 })
 
-describe('goToWorkouts', () => {
-  it('loads the workouts screen as a document, so it opens offline from the cache', () => {
-    const assign = vi.fn()
-    vi.stubGlobal('location', { assign })
-
-    goToWorkouts()
-
-    expect(assign).toHaveBeenCalledWith('/workouts')
-  })
-})
-
 describe('the repository source', () => {
   it('reads the active session through the repository', async () => {
     const session: WorkoutSession = await startSession('2026-09-01')
@@ -699,6 +696,25 @@ function failing(overrides: Partial<LiveSessionSource>): LiveSessionSource {
 }
 
 describe('editing a set', () => {
+  it('shows the Saved toast after a set is edited', async () => {
+    await sessionWithBench()
+    render(
+      <ToastProvider>
+        <LiveSession onFinished={vi.fn()} />
+      </ToastProvider>,
+    )
+    await screen.findByRole('heading', { level: 1, name: 'Session' })
+
+    const dialog = await openEdit(1)
+    await userEvent.clear(within(dialog).getByLabelText('Reps'))
+    await userEvent.type(within(dialog).getByLabelText('Reps'), '10')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save set' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toast-region')).toHaveTextContent(SAVED_MESSAGE)
+    })
+  })
+
   it('changes the volume total when a set is edited', async () => {
     await sessionWithBench()
     await renderLive()
@@ -1278,6 +1294,22 @@ describe('changing the rest time', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save rest time' }))
     return dialog
   }
+
+  it('shows the Saved toast after the rest time saves', async () => {
+    await sessionResting()
+    render(
+      <ToastProvider>
+        <LiveSession onFinished={vi.fn()} now={restClock(6).now} />
+      </ToastProvider>,
+    )
+    await screen.findByRole('heading', { level: 1, name: 'Session' })
+
+    await changeRestTo('2:00')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toast-region')).toHaveTextContent(SAVED_MESSAGE)
+    })
+  })
 
   it('saves the new rest to the profile with updateProfile, so it syncs', async () => {
     await sessionResting()

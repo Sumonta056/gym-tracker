@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
 import { PROFILE } from '../../tests/fixtures/dashboard'
+import { ToastProvider } from '../ui/Toast'
 
 import { SAVE_FAILED, SAVED, TargetsCard } from './TargetsCard'
 
@@ -74,5 +75,21 @@ describe('TargetsCard', () => {
     await userEvent.type(field, '180')
     await userEvent.tab()
     expect(await screen.findByRole('alert')).toHaveTextContent(SAVE_FAILED)
+  })
+
+  it('shows the Saved toast after a target saves', async () => {
+    render(
+      <ToastProvider>
+        <TargetsCard profile={SET} unit="metric" onSave={vi.fn(() => Promise.resolve())} />
+      </ToastProvider>,
+    )
+    const field = screen.getByLabelText('Daily step goal')
+    await userEvent.clear(field)
+    await userEvent.type(field, '9000')
+    await userEvent.tab()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toast-region')).toHaveTextContent('Saved')
+    })
   })
 })

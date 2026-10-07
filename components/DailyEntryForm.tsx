@@ -15,6 +15,7 @@ import { NumberField } from './ui/NumberField'
 import { PrimaryButton } from './ui/PrimaryButton'
 import { SecondaryButton } from './ui/SecondaryButton'
 import { StatusChip } from './ui/StatusChip'
+import { SAVED_MESSAGE, useToast } from './ui/Toast'
 import { GYM_TIME_SAVE_FAILED, GymTimeOfferCard } from './workout/GymTimeOffer'
 
 import type { DailyEntry } from '../lib/db/dexie'
@@ -140,6 +141,7 @@ export type DailyEntryFormProps = {
 
 export function DailyEntryForm({ date }: DailyEntryFormProps) {
   const [entryDate] = useState(() => date ?? localDate())
+  const toast = useToast()
   const [online, setOnline] = useState(true)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -215,20 +217,24 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
     }
   }, [entryDate, offerRead])
 
-  const save = useCallback((values: DailyEntryInput) => {
-    setSaved(false)
-    setSaveError(null)
+  const save = useCallback(
+    (values: DailyEntryInput) => {
+      setSaved(false)
+      setSaveError(null)
 
-    return upsertDay(values).then(
-      () => {
-        setSaved(true)
-        setOfferRead((count) => count + 1)
-      },
-      (reason: unknown) => {
-        setSaveError(reason instanceof Error ? reason.message : 'The entry could not be saved.')
-      },
-    )
-  }, [])
+      return upsertDay(values).then(
+        () => {
+          setSaved(true)
+          toast.show(SAVED_MESSAGE)
+          setOfferRead((count) => count + 1)
+        },
+        (reason: unknown) => {
+          setSaveError(reason instanceof Error ? reason.message : 'The entry could not be saved.')
+        },
+      )
+    },
+    [toast],
+  )
 
   const walkText = watch('walk_seconds')
   const gymText = watch('gym_seconds')

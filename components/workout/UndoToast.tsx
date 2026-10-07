@@ -53,6 +53,7 @@ export function UndoToast({ toast, onUndo, onDismiss, durationMs = UNDO_MS }: Un
   return (
     <div
       role="status"
+      data-testid="undo-region"
       className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+84px)] z-40 flex justify-center px-5 md:px-7 lg:bottom-6 lg:left-60"
     >
       {toast === null ? null : (

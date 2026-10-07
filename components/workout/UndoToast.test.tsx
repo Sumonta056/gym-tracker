@@ -35,6 +35,12 @@ describe('UndoToast', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
+  it('names its region for the end to end tests', () => {
+    renderToast({ toast: null })
+
+    expect(screen.getByRole('status')).toHaveAttribute('data-testid', 'undo-region')
+  })
+
   it('calls Undo from its button', async () => {
     const { onUndo } = renderToast()
 

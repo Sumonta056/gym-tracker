@@ -6,6 +6,7 @@ import { acceptGymTimeOffer, getDay, gymTimeOfferOn, upsertDay } from '../lib/db
 import { localDate } from '../lib/schema/dailyEntry'
 
 import { DailyEntryForm, nextWeight, prettyDate, toFormValues } from './DailyEntryForm'
+import { ToastProvider } from './ui/Toast'
 import { GYM_TIME_SAVE_FAILED } from './workout/GymTimeOffer'
 
 import type { DailyEntry } from '../lib/db/dexie'
@@ -274,6 +275,34 @@ describe('DailyEntryForm', () => {
     await renderForm()
     await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
     expect(await screen.findByText('Dexie is closed.')).toBeInTheDocument()
+  })
+
+  it('shows the Saved toast after a save', async () => {
+    render(
+      <ToastProvider>
+        <DailyEntryForm date={DATE} />
+      </ToastProvider>,
+    )
+    await userEvent.type(await screen.findByLabelText('Steps'), '9000')
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toast-region')).toHaveTextContent('Saved')
+    })
+  })
+
+  it('shows no Saved toast when the save fails', async () => {
+    vi.mocked(upsertDay).mockRejectedValueOnce(new Error('Dexie is closed.'))
+    render(
+      <ToastProvider>
+        <DailyEntryForm date={DATE} />
+      </ToastProvider>,
+    )
+    await userEvent.type(await screen.findByLabelText('Steps'), '9000')
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    expect(await screen.findByText('Dexie is closed.')).toBeInTheDocument()
+    expect(screen.getByTestId('toast-region')).toBeEmptyDOMElement()
   })
 
   it('fills the form from an entry that already exists for the date', async () => {

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 import {
@@ -33,6 +34,7 @@ import { HeroCard } from '../ui/HeroCard'
 import { MicroLabel } from '../ui/MicroLabel'
 import { PrimaryButton } from '../ui/PrimaryButton'
 import { SecondaryButton } from '../ui/SecondaryButton'
+import { SAVED_MESSAGE, useToast } from '../ui/Toast'
 
 import { EditSetSheet } from './EditSetSheet'
 import { ExerciseCard, lastTimeText } from './ExerciseCard'
@@ -238,15 +240,11 @@ export type LiveSessionProps = {
   alert?: RestAlert
 }
 
-export function goToWorkouts(): void {
-  window.location.assign(WORKOUTS_PATH)
-}
-
 export function LiveSession({
   source = REPOSITORY_LIVE_SOURCE,
   pickerSource,
   now = systemNow,
-  onFinished = goToWorkouts,
+  onFinished,
   alert,
 }: LiveSessionProps) {
   const [read, setRead] = useState<ReadState>({ status: 'loading' })
@@ -271,6 +269,8 @@ export function LiveSession({
   const deletes = useRef(0)
   const alive = useRef(true)
   const listHeadingId = useId()
+  const savedToast = useToast()
+  const router = useRouter()
 
   const refresh = useCallback(async () => {
     try {
@@ -398,6 +398,15 @@ export function LiveSession({
     }
   }
 
+  const leave = () => {
+    if (onFinished === undefined) {
+      router.push(WORKOUTS_PATH)
+      return
+    }
+
+    onFinished()
+  }
+
   const saveSet = (values: SetValues) => {
     if (activeId === undefined || busy) {
       return
@@ -440,7 +449,7 @@ export function LiveSession({
         const offer = await source.gymTimeOfferFor(finished.id).catch(() => null)
 
         if (offer === null) {
-          onFinished()
+          leave()
           return
         }
 
@@ -466,7 +475,7 @@ export function LiveSession({
     setOfferError(null)
     source.acceptGymTimeOffer(finishOffer.offer.sessionId).then(
       () => {
-        onFinished()
+        leave()
       },
       (cause: unknown) => {
         setOfferBusy(false)
@@ -477,7 +486,7 @@ export function LiveSession({
 
   const keepLogTime = () => {
     if (!offerBusy) {
-      onFinished()
+      leave()
     }
   }
 
@@ -493,6 +502,7 @@ export function LiveSession({
       .then(
         async () => {
           setEditing(null)
+          savedToast.show(SAVED_MESSAGE)
           await refresh()
         },
         (cause: unknown) => {
@@ -580,6 +590,7 @@ export function LiveSession({
           }
 
           setChangingRest(null)
+          savedToast.show(SAVED_MESSAGE)
           await refresh()
         },
         (cause: unknown) => {

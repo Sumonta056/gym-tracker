@@ -39,6 +39,7 @@ import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
+import { SAVED_MESSAGE, useToast } from '../../components/ui/Toast'
 import { EditSetSheet } from '../../components/workout/EditSetSheet'
 import { ExerciseCard } from '../../components/workout/ExerciseCard'
 import { ExercisePicker } from '../../components/workout/ExercisePicker'
@@ -1163,6 +1164,7 @@ function Styleguide() {
           >
             Open the sheet
           </PrimaryButton>
+          <ToastSample />
           <SecondaryButton>Secondary</SecondaryButton>
           <SecondaryButton tone="danger">Destructive</SecondaryButton>
         </Card>
@@ -1358,5 +1360,19 @@ function Styleguide() {
         />
       </Section>
     </AppShell>
+  )
+}
+
+function ToastSample() {
+  const toast = useToast()
+
+  return (
+    <SecondaryButton
+      onClick={() => {
+        toast.show(SAVED_MESSAGE)
+      }}
+    >
+      Show the Saved toast
+    </SecondaryButton>
   )
 }

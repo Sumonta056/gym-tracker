@@ -670,4 +670,10 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       await within(screen.getByTestId('error-log-card')).findByText('Loading chunk 812 failed.'),
     ).toBeInTheDocument()
   })
+
+  it('shows the Saved toast from its sample button', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Show the Saved toast' }))
+
+    expect(screen.getByTestId('toast-region')).toHaveTextContent('Saved')
+  })
 })

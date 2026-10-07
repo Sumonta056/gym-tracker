@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Card } from '../ui/Card'
 import { MicroLabel } from '../ui/MicroLabel'
 import { NumberField } from '../ui/NumberField'
+import { SAVED_MESSAGE, useToast } from '../ui/Toast'
 
 import { parseTarget, TARGET_FIELDS, targetLabel, targetText } from './targets'
 
@@ -31,6 +32,7 @@ export function TargetsCard({ profile, unit, onSave, className }: TargetsCardPro
   const [drafts, setDrafts] = useState<Drafts>({})
   const [errors, setErrors] = useState<Errors>({})
   const [saved, setSaved] = useState(false)
+  const toast = useToast()
 
   function settle(field: TargetField, error: string | undefined): void {
     setErrors((current) => ({ ...current, [field]: error }))
@@ -59,6 +61,7 @@ export function TargetsCard({ profile, unit, onSave, className }: TargetsCardPro
     try {
       await onSave(parsed.patch)
       setSaved(true)
+      toast.show(SAVED_MESSAGE)
       settle(field, undefined)
     } catch {
       setSaved(false)
