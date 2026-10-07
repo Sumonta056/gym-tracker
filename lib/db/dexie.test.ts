@@ -12,6 +12,7 @@ import {
   getVersionState,
   STORES,
   STORES_V1,
+  STORES_V3,
   subscribeVersionState,
   versionWatch,
 } from './dexie'
@@ -42,7 +43,7 @@ describe('createDatabase', () => {
     expect(instance.name).toBe('gym-tracker-alt')
   })
 
-  it('declares the eight tables of version 3', async () => {
+  it('declares the nine tables of version 4', async () => {
     const instance = createDatabase('gym-tracker-tables')
     opened.push(instance)
     await instance.open()
@@ -50,6 +51,7 @@ describe('createDatabase', () => {
     expect(instance.tables.map((table) => table.name).sort()).toEqual([
       'dailyEntries',
       'deadLetters',
+      'errorLog',
       'exercises',
       'outbox',
       'profiles',
@@ -57,8 +59,8 @@ describe('createDatabase', () => {
       'workoutSessions',
       'workoutSets',
     ])
-    expect(instance.verno).toBe(3)
-    expect(DATABASE_VERSION).toBe(3)
+    expect(instance.verno).toBe(4)
+    expect(DATABASE_VERSION).toBe(4)
   })
 
   it('upgrades a version 1 database and keeps every row it held', async () => {
@@ -137,7 +139,7 @@ describe('createDatabase', () => {
     opened.push(instance)
     await instance.open()
 
-    expect(instance.verno).toBe(3)
+    expect(instance.verno).toBe(DATABASE_VERSION)
     expect(await instance.dailyEntries.toArray()).toEqual([entry])
     expect(await instance.profiles.toArray()).toEqual([profile])
     expect(await instance.outbox.toArray()).toEqual([queued])
@@ -146,6 +148,39 @@ describe('createDatabase', () => {
     expect(await instance.exercises.count()).toBe(0)
     expect(await instance.workoutSessions.count()).toBe(0)
     expect(await instance.workoutSets.count()).toBe(0)
+  })
+
+  it('upgrades a version 3 database, keeps every row and starts an empty error log', async () => {
+    const name = 'gym-tracker-upgrade-v3'
+    const old = new Dexie(name)
+    old.version(1).stores(STORES_V1)
+    old.version(3).stores(STORES_V3)
+    await old.open()
+    await old.table('syncMeta').put({ key: 'outbox_sequence', value: '9' })
+    old.close()
+
+    const instance = createDatabase(name)
+    opened.push(instance)
+    await instance.open()
+
+    expect(instance.verno).toBe(4)
+    expect(await instance.syncMeta.get('outbox_sequence')).toEqual({
+      key: 'outbox_sequence',
+      value: '9',
+    })
+    expect(await instance.errorLog.count()).toBe(0)
+  })
+
+  it('indexes the error log on at', async () => {
+    const instance = createDatabase('gym-tracker-error-indexes')
+    opened.push(instance)
+    await instance.open()
+
+    const indexes = instance.tables
+      .filter((table) => table.name === 'errorLog')
+      .flatMap((table) => table.schema.indexes.map((index) => index.name))
+
+    expect(indexes).toEqual(['at'])
   })
 
   it('indexes the exercises on muscle_group and on updated_at', async () => {
@@ -227,6 +262,7 @@ describe('createDatabase', () => {
       exercises: 'id',
       workoutSessions: 'id',
       workoutSets: 'id',
+      errorLog: 'id',
     })
   })
 })

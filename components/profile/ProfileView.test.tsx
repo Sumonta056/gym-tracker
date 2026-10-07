@@ -8,6 +8,7 @@ import { DEAD_DAY } from '../../tests/fixtures/sync'
 import { MANAGE_TITLE } from './ManageExercisesSheet'
 import { ProfileView, signOutHint } from './ProfileView'
 
+import type { ErrorLogSource } from './ErrorLogCard'
 import type { ManageExerciseSource } from './ManageExercisesSheet'
 import type { ProfileViewProps } from './ProfileView'
 import type { Exercise } from '../../lib/db/dexie'
@@ -32,6 +33,13 @@ function exerciseSource(): ManageExerciseSource {
   }
 }
 
+function errorLogSource(): ErrorLogSource {
+  return {
+    listErrors: vi.fn(() => Promise.resolve([])),
+    clearErrors: vi.fn(() => Promise.resolve()),
+  }
+}
+
 function renderView(overrides: Partial<ProfileViewProps> = {}) {
   const props: ProfileViewProps = {
     email: 'sam@example.com',
@@ -45,6 +53,7 @@ function renderView(overrides: Partial<ProfileViewProps> = {}) {
     onSaveTarget: vi.fn(() => Promise.resolve()),
     onSyncNow: vi.fn(),
     onSignOut: vi.fn(),
+    errorLogSource: errorLogSource(),
     ...overrides,
   }
   render(<ProfileView {...props} />)
@@ -65,6 +74,11 @@ describe('ProfileView', () => {
     renderView()
     expect(screen.queryByTestId('data-card')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Import the old sheet' })).not.toBeInTheDocument()
+  })
+
+  it('shows the Errors card', async () => {
+    renderView()
+    expect(await screen.findByTestId('error-log-card')).toHaveTextContent('Errors')
   })
 
   it('shows the import card while the flag is on', () => {

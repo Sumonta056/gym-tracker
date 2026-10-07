@@ -664,4 +664,10 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     const chips = within(screen.getByTestId('status-chips'))
     expect(chips.getAllByRole('status').map((chip) => chip.textContent)).toContain('Unknown')
   })
+
+  it('renders the error log sample with its sample error', async () => {
+    expect(
+      await within(screen.getByTestId('error-log-card')).findByText('Loading chunk 812 failed.'),
+    ).toBeInTheDocument()
+  })
 })

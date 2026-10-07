@@ -1,6 +1,19 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { currentRoute, describeError, errorText, reportError, UNKNOWN_ERROR } from './report'
+import { recordError } from '../db/repository'
+
+import {
+  currentRoute,
+  describeError,
+  ERROR_LOG_QUERY,
+  errorText,
+  reportError,
+  UNKNOWN_ERROR,
+} from './report'
+
+vi.mock('../db/repository', () => ({
+  recordError: vi.fn(() => Promise.resolve()),
+}))
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -64,11 +77,96 @@ describe('currentRoute', () => {
 })
 
 describe('reportError', () => {
+  beforeEach(() => {
+    vi.mocked(recordError).mockClear()
+  })
+
   it('writes the source, the route and the message to the console', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     reportError(new Error('boom'), { route: '/log', source: 'boundary' })
 
     expect(spy).toHaveBeenCalledWith('[boundary] /log boom', expect.any(String))
+  })
+
+  it('records the error in the local log', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const error = new Error('boom')
+
+    reportError(error, { route: '/log', source: 'boundary' })
+
+    await vi.waitFor(() => {
+      expect(recordError).toHaveBeenCalledWith({
+        source: 'boundary',
+        message: 'boom',
+        stack: error.stack ?? null,
+        route: '/log',
+      })
+    })
+  })
+
+  it('records the error only after the current task ends', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    reportError(new Error('later'), { route: '/', source: 'live-query' })
+
+    expect(recordError).not.toHaveBeenCalledWith(expect.objectContaining({ message: 'later' }))
+    await vi.waitFor(() => {
+      expect(recordError).toHaveBeenCalledWith(expect.objectContaining({ message: 'later' }))
+    })
+  })
+
+  it('never records a failed read of the error log itself', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    reportError(new Error(`${ERROR_LOG_QUERY}: closed`), { route: '/', source: 'live-query' })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(spy).toHaveBeenCalled()
+    expect(recordError).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: `${ERROR_LOG_QUERY}: closed` }),
+    )
+  })
+
+  it('never throws when the log cannot be written', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.mocked(recordError).mockRejectedValueOnce(new Error('DatabaseClosedError'))
+
+    expect(() => {
+      reportError(new Error('boom'), { route: '/', source: 'window' })
+    }).not.toThrow()
+    await vi.waitFor(() => {
+      expect(recordError).toHaveBeenCalled()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+
+  it('never throws when the repository cannot be loaded', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.resetModules()
+    vi.doMock('../db/repository', () => {
+      throw new Error('ChunkLoadError')
+    })
+    const fresh = await import('./report')
+
+    try {
+      expect(() => {
+        fresh.reportError(new Error('boom'), { route: '/', source: 'window' })
+      }).not.toThrow()
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    } finally {
+      vi.doUnmock('../db/repository')
+      vi.resetModules()
+    }
+  })
+
+  it('never throws when the console throws', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {
+      throw new Error('console gone')
+    })
+
+    expect(() => {
+      reportError(new Error('boom'), { route: '/', source: 'window' })
+    }).not.toThrow()
   })
 })

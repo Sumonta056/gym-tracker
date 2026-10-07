@@ -2,10 +2,13 @@ import 'fake-indexeddb/auto'
 
 import { readFileSync } from 'node:fs'
 
+import { liveQuery } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { parseSheet, rowEntry } from '../csv/import'
+import { ERROR_LOG_QUERY } from '../errors/report'
 import { dailyEntrySchema, localDate } from '../schema/dailyEntry'
+import { MAX_ERROR_RECORDS, MAX_MESSAGE_LENGTH, MAX_STACK_LENGTH } from '../schema/errorRecord'
 import { moveToDeadLetters } from '../sync/deadLetters'
 import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
@@ -14,6 +17,7 @@ import {
   acceptGymTimeOffer,
   archiveExercise,
   clearAll,
+  clearErrors,
   gymTimeOfferFor,
   gymTimeOfferOn,
   NoGymTimeOffer,
@@ -54,12 +58,14 @@ import {
   ImportRepeatsADate,
   importDays,
   listDeadLetters,
+  listErrors,
   loggedDates,
   listRange,
   LOCAL_PROFILE_ID,
   NEVER_WRITTEN,
   OUTBOX_SEQUENCE_KEY,
   pendingWrites,
+  recordError,
   resumeSync as resumeFromRepository,
   retryDeadLetter,
   setRestSeconds,
@@ -70,6 +76,7 @@ import {
   UnsyncedWritesChanged,
   upsertDay,
 } from './repository'
+import { safeQuery } from './safeQuery'
 
 import type { DailyEntry, Exercise, OutboxEntry, WorkoutSession, WorkoutSet } from './dexie'
 import type { ImportDay } from './repository'
@@ -151,6 +158,7 @@ beforeEach(async () => {
     db.exercises.clear(),
     db.workoutSessions.clear(),
     db.workoutSets.clear(),
+    db.errorLog.clear(),
   ])
 })
 
@@ -2270,6 +2278,34 @@ describe('clearAll', () => {
 
     expect((await getProfile()).step_goal).toBe(12000)
   })
+
+  it('clears an error recorded after the clear and before the session ends', async () => {
+    await clearAll(await counted(), async () => {
+      await db.syncMeta.delete(SIGNED_OUT_KEY)
+      await recordError({ source: 'sync', message: 'late', stack: null, route: '/' })
+      return 'signed out'
+    })
+
+    expect(await listErrors()).toEqual([])
+  })
+
+  it('still signs out when the clear of the error log after the session fails', async () => {
+    const clear = db.errorLog.clear.bind(db.errorLog)
+    vi.spyOn(db.errorLog, 'clear')
+      .mockImplementationOnce(clear)
+      .mockRejectedValueOnce(new Error('DatabaseClosedError'))
+
+    await expect(clearAll(await counted(), endSession)).resolves.toBe('signed out')
+    expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeDefined()
+  })
+
+  it('clears the error log at sign-out', async () => {
+    await recordError({ source: 'sync', message: 'boom', stack: null, route: '/' })
+
+    await clearAll(await counted(), endSession)
+
+    expect(await db.errorLog.count()).toBe(0)
+  })
 })
 
 describe('pendingWrites', () => {
@@ -3075,5 +3111,134 @@ describe('exportTables', () => {
     await exportTables()
 
     expect(await pendingWrites()).toBe(before)
+  })
+})
+
+describe('the error log', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function failure(message = 'boom') {
+    return {
+      source: 'boundary' as const,
+      message,
+      stack: 'Error: boom\n    at render',
+      route: '/log',
+    }
+  }
+
+  it('records an error with a new id and the time it happened', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-05T10:00:00.000Z'))
+
+    await recordError(failure())
+
+    const [row] = await listErrors()
+    expect(row).toMatchObject({ ...failure(), at: '2026-10-05T10:00:00.000Z' })
+    expect(row?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  })
+
+  it('writes no outbox entry for an error', async () => {
+    await recordError(failure())
+
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('lists the newest error first', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-05T10:00:00.000Z'))
+    await recordError(failure('first'))
+    vi.setSystemTime(new Date('2026-10-05T10:00:01.000Z'))
+    await recordError(failure('second'))
+
+    expect((await listErrors()).map((row) => row.message)).toEqual(['second', 'first'])
+  })
+
+  it('keeps only the last 50 errors', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+
+    for (let index = 0; index <= MAX_ERROR_RECORDS; index += 1) {
+      vi.setSystemTime(Date.UTC(2026, 9, 5, 10, 0, index))
+      await recordError(failure(`error ${String(index)}`))
+    }
+
+    const rows = await listErrors()
+    expect(rows).toHaveLength(MAX_ERROR_RECORDS)
+    expect(rows[0]?.message).toBe(`error ${String(MAX_ERROR_RECORDS)}`)
+    expect(rows.at(-1)?.message).toBe('error 1')
+  })
+
+  it('cuts a long stack at the stack limit', async () => {
+    await recordError({ ...failure(), stack: 'x'.repeat(MAX_STACK_LENGTH + 500) })
+
+    const [row] = await listErrors()
+    expect(row?.stack).toHaveLength(MAX_STACK_LENGTH)
+  })
+
+  it('cuts a long message at the message limit', async () => {
+    await recordError(failure('x'.repeat(MAX_MESSAGE_LENGTH + 500)))
+
+    const [row] = await listErrors()
+    expect(row?.message).toHaveLength(MAX_MESSAGE_LENGTH)
+  })
+
+  it('writes nothing while the device is signed out', async () => {
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-10-05T10:00:00.000Z' })
+
+    await expect(recordError(failure())).resolves.toBeUndefined()
+
+    expect(await listErrors()).toEqual([])
+  })
+
+  it('records again once the device is no longer signed out', async () => {
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-10-05T10:00:00.000Z' })
+    await recordError(failure('while signed out'))
+    await db.syncMeta.delete(SIGNED_OUT_KEY)
+
+    await recordError(failure('after sign-in'))
+
+    expect((await listErrors()).map((row) => row.message)).toEqual(['after sign-in'])
+  })
+
+  it('records a failed live query from inside the liveQuery context', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const subscription = liveQuery(
+      safeQuery(() => Promise.reject(new Error('closed')), 'probe'),
+    ).subscribe({ next: () => undefined, error: () => undefined })
+
+    try {
+      await vi.waitFor(async () => {
+        expect(await listErrors()).toHaveLength(1)
+      })
+    } finally {
+      subscription.unsubscribe()
+    }
+
+    expect((await listErrors())[0]).toMatchObject({
+      source: 'live-query',
+      message: 'probe: closed',
+    })
+  })
+
+  it('records nothing when the read of the error log itself fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const subscription = liveQuery(
+      safeQuery(() => Promise.reject(new Error('closed')), ERROR_LOG_QUERY),
+    ).subscribe({ next: () => undefined, error: () => undefined })
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    subscription.unsubscribe()
+
+    expect(await listErrors()).toEqual([])
+  })
+
+  it('clears every error', async () => {
+    await recordError(failure('first'))
+    await recordError(failure('second'))
+
+    await clearErrors()
+
+    expect(await listErrors()).toEqual([])
   })
 })
