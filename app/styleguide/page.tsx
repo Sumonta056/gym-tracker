@@ -57,6 +57,7 @@ import type { RangeTab } from '../../components/charts/rangeData'
 import type { LiftSource } from '../../components/charts/useLiftData'
 import type { ImportSource } from '../../components/csv/ImportReview'
 import type { DashboardSummary } from '../../components/dashboard/summary'
+import type { ErrorLogSource } from '../../components/profile/ErrorLogCard'
 import type { ManageExerciseSource } from '../../components/profile/ManageExercisesSheet'
 import type { EditingSet } from '../../components/workout/EditSetSheet'
 import type { ExerciseSource } from '../../components/workout/ExercisePicker'
@@ -141,6 +142,29 @@ function ignoreImport(): void {
 
 function ignoreReload(): void {
   return undefined
+}
+
+const SAMPLE_ERROR_LOG: ErrorLogSource = {
+  listErrors: () =>
+    Promise.resolve([
+      {
+        id: '00000000-0000-4000-8000-000000000001',
+        at: '2026-10-05T07:42:00.000Z',
+        source: 'live-query',
+        message: 'sync pending count: DatabaseClosedError',
+        stack: null,
+        route: '/',
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000002',
+        at: '2026-10-04T21:10:00.000Z',
+        source: 'window',
+        message: 'Loading chunk 812 failed.',
+        stack: null,
+        route: '/analytics',
+      },
+    ]),
+  clearErrors: () => Promise.resolve(),
 }
 
 const SAMPLE_IMPORT_COUNTS = { created: 12, overwritten: 1, merged: 2, skipped: 1, leftOut: 1 }
@@ -867,6 +891,7 @@ function Styleguide() {
           onCancelSignOut={() => {
             setSampleLost(null)
           }}
+          errorLogSource={SAMPLE_ERROR_LOG}
           exerciseSource={manageSource}
           testId="profile-grid-sample"
         />

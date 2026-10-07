@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
 
 import type { DailyEntryInput } from '../schema/dailyEntry'
+import type { ErrorRecord } from '../schema/errorRecord'
 import type { ExerciseInput } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
 import type { WorkoutSessionInput } from '../schema/workoutSession'
@@ -82,6 +83,7 @@ export type GymDatabase = Dexie & {
   exercises: EntityTable<Exercise, 'id'>
   workoutSessions: EntityTable<WorkoutSession, 'id'>
   workoutSets: EntityTable<WorkoutSet, 'id'>
+  errorLog: EntityTable<ErrorRecord, 'id'>
 }
 
 export const OUTBOX_SEQUENCE_KEY = 'outbox_sequence'
@@ -108,7 +110,7 @@ export const NEVER_WRITTEN = new Date(0).toISOString()
 
 export const DATABASE_NAME = 'gym-tracker'
 
-export const DATABASE_VERSION = 3
+export const DATABASE_VERSION = 4
 
 export const STORES_V1 = {
   dailyEntries: '&id, entry_date, updated_at',
@@ -122,11 +124,16 @@ export const STORES_V2 = {
   deadLetters: '&id, sequence',
 } as const
 
-export const STORES = {
+export const STORES_V3 = {
   ...STORES_V2,
   exercises: '&id, muscle_group, updated_at',
   workoutSessions: '&id, entry_date, status, updated_at',
   workoutSets: '&id, session_id, updated_at',
+} as const
+
+export const STORES = {
+  ...STORES_V3,
+  errorLog: '&id, at',
 } as const
 
 export type VersionState = 'current' | 'stale' | 'blocked'
@@ -182,6 +189,7 @@ export function createDatabase(
 
   instance.version(1).stores(STORES_V1)
   instance.version(2).stores(STORES_V2)
+  instance.version(3).stores(STORES_V3)
   instance.version(DATABASE_VERSION).stores(STORES)
 
   instance.on('versionchange', () => {

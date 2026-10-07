@@ -45,3 +45,35 @@ test('a newer database version in another tab shows the reload banner', async ({
   await expect(banner).toBeVisible()
   await expect(banner.getByRole('button', { name: 'Reload' })).toBeVisible()
 })
+
+test('the Profile Errors card lists a render error after a crash', async ({ page }) => {
+  await page.goto('/crash-test')
+  await expect(page.getByRole('heading', { name: 'Something went wrong.' })).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<number>((resolve) => {
+            const request = indexedDB.open('gym-tracker')
+            request.onsuccess = () => {
+              const database = request.result
+              const count = database
+                .transaction('errorLog', 'readonly')
+                .objectStore('errorLog')
+                .count()
+              count.onsuccess = () => {
+                database.close()
+                resolve(count.result)
+              }
+            }
+          }),
+      ),
+    )
+    .toBeGreaterThan(0)
+
+  await page.goto('/profile')
+
+  const card = page.getByTestId('error-log-card')
+  await expect(card).toContainText('A forced render error for the end to end test.')
+  await expect(card.getByRole('button', { name: 'Copy all' })).toBeEnabled()
+})

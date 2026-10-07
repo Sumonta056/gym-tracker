@@ -1,5 +1,11 @@
 import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
+import {
+  errorRecordSchema,
+  MAX_ERROR_RECORDS,
+  MAX_MESSAGE_LENGTH,
+  MAX_STACK_LENGTH,
+} from '../schema/errorRecord'
 import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
 import { storedWorkoutSessionSchema, workoutSessionSchema } from '../schema/workoutSession'
@@ -28,6 +34,7 @@ import {
 
 import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from './dexie'
 import type { DailyEntryDraft, DailyEntryInput } from '../schema/dailyEntry'
+import type { ErrorRecord } from '../schema/errorRecord'
 import type { ExerciseInput, MuscleGroup } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
 import type { WorkoutSetDraft, WorkoutSetInput } from '../schema/workoutSet'
@@ -862,6 +869,38 @@ export async function listSessions(from: string, to: string): Promise<WorkoutSes
   return rows.filter((row) => row.deleted_at === null).sort(byStart)
 }
 
+export async function recordError(input: Omit<ErrorRecord, 'id' | 'at'>): Promise<void> {
+  const record = errorRecordSchema.parse({
+    ...input,
+    id: newId(),
+    at: nowIso(),
+    message: input.message.slice(0, MAX_MESSAGE_LENGTH),
+    stack: input.stack === null ? null : input.stack.slice(0, MAX_STACK_LENGTH),
+  })
+
+  await db.transaction('rw', db.errorLog, db.syncMeta, async () => {
+    if ((await db.syncMeta.get(SIGNED_OUT_KEY)) !== undefined) {
+      return
+    }
+
+    await db.errorLog.put(record)
+
+    const extra = (await db.errorLog.count()) - MAX_ERROR_RECORDS
+
+    if (extra > 0) {
+      await db.errorLog.bulkDelete(await db.errorLog.orderBy('at').limit(extra).primaryKeys())
+    }
+  })
+}
+
+export async function listErrors(): Promise<ErrorRecord[]> {
+  return db.errorLog.orderBy('at').reverse().toArray()
+}
+
+export async function clearErrors(): Promise<void> {
+  await db.errorLog.clear()
+}
+
 export async function listSetsInRange(from: string, to: string): Promise<WorkoutSet[]> {
   return db.transaction('r', db.workoutSessions, db.workoutSets, async () => {
     const sessions = await listSessions(from, to)
@@ -983,6 +1022,7 @@ export async function clearAll<T>(
           db.exercises,
           db.workoutSessions,
           db.workoutSets,
+          db.errorLog,
         ],
         async () => {
           const count = (await db.outbox.count()) + (await db.deadLetters.count())
@@ -1001,6 +1041,7 @@ export async function clearAll<T>(
             db.exercises.clear(),
             db.workoutSessions.clear(),
             db.workoutSets.clear(),
+            db.errorLog.clear(),
           ])
           await db.syncMeta.bulkPut([
             { key: OUTBOX_SEQUENCE_KEY, value: String(sequence) },
@@ -1013,6 +1054,7 @@ export async function clearAll<T>(
 
       const ended = await endSession()
 
+      await db.errorLog.clear().catch(() => undefined)
       endSigningOut()
 
       return ended

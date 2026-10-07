@@ -10,6 +10,7 @@ import { MicroLabel } from '../ui/MicroLabel'
 import { SecondaryButton } from '../ui/SecondaryButton'
 
 import { DataCard } from './DataCard'
+import { ErrorLogCard, REPOSITORY_ERROR_LOG_SOURCE } from './ErrorLogCard'
 import { ManageExercisesSheet, REPOSITORY_MANAGE_SOURCE } from './ManageExercisesSheet'
 import { ProfileHeader } from './ProfileHeader'
 import { RestSoundCard } from './RestSoundCard'
@@ -19,6 +20,7 @@ import { TargetsCard } from './TargetsCard'
 import { UnitsCard } from './UnitsCard'
 
 import type { ChosenSheet } from './DataCard'
+import type { ErrorLogSource } from './ErrorLogCard'
 import type { ManageExerciseSource } from './ManageExercisesSheet'
 import type { DeadLetter, Profile } from '../../lib/db/dexie'
 import type { SyncStatusReport } from '../../lib/db/repository'
@@ -61,6 +63,7 @@ export type ProfileViewProps = {
   onConfirmSignOut?: () => void
   onCancelSignOut?: () => void
   exerciseSource?: ManageExerciseSource
+  errorLogSource?: ErrorLogSource
   testId?: string
 }
 
@@ -87,6 +90,7 @@ export function ProfileView({
   onConfirmSignOut = ignore,
   onCancelSignOut = ignore,
   exerciseSource = REPOSITORY_MANAGE_SOURCE,
+  errorLogSource = REPOSITORY_ERROR_LOG_SOURCE,
   testId = 'profile-grid',
 }: ProfileViewProps) {
   const [managing, setManaging] = useState(false)
@@ -155,6 +159,7 @@ export function ProfileView({
           onDiscard={onDiscardDeadLetter}
           deadLetterError={deadLetterError}
         />
+        <ErrorLogCard source={errorLogSource} />
         <div className="flex flex-col gap-2">
           <SecondaryButton
             tone="danger"

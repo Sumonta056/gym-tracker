@@ -2,6 +2,8 @@ export type ErrorSource = 'boundary' | 'window' | 'rejection' | 'live-query' | '
 
 export const UNKNOWN_ERROR = 'An error with no message'
 
+export const ERROR_LOG_QUERY = 'error log'
+
 function textOf(value: unknown): string {
   if (value === undefined || typeof value === 'function' || typeof value === 'symbol') {
     return String(value)
@@ -47,8 +49,37 @@ export function currentRoute(): string {
   return typeof window === 'undefined' ? '' : window.location.pathname
 }
 
-export function reportError(error: unknown, context: { route: string; source: ErrorSource }): void {
-  const { message, stack } = describeError(error)
+async function persist(record: {
+  source: ErrorSource
+  message: string
+  stack: string | null
+  route: string
+}): Promise<void> {
+  try {
+    const { recordError } = await import('../db/repository')
 
-  console.error(`[${context.source}] ${context.route} ${message}`, stack ?? '')
+    await recordError(record)
+  } catch {
+    return
+  }
+}
+
+export function reportError(error: unknown, context: { route: string; source: ErrorSource }): void {
+  try {
+    const { message, stack } = describeError(error)
+
+    console.error(`[${context.source}] ${context.route} ${message}`, stack ?? '')
+
+    if (context.source === 'live-query' && message.startsWith(`${ERROR_LOG_QUERY}: `)) {
+      return
+    }
+
+    const record = { source: context.source, message, stack, route: context.route }
+
+    setTimeout(() => {
+      void persist(record)
+    }, 0)
+  } catch {
+    return
+  }
 }

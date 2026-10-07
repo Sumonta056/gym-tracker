@@ -5015,6 +5015,29 @@
                   Sync now
                 </button>
               </div>
+              <div class="card">
+                <span class="micro">Errors</span>
+                <ol
+                  class="list"
+                  style="margin-top: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-input)"
+                  aria-label="2 errors on this device"
+                >
+                  <li style="padding: 8px 12px; border-bottom: 1px solid var(--color-border)">
+                    <strong style="display: block; font-size: 13px"
+                      >sync pending count: DatabaseClosedError</strong
+                    >
+                    <span class="muted" style="font-size: 12px">5 Oct, 07:42 · live-query · /</span>
+                  </li>
+                  <li style="padding: 8px 12px">
+                    <strong style="display: block; font-size: 13px">Loading chunk 812 failed.</strong>
+                    <span class="muted" style="font-size: 12px">4 Oct, 21:10 · window · /analytics</span>
+                  </li>
+                </ol>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px">
+                  <button class="btn btn-secondary" type="button">Copy all</button>
+                  <button class="btn btn-danger" type="button">Clear</button>
+                </div>
+              </div>
 
               <div>
                 <button class="btn btn-danger" type="button">Sign out</button>
