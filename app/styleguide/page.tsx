@@ -45,6 +45,7 @@ import { ExerciseCard } from '../../components/workout/ExerciseCard'
 import { ExercisePicker } from '../../components/workout/ExercisePicker'
 import { RestTimerCard } from '../../components/workout/RestTimerCard'
 import { RestTimeSheet } from '../../components/workout/RestTimeSheet'
+import { SessionSummary } from '../../components/workout/SessionSummary'
 import { SessionTimer } from '../../components/workout/SessionTimer'
 import { UndoToast } from '../../components/workout/UndoToast'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
@@ -71,6 +72,7 @@ import type {
   WorkoutSet,
 } from '../../lib/db/dexie'
 import type { ImportChoice } from '../../lib/db/repository'
+import type { SessionStats } from '../../lib/metrics/sessionStats'
 import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
 import type { ReactNode } from 'react'
@@ -613,6 +615,14 @@ const SAMPLE_REST_COMPLETED_AT = new Date(SAMPLE_SESSION_NOW.getTime() - 6000).t
 
 const SAMPLE_REST_EXERCISE_ID = '33333333-3333-4333-8333-333333333333'
 
+const SAMPLE_SUMMARY: SessionStats = {
+  durationSeconds: 4325,
+  setCount: 18,
+  exerciseCount: 4,
+  volumeKg: 3420,
+  newRecords: [{ exerciseId: SAMPLE_REST_EXERCISE_ID, weightKg: 102.5, reps: 3 }],
+}
+
 const SAMPLE_LIVE_SETS: WorkoutSet[] = (
   [
     [60, 12],
@@ -718,6 +728,7 @@ function Styleguide() {
   const [sampleRestSkipped, setSampleRestSkipped] = useState(false)
   const [sampleRestSeconds, setSampleRestSeconds] = useState(90)
   const [sampleChangingRest, setSampleChangingRest] = useState(false)
+  const [sampleSummaryOpen, setSampleSummaryOpen] = useState(false)
   const [pickerSource] = useState(sampleExerciseSource)
   const [manageSource] = useState(sampleManageSource)
   const [importSource] = useState(sampleImportSource)
@@ -1309,7 +1320,22 @@ function Styleguide() {
               }}
             />
           )}
+          <SecondaryButton
+            onClick={() => {
+              setSampleSummaryOpen(true)
+            }}
+          >
+            Open the session summary sample
+          </SecondaryButton>
         </div>
+        <SessionSummary
+          stats={sampleSummaryOpen ? SAMPLE_SUMMARY : null}
+          unit="metric"
+          nameOf={() => 'Bench Press'}
+          onDone={() => {
+            setSampleSummaryOpen(false)
+          }}
+        />
         <RestTimeSheet
           changing={
             sampleChangingRest

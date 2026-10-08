@@ -44,6 +44,10 @@ test('finishes a session and opens /workouts with no page load', async ({ page, 
 
   await page.clock.setSystemTime(new Date(day.noon().getTime() + 3_600_000))
   await page.getByRole('button', { name: 'Finish session' }).click()
+  const done = page.getByRole('dialog', { name: 'Session done' })
+  await expect(done).toBeVisible()
+  await expect(page).not.toHaveURL(/\/workouts$/)
+  await done.getByRole('button', { name: 'Done', exact: true }).click()
 
   await expect(page).toHaveURL(/\/workouts$/)
   await expect(page.getByRole('dialog')).toHaveCount(0)

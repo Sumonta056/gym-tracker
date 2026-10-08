@@ -42,6 +42,22 @@ describe('SheetModal', () => {
     expect(screen.getByRole('dialog', { name: 'Log a set' })).toHaveAttribute('aria-modal', 'true')
   })
 
+  it('has no description unless one is given', () => {
+    setup()
+    expect(screen.getByRole('dialog')).not.toHaveAttribute('aria-describedby')
+  })
+
+  it('is described by the element a describedBy id names', () => {
+    render(
+      <SheetModal open title="Log a set" describedBy="sheet-summary" onClose={vi.fn()}>
+        <p id="sheet-summary">3 sets done</p>
+      </SheetModal>,
+    )
+    expect(screen.getByRole('dialog', { name: 'Log a set' })).toHaveAccessibleDescription(
+      '3 sets done',
+    )
+  })
+
   it('renders its children', () => {
     setup()
     expect(screen.getByText('Sheet body')).toBeInTheDocument()

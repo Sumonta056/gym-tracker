@@ -15,6 +15,7 @@ export type SheetModalProps = {
   footer?: ReactNode
   className?: string
   closeDisabled?: boolean
+  describedBy?: string
 }
 
 const FOCUSABLE =
@@ -152,6 +153,7 @@ export function SheetModal({
   footer,
   className,
   closeDisabled = false,
+  describedBy,
 }: SheetModalProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -220,6 +222,7 @@ export function SheetModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={describedBy}
         tabIndex={-1}
         className={cn(
           'bg-surface border-border rounded-t-hero relative max-h-[78%] w-full border-t pt-2.5',

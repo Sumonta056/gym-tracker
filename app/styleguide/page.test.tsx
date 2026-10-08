@@ -624,6 +624,21 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
+  it('shows the session summary sample with its duration, cells and record', async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Open the session summary sample' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(dialog).toHaveTextContent('1:12:05')
+    expect(dialog).toHaveTextContent('sets18')
+    expect(dialog).toHaveTextContent('exercises4')
+    expect(dialog).toHaveTextContent('volume (kg)3,420')
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(1)
+    expect(dialog).toHaveTextContent('Bench Press102.5 kg × 3')
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Done' }))
+    expect(screen.queryByRole('dialog', { name: 'Session done' })).not.toBeInTheDocument()
+  })
+
   it('shows the last time line in the live workout sample', () => {
     expect(
       within(screen.getByTestId('live-sample')).getByText(/^Last time 72.5 kg × 8/),

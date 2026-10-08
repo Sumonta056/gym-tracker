@@ -21,6 +21,7 @@ import {
 } from '../../lib/db/repository'
 import { toDisplayWeight, weightSymbol } from '../../lib/format/weight'
 import { earlierThan, isNewRecord } from '../../lib/metrics/personalRecords'
+import { sessionStats } from '../../lib/metrics/sessionStats'
 import { volumeLoad } from '../../lib/metrics/volumeLoad'
 import { restSecondsFor } from '../../lib/workout/restTimer'
 import { formatCount } from '../dashboard/summary'
@@ -40,6 +41,7 @@ import { MUSCLE_GROUP_LABEL } from './MuscleGroupChips'
 import { createRestAlert } from './restAlert'
 import { RestTimerCard } from './RestTimerCard'
 import { RestTimeSheet } from './RestTimeSheet'
+import { SessionSummary } from './SessionSummary'
 import { SessionTimer, startedText, systemNow } from './SessionTimer'
 import { ToastRoom, UndoToast } from './UndoToast'
 
@@ -51,6 +53,7 @@ import type { ChangingRest } from './RestTimeSheet'
 import type { Toast } from './UndoToast'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { ExerciseFilter, WorkoutSetPatch } from '../../lib/db/repository'
+import type { SessionStats } from '../../lib/metrics/sessionStats'
 import type { UnitSystem } from '../../lib/schema/profile'
 
 export type LiveSessionSource = {
@@ -237,6 +240,7 @@ export function LiveSession({
   const [changingRest, setChangingRest] = useState<ChangingRest | null>(null)
   const [restBusy, setRestBusy] = useState(false)
   const [restError, setRestError] = useState<string | null>(null)
+  const [summary, setSummary] = useState<SessionStats | null>(null)
   const alertRef = useRef<RestAlert | null>(alert ?? null)
   const deletes = useRef(0)
   const alive = useRef(true)
@@ -417,8 +421,8 @@ export function LiveSession({
     setBusy(true)
     setError(null)
     source.finishSession(session.id).then(
-      () => {
-        leave()
+      (finished) => {
+        setSummary(sessionStats(finished, sets, history))
       },
       (cause: unknown) => {
         setBusy(false)
@@ -758,6 +762,13 @@ export function LiveSession({
           setChangingRest(null)
           setRestError(null)
         }}
+      />
+
+      <SessionSummary
+        stats={summary}
+        unit={unit}
+        nameOf={(id) => nameOf(id)?.name ?? 'Unknown exercise'}
+        onDone={leave}
       />
 
       <UndoToast

@@ -4241,12 +4241,12 @@
         </div>
       </section>
 
-      <!-- ============ 8 · finish ============
+      <!-- ============ 8 · finish summary ============
            New classes: none. -->
       <section class="plate" aria-labelledby="p8">
         <div class="plate-label">
           <span class="n">08</span>
-          <span class="name" id="p8">Finish</span>
+          <span class="name" id="p8">Finish summary</span>
           <span class="route">/workout</span>
         </div>
         <div class="frame">
@@ -4261,14 +4261,65 @@
             <div class="body">
               <div class="hero">
                 <span class="micro">Elapsed</span>
-                <p class="hero-num">01:12:05</p>
-                <p class="hero-foot">Volume 4,820 kg · 11 sets</p>
+                <p class="hero-num">1:12:05</p>
+                <p class="hero-foot">Volume 3,420 kg · 18 sets · 4 exercises</p>
               </div>
               <div class="card"><span class="micro">Bench press</span></div>
             </div>
           </div>
+
+          <div class="scrim"></div>
+
+          <div class="bottomsheet" role="dialog" aria-modal="true" aria-labelledby="summary-title">
+            <div class="grabber" aria-hidden="true"></div>
+
+            <div class="sheet-top">
+              <h3 id="summary-title">Session done</h3>
+              <button class="sheet-close" type="button" aria-label="Close Session done">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+
+            <div>
+              <span class="micro">Duration</span>
+              <p class="hero-num" style="margin: 4px 0 0">1:12:05</p>
+            </div>
+
+            <dl style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); margin: 0">
+              <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                <dt class="muted" style="font-size: 12px">sets</dt>
+                <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">18</dd>
+              </div>
+              <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                <dt class="muted" style="font-size: 12px">exercises</dt>
+                <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">4</dd>
+              </div>
+              <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                <dt class="muted" style="font-size: 12px">volume (kg)</dt>
+                <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">3,420</dd>
+              </div>
+            </dl>
+
+            <div class="card">
+              <h4 style="margin: 0"><span class="micro">New records</span></h4>
+              <ul class="list" style="margin-top: 6px">
+                <li class="row">
+                  <span class="muted" style="font-size: 14px">Bench press</span>
+                  <strong style="color: var(--color-accent); font-size: 14px">102.5 kg × 3</strong>
+                </li>
+              </ul>
+            </div>
+
+            <button class="btn" type="button">Done</button>
+          </div>
         </div>
-        <p class="muted" style="margin: 16px 0 0">Finish goes straight to /workouts.</p>
+        <p class="dim" style="margin: 12px 2px 0">
+          Every successful Finish opens this sheet. Done and × both go to /workouts. The volume
+          and the record weight show in the display unit, so an imperial profile reads lb. With
+          no record the card reads "No new record this time." A record is the heaviest set of an
+          exercise above its best weight from an earlier session; a first time gives none.
+          Focus lands on × first, as on every sheet: both controls do the same thing.
+        </p>
       </section>
 
       <!-- ============ 9 · manage exercises ============

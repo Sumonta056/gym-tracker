@@ -353,6 +353,11 @@ describe('LiveSession', () => {
     const { onFinished } = await renderLive()
 
     await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Session done' })).getByRole('button', {
+        name: 'Done',
+      }),
+    )
 
     await waitFor(() => {
       expect(onFinished).toHaveBeenCalledTimes(1)
@@ -368,6 +373,9 @@ describe('LiveSession', () => {
     render(<LiveSession />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Finish session' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(router.push).not.toHaveBeenCalled()
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Done' }))
 
     await waitFor(() => {
       expect(router.push).toHaveBeenCalledWith(WORKOUTS_PATH)
@@ -563,6 +571,7 @@ describe('LiveSession', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(FINISH_FAILED)
     expect(onFinished).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Finish session' })).toBeEnabled()
+    expect(screen.queryByRole('dialog', { name: 'Session done' })).toBeNull()
   })
 
   it('asks for an exercise before the first set', async () => {
@@ -1454,17 +1463,25 @@ describe('Finish', () => {
     return view
   }
 
-  it('hands straight back to its owner, with no sheet', async () => {
+  it('hands back to its owner after Done, with no other sheet', async () => {
     const { onFinished } = await finishAnHourLater()
+
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Done' }))
 
     await waitFor(() => {
       expect(onFinished).toHaveBeenCalledTimes(1)
     })
-    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('writes no daily entry and queues no daily write', async () => {
     const { onFinished } = await finishAnHourLater()
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Session done' })).getByRole('button', {
+        name: 'Done',
+      }),
+    )
     await waitFor(() => {
       expect(onFinished).toHaveBeenCalledTimes(1)
     })
@@ -1473,5 +1490,84 @@ describe('Finish', () => {
     expect(
       (await db.outbox.toArray()).filter((item) => item.table_name === 'daily_entries'),
     ).toEqual([])
+  })
+})
+
+describe('the summary after Finish', () => {
+  const START = '2026-09-01T17:30:00.000Z'
+  const END = '2026-09-01T18:42:05.000Z'
+
+  async function finishWithOneSet(props: Parameters<typeof LiveSession>[0] = {}) {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(START))
+    const session = await startSession('2026-09-01')
+    vi.setSystemTime(new Date(END))
+    await addSet({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      reps: 3,
+      weight_kg: 102.5,
+      completed_at: END,
+    })
+    const view = await renderLive(props)
+    await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
+    return view
+  }
+
+  it('opens the summary with the duration, the sets and the volume', async () => {
+    await finishWithOneSet()
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(sheet).toHaveTextContent('1:12:05')
+    expect(sheet).toHaveTextContent('sets1')
+    expect(sheet).toHaveTextContent('exercises1')
+    expect(sheet).toHaveTextContent('volume (kg)308')
+  })
+
+  it('names a set heavier than every earlier session as a new record', async () => {
+    await db.workoutSets.put(pastSet({ exercise_id: BENCH_ID, weight_kg: 100, reps: 5 }))
+    await finishWithOneSet()
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(sheet).toHaveTextContent('Bench Press102.5 kg × 3')
+  })
+
+  it('shows the volume in pounds for an imperial profile', async () => {
+    await updateProfile({ unit_system: 'imperial' })
+    await finishWithOneSet()
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(sheet).toHaveTextContent('volume (lb)678')
+  })
+
+  it('waits for Done before it hands back to the caller', async () => {
+    const { onFinished } = await finishWithOneSet()
+    await screen.findByRole('dialog', { name: 'Session done' })
+    expect(onFinished).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(onFinished).toHaveBeenCalledTimes(1)
+  })
+
+  it('hands back once when Done is pressed twice', async () => {
+    const { onFinished } = await finishWithOneSet()
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    const done = within(sheet).getByRole('button', { name: 'Done' })
+    await userEvent.click(done)
+    await userEvent.click(done)
+    expect(onFinished).toHaveBeenCalledTimes(1)
+  })
+
+  it('pushes /workouts once when Done and then the close button are pressed', async () => {
+    router.push.mockClear()
+    await finishWithOneSet({ onFinished: undefined })
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Done' }))
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Close Session done' }))
+    expect(router.push).toHaveBeenCalledTimes(1)
+    expect(router.push).toHaveBeenCalledWith(WORKOUTS_PATH)
+  })
+
+  it('hands back once when the sheet is closed', async () => {
+    const { onFinished } = await finishWithOneSet()
+    await screen.findByRole('dialog', { name: 'Session done' })
+    await userEvent.click(screen.getByRole('button', { name: 'Close Session done' }))
+    expect(onFinished).toHaveBeenCalledTimes(1)
   })
 })

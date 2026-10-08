@@ -100,6 +100,10 @@ test('keeps every set of a session logged offline through a finish and a reload'
 
   await page.clock.setSystemTime(new Date(day.noon().getTime() + 3_600_000))
   await page.getByRole('button', { name: 'Finish session' }).click()
+  const done = page.getByRole('dialog', { name: 'Session done' })
+  await expect(done).toContainText('sets3')
+  await expect(done).toContainText('1,440')
+  await done.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(page).toHaveURL(/\/workouts$/)
   await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible()
 
@@ -202,6 +206,9 @@ test('finishes a pulled session whose start is ahead of this device clock', asyn
   await expect(page.getByRole('heading', { level: 1, name: 'Session' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Finish session' }).click()
+  const done = page.getByRole('dialog', { name: 'Session done' })
+  await expect(done).toContainText('0:00')
+  await done.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(page).toHaveURL(/\/workouts$/)
   await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible()
 
