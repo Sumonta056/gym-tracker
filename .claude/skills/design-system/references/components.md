@@ -279,6 +279,7 @@ export type DurationPickerProps = {
   min?: number
   max?: number
   allowClear?: boolean
+  errorId?: string
   className?: string
 }
 
@@ -293,7 +294,7 @@ export function clampSeconds(seconds: number, min: number, max: number): number 
 }
 
 export function stepSeconds(value: number | null, by: number, min: number, max: number): number {
-  return clampSeconds((value ?? min) + by, min, max)
+  return clampSeconds(value === null ? Math.max(min, by) : value + by, min, max)
 }
 
 export function presetLabel(seconds: number): string {
@@ -320,6 +321,7 @@ export function DurationPicker({
   min = 0,
   max = MAX_DURATION_SECONDS,
   allowClear = false,
+  errorId,
   className,
 }: DurationPickerProps) {
   const labelId = `${id}-label`
@@ -330,6 +332,7 @@ export function DurationPicker({
       id={id}
       role="group"
       aria-labelledby={labelId}
+      aria-describedby={errorId}
       className={cn('flex w-full min-w-0 flex-col gap-[7px]', className)}
     >
       <MicroLabel id={labelId}>{label}</MicroLabel>
@@ -411,6 +414,14 @@ export function DurationPicker({
 - The −/+ buttons are 44 px circles with an `aria-label`. The step defaults to 15 s.
   Rest time keeps 15 s. Gym, walk and swim time pass `SESSION_STEP_SECONDS`, 60 s.
 - `allowClear` adds a Clear chip while a value is set. Clear gives `null`.
+- From no value, + gives `min`, or one step when `min` is below the step, never more
+  than `max`. A goal with `min` 300 and a 5 minute step goes 5:00, then 10:00. Gym and
+  walk time on `/log`, `min` 0 and a 1 minute step, go 1:00, then 2:00. − stays off
+  while there is no value.
+- `errorId` ties an error to the picker. The group takes `aria-describedby`, so a
+  screen reader reads the error when focus enters the picker. The owner renders the
+  error, with that id and `role="alert"`, under the picker. Leave it out when there is
+  no error. The group carries no `aria-invalid`: the `group` role does not support it.
 - The chip row wraps. It never scrolls sideways.
 - The `<output>` element has the `status` role, so a screen reader reads the new value
   after each tap. No `<input>`, so no keyboard opens on the phone.

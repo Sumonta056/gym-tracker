@@ -27,6 +27,7 @@ export type DurationPickerProps = {
   min?: number
   max?: number
   allowClear?: boolean
+  errorId?: string
   className?: string
 }
 
@@ -41,7 +42,7 @@ export function clampSeconds(seconds: number, min: number, max: number): number 
 }
 
 export function stepSeconds(value: number | null, by: number, min: number, max: number): number {
-  return clampSeconds((value ?? min) + by, min, max)
+  return clampSeconds(value === null ? Math.max(min, by) : value + by, min, max)
 }
 
 export function presetLabel(seconds: number): string {
@@ -68,6 +69,7 @@ export function DurationPicker({
   min = 0,
   max = MAX_DURATION_SECONDS,
   allowClear = false,
+  errorId,
   className,
 }: DurationPickerProps) {
   const labelId = `${id}-label`
@@ -78,6 +80,7 @@ export function DurationPicker({
       id={id}
       role="group"
       aria-labelledby={labelId}
+      aria-describedby={errorId}
       className={cn('flex w-full min-w-0 flex-col gap-[7px]', className)}
     >
       <MicroLabel id={labelId}>{label}</MicroLabel>

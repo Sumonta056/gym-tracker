@@ -70,6 +70,72 @@ describe('ProfileView', () => {
     )
   })
 
+  it('stacks Units and Goals in the first column', () => {
+    renderView()
+    const first = within(screen.getByTestId('profile-grid-column-1'))
+    expect(first.getByText('Units')).toBeInTheDocument()
+    expect(first.getByText('Goals')).toBeInTheDocument()
+  })
+
+  it('stacks the rest timer, the exercises and the data card in the second column', () => {
+    renderView({ showImport: true })
+    const second = within(screen.getByTestId('profile-grid-column-2'))
+    expect(second.getByText('Rest timer')).toBeInTheDocument()
+    expect(second.getByText('Exercises')).toBeInTheDocument()
+    expect(second.getByTestId('data-card')).toBeInTheDocument()
+  })
+
+  it('stacks sync, errors and sign out in the third column', () => {
+    renderView()
+    const third = within(screen.getByTestId('profile-grid-column-3'))
+    expect(third.getByText('Sync')).toBeInTheDocument()
+    expect(third.getByText('Errors')).toBeInTheDocument()
+    expect(third.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+  })
+
+  it('joins the second and third columns into one below the wide layout', () => {
+    renderView()
+    const joined = screen.getByTestId('profile-grid-column-2-3')
+    expect(joined).toHaveClass('flex', 'flex-col', 'gap-3', 'lg:contents')
+    expect(joined).toContainElement(screen.getByTestId('profile-grid-column-2'))
+    expect(joined).toContainElement(screen.getByTestId('profile-grid-column-3'))
+  })
+
+  it('keeps the phone reading order of the cards', () => {
+    renderView({ showImport: true })
+    const labels = Array.from(
+      screen.getByTestId('profile-grid').querySelectorAll('p, span, h2, button'),
+    )
+      .map((node) => node.textContent)
+      .filter((text) =>
+        [
+          'Units',
+          'Goals',
+          'Rest timer',
+          'Exercises',
+          'Data',
+          'Sync',
+          'Errors',
+          'Sign out',
+        ].includes(text),
+      )
+    expect([...new Set(labels)]).toEqual([
+      'Units',
+      'Goals',
+      'Rest timer',
+      'Exercises',
+      'Data',
+      'Sync',
+      'Errors',
+      'Sign out',
+    ])
+  })
+
+  it('lets no card span rows', () => {
+    renderView({ showImport: true })
+    expect(screen.getByTestId('profile-grid').querySelector('[class*="row-span"]')).toBeNull()
+  })
+
   it('leaves the Phase 2 import card out of the document while the flag is off', () => {
     renderView()
     expect(screen.queryByTestId('data-card')).not.toBeInTheDocument()

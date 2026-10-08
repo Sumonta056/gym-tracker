@@ -423,6 +423,10 @@ const SAMPLE_PROFILE: Profile = {
   height_cm: 174,
   target_weight_kg: 71,
   step_goal: 12000,
+  calorie_goal: 800,
+  sessions_per_week_goal: 4,
+  gym_goal_seconds: 3600,
+  walk_goal_seconds: 2700,
   updated_at: '2026-09-20T10:00:00.000Z',
 }
 

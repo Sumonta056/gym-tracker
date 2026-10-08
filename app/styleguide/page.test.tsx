@@ -112,6 +112,33 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(grid.getByLabelText('Target weight (lb)')).toHaveValue('156.5')
   })
 
+  it('shows the Goals card with its 7 fields on the profile sample', () => {
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    expect(grid.getByText('Goals')).toBeInTheDocument()
+    expect(grid.getByLabelText('Daily step goal')).toBeInTheDocument()
+    expect(grid.getByLabelText('Daily calorie goal (kcal)')).toBeInTheDocument()
+    expect(grid.getByLabelText('Sessions per week goal')).toBeInTheDocument()
+    expect(grid.getByLabelText('Target weight (kg)')).toBeInTheDocument()
+    expect(grid.getByLabelText('Height (cm)')).toBeInTheDocument()
+    expect(grid.getByRole('group', { name: 'Daily gym time goal' })).toBeInTheDocument()
+    expect(grid.getByRole('group', { name: 'Daily walk time goal' })).toBeInTheDocument()
+  })
+
+  it('steps an unset time goal up from 5 minutes on the profile sample', async () => {
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    const walk = within(grid.getByRole('group', { name: 'Daily walk time goal' }))
+    await userEvent.click(walk.getByRole('button', { name: /^Clear/ }))
+    expect(walk.getByText('Not set')).toBeInTheDocument()
+    await userEvent.click(
+      walk.getByRole('button', { name: 'Increase Daily walk time goal by 5 minutes' }),
+    )
+    expect(walk.getByText('5:00')).toBeInTheDocument()
+    await userEvent.click(
+      walk.getByRole('button', { name: 'Increase Daily walk time goal by 5 minutes' }),
+    )
+    expect(walk.getByText('10:00')).toBeInTheDocument()
+  })
+
   it('saves a profile sample target into its own state', async () => {
     const grid = within(screen.getByTestId('profile-grid-sample'))
     const field = grid.getByLabelText('Daily step goal')

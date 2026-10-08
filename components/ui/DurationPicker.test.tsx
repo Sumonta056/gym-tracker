@@ -15,14 +15,18 @@ import {
 function Harness({
   initial = 90,
   allowClear = false,
+  min,
   max,
   step,
+  errorId,
   onSeen = () => undefined,
 }: {
   initial?: number | null
   allowClear?: boolean
+  min?: number
   max?: number
   step?: number
+  errorId?: string
   onSeen?: (seconds: number | null) => void
 }) {
   const [value, setValue] = useState<number | null>(initial)
@@ -38,8 +42,10 @@ function Harness({
       }}
       presets={REST_PRESETS}
       allowClear={allowClear}
+      min={min}
       max={max}
       step={step}
+      errorId={errorId}
     />
   )
 }
@@ -72,6 +78,22 @@ describe('presetLabel', () => {
 describe('stepSeconds', () => {
   it('starts from min when there is no value', () => {
     expect(stepSeconds(null, 15, 0, 3600)).toBe(15)
+  })
+
+  it('gives min on the first step up from no value', () => {
+    expect(stepSeconds(null, 300, 300, 86400)).toBe(300)
+  })
+
+  it('gives one step on the first step up from no value when min is below the step', () => {
+    expect(stepSeconds(null, 60, 0, 86400)).toBe(60)
+  })
+
+  it('gives min on a step down from no value', () => {
+    expect(stepSeconds(null, -300, 300, 86400)).toBe(300)
+  })
+
+  it('keeps the first step from no value under max', () => {
+    expect(stepSeconds(null, 300, 0, 120)).toBe(120)
   })
 
   it('never goes below min or above max', () => {
@@ -126,6 +148,30 @@ describe('DurationPicker', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Decrease Rest time by 15 seconds' }))
     await userEvent.click(screen.getByRole('button', { name: 'Decrease Rest time by 15 seconds' }))
     expect(within(group()).getByRole('status')).toHaveTextContent('1:15')
+  })
+
+  it('steps an unset value up to min, then by one step', async () => {
+    render(<Harness initial={null} min={300} step={300} />)
+    const plus = screen.getByRole('button', { name: 'Increase Rest time by 5 minutes' })
+    await userEvent.click(plus)
+    expect(within(group()).getByRole('status')).toHaveTextContent('5:00')
+    await userEvent.click(plus)
+    expect(within(group()).getByRole('status')).toHaveTextContent('10:00')
+  })
+
+  it('ties an error to the group', () => {
+    render(
+      <>
+        <Harness errorId="rest-error" />
+        <p id="rest-error">Too short.</p>
+      </>,
+    )
+    expect(group()).toHaveAccessibleDescription('Too short.')
+  })
+
+  it('ties no description to the group with no error', () => {
+    render(<Harness />)
+    expect(group()).not.toHaveAttribute('aria-describedby')
   })
 
   it('names the step buttons by a minute step', () => {

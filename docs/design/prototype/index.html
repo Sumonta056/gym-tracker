@@ -3779,23 +3779,95 @@
                 <p class="muted" style="margin: 4px 0 0; font-size: 12px">
                   Display only. Weight is always stored in kilograms.
                 </p>
+                <p style="margin: 10px 0 0; font-size: 14px; font-weight: 600">
+                  Week starts on Monday.
+                </p>
+                <p class="muted" style="margin: 4px 0 0; font-size: 12px">
+                  Every week total and chart counts from Monday.
+                </p>
               </div>
 
               <div class="card">
-                <span class="micro">Targets</span>
+                <span class="micro">Goals</span>
                 <div style="display: grid; gap: 10px; margin-top: 10px">
-                  <label class="field" for="pr-weight">
-                    <span class="micro">Target weight (kg)</span>
-                    <input class="input" id="pr-weight" inputmode="decimal" value="71.0" />
-                  </label>
                   <label class="field" for="pr-steps">
                     <span class="micro">Daily step goal</span>
                     <input class="input" id="pr-steps" inputmode="numeric" value="12000" />
                   </label>
+                  <label class="field" for="pr-calories">
+                    <span class="micro">Daily calorie goal (kcal)</span>
+                    <input class="input" id="pr-calories" inputmode="numeric" value="800" />
+                  </label>
+                  <label class="field" for="pr-sessions">
+                    <span class="micro">Sessions per week goal</span>
+                    <input class="input" id="pr-sessions" inputmode="numeric" value="4" />
+                  </label>
+                  <label class="field" for="pr-weight">
+                    <span class="micro">Target weight (kg)</span>
+                    <input class="input" id="pr-weight" inputmode="decimal" value="71.0" />
+                  </label>
                   <label class="field" for="pr-height">
                     <span class="micro">Height (cm)</span>
-                    <input class="input" id="pr-height" inputmode="numeric" value="174" />
+                    <input class="input" id="pr-height" inputmode="decimal" value="174" />
                   </label>
+                  <div class="dp" role="group" aria-labelledby="pr-gym-goal-label">
+                    <span class="micro" id="pr-gym-goal-label">Daily gym time goal</span>
+                    <div class="dp-row">
+                      <button
+                        class="dp-step"
+                        type="button"
+                        aria-label="Decrease Daily gym time goal by 5 minutes"
+                      >
+                        <span aria-hidden="true">−</span>
+                      </button>
+                      <output class="dp-value">1:00:00</output>
+                      <button
+                        class="dp-step"
+                        type="button"
+                        aria-label="Increase Daily gym time goal by 5 minutes"
+                      >
+                        <span aria-hidden="true">+</span>
+                      </button>
+                    </div>
+                    <div class="dp-chips">
+                      <button class="pill" type="button" aria-pressed="false">45m</button>
+                      <button class="pill" type="button" aria-pressed="true">1h</button>
+                      <button class="pill" type="button" aria-pressed="false">1h 30m</button>
+                      <button class="pill" type="button" aria-pressed="false">2h</button>
+                      <button class="pill dp-clear" type="button">
+                        Clear <span class="visually-hidden">Daily gym time goal</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="dp" role="group" aria-labelledby="pr-walk-goal-label">
+                    <span class="micro" id="pr-walk-goal-label">Daily walk time goal</span>
+                    <div class="dp-row">
+                      <button
+                        class="dp-step"
+                        type="button"
+                        aria-label="Decrease Daily walk time goal by 5 minutes"
+                      >
+                        <span aria-hidden="true">−</span>
+                      </button>
+                      <output class="dp-value">45:00</output>
+                      <button
+                        class="dp-step"
+                        type="button"
+                        aria-label="Increase Daily walk time goal by 5 minutes"
+                      >
+                        <span aria-hidden="true">+</span>
+                      </button>
+                    </div>
+                    <div class="dp-chips">
+                      <button class="pill" type="button" aria-pressed="false">30m</button>
+                      <button class="pill" type="button" aria-pressed="true">45m</button>
+                      <button class="pill" type="button" aria-pressed="false">1h</button>
+                      <button class="pill" type="button" aria-pressed="false">1h 30m</button>
+                      <button class="pill dp-clear" type="button">
+                        Clear <span class="visually-hidden">Daily walk time goal</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
