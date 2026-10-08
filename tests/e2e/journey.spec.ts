@@ -44,10 +44,10 @@ test('changes the dashboard numbers once a day is recorded', async ({ page }) =>
 
   await navLink(page, 'Log the day').first().click()
   await expect(page).toHaveURL(/\/log$/)
-  await recordDay(page, { gym: '1:12:05', steps: '10432' })
+  await recordDay(page, { gym: '1h', steps: '10432' })
   await navLink(page, 'Today').click()
 
-  await expect(heroValue(page)).toHaveText('1:12:05')
+  await expect(heroValue(page)).toHaveText('1:00:00')
   await expect(stepsCard(page).getByText('10,432', { exact: true })).toBeVisible()
   await expect(grid.getByRole('progressbar', { name: 'Steps progress' })).toHaveAttribute(
     'aria-valuenow',

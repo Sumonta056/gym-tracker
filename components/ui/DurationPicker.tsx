@@ -11,6 +11,10 @@ export const REST_PRESETS = [60, 90, 120, 180] as const
 
 export const SESSION_PRESETS = [1800, 2700, 3600, 5400] as const
 
+export const CARDIO_PRESETS = [900, 1800, 2700, 3600] as const
+
+export const SESSION_STEP_SECONDS = 60
+
 export const NOT_SET = 'Not set'
 
 export type DurationPickerProps = {

@@ -294,13 +294,6 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.getByText('Log your steps to see them per day.')).toBeInTheDocument()
   })
 
-  it('shows the duration field already formatted from stored seconds', () => {
-    expect(within(screen.getByTestId('duration-sample')).getByLabelText('Gym time')).toHaveValue(
-      '1:12:05',
-    )
-    expect(screen.getByText('Stored seconds: 4325')).toBeInTheDocument()
-  })
-
   it('sets the picker sample with taps only', async () => {
     const sample = within(screen.getByTestId('duration-picker-sample'))
     await userEvent.click(
@@ -339,14 +332,6 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.getByRole('dialog', { name: 'Log a set' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Close Log a set' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('stores the seconds the duration field reports', async () => {
-    const field = within(screen.getByTestId('duration-sample')).getByLabelText('Gym time')
-    await userEvent.clear(field)
-    await userEvent.type(field, '72m')
-    await userEvent.tab()
-    expect(screen.getByText('Stored seconds: 4320')).toBeInTheDocument()
   })
 
   it('closes the sheet from its save button', async () => {
@@ -518,8 +503,11 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       within(sample).getByRole('button', { name: 'Change the rest time for Bench Press' }),
     )
     const dialog = await screen.findByRole('dialog', { name: 'Rest for Bench Press' })
-    await userEvent.clear(within(dialog).getByLabelText('Rest time'))
-    await userEvent.type(within(dialog).getByLabelText('Rest time'), '2:00')
+    await userEvent.click(
+      within(within(dialog).getByRole('group', { name: 'Rest time' })).getByRole('button', {
+        name: '2m',
+      }),
+    )
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save rest time' }))
 
     expect(within(sample).getByText('Bench Press rests 2:00')).toBeInTheDocument()
@@ -628,7 +616,7 @@ describe('the styleguide page', { timeout: 15000 }, () => {
   })
 
   it('marks the duration sample ready once the page has hydrated', () => {
-    expect(screen.getByTestId('duration-sample')).toHaveAttribute('data-ready', 'true')
+    expect(screen.getByTestId('duration-picker-sample')).toHaveAttribute('data-ready', 'true')
   })
 
   it('opens the finish sheet sample and closes it from either choice', async () => {

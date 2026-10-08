@@ -900,6 +900,10 @@
         gap: 8px;
       }
 
+      .dp-clear {
+        color: var(--color-text);
+      }
+
       .pickrow {
         display: flex;
         align-items: center;
@@ -1756,15 +1760,48 @@
             </div>
 
             <div class="body">
-              <div class="grid-2">
-                <label class="field" for="log-gym">
-                  <span class="micro">Gym time</span>
-                  <input class="input" id="log-gym" inputmode="text" value="1:05:00" />
-                </label>
-                <label class="field" for="log-walk">
-                  <span class="micro">Walk time</span>
-                  <input class="input" id="log-walk" inputmode="text" value="42:18" />
-                </label>
+              <div class="dp" role="group" aria-labelledby="log-gym-label">
+                <span class="micro" id="log-gym-label">Gym time</span>
+                <div class="dp-row">
+                  <button class="dp-step" type="button" aria-label="Decrease Gym time by 1 minute">
+                    <span aria-hidden="true">−</span>
+                  </button>
+                  <output class="dp-value">1:05:00</output>
+                  <button class="dp-step" type="button" aria-label="Increase Gym time by 1 minute">
+                    <span aria-hidden="true">+</span>
+                  </button>
+                </div>
+                <div class="dp-chips">
+                  <button class="pill" type="button" aria-pressed="false">30m</button>
+                  <button class="pill" type="button" aria-pressed="false">45m</button>
+                  <button class="pill" type="button" aria-pressed="false">1h</button>
+                  <button class="pill" type="button" aria-pressed="false">1h 30m</button>
+                  <button class="pill dp-clear" type="button">
+                    Clear <span class="visually-hidden">Gym time</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="dp" role="group" aria-labelledby="log-walk-label">
+                <span class="micro" id="log-walk-label">Walk time</span>
+                <div class="dp-row">
+                  <button class="dp-step" type="button" aria-label="Decrease Walk time by 1 minute">
+                    <span aria-hidden="true">−</span>
+                  </button>
+                  <output class="dp-value">45:00</output>
+                  <button class="dp-step" type="button" aria-label="Increase Walk time by 1 minute">
+                    <span aria-hidden="true">+</span>
+                  </button>
+                </div>
+                <div class="dp-chips">
+                  <button class="pill" type="button" aria-pressed="false">15m</button>
+                  <button class="pill" type="button" aria-pressed="false">30m</button>
+                  <button class="pill" type="button" aria-pressed="true">45m</button>
+                  <button class="pill" type="button" aria-pressed="false">1h</button>
+                  <button class="pill dp-clear" type="button">
+                    Clear <span class="visually-hidden">Walk time</span>
+                  </button>
+                </div>
               </div>
 
               <div class="card" style="display: flex; align-items: center; gap: 12px">

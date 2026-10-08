@@ -9,9 +9,9 @@ test.beforeEach(async ({ context, day }) => {
 
 test('shows Saved after a day is saved, then hides it', async ({ page }) => {
   await page.goto('/log')
-  await expect(page.getByLabel('Gym time')).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Gym time' })).toBeVisible()
 
-  await recordDay(page, { gym: '1:00:00', steps: '9000' })
+  await recordDay(page, { gym: '1h', steps: '9000' })
 
   const toast = page.getByTestId('toast-region')
   await expect(toast).toHaveText('Saved')

@@ -1283,14 +1283,16 @@ describe('the rest timer', () => {
 })
 
 describe('changing the rest time', () => {
-  async function changeRestTo(text: string) {
+  async function changeRestTo(preset: string) {
     await userEvent.click(
       within(restCard()).getByRole('button', { name: 'Change the rest time for Bench Press' }),
     )
     const dialog = await screen.findByRole('dialog', { name: 'Rest for Bench Press' })
-    const field = within(dialog).getByLabelText('Rest time')
-    await userEvent.clear(field)
-    await userEvent.type(field, text)
+    await userEvent.click(
+      within(within(dialog).getByRole('group', { name: 'Rest time' })).getByRole('button', {
+        name: preset,
+      }),
+    )
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save rest time' }))
     return dialog
   }
@@ -1304,7 +1306,7 @@ describe('changing the rest time', () => {
     )
     await screen.findByRole('heading', { level: 1, name: 'Session' })
 
-    await changeRestTo('2:00')
+    await changeRestTo('2m')
 
     await waitFor(() => {
       expect(screen.getByTestId('toast-region')).toHaveTextContent(SAVED_MESSAGE)
@@ -1315,7 +1317,7 @@ describe('changing the rest time', () => {
     await sessionResting()
     await renderLive({ now: restClock(6).now })
 
-    await changeRestTo('2:00')
+    await changeRestTo('2m')
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Rest for Bench Press' })).toBeNull()
@@ -1329,7 +1331,7 @@ describe('changing the rest time', () => {
     const time = restClock(6)
     await renderLive({ now: time.now })
 
-    await changeRestTo('2:00')
+    await changeRestTo('2m')
 
     await waitFor(() => {
       expect(within(restCard()).getByText('Bench Press rests 2:00')).toBeInTheDocument()
@@ -1351,7 +1353,7 @@ describe('changing the rest time', () => {
     const time = restClock(6)
     await renderLive({ now: time.now })
 
-    await changeRestTo('2:00')
+    await changeRestTo('2m')
     await waitFor(() => {
       expect(within(restCard()).getByText('Bench Press rests 2:00')).toBeInTheDocument()
     })
@@ -1374,7 +1376,7 @@ describe('changing the rest time', () => {
       source: failing({ saveRestSeconds: () => Promise.reject(new Error('broken')) }),
     })
 
-    const dialog = await changeRestTo('2:00')
+    const dialog = await changeRestTo('2m')
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(REST_SAVE_FAILED)
   })

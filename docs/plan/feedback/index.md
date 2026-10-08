@@ -160,9 +160,9 @@ Every step follows these. They are not repeated in each step file.
 | C2   | `C2-gym-time-metric.md`    | `effectiveGymSeconds`, one source of gym time | 9      | S    | W0                  | done `7cd2874` |
 | C3   | `C3-session-gaps.md`       | Session gaps from all history, one meaning    | 12     | S    | C1, C2              | done `692da98` |
 | C4   | `C4-day-labels.md`         | Heat map and week labels                      | 12, 17 | M    | C3                  | done `bacce1a` |
-| D1   | `D1-schema.md`             | The migration, Dexie v5, schemas, mappings    | —      | M    | A3                  | done           |
+| D1   | `D1-schema.md`             | The migration, Dexie v5, schemas, mappings    | —      | M    | A3                  | done `25454f6` |
 | E1   | `E1-duration-picker.md`    | The `DurationPicker` primitive                | 3      | M    | W0                  | done `93c6267` |
-| E2   | `E2-picker-in-use.md`      | The picker for rest, gym and walk time        | 3      | S    | E1, B3, B4          | —              |
+| E2   | `E2-picker-in-use.md`      | The picker for rest, gym and walk time        | 3      | S    | E1, B3, B4          | done           |
 | E3   | `E3-gym-time-in-log.md`    | Gym time from sessions in `/log`, no offer    | 9      | M    | C2, E2, B4          | —              |
 | E4   | `E4-old-days.md`           | `/log?date=`, previous, next, date picker     | 6      | M    | E3, C4              | —              |
 | E5   | `E5-swim-card.md`          | The Swimming card                             | 1      | M    | D1, E2, E4          | —              |

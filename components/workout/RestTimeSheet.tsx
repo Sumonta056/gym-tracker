@@ -2,31 +2,10 @@
 
 import { useId, useState } from 'react'
 
-import { formatDuration, parseInput } from '../../lib/duration'
-import { profileSchema } from '../../lib/schema/profile'
-import { Field } from '../ui/Field'
+import { MAX_REST_SECONDS } from '../../lib/schema/profile'
+import { DurationPicker, REST_PRESETS } from '../ui/DurationPicker'
 import { PrimaryButton } from '../ui/PrimaryButton'
 import { SheetModal } from '../ui/SheetModal'
-
-export const REST_HINT = 'Accepts 1:30, 90s or 2m.'
-
-export const restSecondsSchema = profileSchema.shape.rest_seconds_by_exercise.unwrap().valueType
-
-export type RestReading = { ok: true; seconds: number } | { ok: false; reason: string }
-
-export function readRestText(text: string): RestReading {
-  const parsed = parseInput(text)
-
-  if (!parsed.ok) {
-    return parsed
-  }
-
-  const checked = restSecondsSchema.safeParse(parsed.seconds)
-
-  return checked.success
-    ? { ok: true, seconds: checked.data }
-    : { ok: false, reason: checked.error.issues[0]?.message ?? 'Enter a rest time.' }
-}
 
 export function restSheetTitle(exerciseName: string): string {
   return `Rest for ${exerciseName}`
@@ -89,8 +68,7 @@ type RestTimeFormProps = {
 }
 
 function RestTimeForm({ id, changing, error, onSave }: RestTimeFormProps) {
-  const [text, setText] = useState(() => formatDuration(changing.seconds, 'clock'))
-  const [reason, setReason] = useState<string | undefined>(undefined)
+  const [seconds, setSeconds] = useState(changing.seconds)
 
   return (
     <form
@@ -99,30 +77,21 @@ function RestTimeForm({ id, changing, error, onSave }: RestTimeFormProps) {
       className="flex flex-col gap-3"
       onSubmit={(event) => {
         event.preventDefault()
-        const reading = readRestText(text)
-
-        if (!reading.ok) {
-          setReason(reading.reason)
-          return
-        }
-
-        setReason(undefined)
-        onSave(reading.seconds)
+        onSave(seconds)
       }}
     >
       <p className="text-muted text-sm">The next rest after this exercise uses the new time.</p>
-      <Field
+      <DurationPicker
+        id="rest-seconds"
         label="Rest time"
-        type="text"
-        inputMode="text"
-        autoComplete="off"
-        hint={REST_HINT}
-        placeholder="1:30"
-        value={text}
-        error={reason}
-        onChange={(event) => {
-          setText(event.target.value)
+        value={seconds}
+        onChange={(next) => {
+          if (next !== null) {
+            setSeconds(next)
+          }
         }}
+        presets={REST_PRESETS}
+        max={MAX_REST_SECONDS}
       />
       {error === null ? null : (
         <p role="alert" className="text-danger text-sm">

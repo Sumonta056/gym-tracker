@@ -2,14 +2,18 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { acceptGymTimeOffer, getDay, gymTimeOfferOn, upsertDay } from '../lib/db/repository'
-import { formatDuration, parseInput } from '../lib/duration'
 import { dailyEntrySchema, localDate, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from '../lib/schema/dailyEntry'
 
-import { DurationField } from './ui/DurationField'
+import {
+  CARDIO_PRESETS,
+  DurationPicker,
+  SESSION_PRESETS,
+  SESSION_STEP_SECONDS,
+} from './ui/DurationPicker'
 import { Field } from './ui/Field'
 import { NumberField } from './ui/NumberField'
 import { PrimaryButton } from './ui/PrimaryButton'
@@ -22,39 +26,10 @@ import type { DailyEntry } from '../lib/db/dexie'
 import type { DailyEntryDraft, DailyEntryInput } from '../lib/schema/dailyEntry'
 import type { GymTimeOffer } from '../lib/workout/gymTime'
 import type { ReactNode } from 'react'
-import type { RefinementCtx } from 'zod'
 
 export const WEIGHT_STEP = 0.05
 
 export const FIELD_COUNT = 8
-
-const EMPTY_VALUES = {
-  walk_seconds: '',
-  gym_seconds: '',
-  avg_heart_rate: '',
-  max_heart_rate: '',
-  weight_kg: '',
-  calories_burnt: '',
-  steps: '',
-  note: '',
-}
-
-function toSeconds(text: string, path: string, ctx: RefinementCtx): number | null {
-  const raw = text.trim()
-
-  if (raw === '') {
-    return null
-  }
-
-  const parsed = parseInput(raw)
-
-  if (!parsed.ok) {
-    ctx.addIssue({ code: 'custom', path: [path], message: parsed.reason })
-    return null
-  }
-
-  return parsed.seconds
-}
 
 function toNumber(text: string): number | null {
   const raw = text.trim()
@@ -65,8 +40,8 @@ function toNumber(text: string): number | null {
 const formSchema = z
   .object({
     entry_date: z.string(),
-    walk_seconds: z.string(),
-    gym_seconds: z.string(),
+    walk_seconds: z.number().nullable(),
+    gym_seconds: z.number().nullable(),
     avg_heart_rate: z.string(),
     max_heart_rate: z.string(),
     weight_kg: z.string(),
@@ -74,10 +49,10 @@ const formSchema = z
     steps: z.string(),
     note: z.string(),
   })
-  .transform((raw, ctx): DailyEntryDraft => ({
+  .transform((raw): DailyEntryDraft => ({
     entry_date: raw.entry_date,
-    walk_seconds: toSeconds(raw.walk_seconds, 'walk_seconds', ctx),
-    gym_seconds: toSeconds(raw.gym_seconds, 'gym_seconds', ctx),
+    walk_seconds: raw.walk_seconds,
+    gym_seconds: raw.gym_seconds,
     avg_heart_rate: toNumber(raw.avg_heart_rate),
     max_heart_rate: toNumber(raw.max_heart_rate),
     weight_kg: toNumber(raw.weight_kg),
@@ -89,11 +64,22 @@ const formSchema = z
 
 export type DailyEntryFormValues = z.input<typeof formSchema>
 
+const EMPTY_VALUES: Omit<DailyEntryFormValues, 'entry_date'> = {
+  walk_seconds: null,
+  gym_seconds: null,
+  avg_heart_rate: '',
+  max_heart_rate: '',
+  weight_kg: '',
+  calories_burnt: '',
+  steps: '',
+  note: '',
+}
+
 export function toFormValues(entry: DailyEntry): DailyEntryFormValues {
   return {
     entry_date: entry.entry_date,
-    walk_seconds: entry.walk_seconds === null ? '' : formatDuration(entry.walk_seconds, 'clock'),
-    gym_seconds: entry.gym_seconds === null ? '' : formatDuration(entry.gym_seconds, 'clock'),
+    walk_seconds: entry.walk_seconds,
+    gym_seconds: entry.gym_seconds,
     avg_heart_rate: entry.avg_heart_rate === null ? '' : String(entry.avg_heart_rate),
     max_heart_rate: entry.max_heart_rate === null ? '' : String(entry.max_heart_rate),
     weight_kg: entry.weight_kg === null ? '' : entry.weight_kg.toFixed(2),
@@ -152,6 +138,7 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
   const loadedSwim = useRef<number | null>(null)
 
   const {
+    control,
     formState: { errors, isSubmitting },
     handleSubmit,
     register,
@@ -238,8 +225,6 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
     [toast],
   )
 
-  const walkText = watch('walk_seconds')
-  const gymText = watch('gym_seconds')
   const weightText = watch('weight_kg')
   const weightNumber = Number(weightText.trim())
   const canNudge = weightText.trim() !== '' && Number.isFinite(weightNumber)
@@ -254,9 +239,7 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
     acceptGymTimeOffer(offer.sessionId)
       .then(
         () => {
-          setValue('gym_seconds', formatDuration(offer.sessionSeconds, 'clock'), {
-            shouldDirty: true,
-          })
+          setValue('gym_seconds', offer.sessionSeconds, { shouldDirty: true })
           setOffer(null)
           setOfferRead((count) => count + 1)
         },
@@ -320,20 +303,37 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
       </header>
 
       <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-x-3">
-        <div className="grid grid-cols-2 gap-3">
-          <DurationField
-            label="Gym time"
-            {...register('gym_seconds')}
-            value={gymText}
-            error={errors.gym_seconds?.message}
-          />
-          <DurationField
-            label="Walk time"
-            {...register('walk_seconds')}
-            value={walkText}
-            error={errors.walk_seconds?.message}
-          />
-        </div>
+        <Controller
+          control={control}
+          name="gym_seconds"
+          render={({ field }) => (
+            <DurationPicker
+              id="gym_seconds"
+              label="Gym time"
+              value={field.value}
+              onChange={field.onChange}
+              presets={SESSION_PRESETS}
+              step={SESSION_STEP_SECONDS}
+              allowClear
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="walk_seconds"
+          render={({ field }) => (
+            <DurationPicker
+              id="walk_seconds"
+              label="Walk time"
+              value={field.value}
+              onChange={field.onChange}
+              presets={CARDIO_PRESETS}
+              step={SESSION_STEP_SECONDS}
+              allowClear
+            />
+          )}
+        />
 
         {offerBlock('flex md:hidden')}
 

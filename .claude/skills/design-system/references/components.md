@@ -223,60 +223,6 @@ export function NumberField({ id, label, inputMode = 'decimal', ...rest }: Numbe
 - On an error: `aria-invalid` on the input, `aria-describedby` pointing at the message,
   and the message in `text-danger` with words, not colour alone.
 
----
-
-## 8. `DurationField`
-
-Accepts `1:12:05`, `72m`, `1h 12m`. **It never parses by hand** — it calls
-`lib/duration.ts`, which owns every parse and every format, and stores integer seconds.
-
-It is a **controlled text field**, the same shape as `NumberField`: `value`, `onChange`
-and `error`. It holds text, not seconds. The owning form parses the text once, on
-submit, and stores the seconds.
-
-```tsx
-export const DURATION_HINT = 'Accepts 1:12:05, 72m or 1h 12m.'
-
-export function durationPreview(text: string): string | null {
-  const raw = text.trim()
-  if (raw === '') return null
-  const parsed = parseInput(raw)
-  if (!parsed.ok) return null
-  return `${formatDuration(parsed.seconds, 'clock')} · ${formatDuration(parsed.seconds, 'short')}`
-}
-
-export function DurationField({ hint = DURATION_HINT, value, ...rest }: DurationFieldProps) {
-  const preview = durationPreview(typeof value === 'string' ? value : '')
-  return (
-    <Field
-      type="text"
-      inputMode="text"
-      autoComplete="off"
-      placeholder="1:12:05"
-      value={value}
-      hint={
-        <>
-          {hint}
-          {preview === null ? null : (
-            <span className="text-text mt-1 block font-semibold">{preview}</span>
-          )}
-        </>
-      }
-      {...rest}
-    />
-  )
-}
-```
-
-- The hint line is the only place the accepted formats are written. Keep it.
-- The preview under the hint shows the parsed value as the user types, so a wrong guess
-  is visible before the save.
-- **`inputMode` is `text`, not `numeric`.** The hint promises `72m` and `1h 12m`, and an
-  iOS numeric keypad offers no `m` and no `h`. A numeric keypad would contradict the
-  field's own hint. This is the one duration field that is not a number pad.
-- The field never reports a silent `null`. Unreadable text stays in the field, and the
-  owning form blocks the save and names the problem.
-
 ### Field wrappers: `EmailField` and `PasswordField`
 
 These are not primitives. Each one is a thin wrapper on `Field` that fixes `type` and a
@@ -297,7 +243,7 @@ export function PasswordField({ autoComplete = 'current-password', ...rest }: Pa
 
 ---
 
-## 8b. DurationPicker
+## 8. `DurationPicker`
 
 Rest time, gym time, walk time. A tap-only duration input: a −/+ stepper and a row of
 preset chips. **It parses nothing.** The value is integer seconds in and out, and it
@@ -316,6 +262,10 @@ export const DEFAULT_STEP_SECONDS = 15
 export const REST_PRESETS = [60, 90, 120, 180] as const
 
 export const SESSION_PRESETS = [1800, 2700, 3600, 5400] as const
+
+export const CARDIO_PRESETS = [900, 1800, 2700, 3600] as const
+
+export const SESSION_STEP_SECONDS = 60
 
 export const NOT_SET = 'Not set'
 
@@ -459,10 +409,13 @@ export function DurationPicker({
   nothing.
 - The chips are `aria-pressed` toggles, the same look as `SegmentedTabs`.
 - The −/+ buttons are 44 px circles with an `aria-label`. The step defaults to 15 s.
+  Rest time keeps 15 s. Gym, walk and swim time pass `SESSION_STEP_SECONDS`, 60 s.
 - `allowClear` adds a Clear chip while a value is set. Clear gives `null`.
 - The chip row wraps. It never scrolls sideways.
 - The `<output>` element has the `status` role, so a screen reader reads the new value
   after each tap. No `<input>`, so no keyboard opens on the phone.
+- No duration in the app is typed. `lib/duration.ts` keeps `parseInput` for the CSV
+  import.
 
 ---
 

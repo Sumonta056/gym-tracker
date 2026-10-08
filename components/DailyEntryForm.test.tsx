@@ -55,6 +55,10 @@ async function firstUse(): Promise<HTMLElement> {
   return within(await firstOffer()).getByRole('button', { name: 'Use 1:12:05 for gym time' })
 }
 
+function pickerOf(name: 'Gym time' | 'Walk time') {
+  return within(screen.getByRole('group', { name }))
+}
+
 async function renderForm() {
   render(<DailyEntryForm date={DATE} />)
   await waitFor(() => {
@@ -119,8 +123,8 @@ describe('toFormValues', () => {
       }),
     ).toEqual({
       entry_date: DATE,
-      walk_seconds: '',
-      gym_seconds: '',
+      walk_seconds: null,
+      gym_seconds: null,
       avg_heart_rate: '',
       max_heart_rate: '',
       weight_kg: '',
@@ -135,8 +139,6 @@ describe('DailyEntryForm', () => {
   it('ties every input to a label', async () => {
     await renderForm()
     for (const label of [
-      'Gym time',
-      'Walk time',
       'Avg heart rate',
       'Max heart rate',
       'Weight (kg)',
@@ -146,22 +148,8 @@ describe('DailyEntryForm', () => {
     ]) {
       expect(screen.getByLabelText(label)).toBeInstanceOf(HTMLInputElement)
     }
-  })
-
-  it('blocks the save and names the problem when a duration cannot be read', async () => {
-    await renderForm()
-    await userEvent.type(screen.getByLabelText('Gym time'), 'about an hour')
-    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
-
-    const field = screen.getByLabelText('Gym time')
-    await waitFor(() => {
-      expect(field).toHaveAttribute('aria-invalid', 'true')
-    })
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Enter a duration such as 1:12:05, 72m or 1h 12m.',
-    )
-    expect(field.getAttribute('aria-describedby')).toContain(`${field.id}-error`)
-    expect(upsertDay).not.toHaveBeenCalled()
+    expect(screen.getByRole('group', { name: 'Gym time' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Walk time' })).toBeInTheDocument()
   })
 
   it('blocks the save when the max heart rate is below the average', async () => {
@@ -232,10 +220,10 @@ describe('DailyEntryForm', () => {
     expect(screen.queryByText('Enter a weight to use the 0.05 steps.')).not.toBeInTheDocument()
   })
 
-  it('calls upsertDay once, with parsed seconds and never the raw text', async () => {
+  it('calls upsertDay once, with the picked seconds', async () => {
     await renderForm()
-    await userEvent.type(screen.getByLabelText('Gym time'), '1h 12m')
-    await userEvent.type(screen.getByLabelText('Walk time'), '42:18')
+    await userEvent.click(pickerOf('Gym time').getByRole('button', { name: '1h' }))
+    await userEvent.click(pickerOf('Walk time').getByRole('button', { name: '45m' }))
     await userEvent.type(screen.getByLabelText('Weight (kg)'), '73.40')
     await userEvent.type(screen.getByLabelText('Steps'), '12480')
     await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
@@ -245,8 +233,8 @@ describe('DailyEntryForm', () => {
     })
     expect(upsertDay).toHaveBeenCalledWith({
       entry_date: DATE,
-      walk_seconds: 2538,
-      gym_seconds: 4320,
+      walk_seconds: 2700,
+      gym_seconds: 3600,
       swim_seconds: null,
       avg_heart_rate: null,
       max_heart_rate: null,
@@ -311,9 +299,9 @@ describe('DailyEntryForm', () => {
     await renderForm()
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Gym time')).toHaveValue('1:12:05')
+      expect(pickerOf('Gym time').getByRole('status')).toHaveTextContent('1:12:05')
     })
-    expect(screen.getByLabelText('Walk time')).toHaveValue('42:18')
+    expect(pickerOf('Walk time').getByRole('status')).toHaveTextContent('42:18')
     expect(screen.getByLabelText('Avg heart rate')).toHaveValue('118')
     expect(screen.getByLabelText('Max heart rate')).toHaveValue('164')
     expect(screen.getByLabelText('Weight (kg)')).toHaveValue('73.40')
@@ -366,17 +354,42 @@ describe('DailyEntryForm', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Log' })).not.toHaveClass('mt-2')
   })
 
+  it('sets gym and walk time with no text field', async () => {
+    await renderForm()
+    expect(pickerOf('Gym time').queryByRole('textbox')).not.toBeInTheDocument()
+    expect(pickerOf('Walk time').queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
   it('lays the gym time out before the walk time, as step 1.9 names them', async () => {
     await renderForm()
-    const gym = screen.getByLabelText('Gym time')
-    const walk = screen.getByLabelText('Walk time')
+    const gym = screen.getByRole('group', { name: 'Gym time' })
+    const walk = screen.getByRole('group', { name: 'Walk time' })
     expect(gym.compareDocumentPosition(walk) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('shows the parsed duration under the field as the user types', async () => {
+  it('steps gym and walk time by 1 minute', async () => {
     await renderForm()
-    await userEvent.type(screen.getByLabelText('Gym time'), '72m')
-    expect(screen.getByText('1:12:00 · 1h 12m')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Increase Gym time by 1 minute' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Increase Walk time by 1 minute' }),
+    ).toBeInTheDocument()
+  })
+
+  it('saves no gym time after Clear on a stored value', async () => {
+    vi.mocked(getDay).mockResolvedValue(STORED)
+    await renderForm()
+    await waitFor(() => {
+      expect(pickerOf('Gym time').getByRole('status')).toHaveTextContent('1:12:05')
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear Gym time' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledWith(expect.objectContaining({ gym_seconds: null }))
+    })
   })
 
   it('hides the offline chip while the network is up', async () => {
@@ -465,7 +478,7 @@ describe('DailyEntryForm', () => {
     await waitFor(() => {
       expect(screen.queryAllByRole('region', { name: 'Gym time from the session' })).toHaveLength(0)
     })
-    expect(screen.getByLabelText('Gym time')).toHaveValue('1:12:05')
+    expect(pickerOf('Gym time').getByRole('status')).toHaveTextContent('1:12:05')
     expect(screen.getByLabelText('Steps')).toHaveValue('12480')
     expect(upsertDay).not.toHaveBeenCalled()
   })
