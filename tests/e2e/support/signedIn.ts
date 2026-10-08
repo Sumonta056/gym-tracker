@@ -200,7 +200,7 @@ export function consoleErrors(page: Page): string[] {
   return errors
 }
 
-export const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/profile'] as const
+export const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/profile'] as const
 
 export type SignedInRoute = (typeof SIGNED_IN_ROUTES)[number]
 
@@ -216,6 +216,8 @@ export async function openRoute(page: Page, route: SignedInRoute): Promise<void>
     )
   } else if (route === '/analytics') {
     await expect(page.getByTestId('analytics-grid').getByRole('img').first()).toBeVisible()
+  } else if (route === '/workouts') {
+    await expect(page.getByRole('region', { name: 'History' })).toBeVisible()
   } else {
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   }

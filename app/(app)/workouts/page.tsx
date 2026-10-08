@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 
 import { MicroLabel } from '../../../components/ui/MicroLabel'
 import { PrimaryButton } from '../../../components/ui/PrimaryButton'
+import { WorkoutHistory } from '../../../components/workouts/WorkoutHistory'
 import {
   getActiveSession,
   SessionAlreadyActive,
@@ -96,10 +97,10 @@ export default function WorkoutsPage() {
     <>
       <MicroLabel as="p">Gym Tracker</MicroLabel>
       <h1 className="mt-2 text-[23px] leading-tight font-bold tracking-[-0.6px]">Workouts</h1>
-      <p className="text-muted mt-3 max-w-prose text-sm leading-relaxed">
-        The live workout log arrives in Phase 2. The daily tracker is on the Today screen.
-      </p>
       <SessionLauncher />
+      <Suspense fallback={null}>
+        <WorkoutHistory />
+      </Suspense>
     </>
   )
 }

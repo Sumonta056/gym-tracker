@@ -648,6 +648,18 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.queryByRole('dialog', { name: 'Session done' })).not.toBeInTheDocument()
   })
 
+  it('shows a session list sample with 2 rows and Show more', () => {
+    const history = within(screen.getByRole('region', { name: 'History' }))
+    expect(history.getAllByRole('link')).toHaveLength(2)
+    expect(history.getByRole('button', { name: 'Show more' })).toBeInTheDocument()
+  })
+
+  it('shows a session detail sample with its back link and 2 exercises', () => {
+    const sample = within(screen.getByTestId('session-detail-sample'))
+    expect(sample.getByRole('link', { name: 'All sessions' })).toHaveAttribute('href', '/workouts')
+    expect(sample.getAllByRole('region')).toHaveLength(2)
+  })
+
   it('shows the last time line in the live workout sample', () => {
     expect(
       within(screen.getByTestId('live-sample')).getByText(/^Last time 72.5 kg × 8/),

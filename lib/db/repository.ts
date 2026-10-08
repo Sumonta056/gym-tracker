@@ -884,6 +884,33 @@ export async function listSetsInRange(from: string, to: string): Promise<Workout
   })
 }
 
+export type FinishedSessionsPage = { sessions: WorkoutSession[]; hasMore: boolean }
+
+export async function listFinishedSessions(limit: number): Promise<FinishedSessionsPage> {
+  const rows = await db.workoutSessions.where('status').equals('finished').toArray()
+  const live = rows
+    .filter((row) => row.deleted_at === null && row.ended_at !== null)
+    .sort((left, right) => byStart(right, left))
+
+  return { sessions: live.slice(0, limit), hasMore: live.length > limit }
+}
+
+export async function getSession(id: string): Promise<WorkoutSession | undefined> {
+  const row = await db.workoutSessions.get(id)
+
+  return row === undefined || row.deleted_at !== null ? undefined : row
+}
+
+export async function listSetsForSessions(sessionIds: string[]): Promise<WorkoutSet[]> {
+  if (sessionIds.length === 0) {
+    return []
+  }
+
+  const rows = await db.workoutSets.where('session_id').anyOf(sessionIds).toArray()
+
+  return rows.filter((row) => row.deleted_at === null).sort(inDoneOrder)
+}
+
 function doneAt(set: WorkoutSet): number {
   return Date.parse(set.completed_at ?? set.created_at)
 }

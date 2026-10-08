@@ -33,6 +33,7 @@ import { MicroLabel } from '../ui/MicroLabel'
 import { PrimaryButton } from '../ui/PrimaryButton'
 import { SecondaryButton } from '../ui/SecondaryButton'
 import { SAVED_MESSAGE, useToast } from '../ui/Toast'
+import { WORKOUTS_PATH } from '../workouts/historyText'
 
 import { EditSetSheet } from './EditSetSheet'
 import { ExerciseCard, lastTimeText } from './ExerciseCard'
@@ -120,8 +121,6 @@ export const DELETE_FAILED = 'The set could not be deleted on this device.'
 export const UNDO_FAILED = 'The set could not be brought back on this device.'
 
 export const REST_SAVE_FAILED = 'The rest time could not be saved on this device.'
-
-export const WORKOUTS_PATH = '/workouts'
 
 type Snapshot = {
   session: WorkoutSession

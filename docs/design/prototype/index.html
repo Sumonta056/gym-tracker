@@ -5232,6 +5232,168 @@
           </div>
         </div>
       </section>
+
+      <!-- ============ 15 · workouts history ============
+           New classes: none. -->
+      <section class="plate" aria-labelledby="p15">
+        <div class="plate-label">
+          <span class="n">15</span>
+          <span class="name" id="p15">Workouts history</span>
+          <span class="route">/workouts</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <span class="micro">Gym Tracker</span>
+                <h2>Workouts</h2>
+              </div>
+            </div>
+            <div class="body">
+              <button class="btn" type="button">Start a session</button>
+
+              <section aria-labelledby="p15-history" style="display: grid; gap: var(--gap); margin-top: 32px">
+                <span class="micro" id="p15-history">History</span>
+                <ul class="list" style="display: grid; gap: var(--gap)">
+                  <li>
+                    <a class="card" href="#" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; color: var(--color-text); text-decoration: none">
+                      <strong style="font-size: 15px">Sun 20 Sep · 17:30</strong>
+                      <span class="muted" style="font-size: 14px">1h 12m · 18 sets · 3,420 kg</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a class="card" href="#" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; color: var(--color-text); text-decoration: none">
+                      <strong style="font-size: 15px">Thu 17 Sep · 07:05</strong>
+                      <span class="muted" style="font-size: 14px">48m · 12 sets · 2,160 kg</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a class="card" href="#" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; color: var(--color-text); text-decoration: none">
+                      <strong style="font-size: 15px">Tue 15 Sep · 18:10</strong>
+                      <span class="muted" style="font-size: 14px">55m · 14 sets · 2,890 kg</span>
+                    </a>
+                  </li>
+                </ul>
+                <button class="btn btn-secondary" type="button">Show more</button>
+              </section>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Start a live workout">
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          Finished sessions only, newest first. The running session is not a row: the button
+          above reads Resume while it runs. A row is a real link to /workouts?session=&lt;id&gt;;
+          a plain tap opens the detail in place, with no network. Show more appears only past 30
+          rows and adds the next 30. With no row the list reads "No finished session yet. Start
+          one above." The volume shows in the display unit. Two columns from 640 px, three from
+          1024 px.
+        </p>
+      </section>
+
+      <!-- ============ 15b · session detail ============
+           New classes: none. -->
+      <section class="plate" aria-labelledby="p15b">
+        <div class="plate-label">
+          <span class="n">15b</span>
+          <span class="name" id="p15b">Session detail</span>
+          <span class="route">/workouts?session=…</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <span class="micro">Gym Tracker</span>
+                <h2>Workouts</h2>
+              </div>
+            </div>
+            <div class="body">
+              <button class="btn" type="button">Start a session</button>
+
+              <a href="#" style="display: inline-flex; align-items: center; align-self: flex-start; min-height: 44px; margin-top: 24px; color: var(--color-accent); font-size: 15px; font-weight: 700; text-decoration: none">
+                <span aria-hidden="true">‹</span>&nbsp;All sessions
+              </a>
+              <h3 style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">
+                Sun 20 Sep · 17:30
+              </h3>
+
+              <div class="card">
+                <dl style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gap); margin: 0">
+                  <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                    <dt class="muted" style="font-size: 12px">duration</dt>
+                    <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">1h 12m</dd>
+                  </div>
+                  <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                    <dt class="muted" style="font-size: 12px">sets</dt>
+                    <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">18</dd>
+                  </div>
+                  <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                    <dt class="muted" style="font-size: 12px">exercises</dt>
+                    <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">4</dd>
+                  </div>
+                  <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                    <dt class="muted" style="font-size: 12px">volume (kg)</dt>
+                    <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">3,420</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="card">
+                <h4 style="margin: 0"><span class="micro">New records</span></h4>
+                <ul class="list" style="margin-top: 6px">
+                  <li class="row">
+                    <span class="muted" style="font-size: 14px">Bench press</span>
+                    <strong style="color: var(--color-accent); font-size: 14px">102.5 kg × 3</strong>
+                  </li>
+                </ul>
+              </div>
+
+              <section class="card" aria-label="Bench press">
+                <h4 style="margin: 0; font-size: 15px; font-weight: 700">Bench press</h4>
+                <ol class="list" style="margin-top: 6px">
+                  <li class="row"><span class="muted" style="font-size: 14px">Set 1</span><strong style="font-size: 14px">10 × 95 kg</strong></li>
+                  <li class="row"><span class="muted" style="font-size: 14px">Set 2</span><strong style="font-size: 14px">3 × 102.5 kg</strong></li>
+                </ol>
+              </section>
+
+              <section class="card" aria-label="Pull-up">
+                <h4 style="margin: 0; font-size: 15px; font-weight: 700">Pull-up</h4>
+                <ol class="list" style="margin-top: 6px">
+                  <li class="row"><span class="muted" style="font-size: 14px">Set 1</span><strong style="font-size: 14px">12 reps</strong></li>
+                  <li class="row"><span class="muted" style="font-size: 14px">Set 2</span><strong style="font-size: 14px">10 reps</strong></li>
+                </ol>
+              </section>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Start a live workout">
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          The detail sits on the same /workouts page; Start or Resume stays on top. All sessions
+          goes back in place. The stats card holds the duration and the three cells of the
+          finish summary. The New records card shows only when the session beat an earlier best.
+          One card per exercise, sets in the order they were logged; a body-weight set reads
+          "12 reps". Loads show in the display unit. An unknown id shows the list with "That
+          session is not on this device."; the running session's id shows "That session is
+          still running. Resume it above."
+        </p>
+      </section>
     </main>
 
     <!-- ============ laptop · /workout at 1440 px ============

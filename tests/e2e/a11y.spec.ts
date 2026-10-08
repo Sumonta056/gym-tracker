@@ -8,12 +8,12 @@ import {
   SIGNED_IN_ROUTES as LIVE_ROUTES,
   test as signedIn,
 } from './support/signedIn'
-import { openLiftCharts, openLiveSession, openPicker } from './support/workout'
+import { openLiftCharts, openLiveSession, openPicker, openWithLiftWeek } from './support/workout'
 
 import type { Page } from '@playwright/test'
 
 const PUBLIC_ROUTES = ['/sign-in', '/sign-up', '/styleguide', '/~offline']
-const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/profile']
+const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/profile']
 const FOCUS_WIDTHS = [390, 1440]
 const MOST_TAB_STOPS = 400
 
@@ -145,8 +145,12 @@ test('moves focus into the sheet, keeps it there and returns it to the opener', 
 
 for (const route of LIVE_ROUTES) {
   signedIn.describe(`signed in on ${route}`, () => {
-    signedIn.beforeEach(async ({ page, account, day }) => {
-      await openWithWeek(page, account, day)
+    signedIn.beforeEach(async ({ page, context, account, day }) => {
+      if (route === '/workouts') {
+        await openWithLiftWeek(page, context, account, day)
+      } else {
+        await openWithWeek(page, account, day)
+      }
       await openRoute(page, route)
     })
 

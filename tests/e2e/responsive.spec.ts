@@ -7,12 +7,12 @@ import {
   SIGNED_IN_ROUTES as LIVE_ROUTES,
   test as signedIn,
 } from './support/signedIn'
-import { openLiftCharts, openLiveSession, openPicker } from './support/workout'
+import { openLiftCharts, openLiveSession, openPicker, openWithLiftWeek } from './support/workout'
 
 import type { Page } from '@playwright/test'
 
 const PUBLIC_ROUTES = ['/sign-in', '/sign-up', '/styleguide', '/~offline']
-const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/profile']
+const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/profile']
 const SHELL_ROUTES = ['/styleguide']
 const STEP_WIDTHS = [320, 390, 430, 768, 1024, 1440, 2560]
 const SCROLL_WIDTHS = [...new Set([...STEP_WIDTHS, 360, 414, 640, 834, 1280, 1920])].sort(
@@ -365,8 +365,12 @@ for (const route of SHELL_ROUTES) {
 
 for (const route of LIVE_ROUTES) {
   signedIn.describe(`signed in on ${route}`, () => {
-    signedIn.beforeEach(async ({ page, account, day }) => {
-      await openWithWeek(page, account, day)
+    signedIn.beforeEach(async ({ page, context, account, day }) => {
+      if (route === '/workouts') {
+        await openWithLiftWeek(page, context, account, day)
+      } else {
+        await openWithWeek(page, account, day)
+      }
       await openRoute(page, route)
     })
 

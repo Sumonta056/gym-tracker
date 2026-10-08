@@ -24,10 +24,13 @@ import {
   discardSession,
   finishSession,
   getActiveSession,
+  getSession,
   lastSetFor,
   lastSetsFor,
+  listFinishedSessions,
   listSessions,
   listSets,
+  listSetsForSessions,
   listSetsInRange,
   setsForExercises,
   restoreSet,
@@ -1876,6 +1879,91 @@ describe('listSetsInRange', () => {
     await db.workoutSets.put(storedSet({}))
 
     expect(await listSetsInRange('2026-09-01', '2026-09-30')).toEqual([])
+  })
+})
+
+describe('listFinishedSessions', () => {
+  it('returns the finished sessions newest first', async () => {
+    const old = storedSession({ entry_date: '2026-09-02', started_at: '2026-09-02T17:00:00.000Z' })
+    const recent = storedSession({
+      entry_date: '2026-09-09',
+      started_at: '2026-09-09T07:00:00.000Z',
+    })
+    await db.workoutSessions.bulkPut([old, recent])
+
+    expect((await listFinishedSessions(30)).sessions.map((row) => row.id)).toEqual([
+      recent.id,
+      old.id,
+    ])
+  })
+
+  it('hides an active session and a soft-deleted session', async () => {
+    const kept = storedSession({})
+    await db.workoutSessions.bulkPut([
+      kept,
+      storedSession({ status: 'active', ended_at: null }),
+      storedSession({ deleted_at: '2026-09-03T10:00:00.000Z' }),
+    ])
+
+    expect(await listFinishedSessions(30)).toEqual({ sessions: [kept], hasMore: false })
+  })
+
+  it('returns at most the limit and says that more exist', async () => {
+    await db.workoutSessions.bulkPut([
+      storedSession({ started_at: '2026-09-02T17:00:00.000Z' }),
+      storedSession({ started_at: '2026-09-03T17:00:00.000Z' }),
+      storedSession({ started_at: '2026-09-04T17:00:00.000Z' }),
+    ])
+
+    const page = await listFinishedSessions(2)
+
+    expect([page.sessions.length, page.hasMore]).toEqual([2, true])
+  })
+})
+
+describe('getSession', () => {
+  it('returns a live session by id', async () => {
+    const session = storedSession({})
+    await db.workoutSessions.put(session)
+
+    expect(await getSession(session.id)).toEqual(session)
+  })
+
+  it('returns undefined for an unknown id', async () => {
+    expect(await getSession(crypto.randomUUID())).toBeUndefined()
+  })
+
+  it('returns undefined for a soft-deleted session', async () => {
+    const removed = storedSession({ deleted_at: '2026-09-03T10:00:00.000Z' })
+    await db.workoutSessions.put(removed)
+
+    expect(await getSession(removed.id)).toBeUndefined()
+  })
+})
+
+describe('listSetsForSessions', () => {
+  it('returns the live sets of the named sessions in the order they were done', async () => {
+    const one = storedSession({})
+    const other = storedSession({})
+    const second = storedSet({ session_id: one.id, completed_at: '2026-09-02T17:20:00.000Z' })
+    const first = storedSet({ session_id: other.id, completed_at: '2026-09-02T17:10:00.000Z' })
+    await db.workoutSets.bulkPut([
+      second,
+      first,
+      storedSet({ session_id: one.id, deleted_at: '2026-09-02T18:00:00.000Z' }),
+      storedSet({}),
+    ])
+
+    expect((await listSetsForSessions([one.id, other.id])).map((row) => row.id)).toEqual([
+      first.id,
+      second.id,
+    ])
+  })
+
+  it('returns an empty list for no session', async () => {
+    await db.workoutSets.put(storedSet({}))
+
+    expect(await listSetsForSessions([])).toEqual([])
   })
 })
 

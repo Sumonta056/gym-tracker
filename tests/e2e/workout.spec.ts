@@ -114,6 +114,18 @@ test('keeps every set of a session logged offline through a finish and a reload'
   await page.reload()
   await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()
 
+  const row = page.getByRole('link', { name: /3 sets · 1,440 kg/ })
+  await expect(row).toBeVisible()
+  await row.click()
+  await expect(page).toHaveURL(/\/workouts\?session=/)
+  const bench = page.getByRole('region', { name: 'Bench Press' })
+  await expect(bench).toContainText('8 × 60 kg')
+
+  if (trulyOffline) {
+    await page.reload()
+    await expect(page.getByRole('region', { name: 'Bench Press' })).toContainText('8 × 60 kg')
+  }
+
   const sessions = await readStore<LocalSession>(page, 'workoutSessions')
   expect(sessions).toHaveLength(1)
   const [session] = sessions

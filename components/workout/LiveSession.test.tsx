@@ -15,6 +15,7 @@ import {
   updateProfile,
 } from '../../lib/db/repository'
 import { SAVED_MESSAGE, ToastProvider } from '../ui/Toast'
+import { WORKOUTS_PATH } from '../workouts/historyText'
 
 import { READING_LAST_SET } from './ExerciseCard'
 import { PICK_TITLE } from './ExercisePicker'
@@ -35,7 +36,6 @@ import {
   SAVE_FAILED,
   UNDO_FAILED,
   volumeText,
-  WORKOUTS_PATH,
 } from './LiveSession'
 import { REST_OVER } from './RestTimerCard'
 import { startedText } from './SessionTimer'

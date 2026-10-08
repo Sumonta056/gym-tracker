@@ -48,6 +48,8 @@ import { RestTimeSheet } from '../../components/workout/RestTimeSheet'
 import { SessionSummary } from '../../components/workout/SessionSummary'
 import { SessionTimer } from '../../components/workout/SessionTimer'
 import { UndoToast } from '../../components/workout/UndoToast'
+import { SessionDetail } from '../../components/workouts/SessionDetail'
+import { SessionList } from '../../components/workouts/SessionList'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration } from '../../lib/duration'
@@ -63,6 +65,7 @@ import type { ManageExerciseSource } from '../../components/profile/ManageExerci
 import type { EditingSet } from '../../components/workout/EditSetSheet'
 import type { ExerciseSource } from '../../components/workout/ExercisePicker'
 import type { Toast } from '../../components/workout/UndoToast'
+import type { FoundSession, HistoryList } from '../../components/workouts/useWorkoutHistory'
 import type {
   DailyEntry,
   DeadLetter,
@@ -628,6 +631,92 @@ const SAMPLE_SUMMARY: SessionStats = {
   exerciseCount: 4,
   volumeKg: 3420,
   newRecords: [{ exerciseId: SAMPLE_REST_EXERCISE_ID, weightKg: 102.5, reps: 3 }],
+}
+
+const SAMPLE_HISTORY_SESSIONS: WorkoutSession[] = (
+  [
+    ['2026-09-20', '17:30', '18:42:05'],
+    ['2026-09-17', '07:05', '07:53:00'],
+  ] as const
+).map(([date, start, end], at) => ({
+  id: `80000000-0000-4000-8000-${String(at + 1).padStart(12, '0')}`,
+  entry_date: date,
+  started_at: `${date}T${start}:00.000Z`,
+  ended_at: `${date}T${end}.000Z`,
+  status: 'finished',
+  created_at: `${date}T${start}:00.000Z`,
+  updated_at: `${date}T${end}.000Z`,
+  deleted_at: null,
+}))
+
+const SAMPLE_HISTORY: HistoryList = {
+  rows: [
+    { session: SAMPLE_HISTORY_SESSIONS[0] as WorkoutSession, stats: SAMPLE_SUMMARY },
+    {
+      session: SAMPLE_HISTORY_SESSIONS[1] as WorkoutSession,
+      stats: {
+        durationSeconds: 2880,
+        setCount: 12,
+        exerciseCount: 3,
+        volumeKg: 2160,
+        newRecords: [],
+      },
+    },
+  ],
+  hasMore: true,
+  unit: 'metric',
+}
+
+const SAMPLE_DETAIL_SESSION = SAMPLE_HISTORY_SESSIONS[0] as WorkoutSession
+
+const SAMPLE_DETAIL_EXERCISES: Exercise[] = [
+  ['80000000-0000-4000-8000-0000000000e1', 'Bench press', 'chest'],
+  ['80000000-0000-4000-8000-0000000000e2', 'Pull-up', 'back'],
+].map(([id, name, group]) => ({
+  id: id ?? '',
+  user_id: null,
+  name: name ?? '',
+  muscle_group: group as MuscleGroup,
+  is_archived: false,
+  created_at: '2026-09-01T00:00:00.000Z',
+  updated_at: '2026-09-01T00:00:00.000Z',
+  deleted_at: null,
+}))
+
+const SAMPLE_DETAIL_SETS: WorkoutSet[] = (
+  [
+    [0, 10, 95],
+    [0, 3, 102.5],
+    [1, 12, null],
+    [1, 10, null],
+  ] as const
+).map(([exercise, reps, weight_kg], at) => ({
+  id: `80000000-0000-4000-8000-${String(at + 101).padStart(12, '0')}`,
+  session_id: SAMPLE_DETAIL_SESSION.id,
+  exercise_id: SAMPLE_DETAIL_EXERCISES[exercise]?.id ?? '',
+  set_index: at,
+  reps,
+  weight_kg,
+  rpe: null,
+  completed_at: SAMPLE_DETAIL_SESSION.started_at,
+  created_at: SAMPLE_DETAIL_SESSION.started_at,
+  updated_at: SAMPLE_DETAIL_SESSION.started_at,
+  deleted_at: null,
+}))
+
+const SAMPLE_DETAIL: FoundSession = {
+  status: 'found',
+  session: SAMPLE_DETAIL_SESSION,
+  sets: SAMPLE_DETAIL_SETS,
+  stats: {
+    durationSeconds: 4325,
+    setCount: 4,
+    exerciseCount: 2,
+    volumeKg: 1257.5,
+    newRecords: [{ exerciseId: SAMPLE_DETAIL_EXERCISES[0]?.id ?? '', weightKg: 102.5, reps: 3 }],
+  },
+  exercises: new Map(SAMPLE_DETAIL_EXERCISES.map((exercise) => [exercise.id, exercise])),
+  unit: 'metric',
 }
 
 const SAMPLE_LIVE_SETS: WorkoutSet[] = (
@@ -1400,6 +1489,13 @@ function Styleguide() {
             setSampleToast(null)
           }}
         />
+      </Section>
+
+      <Section title="Workouts history">
+        <SessionList list={SAMPLE_HISTORY} note={null} onMore={() => undefined} />
+        <div data-testid="session-detail-sample">
+          <SessionDetail view={SAMPLE_DETAIL} />
+        </div>
       </Section>
     </AppShell>
   )

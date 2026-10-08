@@ -13,6 +13,7 @@ const router = vi.hoisted(() => ({ push: vi.fn() }))
 
 vi.mock('next/navigation', () => ({
   useRouter: () => router,
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 vi.mock('../../../lib/supabase/client', () => ({
@@ -52,9 +53,11 @@ describe('WorkoutsPage', () => {
     expect(title).not.toHaveClass('text-3xl')
   })
 
-  it('keeps the rest of the placeholder', () => {
+  it('shows the history under the launcher', async () => {
     render(<WorkoutsPage />)
-    expect(screen.getByText(/Phase 2/)).toBeInTheDocument()
+    const history = await screen.findByRole('region', { name: 'History' })
+    const start = await screen.findByRole('button', { name: 'Start a session' })
+    expect(start.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('builds no frame of its own, because the route group layout owns it', () => {
