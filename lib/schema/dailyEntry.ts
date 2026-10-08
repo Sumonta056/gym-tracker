@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { MAX_DURATION_SECONDS } from '../duration'
+
 export const MIN_HEART_RATE = 30
 export const MAX_HEART_RATE = 230
 export const MIN_WEIGHT_KG = 20
@@ -39,6 +41,12 @@ export const dailyEntrySchema = z
       .refine((value) => isNotFuture(value), { error: 'A date cannot be in the future.' }),
     walk_seconds: seconds,
     gym_seconds: seconds,
+    swim_seconds: z
+      .int({ error: 'Enter a whole number of seconds.' })
+      .min(0, { error: 'A duration cannot be negative.' })
+      .max(MAX_DURATION_SECONDS, { error: 'A swim cannot be longer than 24 hours.' })
+      .nullable()
+      .default(null),
     avg_heart_rate: heartRate,
     max_heart_rate: heartRate,
     weight_kg: z

@@ -164,6 +164,10 @@ describe('cellText', () => {
     expect(cellText('weight_kg', { status: 'ok', raw: '', value: 81.4 })).toBe('81.4 kg')
     expect(cellText('steps', { status: 'ok', raw: '', value: 11482 })).toBe('11,482')
   })
+
+  it('formats a swim time as a clock duration', () => {
+    expect(cellText('swim_seconds', { status: 'ok', raw: '', value: 1500 })).toBe('25:00')
+  })
 })
 
 describe('rowDetail', () => {

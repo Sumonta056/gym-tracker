@@ -80,6 +80,13 @@ const PROFILE_FIELDS = [
   'step_goal',
   'rest_sound_muted',
   'rest_seconds_by_exercise',
+  'calorie_goal',
+  'gym_goal_seconds',
+  'walk_goal_seconds',
+  'sessions_per_week_goal',
+  'birth_year',
+  'max_heart_rate',
+  'stats_layout',
 ] as const
 
 export class SignedOutOnThisDevice extends Error {
@@ -683,6 +690,7 @@ function dayFields(row: DailyEntry): DailyEntryInput {
     entry_date: row.entry_date,
     walk_seconds: row.walk_seconds,
     gym_seconds: row.gym_seconds,
+    swim_seconds: row.swim_seconds ?? null,
     avg_heart_rate: row.avg_heart_rate,
     max_heart_rate: row.max_heart_rate,
     weight_kg: row.weight_kg,

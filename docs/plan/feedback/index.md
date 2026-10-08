@@ -154,13 +154,13 @@ Every step follows these. They are not repeated in each step file.
 | B1   | `B1-reproduce-workout.md`  | Reproduce the `/workout` break on the iPhone  | 5      | S    | W0                  | done `5eabf7f` |
 | B2   | `B2-fix-workout-layout.md` | Fix the `/workout` layout                     | 5      | M    | B1                  | done `3c1a28b` |
 | B3   | `B3-sheet-portal.md`       | The sheet: portal, iOS scroll lock, keyboard  | 2      | M    | B2                  | done `d24bbd1` |
-| B4   | `B4-saved-toast.md`        | The Saved toast, Finish with no reload        | 2      | S    | B3                  | —              |
+| B4   | `B4-saved-toast.md`        | The Saved toast, Finish with no reload        | 2      | S    | B3                  | done `aa81ac6` |
 | B5   | `B5-hidden-scrollbars.md`  | Hidden scrollbars and the chip fade           | 13     | S    | B2                  | done `e16f3bc` |
 | C1   | `C1-stats-no-flicker.md`   | Keep the Stats data during a tab switch       | 7      | M    | W0                  | done `ace246f` |
 | C2   | `C2-gym-time-metric.md`    | `effectiveGymSeconds`, one source of gym time | 9      | S    | W0                  | done `7cd2874` |
 | C3   | `C3-session-gaps.md`       | Session gaps from all history, one meaning    | 12     | S    | C1, C2              | done `692da98` |
 | C4   | `C4-day-labels.md`         | Heat map and week labels                      | 12, 17 | M    | C3                  | done `bacce1a` |
-| D1   | `D1-schema.md`             | The migration, Dexie v5, schemas, mappings    | —      | M    | A3                  | —              |
+| D1   | `D1-schema.md`             | The migration, Dexie v5, schemas, mappings    | —      | M    | A3                  | done           |
 | E1   | `E1-duration-picker.md`    | The `DurationPicker` primitive                | 3      | M    | W0                  | done `93c6267` |
 | E2   | `E2-picker-in-use.md`      | The picker for rest, gym and walk time        | 3      | S    | E1, B3, B4          | —              |
 | E3   | `E3-gym-time-in-log.md`    | Gym time from sessions in `/log`, no offer    | 9      | M    | C2, E2, B4          | —              |

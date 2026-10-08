@@ -245,6 +245,7 @@ describe('parseSheet', () => {
       entry_date: { status: 'ok', raw: 'August 18', value: '2025-08-18' },
       walk_seconds: { status: 'ok', raw: '18.75', value: 1125 },
       gym_seconds: { status: 'ok', raw: '01.02.09', value: 3729 },
+      swim_seconds: { status: 'ok', raw: '', value: null },
       avg_heart_rate: { status: 'ok', raw: '133', value: 133 },
       max_heart_rate: { status: 'ok', raw: '166', value: 166 },
       weight_kg: { status: 'ok', raw: '80.80', value: 80.8 },
@@ -507,6 +508,21 @@ describe('parseSheet', () => {
     expect(parsed.rows).toHaveLength(1)
   })
 
+  it('reads a sheet with no Swim Time column with no missing column issue', () => {
+    const parsed = parseSheet(`${HEADER}\nAugust 12,0:20:00,1:00:00,,,,,\n`, { year: 2026 })
+    expect(parsed.issues.filter((issue) => issue.kind === 'missing_column')).toEqual([])
+    expect(parsed.rows[0]?.cells.swim_seconds).toEqual({ status: 'ok', raw: '', value: null })
+  })
+
+  it('reads a Swim Time column as a duration', () => {
+    const parsed = parseSheet(`Day,Swim Time\nAugust 12,0:25:00\n`, { year: 2026 })
+    expect(parsed.rows[0]?.cells.swim_seconds).toEqual({
+      status: 'ok',
+      raw: '0:25:00',
+      value: 1500,
+    })
+  })
+
   it('reports an extra column and still reads the known columns', () => {
     const text = `${HEADER},Mood\nAugust 12,25,1:02:41,131,164,81.40,412,9874,good\n`
 
@@ -664,6 +680,7 @@ describe('rowEntry', () => {
       entry_date: '2025-08-12',
       walk_seconds: 3761,
       gym_seconds: 3761,
+      swim_seconds: null,
       avg_heart_rate: 131,
       max_heart_rate: 164,
       weight_kg: 81.4,

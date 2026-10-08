@@ -5,11 +5,11 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** the fix track — the owner feedback · `docs/plan/04-feedback-fixes.md`
 **Step index:** `docs/plan/feedback/index.md`
-**Next step:** B4, then D1, 1 step at a time → `docs/plan/feedback/index.md`, "From wave 4: one step at a time". Then the full verify and the owner checkpoint of sub-plans A, B, C and D.
+**Next step:** the owner checkpoint of sub-plans A, B, C and D (the full verify ran in D1). Then E2, 1 step at a time → `docs/plan/feedback/index.md`, "From wave 4: one step at a time".
 **Open from wave 2:** the owner checks the B2 bar in the home-screen app at the wave 4 checkpoint. If the bar is still about 58 px high after Start, apply F6 (`overscroll-behavior-y: none` on `html` and `body`).
 **Open from wave 3:** an error at the same moment as a navigation can miss the log (deferred write, A3). The Errors card loop guard matches a text prefix. No plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `fix/feedback-fixes`, cut from `main`. From wave 4, each step commits on it directly, in the main folder.
-**Last commit:** `d70d01c`, the merge that closes wave 3 (W0, A1–A3, B1–B3, B5, C1–C4, E1 are done). Wave 3 reports: `reports/wave-3/`.
+**Last commit:** D1 (the schema, migration `20261008014222`), after `aa81ac6` (B4). Wave 3 merge: `d70d01c`. Wave 3 reports: `reports/wave-3/`.
 **Phase 3 waits.** It returns to step 3.1 (`docs/plan/phase-3/S3.1-design-contract.md`) when the fix track closes.
 
 ## Resume here
@@ -18,7 +18,7 @@ that one step only. Stop and report when the step is done.
   decisions are in `docs/plan/archive/PROGRESS-phase-0-2.md`. They still hold.
 - The auth track has its own file: `docs/plan/auth/PROGRESS.md`. Phase B waits for a domain.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
-  `20260928084529_phase2_set_policy_reps` are applied to the live project. Never apply them again.
+  `20260928084529_phase2_set_policy_reps` and `20261008014222_feedback_goals_and_swim` are applied to the live project. Never apply them again.
 - `apply_migration` records its own version. Rename the local file to the version that
   `list_migrations` shows.
 - Run each step in a fresh subagent. PATH: `export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"`.

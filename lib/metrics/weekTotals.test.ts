@@ -9,6 +9,7 @@ function row(entry: Partial<DailyEntryInput> & { entry_date: string }): DailyEnt
   return {
     walk_seconds: null,
     gym_seconds: null,
+    swim_seconds: null,
     avg_heart_rate: null,
     max_heart_rate: null,
     weight_kg: null,

@@ -13,6 +13,7 @@ import {
   STORES,
   STORES_V1,
   STORES_V3,
+  STORES_V4,
   subscribeVersionState,
   versionWatch,
 } from './dexie'
@@ -43,7 +44,7 @@ describe('createDatabase', () => {
     expect(instance.name).toBe('gym-tracker-alt')
   })
 
-  it('declares the nine tables of version 4', async () => {
+  it('declares the nine tables of version 5', async () => {
     const instance = createDatabase('gym-tracker-tables')
     opened.push(instance)
     await instance.open()
@@ -59,8 +60,8 @@ describe('createDatabase', () => {
       'workoutSessions',
       'workoutSets',
     ])
-    expect(instance.verno).toBe(4)
-    expect(DATABASE_VERSION).toBe(4)
+    expect(instance.verno).toBe(5)
+    expect(DATABASE_VERSION).toBe(5)
   })
 
   it('upgrades a version 1 database and keeps every row it held', async () => {
@@ -163,12 +164,45 @@ describe('createDatabase', () => {
     opened.push(instance)
     await instance.open()
 
-    expect(instance.verno).toBe(4)
+    expect(instance.verno).toBe(DATABASE_VERSION)
     expect(await instance.syncMeta.get('outbox_sequence')).toEqual({
       key: 'outbox_sequence',
       value: '9',
     })
     expect(await instance.errorLog.count()).toBe(0)
+  })
+
+  it('upgrades a version 4 database and keeps every row it held', async () => {
+    const name = 'gym-tracker-upgrade-v4'
+    const old = new Dexie(name)
+    old.version(4).stores(STORES_V4)
+    await old.open()
+    const entry = {
+      id: '11111111-1111-4111-8111-111111111111',
+      entry_date: '2026-10-01',
+      walk_seconds: 1800,
+      gym_seconds: null,
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+      deleted_at: null,
+    }
+    const profile = {
+      id: '00000000-0000-4000-8000-000000000000',
+      unit_system: 'metric',
+      step_goal: 12000,
+      updated_at: '2026-10-01T08:00:00.000Z',
+    }
+    await old.table('dailyEntries').put(entry)
+    await old.table('profiles').put(profile)
+    old.close()
+
+    const instance = createDatabase(name)
+    opened.push(instance)
+    await instance.open()
+
+    expect(instance.verno).toBe(5)
+    expect(await instance.dailyEntries.toArray()).toEqual([entry])
+    expect(await instance.profiles.toArray()).toEqual([profile])
   })
 
   it('indexes the error log on at', async () => {

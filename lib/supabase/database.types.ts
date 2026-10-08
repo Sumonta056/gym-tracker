@@ -20,6 +20,7 @@ export type Database = {
           max_heart_rate: number | null
           note: string | null
           steps: number | null
+          swim_seconds: number | null
           updated_at: string
           user_id: string
           walk_seconds: number | null
@@ -36,6 +37,7 @@ export type Database = {
           max_heart_rate?: number | null
           note?: string | null
           steps?: number | null
+          swim_seconds?: number | null
           updated_at?: string
           user_id: string
           walk_seconds?: number | null
@@ -52,6 +54,7 @@ export type Database = {
           max_heart_rate?: number | null
           note?: string | null
           steps?: number | null
+          swim_seconds?: number | null
           updated_at?: string
           user_id?: string
           walk_seconds?: number | null
@@ -94,40 +97,61 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birth_year: number | null
+          calorie_goal: number | null
           created_at: string
           display_name: string | null
+          gym_goal_seconds: number | null
           height_cm: number | null
           id: string
+          max_heart_rate: number | null
           rest_seconds_by_exercise: Json
           rest_sound_muted: boolean
+          sessions_per_week_goal: number | null
+          stats_layout: Json | null
           step_goal: number
           target_weight_kg: number | null
           unit_system: string
           updated_at: string
+          walk_goal_seconds: number | null
         }
         Insert: {
+          birth_year?: number | null
+          calorie_goal?: number | null
           created_at?: string
           display_name?: string | null
+          gym_goal_seconds?: number | null
           height_cm?: number | null
           id: string
+          max_heart_rate?: number | null
           rest_seconds_by_exercise?: Json
           rest_sound_muted?: boolean
+          sessions_per_week_goal?: number | null
+          stats_layout?: Json | null
           step_goal?: number
           target_weight_kg?: number | null
           unit_system?: string
           updated_at?: string
+          walk_goal_seconds?: number | null
         }
         Update: {
+          birth_year?: number | null
+          calorie_goal?: number | null
           created_at?: string
           display_name?: string | null
+          gym_goal_seconds?: number | null
           height_cm?: number | null
           id?: string
+          max_heart_rate?: number | null
           rest_seconds_by_exercise?: Json
           rest_sound_muted?: boolean
+          sessions_per_week_goal?: number | null
+          stats_layout?: Json | null
           step_goal?: number
           target_weight_kg?: number | null
           unit_system?: string
           updated_at?: string
+          walk_goal_seconds?: number | null
         }
         Relationships: []
       }

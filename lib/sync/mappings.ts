@@ -13,6 +13,7 @@ export function toServerEntry(payload: DailyEntry, userId: string): TablesInsert
     entry_date: payload.entry_date,
     walk_seconds: payload.walk_seconds,
     gym_seconds: payload.gym_seconds,
+    swim_seconds: payload.swim_seconds,
     avg_heart_rate: payload.avg_heart_rate,
     max_heart_rate: payload.max_heart_rate,
     weight_kg: payload.weight_kg,
@@ -34,6 +35,13 @@ export function toServerProfile(payload: Profile, userId: string): TablesInsert<
     step_goal: payload.step_goal,
     rest_sound_muted: payload.rest_sound_muted,
     rest_seconds_by_exercise: payload.rest_seconds_by_exercise,
+    calorie_goal: payload.calorie_goal,
+    gym_goal_seconds: payload.gym_goal_seconds,
+    walk_goal_seconds: payload.walk_goal_seconds,
+    sessions_per_week_goal: payload.sessions_per_week_goal,
+    birth_year: payload.birth_year,
+    max_heart_rate: payload.max_heart_rate,
+    stats_layout: payload.stats_layout,
   }
 }
 
@@ -86,6 +94,7 @@ export function toLocalEntry(row: Tables<'daily_entries'>): DailyEntry {
     entry_date: row.entry_date,
     walk_seconds: row.walk_seconds,
     gym_seconds: row.gym_seconds,
+    swim_seconds: row.swim_seconds,
     avg_heart_rate: row.avg_heart_rate,
     max_heart_rate: row.max_heart_rate,
     weight_kg: row.weight_kg,
@@ -111,6 +120,13 @@ export function toLocalProfile(row: Tables<'profiles'>): Profile {
     rest_seconds_by_exercise:
       profileSchema.shape.rest_seconds_by_exercise.safeParse(row.rest_seconds_by_exercise).data ??
       {},
+    calorie_goal: row.calorie_goal,
+    gym_goal_seconds: row.gym_goal_seconds,
+    walk_goal_seconds: row.walk_goal_seconds,
+    sessions_per_week_goal: row.sessions_per_week_goal,
+    birth_year: row.birth_year,
+    max_heart_rate: row.max_heart_rate,
+    stats_layout: profileSchema.shape.stats_layout.safeParse(row.stats_layout).data ?? null,
     updated_at: row.updated_at,
   }
 }

@@ -247,6 +247,7 @@ describe('DailyEntryForm', () => {
       entry_date: DATE,
       walk_seconds: 2538,
       gym_seconds: 4320,
+      swim_seconds: null,
       avg_heart_rate: null,
       max_heart_rate: null,
       weight_kg: 73.4,
@@ -319,6 +320,35 @@ describe('DailyEntryForm', () => {
     expect(screen.getByLabelText('Calories')).toHaveValue('985')
     expect(screen.getByLabelText('Steps')).toHaveValue('12480')
     expect(screen.getByLabelText('Note')).toHaveValue('Push day.')
+  })
+
+  it('keeps a stored swim time when the form saves the day', async () => {
+    vi.mocked(getDay).mockResolvedValue({ ...STORED, swim_seconds: 1500 })
+    await renderForm()
+    await waitFor(() => {
+      expect(screen.getByLabelText('Steps')).toHaveValue('12480')
+    })
+    await userEvent.clear(screen.getByLabelText('Steps'))
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledTimes(1)
+    })
+    expect(upsertDay).toHaveBeenCalledWith(
+      expect.objectContaining({ steps: 9000, swim_seconds: 1500 }),
+    )
+  })
+
+  it('saves a null swim time for a new day', async () => {
+    await renderForm()
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledTimes(1)
+    })
+    expect(upsertDay).toHaveBeenCalledWith(expect.objectContaining({ swim_seconds: null }))
   })
 
   it('says so when the stored entry cannot be read', async () => {

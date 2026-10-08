@@ -411,6 +411,13 @@ describe('getProfile', () => {
       step_goal: 12000,
       rest_sound_muted: false,
       rest_seconds_by_exercise: {},
+      calorie_goal: null,
+      gym_goal_seconds: null,
+      walk_goal_seconds: null,
+      sessions_per_week_goal: null,
+      birth_year: null,
+      max_heart_rate: null,
+      stats_layout: null,
     })
   })
 
@@ -432,6 +439,20 @@ describe('getProfile', () => {
     expect(profile.step_goal).toBe(9000)
   })
 
+  it('reads a profile saved before version 5 with every new field null', async () => {
+    await db.profiles.put({
+      id: LOCAL_PROFILE_ID,
+      display_name: null,
+      unit_system: 'metric',
+      height_cm: null,
+      target_weight_kg: null,
+      step_goal: 12000,
+      updated_at: '2026-10-01T08:00:00.000Z',
+    })
+
+    expect(await getProfile()).toMatchObject({ calorie_goal: null, stats_layout: null })
+  })
+
   it('writes nothing when no profile row exists yet', async () => {
     await getProfile()
 
@@ -447,6 +468,13 @@ describe('getProfile', () => {
 })
 
 describe('updateProfile', () => {
+  it('saves a calorie goal and queues it in the outbox', async () => {
+    await updateProfile({ calorie_goal: 2400 })
+
+    expect((await getProfile()).calorie_goal).toBe(2400)
+    expect((await db.outbox.toArray()).at(-1)?.payload).toMatchObject({ calorie_goal: 2400 })
+  })
+
   it('creates the profile row and one outbox entry', async () => {
     const saved = await updateProfile({ display_name: 'Sumonta' })
 
@@ -2743,6 +2771,14 @@ describe('importDays', () => {
       weight_kg: 81.4,
       walk_seconds: null,
     })
+  })
+
+  it('keeps a stored swim time on Merge when the import fills the steps', async () => {
+    await upsertDay(entry('2025-08-12', { swim_seconds: 1500 }))
+
+    await importDays([{ entry: { entry_date: '2025-08-12', steps: 9874 }, choice: 'merge' }])
+
+    expect(await getDay('2025-08-12')).toMatchObject({ swim_seconds: 1500, steps: 9874 })
   })
 
   it('queues one outbox entry for an overwritten row and one for a merged row', async () => {

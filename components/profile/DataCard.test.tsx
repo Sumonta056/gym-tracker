@@ -158,7 +158,7 @@ describe('DataCard', () => {
     const zip = createObjectURL.mock.calls[0]?.[0]
     expect(zip?.type).toBe('application/zip')
     expect(new TextDecoder().decode(await zip?.arrayBuffer())).toContain(
-      'September 2,0:15:54,,,,,,4321,',
+      'September 2,0:15:54,,,,,,,4321,',
     )
     expect(document.querySelector('a[download]')).toBeNull()
   })

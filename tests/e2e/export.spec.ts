@@ -43,7 +43,7 @@ test('exports every table as a zip with the network down', async ({
   const zip = (await readFile(await download.path())).toString('utf8')
   expect(zip.startsWith('PK')).toBe(true)
   expect(zip).toContain(`daily-entries-${day.date.slice(0, 4)}.csv`)
-  expect(zip).toContain(`${sheetDay(day.date)},0:15:54,,,,,,7531,`)
+  expect(zip).toContain(`${sheetDay(day.date)},0:15:54,,,,,,,7531,`)
   expect(zip).toContain('exercises.csv')
   expect(zip).toContain('workout-sessions.csv')
   expect(zip).toContain('workout-sets.csv')

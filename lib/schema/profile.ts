@@ -1,12 +1,43 @@
 import { z } from 'zod'
 
-import { MAX_STEPS, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from './dailyEntry'
+import { MAX_DURATION_SECONDS } from '../duration'
+
+import {
+  MAX_CALORIES_BURNT,
+  MAX_HEART_RATE,
+  MAX_STEPS,
+  MAX_WEIGHT_KG,
+  MIN_HEART_RATE,
+  MIN_WEIGHT_KG,
+} from './dailyEntry'
 
 export const MIN_HEIGHT_CM = 50
 export const MAX_HEIGHT_CM = 260
 export const MAX_DISPLAY_NAME_LENGTH = 80
 export const DEFAULT_STEP_GOAL = 12000
 export const MAX_REST_SECONDS = 3600
+export const MIN_GOAL_SECONDS = 60
+export const MAX_SESSIONS_PER_WEEK = 14
+export const MIN_BIRTH_YEAR = 1900
+export const MIN_AGE_YEARS = 10
+export const MAX_STATS_CARDS = 40
+export const MAX_STATS_CARD_ID_LENGTH = 40
+
+export function maxBirthYear(now: Date = new Date()): number {
+  return now.getFullYear() - MIN_AGE_YEARS
+}
+
+const goalSeconds = z
+  .int({ error: 'Enter a whole number of seconds.' })
+  .min(MIN_GOAL_SECONDS, { error: 'A time goal must be at least 1 minute.' })
+  .max(MAX_DURATION_SECONDS, { error: 'A time goal cannot be longer than 24 hours.' })
+  .nullable()
+  .default(null)
+
+export const statsLayoutItemSchema = z.object({
+  id: z.string().min(1).max(MAX_STATS_CARD_ID_LENGTH),
+  hidden: z.boolean(),
+})
 
 export const unitSystemSchema = z.enum(['metric', 'imperial'])
 
@@ -57,9 +88,54 @@ export const profileSchema = z.object({
       },
     )
     .default({}),
+  calorie_goal: z
+    .int({ error: 'Enter a whole number of calories.' })
+    .min(1, { error: 'A calorie goal must be at least 1.' })
+    .max(MAX_CALORIES_BURNT, {
+      error: `A calorie goal cannot be above ${String(MAX_CALORIES_BURNT)}.`,
+    })
+    .nullable()
+    .default(null),
+  gym_goal_seconds: goalSeconds,
+  walk_goal_seconds: goalSeconds,
+  sessions_per_week_goal: z
+    .int({ error: 'Enter a whole number of sessions.' })
+    .min(1, { error: 'A session goal must be at least 1 a week.' })
+    .max(MAX_SESSIONS_PER_WEEK, {
+      error: `A session goal cannot be above ${String(MAX_SESSIONS_PER_WEEK)} a week.`,
+    })
+    .nullable()
+    .default(null),
+  birth_year: z
+    .int({ error: 'Enter a year such as 1990.' })
+    .min(MIN_BIRTH_YEAR, { error: `A birth year cannot be before ${String(MIN_BIRTH_YEAR)}.` })
+    .refine((year) => year <= maxBirthYear(), {
+      error: `A birth year must be at least ${String(MIN_AGE_YEARS)} years ago.`,
+    })
+    .nullable()
+    .default(null),
+  max_heart_rate: z
+    .int({ error: 'Enter a whole heart rate.' })
+    .min(MIN_HEART_RATE, {
+      error: `A heart rate cannot be below ${String(MIN_HEART_RATE)} bpm.`,
+    })
+    .max(MAX_HEART_RATE, {
+      error: `A heart rate cannot be above ${String(MAX_HEART_RATE)} bpm.`,
+    })
+    .nullable()
+    .default(null),
+  stats_layout: z
+    .array(statsLayoutItemSchema, { error: 'Enter the card layout as a list.' })
+    .max(MAX_STATS_CARDS, {
+      error: `A layout holds at most ${String(MAX_STATS_CARDS)} cards.`,
+    })
+    .nullable()
+    .default(null),
 })
 
 export type UnitSystem = z.infer<typeof unitSystemSchema>
+
+export type StatsLayoutStored = z.infer<typeof statsLayoutItemSchema>
 
 export type ProfileInput = z.infer<typeof profileSchema>
 

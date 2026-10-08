@@ -103,6 +103,20 @@ From B4: a save shows the Saved toast and the line "Saved on this device.".
 - `/log` has no control for swim time. A saved row holds `swim_seconds: null`, or the
   value a CSV import gave it.
 - The 768 px grid of `/log` has 1 empty cell after Walk time (E2).
+- `components/DailyEntryForm.tsx` keeps the swim time it loaded, in the `loadedSwim` ref,
+  and passes it to `upsertDay` on save. D1 added this so a form save does not erase a
+  stored swim time. The owner moved 2 follow-ups from D1 to this step on 2026-10-08:
+  1. **Close the 3 lost-write cases that remain.** The form saves the value it read when
+     it opened. A swim time that arrives after that (a pull, an import in another tab),
+     a save before `getDay` resolves, and a save after `getDay` failed all send `null`.
+     The sync-auditor's fix: `upsertDay` keeps the stored `swim_seconds` inside its own
+     transaction when the input has no `swim_seconds` key. Decide how the new swim
+     control and this rule fit together, remove `loadedSwim` if the control replaces it,
+     and add a test: store 1500, call `upsertDay` without the key, expect 1500. The
+     sync-auditor must then report no lost write.
+  2. **Show swim time in the CSV import review.** Today a swim cell shows only when it
+     needs a pick. Add a swim value to the review row cards under 1024 px and a Swim
+     column to the 1440 px table, with a plate for each.
 
 ## Goal
 

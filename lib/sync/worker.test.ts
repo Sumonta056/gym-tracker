@@ -90,6 +90,15 @@ const ROW_E = '55555555-5555-4555-8555-555555555555'
 const SERVER_STAMP = '2026-09-01T11:00:00.000Z'
 const LATER = '2026-09-01T12:00:00.000Z'
 const GLOBAL_EXERCISE = 'c9fca3c0-08f3-4abe-aed2-50424b8342fc'
+const GOALS = {
+  calorie_goal: 2400,
+  gym_goal_seconds: 3600,
+  walk_goal_seconds: 1800,
+  sessions_per_week_goal: 4,
+  birth_year: 1990,
+  max_heart_rate: 188,
+  stats_layout: [{ id: 'weight', hidden: true }],
+}
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -1253,6 +1262,58 @@ describe('the rest settings round trip', () => {
       rest_sound_muted: true,
       rest_seconds_by_exercise: { [ROW_C]: 150, [GLOBAL_EXERCISE]: 60 },
     })
+  })
+})
+
+describe('the goal and swim round trip', () => {
+  it('carries every new profile field through a push and a pull', async () => {
+    await append('profiles', 'upsert', localProfile(GOALS))
+    const pushing = fakeClient()
+    await push(pushing.client, USER_ID, Date.now())
+    await db.outbox.clear()
+    await db.profiles.clear()
+    const pulling = fakeClient({
+      serverRows: {
+        profiles: [{ ...firstUpsert(pushing).row, created_at: SERVER_STAMP, updated_at: LATER }],
+      },
+    })
+
+    await pull(pulling.client)
+
+    expect(await db.profiles.get(LOCAL_PROFILE_ID)).toMatchObject(GOALS)
+  })
+
+  it('carries swim_seconds through a push and a pull', async () => {
+    await append('daily_entries', 'upsert', localEntry(ROW_A, { swim_seconds: 1500 }))
+    const pushing = fakeClient()
+    await push(pushing.client, USER_ID, Date.now())
+    await db.outbox.clear()
+    await db.dailyEntries.clear()
+    const pulling = fakeClient({
+      serverRows: { daily_entries: [{ ...firstUpsert(pushing).row, updated_at: LATER }] },
+    })
+
+    await pull(pulling.client)
+
+    expect((await db.dailyEntries.get(ROW_A))?.swim_seconds).toBe(1500)
+  })
+
+  it('leaves out the goals a device row never had, so the server keeps its own', async () => {
+    await append('profiles', 'upsert', {
+      id: LOCAL_PROFILE_ID,
+      display_name: null,
+      unit_system: 'metric',
+      height_cm: null,
+      target_weight_kg: null,
+      step_goal: 12000,
+      updated_at: '2026-09-01T10:00:00.000Z',
+    })
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(firstUpsert(fake).row.calorie_goal).toBeUndefined()
+    expect(firstUpsert(fake).row.stats_layout).toBeUndefined()
   })
 })
 

@@ -23,6 +23,7 @@ export const FIELD_LABEL: Record<SheetField, string> = {
   entry_date: 'Day',
   walk_seconds: 'Walk time',
   gym_seconds: 'Gym time',
+  swim_seconds: 'Swim time',
   avg_heart_rate: 'Avg heart rate',
   max_heart_rate: 'Highest rate',
   weight_kg: 'Weight',
@@ -34,6 +35,7 @@ export const SHEET_FIELDS: SheetField[] = [
   'entry_date',
   'walk_seconds',
   'gym_seconds',
+  'swim_seconds',
   'avg_heart_rate',
   'max_heart_rate',
   'weight_kg',
@@ -41,7 +43,7 @@ export const SHEET_FIELDS: SheetField[] = [
   'steps',
 ]
 
-const DURATION_FIELDS: SheetField[] = ['walk_seconds', 'gym_seconds']
+const DURATION_FIELDS: SheetField[] = ['walk_seconds', 'gym_seconds', 'swim_seconds']
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 

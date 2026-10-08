@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -149,6 +149,7 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
   const [offerRead, setOfferRead] = useState(0)
   const [offerBusy, setOfferBusy] = useState(false)
   const [offerError, setOfferError] = useState<string | null>(null)
+  const loadedSwim = useRef<number | null>(null)
 
   const {
     formState: { errors, isSubmitting },
@@ -183,6 +184,7 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
     void getDay(entryDate).then(
       (entry) => {
         if (!cancelled && entry !== undefined) {
+          loadedSwim.current = entry.swim_seconds ?? null
           reset(toFormValues(entry))
         }
       },
@@ -222,7 +224,7 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
       setSaved(false)
       setSaveError(null)
 
-      return upsertDay(values).then(
+      return upsertDay({ ...values, swim_seconds: loadedSwim.current }).then(
         () => {
           setSaved(true)
           toast.show(SAVED_MESSAGE)
