@@ -198,6 +198,17 @@ describe('DurationPicker', () => {
     expect(screen.queryByRole('button', { name: 'Clear Rest time' })).not.toBeInTheDocument()
   })
 
+  it('moves focus to the picker group when Clear hides itself', async () => {
+    render(<Harness allowClear />)
+    await userEvent.click(screen.getByRole('button', { name: 'Clear Rest time' }))
+    expect(group()).toHaveFocus()
+  })
+
+  it('keeps the picker group focusable but out of the tab order', () => {
+    render(<Harness />)
+    expect(group()).toHaveAttribute('tabindex', '-1')
+  })
+
   it('shows no clear button without allowClear', () => {
     render(<Harness />)
     expect(screen.queryByRole('button', { name: /^Clear/ })).not.toBeInTheDocument()

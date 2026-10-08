@@ -5,7 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { acceptGymTimeOffer, getDay, gymTimeOfferOn, upsertDay } from '../lib/db/repository'
+import { getDay, listSessions, upsertDay } from '../lib/db/repository'
+import { formatDuration } from '../lib/duration'
+import { effectiveGymSeconds } from '../lib/metrics/gymTime'
 import { dailyEntrySchema, localDate, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from '../lib/schema/dailyEntry'
 
 import {
@@ -15,17 +17,15 @@ import {
   SESSION_STEP_SECONDS,
 } from './ui/DurationPicker'
 import { Field } from './ui/Field'
+import { MicroLabel } from './ui/MicroLabel'
 import { NumberField } from './ui/NumberField'
 import { PrimaryButton } from './ui/PrimaryButton'
 import { SecondaryButton } from './ui/SecondaryButton'
 import { StatusChip } from './ui/StatusChip'
 import { SAVED_MESSAGE, useToast } from './ui/Toast'
-import { GYM_TIME_SAVE_FAILED, GymTimeOfferCard } from './workout/GymTimeOffer'
 
-import type { DailyEntry } from '../lib/db/dexie'
+import type { DailyEntry, WorkoutSession } from '../lib/db/dexie'
 import type { DailyEntryDraft, DailyEntryInput } from '../lib/schema/dailyEntry'
-import type { GymTimeOffer } from '../lib/workout/gymTime'
-import type { ReactNode } from 'react'
 
 export const WEIGHT_STEP = 0.05
 
@@ -121,21 +121,35 @@ export function prettyDate(date: string): string {
   return `${day} ${String(at.getUTCDate())} ${month}`
 }
 
-export type DailyEntryFormProps = {
-  date?: string
+export function finishedCount(sessions: readonly WorkoutSession[]): number {
+  return sessions.filter((session) => session.ended_at !== null && session.deleted_at === null)
+    .length
 }
 
-export function DailyEntryForm({ date }: DailyEntryFormProps) {
+export function sessionsText(count: number, seconds: number): string {
+  const word = count === 1 ? '1 session' : `${String(count)} sessions`
+
+  return `From ${word} · ${formatDuration(seconds, 'short')}`
+}
+
+const PILL =
+  'bg-surface-2 border-border text-text inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border px-4 text-[13px] font-bold whitespace-nowrap'
+
+export type DailyEntryFormProps = {
+  date?: string
+  readSessions?: (from: string, to: string) => Promise<WorkoutSession[]>
+}
+
+export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntryFormProps) {
   const [entryDate] = useState(() => date ?? localDate())
   const toast = useToast()
   const [online, setOnline] = useState(true)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [offer, setOffer] = useState<GymTimeOffer | null>(null)
-  const [offerRead, setOfferRead] = useState(0)
-  const [offerBusy, setOfferBusy] = useState(false)
-  const [offerError, setOfferError] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<WorkoutSession[]>([])
   const loadedSwim = useRef<number | null>(null)
+  const gymFocusPending = useRef(false)
+  const setGymButton = useRef<HTMLButtonElement>(null)
 
   const {
     control,
@@ -188,15 +202,15 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
   useEffect(() => {
     let cancelled = false
 
-    void gymTimeOfferOn(entryDate).then(
+    void readSessions(entryDate, entryDate).then(
       (found) => {
         if (!cancelled) {
-          setOffer(found)
+          setSessions(found)
         }
       },
       () => {
         if (!cancelled) {
-          setOffer(null)
+          setSessions([])
         }
       },
     )
@@ -204,7 +218,7 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
     return () => {
       cancelled = true
     }
-  }, [entryDate, offerRead])
+  }, [entryDate, readSessions])
 
   const save = useCallback(
     (values: DailyEntryInput) => {
@@ -215,7 +229,6 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
         () => {
           setSaved(true)
           toast.show(SAVED_MESSAGE)
-          setOfferRead((count) => count + 1)
         },
         (reason: unknown) => {
           setSaveError(reason instanceof Error ? reason.message : 'The entry could not be saved.')
@@ -228,52 +241,24 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
   const weightText = watch('weight_kg')
   const weightNumber = Number(weightText.trim())
   const canNudge = weightText.trim() !== '' && Number.isFinite(weightNumber)
+  const gymValue = watch('gym_seconds')
+  const fromSessions = effectiveGymSeconds(undefined, sessions)
+  const sessionCount = finishedCount(sessions)
+  const gymFromSessions = gymValue === null && fromSessions.source === 'sessions'
 
-  function takeSessionTime(): void {
-    if (offer === null || offerBusy) {
+  useEffect(() => {
+    if (!gymFocusPending.current) {
       return
     }
 
-    setOfferBusy(true)
-    setOfferError(null)
-    acceptGymTimeOffer(offer.sessionId)
-      .then(
-        () => {
-          setValue('gym_seconds', offer.sessionSeconds, { shouldDirty: true })
-          setOffer(null)
-          setOfferRead((count) => count + 1)
-        },
-        () => {
-          setOfferError(GYM_TIME_SAVE_FAILED)
-        },
-      )
-      .finally(() => {
-        setOfferBusy(false)
-      })
-  }
+    gymFocusPending.current = false
 
-  function offerBlock(placement: string): ReactNode {
-    if (offer === null) {
-      return null
+    if (gymFromSessions) {
+      setGymButton.current?.focus()
+    } else {
+      document.getElementById('gym_seconds')?.focus()
     }
-
-    return (
-      <div className={`flex-col gap-2 ${placement}`}>
-        <GymTimeOfferCard
-          offer={offer}
-          dateLabel={prettyDate(offer.entryDate)}
-          isToday={offer.entryDate === localDate()}
-          busy={offerBusy}
-          onUse={takeSessionTime}
-        />
-        {offerError === null ? null : (
-          <p role="alert" className="text-danger text-sm">
-            {offerError}
-          </p>
-        )}
-      </div>
-    )
-  }
+  }, [gymFromSessions])
 
   function nudge(direction: 1 | -1): void {
     if (!canNudge) {
@@ -303,21 +288,62 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
       </header>
 
       <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-x-3">
-        <Controller
-          control={control}
-          name="gym_seconds"
-          render={({ field }) => (
-            <DurationPicker
-              id="gym_seconds"
-              label="Gym time"
-              value={field.value}
-              onChange={field.onChange}
-              presets={SESSION_PRESETS}
-              step={SESSION_STEP_SECONDS}
-              allowClear
+        {gymFromSessions ? (
+          <div
+            role="group"
+            aria-labelledby="gym_seconds-label"
+            className="flex w-full min-w-0 flex-col gap-[7px]"
+          >
+            <MicroLabel id="gym_seconds-label">Gym time</MicroLabel>
+            <div className="bg-surface border-border rounded-input flex items-center justify-between gap-3 border p-3">
+              <div className="min-w-0">
+                <output className="text-text block text-lg font-extrabold tracking-[-0.4px]">
+                  {formatDuration(fromSessions.seconds, 'clock')}
+                </output>
+                <p className="text-muted text-xs">
+                  {sessionsText(sessionCount, fromSessions.seconds)}
+                </p>
+              </div>
+              <button
+                ref={setGymButton}
+                type="button"
+                className={PILL}
+                onClick={() => {
+                  gymFocusPending.current = true
+                  setValue('gym_seconds', fromSessions.seconds, { shouldDirty: true })
+                }}
+              >
+                Set a value
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <Controller
+              control={control}
+              name="gym_seconds"
+              render={({ field }) => (
+                <DurationPicker
+                  id="gym_seconds"
+                  label="Gym time"
+                  value={field.value}
+                  onChange={(seconds) => {
+                    gymFocusPending.current = seconds === null && fromSessions.source === 'sessions'
+                    field.onChange(seconds)
+                  }}
+                  presets={SESSION_PRESETS}
+                  step={SESSION_STEP_SECONDS}
+                  allowClear
+                />
+              )}
             />
-          )}
-        />
+            {gymValue !== null && fromSessions.source === 'sessions' ? (
+              <p className="text-muted text-xs">
+                {`The sessions say ${formatDuration(fromSessions.seconds, 'short')}. Clear to use them.`}
+              </p>
+            ) : null}
+          </div>
+        )}
 
         <Controller
           control={control}
@@ -335,8 +361,6 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
           )}
         />
 
-        {offerBlock('flex md:hidden')}
-
         <div className="grid grid-cols-2 gap-3">
           <NumberField
             label="Avg heart rate"
@@ -353,8 +377,6 @@ export function DailyEntryForm({ date }: DailyEntryFormProps) {
             error={errors.max_heart_rate?.message}
           />
         </div>
-
-        {offerBlock('hidden md:col-span-2 md:flex')}
 
         <div className="flex flex-col gap-2">
           <NumberField

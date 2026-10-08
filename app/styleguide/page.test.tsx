@@ -233,6 +233,15 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     ).toBeInTheDocument()
   })
 
+  it('shows the daily log sample with its gym time from 2 sessions', async () => {
+    const sample = within(screen.getByTestId('log-sample'))
+    expect(await sample.findByText('From 2 sessions · 1h 12m')).toBeInTheDocument()
+    expect(
+      within(sample.getByRole('group', { name: 'Gym time' })).getByRole('status'),
+    ).toHaveTextContent('1:12:05')
+    expect(sample.getByRole('button', { name: 'Set a value' })).toHaveAttribute('type', 'button')
+  })
+
   it('renders the daily log form with every field labelled', () => {
     const sample = screen.getByTestId('log-sample')
     for (const label of [
@@ -597,19 +606,6 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     ).toBeInTheDocument()
   })
 
-  it('shows the gym time offer card and hides it after Use', async () => {
-    const sample = screen.getByTestId('gym-offer-sample')
-    await userEvent.click(within(sample).getByRole('button', { name: 'Use 1:12:05 for gym time' }))
-
-    expect(within(sample).queryByRole('region', { name: 'Gym time from the session' })).toBeNull()
-
-    await userEvent.click(
-      within(sample).getByRole('button', { name: 'Show the gym time offer sample' }),
-    )
-
-    expect(within(sample).getByRole('region', { name: 'Gym time from the session' })).toBeVisible()
-  })
-
   it('shows a date already logged with its three choices and no pick yet', () => {
     const group = within(
       screen.getByRole('group', { name: 'Row 16, 13 September, already logged' }),
@@ -644,19 +640,6 @@ describe('the styleguide page', { timeout: 15000 }, () => {
 
   it('marks the duration sample ready once the page has hydrated', () => {
     expect(screen.getByTestId('duration-picker-sample')).toHaveAttribute('data-ready', 'true')
-  })
-
-  it('opens the finish sheet sample and closes it from either choice', async () => {
-    const sample = screen.getByTestId('gym-offer-sample')
-
-    await userEvent.click(within(sample).getByRole('button', { name: 'Open the finish sheet' }))
-    const sheet = await screen.findByRole('dialog', { name: 'Session finished' })
-    await userEvent.click(within(sheet).getByRole('button', { name: 'Use 1:12:05 for gym time' }))
-    expect(screen.queryByRole('dialog', { name: 'Session finished' })).toBeNull()
-
-    await userEvent.click(within(sample).getByRole('button', { name: 'Open the finish sheet' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Keep 1:05:00' }))
-    expect(screen.queryByRole('dialog', { name: 'Session finished' })).toBeNull()
   })
 
   it('renders the error screen sample with its heading', () => {

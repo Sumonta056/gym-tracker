@@ -1,5 +1,7 @@
 'use client'
 
+import { useRef } from 'react'
+
 import { formatDuration, MAX_DURATION_SECONDS } from '../../lib/duration'
 
 import { cn } from './cn'
@@ -74,11 +76,14 @@ export function DurationPicker({
 }: DurationPickerProps) {
   const labelId = `${id}-label`
   const words = stepWords(step)
+  const groupRef = useRef<HTMLDivElement>(null)
 
   return (
     <div
+      ref={groupRef}
       id={id}
       role="group"
+      tabIndex={-1}
       aria-labelledby={labelId}
       aria-describedby={errorId}
       className={cn('flex w-full min-w-0 flex-col gap-[7px]', className)}
@@ -144,6 +149,7 @@ export function DurationPicker({
             type="button"
             onClick={() => {
               onChange(null)
+              groupRef.current?.focus()
             }}
             className={cn(CHIP, 'bg-surface-2 border-border text-text')}
           >

@@ -5,11 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 import {
-  acceptGymTimeOffer,
   addSet,
   deleteSet,
   finishSession,
-  gymTimeOfferFor,
   getActiveSession,
   getProfile,
   lastSetFor,
@@ -25,7 +23,6 @@ import { toDisplayWeight, weightSymbol } from '../../lib/format/weight'
 import { earlierThan, isNewRecord } from '../../lib/metrics/personalRecords'
 import { volumeLoad } from '../../lib/metrics/volumeLoad'
 import { restSecondsFor } from '../../lib/workout/restTimer'
-import { prettyDate } from '../DailyEntryForm'
 import { formatCount } from '../dashboard/summary'
 import { SyncChip } from '../sync/SyncChip'
 import { Card } from '../ui/Card'
@@ -39,7 +36,6 @@ import { SAVED_MESSAGE, useToast } from '../ui/Toast'
 import { EditSetSheet } from './EditSetSheet'
 import { ExerciseCard, lastTimeText } from './ExerciseCard'
 import { ExercisePicker } from './ExercisePicker'
-import { GYM_TIME_SAVE_FAILED, GymTimeSheet } from './GymTimeOffer'
 import { MUSCLE_GROUP_LABEL } from './MuscleGroupChips'
 import { createRestAlert } from './restAlert'
 import { RestTimerCard } from './RestTimerCard'
@@ -56,7 +52,6 @@ import type { Toast } from './UndoToast'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { ExerciseFilter, WorkoutSetPatch } from '../../lib/db/repository'
 import type { UnitSystem } from '../../lib/schema/profile'
-import type { GymTimeOffer } from '../../lib/workout/gymTime'
 
 export type LiveSessionSource = {
   getActiveSession: () => Promise<WorkoutSession | undefined>
@@ -69,8 +64,6 @@ export type LiveSessionSource = {
   deleteSet: (id: string) => Promise<void>
   restoreSet: (id: string) => Promise<void>
   finishSession: (id: string) => Promise<WorkoutSession>
-  gymTimeOfferFor: (sessionId: string) => Promise<GymTimeOffer | null>
-  acceptGymTimeOffer: (sessionId: string) => Promise<unknown>
   readUnit: () => Promise<UnitSystem>
   readRest: () => Promise<RestSettings>
   saveRestSeconds: (exerciseId: string, seconds: number) => Promise<unknown>
@@ -99,8 +92,6 @@ export const REPOSITORY_LIVE_SOURCE: LiveSessionSource = {
   deleteSet,
   restoreSet,
   finishSession,
-  gymTimeOfferFor,
-  acceptGymTimeOffer,
   readUnit: async () => (await getProfile()).unit_system,
   readRest: async () => {
     const profile = await getProfile()
@@ -183,22 +174,6 @@ export function heroFooter(sets: readonly WorkoutSet[], unit: UnitSystem): strin
   return `Volume ${volumeText(sets, unit)} · ${plural(sets.length, 'set')} · ${plural(exercises, 'exercise')}`
 }
 
-export function finishSummary(
-  session: WorkoutSession,
-  sets: readonly WorkoutSet[],
-  unit: UnitSystem,
-): string {
-  const ended = session.ended_at ?? session.started_at
-
-  return `${prettyDate(session.entry_date)} · ${startedText(session.started_at)} to ${startedText(ended)} · ${plural(sets.length, 'set')} · ${volumeText(sets, unit)}`
-}
-
-type FinishOffer = {
-  offer: GymTimeOffer
-  summary: string
-  dateLabel: string
-}
-
 export function exerciseSummary(sets: readonly WorkoutSet[], unit: UnitSystem): string {
   return sets.length === 0 ? 'No sets' : `${plural(sets.length, 'set')} · ${volumeText(sets, unit)}`
 }
@@ -262,9 +237,6 @@ export function LiveSession({
   const [changingRest, setChangingRest] = useState<ChangingRest | null>(null)
   const [restBusy, setRestBusy] = useState(false)
   const [restError, setRestError] = useState<string | null>(null)
-  const [finishOffer, setFinishOffer] = useState<FinishOffer | null>(null)
-  const [offerBusy, setOfferBusy] = useState(false)
-  const [offerError, setOfferError] = useState<string | null>(null)
   const alertRef = useRef<RestAlert | null>(alert ?? null)
   const deletes = useRef(0)
   const alive = useRef(true)
@@ -445,49 +417,14 @@ export function LiveSession({
     setBusy(true)
     setError(null)
     source.finishSession(session.id).then(
-      async (finished) => {
-        const offer = await source.gymTimeOfferFor(finished.id).catch(() => null)
-
-        if (offer === null) {
-          leave()
-          return
-        }
-
-        setFinishOffer({
-          offer,
-          summary: finishSummary(finished, sets, unit),
-          dateLabel: prettyDate(offer.entryDate),
-        })
+      () => {
+        leave()
       },
       (cause: unknown) => {
         setBusy(false)
         setError(failure(cause, FINISH_FAILED))
       },
     )
-  }
-
-  const takeSessionTime = () => {
-    if (finishOffer === null || offerBusy) {
-      return
-    }
-
-    setOfferBusy(true)
-    setOfferError(null)
-    source.acceptGymTimeOffer(finishOffer.offer.sessionId).then(
-      () => {
-        leave()
-      },
-      (cause: unknown) => {
-        setOfferBusy(false)
-        setOfferError(failure(cause, GYM_TIME_SAVE_FAILED))
-      },
-    )
-  }
-
-  const keepLogTime = () => {
-    if (!offerBusy) {
-      leave()
-    }
   }
 
   const saveEdit = (values: SetValues) => {
@@ -821,16 +758,6 @@ export function LiveSession({
           setChangingRest(null)
           setRestError(null)
         }}
-      />
-
-      <GymTimeSheet
-        offer={finishOffer?.offer ?? null}
-        dateLabel={finishOffer?.dateLabel ?? ''}
-        summary={finishOffer?.summary ?? ''}
-        busy={offerBusy}
-        error={offerError}
-        onUse={takeSessionTime}
-        onKeep={keepLogTime}
       />
 
       <UndoToast

@@ -2,21 +2,24 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { acceptGymTimeOffer, getDay, gymTimeOfferOn, upsertDay } from '../lib/db/repository'
-import { localDate } from '../lib/schema/dailyEntry'
+import { getDay, listSessions, upsertDay } from '../lib/db/repository'
 
-import { DailyEntryForm, nextWeight, prettyDate, toFormValues } from './DailyEntryForm'
+import {
+  DailyEntryForm,
+  finishedCount,
+  nextWeight,
+  prettyDate,
+  sessionsText,
+  toFormValues,
+} from './DailyEntryForm'
 import { ToastProvider } from './ui/Toast'
-import { GYM_TIME_SAVE_FAILED } from './workout/GymTimeOffer'
 
-import type { DailyEntry } from '../lib/db/dexie'
-import type { GymTimeOffer } from '../lib/workout/gymTime'
+import type { DailyEntry, WorkoutSession } from '../lib/db/dexie'
 
 vi.mock('../lib/db/repository', () => ({
   getDay: vi.fn(() => Promise.resolve(undefined)),
   upsertDay: vi.fn(() => Promise.resolve()),
-  gymTimeOfferOn: vi.fn(() => Promise.resolve(null)),
-  acceptGymTimeOffer: vi.fn(() => Promise.resolve()),
+  listSessions: vi.fn(() => Promise.resolve([])),
 }))
 
 const DATE = '2026-09-19'
@@ -41,20 +44,6 @@ function setOnline(value: boolean): void {
   Object.defineProperty(globalThis.navigator, 'onLine', { configurable: true, value })
 }
 
-async function firstOffer(): Promise<HTMLElement> {
-  const [offer] = await screen.findAllByRole('region', { name: 'Gym time from the session' })
-
-  if (offer === undefined) {
-    throw new Error('no offer')
-  }
-
-  return offer
-}
-
-async function firstUse(): Promise<HTMLElement> {
-  return within(await firstOffer()).getByRole('button', { name: 'Use 1:12:05 for gym time' })
-}
-
 function pickerOf(name: 'Gym time' | 'Walk time') {
   return within(screen.getByRole('group', { name }))
 }
@@ -66,20 +55,40 @@ async function renderForm() {
   })
 }
 
-const SESSION_ID = '99999999-9999-4999-8999-999999999999'
+function session(id: string, startedAt: string, endedAt: string | null): WorkoutSession {
+  return {
+    id,
+    entry_date: DATE,
+    started_at: startedAt,
+    ended_at: endedAt,
+    status: endedAt === null ? 'active' : 'finished',
+    created_at: startedAt,
+    updated_at: endedAt ?? startedAt,
+    deleted_at: null,
+  }
+}
 
-const OFFER: GymTimeOffer = {
-  sessionId: SESSION_ID,
-  entryDate: DATE,
-  sessionSeconds: 4325,
-  loggedSeconds: 3900,
+const TWO_SESSIONS = [
+  session(
+    'a1111111-1111-4111-8111-111111111111',
+    '2026-09-19T07:00:00.000Z',
+    '2026-09-19T07:30:00.000Z',
+  ),
+  session(
+    'b2222222-2222-4222-8222-222222222222',
+    '2026-09-19T17:00:00.000Z',
+    '2026-09-19T17:42:05.000Z',
+  ),
+]
+
+function gymGroup() {
+  return within(screen.getByRole('group', { name: 'Gym time' }))
 }
 
 beforeEach(() => {
   vi.mocked(getDay).mockResolvedValue(undefined)
   vi.mocked(upsertDay).mockResolvedValue(undefined as never)
-  vi.mocked(gymTimeOfferOn).mockResolvedValue(null)
-  vi.mocked(acceptGymTimeOffer).mockResolvedValue(undefined as never)
+  vi.mocked(listSessions).mockResolvedValue([])
   setOnline(true)
 })
 
@@ -430,106 +439,133 @@ describe('DailyEntryForm', () => {
     await renderForm()
     expect(screen.getByText('Sat 19 Sep · 8 fields')).toBeInTheDocument()
   })
+})
 
-  it('shows no gym time offer for a date with nothing to offer', async () => {
-    await renderForm()
-
-    await waitFor(() => {
-      expect(gymTimeOfferOn).toHaveBeenCalledWith(DATE)
-    })
-    expect(screen.queryAllByRole('region', { name: 'Gym time from the session' })).toHaveLength(0)
+describe('sessionsText', () => {
+  it('names one session and the short time', () => {
+    expect(sessionsText(1, 3600)).toBe('From 1 session · 1h')
   })
 
-  it('shows the session length and the logged gym time side by side', async () => {
-    vi.mocked(gymTimeOfferOn).mockResolvedValue(OFFER)
+  it('names many sessions and the short time', () => {
+    expect(sessionsText(2, 4325)).toBe('From 2 sessions · 1h 12m')
+  })
+})
+
+describe('finishedCount', () => {
+  it('counts only finished sessions that are not deleted', () => {
+    const live = session('c3333333-3333-4333-8333-333333333333', '2026-09-19T18:00:00.000Z', null)
+    const gone = { ...TWO_SESSIONS[0], deleted_at: '2026-09-19T19:00:00.000Z' } as WorkoutSession
+    expect(finishedCount([...TWO_SESSIONS, live, gone])).toBe(2)
+  })
+})
+
+describe('DailyEntryForm gym time', () => {
+  it('reads the sessions of its own date through the repository', async () => {
     await renderForm()
-
-    const offer = await firstOffer()
-
-    expect(offer).toHaveTextContent(
-      'The session on Sat 19 Sep was 1:12:05. Your log says 1:05:00. Use the session for gym time?',
-    )
-    expect(within(offer).getByRole('button', { name: 'Use 1:12:05 for gym time' })).toBeVisible()
+    expect(listSessions).toHaveBeenCalledWith(DATE, DATE)
   })
 
-  it('says today for an offer on today', async () => {
-    const today = localDate()
-    vi.mocked(gymTimeOfferOn).mockResolvedValue({ ...OFFER, entryDate: today })
-    render(<DailyEntryForm date={today} />)
-
-    expect(await firstOffer()).toHaveTextContent("Today's session was 1:12:05.")
-  })
-
-  it('says the log has no gym time when the day holds none', async () => {
-    vi.mocked(gymTimeOfferOn).mockResolvedValue({ ...OFFER, loggedSeconds: null })
+  it('shows the sum of the sessions when no gym time is typed', async () => {
+    vi.mocked(listSessions).mockResolvedValue(TWO_SESSIONS)
     await renderForm()
 
-    expect(await firstOffer()).toHaveTextContent('Your log has no gym time.')
+    expect(await screen.findByText('From 2 sessions · 1h 12m')).toBeVisible()
+    expect(gymGroup().getByRole('status')).toHaveTextContent('1:12:05')
   })
 
-  it('writes the session length on Use, fills the field and hides the offer', async () => {
-    vi.mocked(getDay).mockResolvedValue({ ...STORED, gym_seconds: 3900 })
-    vi.mocked(gymTimeOfferOn).mockResolvedValueOnce(OFFER).mockResolvedValue(null)
+  it('opens the picker at the session sum on Set a value', async () => {
+    vi.mocked(listSessions).mockResolvedValue(TWO_SESSIONS)
     await renderForm()
 
-    await userEvent.click(await firstUse())
+    await userEvent.click(await screen.findByRole('button', { name: 'Set a value' }))
 
-    expect(acceptGymTimeOffer).toHaveBeenCalledWith(SESSION_ID)
-    await waitFor(() => {
-      expect(screen.queryAllByRole('region', { name: 'Gym time from the session' })).toHaveLength(0)
-    })
-    expect(pickerOf('Gym time').getByRole('status')).toHaveTextContent('1:12:05')
-    expect(screen.getByLabelText('Steps')).toHaveValue('12480')
-    expect(upsertDay).not.toHaveBeenCalled()
+    expect(gymGroup().getByRole('status')).toHaveTextContent('1:12:05')
+    expect(screen.getByRole('button', { name: 'Clear Gym time' })).toBeVisible()
   })
 
-  it('keeps the offer and says so when Use cannot be saved', async () => {
-    vi.mocked(gymTimeOfferOn).mockResolvedValue(OFFER)
-    vi.mocked(acceptGymTimeOffer).mockRejectedValueOnce(new Error('disk full'))
+  it('goes back to the session sum on Clear', async () => {
+    vi.mocked(listSessions).mockResolvedValue(TWO_SESSIONS)
     await renderForm()
+    await userEvent.click(await screen.findByRole('button', { name: 'Set a value' }))
 
-    await userEvent.click(await firstUse())
+    await userEvent.click(screen.getByRole('button', { name: 'Clear Gym time' }))
 
-    expect((await screen.findAllByRole('alert'))[0]).toHaveTextContent(GYM_TIME_SAVE_FAILED)
-    expect(screen.getAllByRole('region', { name: 'Gym time from the session' })[0]).toBeVisible()
+    expect(screen.getByText('From 2 sessions · 1h 12m')).toBeVisible()
   })
 
-  it('reads the offer again after a save', async () => {
+  it('saves no gym time while the value comes from the sessions', async () => {
+    vi.mocked(listSessions).mockResolvedValue(TWO_SESSIONS)
     await renderForm()
-    vi.mocked(gymTimeOfferOn).mockResolvedValue(OFFER)
+    await screen.findByText('From 2 sessions · 1h 12m')
 
     await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
 
-    expect(await firstOffer()).toBeVisible()
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledWith(expect.objectContaining({ gym_seconds: null }))
+    })
   })
 
-  it('shows no offer when the offer cannot be read', async () => {
-    vi.mocked(gymTimeOfferOn).mockRejectedValue(new Error('no'))
+  it('lets a typed value win and names the session time under it', async () => {
+    vi.mocked(getDay).mockResolvedValue({ ...STORED, gym_seconds: 3600 })
+    vi.mocked(listSessions).mockResolvedValue(TWO_SESSIONS)
     await renderForm()
 
     await waitFor(() => {
-      expect(gymTimeOfferOn).toHaveBeenCalled()
+      expect(gymGroup().getByRole('status')).toHaveTextContent('1:00:00')
     })
-    expect(screen.queryAllByRole('region', { name: 'Gym time from the session' })).toHaveLength(0)
+    expect(screen.getByText('The sessions say 1h 12m. Clear to use them.')).toBeVisible()
   })
 
-  it('places the offer after gym time on the phone and after heart rate on wider screens', async () => {
-    vi.mocked(gymTimeOfferOn).mockResolvedValue(OFFER)
+  it('shows the plain picker for a day with no session', async () => {
     await renderForm()
-    await firstOffer()
+    expect(gymGroup().getByRole('status')).toHaveTextContent('Not set')
+    expect(screen.queryByRole('button', { name: 'Set a value' })).not.toBeInTheDocument()
+  })
 
-    const [phone, wide] = screen
-      .getAllByRole('region', { name: 'Gym time from the session' })
-      .map((offer) => offer.parentElement)
-    const gym = screen.getByLabelText('Gym time')
-    const avg = screen.getByLabelText('Avg heart rate')
-    const max = screen.getByLabelText('Max heart rate')
-    const follows = (first: Node, second: Node) =>
-      Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING)
+  it('shows the plain picker and no error when the sessions cannot be read', async () => {
+    vi.mocked(listSessions).mockRejectedValue(new Error('no'))
+    await renderForm()
+    await waitFor(() => {
+      expect(listSessions).toHaveBeenCalled()
+    })
+    expect(gymGroup().getByRole('status')).toHaveTextContent('Not set')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 
-    expect(phone).toHaveClass('flex', 'md:hidden')
-    expect(wide).toHaveClass('hidden', 'md:col-span-2', 'md:flex')
-    expect(phone && follows(gym, phone) && follows(phone, avg)).toBe(true)
-    expect(wide && follows(max, wide)).toBe(true)
+  it('moves focus into the picker on Set a value', async () => {
+    vi.mocked(listSessions).mockResolvedValue(TWO_SESSIONS)
+    await renderForm()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Set a value' }))
+
+    expect(screen.getByRole('group', { name: 'Gym time' })).toHaveFocus()
+  })
+
+  it('moves focus to Set a value when Clear brings the session sum back', async () => {
+    vi.mocked(listSessions).mockResolvedValue(TWO_SESSIONS)
+    await renderForm()
+    await userEvent.click(await screen.findByRole('button', { name: 'Set a value' }))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear Gym time' }))
+
+    expect(screen.getByRole('button', { name: 'Set a value' })).toHaveFocus()
+  })
+
+  it('leaves focus alone when the sessions load', async () => {
+    vi.mocked(listSessions).mockResolvedValue(TWO_SESSIONS)
+    await renderForm()
+
+    await screen.findByText('From 2 sessions · 1h 12m')
+
+    expect(document.body).toHaveFocus()
+  })
+
+  it('reads the sessions through a given source instead of the repository', async () => {
+    const readSessions = vi.fn(() => Promise.resolve(TWO_SESSIONS))
+    render(<DailyEntryForm date={DATE} readSessions={readSessions} />)
+
+    expect(await screen.findByText('From 2 sessions · 1h 12m')).toBeVisible()
+    expect(readSessions).toHaveBeenCalledWith(DATE, DATE)
+    expect(listSessions).not.toHaveBeenCalled()
   })
 })

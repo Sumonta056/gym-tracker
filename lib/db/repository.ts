@@ -20,7 +20,6 @@ import {
   resumeSync,
   withDrainLock,
 } from '../sync/worker'
-import { gymTimeOffer, newestFinished, sessionLengthSeconds } from '../workout/gymTime'
 
 import {
   DAILY_CURSOR_KEY,
@@ -38,7 +37,6 @@ import type { ErrorRecord } from '../schema/errorRecord'
 import type { ExerciseInput, MuscleGroup } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
 import type { WorkoutSetDraft, WorkoutSetInput } from '../schema/workoutSet'
-import type { GymTimeOffer } from '../workout/gymTime'
 
 export { LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY } from './dexie'
 
@@ -69,8 +67,6 @@ export {
 } from '../sync/deadLetters'
 
 export type { SyncOutcome } from '../sync/worker'
-
-export type { GymTimeOffer } from '../workout/gymTime'
 
 const PROFILE_FIELDS = [
   'display_name',
@@ -121,13 +117,6 @@ export class SessionNotFound extends Error {
   constructor() {
     super('This session is not on this device.')
     this.name = 'SessionNotFound'
-  }
-}
-
-export class NoGymTimeOffer extends Error {
-  constructor() {
-    super('This session has no length to offer as gym time.')
-    this.name = 'NoGymTimeOffer'
   }
 }
 
@@ -668,23 +657,6 @@ export async function finishSession(id: string): Promise<WorkoutSession> {
   })
 }
 
-export async function gymTimeOfferFor(sessionId: string): Promise<GymTimeOffer | null> {
-  return db.transaction('r', db.workoutSessions, db.dailyEntries, async () => {
-    const session = await liveSession(sessionId)
-
-    return gymTimeOffer(session, await getDay(session.entry_date))
-  })
-}
-
-export async function gymTimeOfferOn(date: string): Promise<GymTimeOffer | null> {
-  return db.transaction('r', db.workoutSessions, db.dailyEntries, async () => {
-    const sessions = await db.workoutSessions.where('entry_date').equals(date).toArray()
-    const session = newestFinished(sessions)
-
-    return session === undefined ? null : gymTimeOffer(session, await getDay(date))
-  })
-}
-
 function dayFields(row: DailyEntry): DailyEntryInput {
   return {
     entry_date: row.entry_date,
@@ -698,34 +670,6 @@ function dayFields(row: DailyEntry): DailyEntryInput {
     steps: row.steps,
     note: row.note,
   }
-}
-
-export async function acceptGymTimeOffer(sessionId: string): Promise<DailyEntry> {
-  return db.transaction(
-    'rw',
-    [db.workoutSessions, db.dailyEntries, db.outbox, db.syncMeta],
-    async () => {
-      await refuseWhenSignedOut()
-
-      const session = await liveSession(sessionId)
-      const day = await getDay(session.entry_date)
-      const seconds = sessionLengthSeconds(session)
-      const offer = gymTimeOffer(session, day)
-
-      if (offer === null && day !== undefined && day.gym_seconds === seconds) {
-        return day
-      }
-
-      if (offer === null) {
-        throw new NoGymTimeOffer()
-      }
-
-      const base = day === undefined ? { entry_date: offer.entryDate } : dayFields(day)
-      const parsed = dailyEntrySchema.parse({ ...base, gym_seconds: offer.sessionSeconds })
-
-      return writeDay(parsed, nowIso())
-    },
-  )
 }
 
 export async function discardSession(id: string): Promise<void> {

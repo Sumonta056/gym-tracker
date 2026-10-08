@@ -42,7 +42,6 @@ import { SAVED_MESSAGE, useToast } from '../../components/ui/Toast'
 import { EditSetSheet } from '../../components/workout/EditSetSheet'
 import { ExerciseCard } from '../../components/workout/ExerciseCard'
 import { ExercisePicker } from '../../components/workout/ExercisePicker'
-import { GymTimeOfferCard, GymTimeSheet } from '../../components/workout/GymTimeOffer'
 import { RestTimerCard } from '../../components/workout/RestTimerCard'
 import { RestTimeSheet } from '../../components/workout/RestTimeSheet'
 import { SessionTimer } from '../../components/workout/SessionTimer'
@@ -73,7 +72,6 @@ import type {
 import type { ImportChoice } from '../../lib/db/repository'
 import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
-import type { GymTimeOffer } from '../../lib/workout/gymTime'
 import type { ReactNode } from 'react'
 
 const NAV = [
@@ -550,11 +548,36 @@ function sampleExerciseSource(): ExerciseSource {
 
 const SAMPLE_SESSION_START = new Date(2026, 8, 20, 17, 30, 0).toISOString()
 
-const SAMPLE_GYM_OFFER: GymTimeOffer = {
-  sessionId: '00000000-0000-4000-8000-0000000000aa',
-  entryDate: '2026-09-20',
-  sessionSeconds: 4325,
-  loggedSeconds: 3900,
+const SAMPLE_LOG_DATE = '2026-09-13'
+
+function sampleLogSession(id: string, startedAt: string, endedAt: string): WorkoutSession {
+  return {
+    id,
+    entry_date: SAMPLE_LOG_DATE,
+    started_at: startedAt,
+    ended_at: endedAt,
+    status: 'finished',
+    created_at: startedAt,
+    updated_at: endedAt,
+    deleted_at: null,
+  }
+}
+
+const SAMPLE_LOG_SESSIONS: WorkoutSession[] = [
+  sampleLogSession(
+    '00000000-0000-4000-8000-0000000000b1',
+    '2026-09-13T07:00:00.000Z',
+    '2026-09-13T07:30:00.000Z',
+  ),
+  sampleLogSession(
+    '00000000-0000-4000-8000-0000000000b2',
+    '2026-09-13T17:00:00.000Z',
+    '2026-09-13T17:42:05.000Z',
+  ),
+]
+
+function readSampleLogSessions(): Promise<WorkoutSession[]> {
+  return Promise.resolve(SAMPLE_LOG_SESSIONS)
 }
 
 const SAMPLE_SESSION_NOW = new Date(2026, 8, 20, 18, 12, 17)
@@ -672,8 +695,6 @@ function Styleguide() {
   const [sampleRestSkipped, setSampleRestSkipped] = useState(false)
   const [sampleRestSeconds, setSampleRestSeconds] = useState(90)
   const [sampleChangingRest, setSampleChangingRest] = useState(false)
-  const [sampleOfferOpen, setSampleOfferOpen] = useState(false)
-  const [sampleOfferUsed, setSampleOfferUsed] = useState(false)
   const [pickerSource] = useState(sampleExerciseSource)
   const [manageSource] = useState(sampleManageSource)
   const [importSource] = useState(sampleImportSource)
@@ -860,7 +881,7 @@ function Styleguide() {
 
       <Section title="Daily log">
         <div data-testid="log-sample">
-          <DailyEntryForm date="2026-09-13" />
+          <DailyEntryForm date={SAMPLE_LOG_DATE} readSessions={readSampleLogSessions} />
         </div>
       </Section>
 
@@ -1260,44 +1281,6 @@ function Styleguide() {
             />
           )}
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2" data-testid="gym-offer-sample">
-          {sampleOfferUsed ? (
-            <SecondaryButton
-              onClick={() => {
-                setSampleOfferUsed(false)
-              }}
-            >
-              Show the gym time offer sample
-            </SecondaryButton>
-          ) : (
-            <GymTimeOfferCard
-              offer={SAMPLE_GYM_OFFER}
-              dateLabel="Sun 20 Sep"
-              isToday
-              onUse={() => {
-                setSampleOfferUsed(true)
-              }}
-            />
-          )}
-          <SecondaryButton
-            onClick={() => {
-              setSampleOfferOpen(true)
-            }}
-          >
-            Open the finish sheet
-          </SecondaryButton>
-        </div>
-        <GymTimeSheet
-          offer={sampleOfferOpen ? SAMPLE_GYM_OFFER : null}
-          dateLabel="Sun 20 Sep"
-          summary="Sun 20 Sep · 17:30 to 18:42 · 11 sets · 4,820 kg"
-          onUse={() => {
-            setSampleOfferOpen(false)
-          }}
-          onKeep={() => {
-            setSampleOfferOpen(false)
-          }}
-        />
         <RestTimeSheet
           changing={
             sampleChangingRest

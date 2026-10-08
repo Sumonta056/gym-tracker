@@ -100,11 +100,12 @@ test('keeps every set of a session logged offline through a finish and a reload'
 
   await page.clock.setSystemTime(new Date(day.noon().getTime() + 3_600_000))
   await page.getByRole('button', { name: 'Finish session' }).click()
-  const finished = page.getByRole('dialog', { name: 'Session finished' })
-  await expect(finished).toContainText('as gym time for')
-  await finished.getByRole('button', { name: 'Not now' }).click()
   await expect(page).toHaveURL(/\/workouts$/)
   await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible()
+
+  await navLink(page, 'Log the day').first().click()
+  await expect(page.getByRole('group', { name: 'Gym time' })).toContainText(/From 1 session · /)
+  await page.goto('/workouts')
 
   await page.reload()
   await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()

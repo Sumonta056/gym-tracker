@@ -252,6 +252,8 @@ formats with `formatDuration` from `lib/duration.ts`.
 ```tsx
 'use client'
 
+import { useRef } from 'react'
+
 import { formatDuration, MAX_DURATION_SECONDS } from '../../lib/duration'
 
 import { cn } from './cn'
@@ -326,11 +328,14 @@ export function DurationPicker({
 }: DurationPickerProps) {
   const labelId = `${id}-label`
   const words = stepWords(step)
+  const groupRef = useRef<HTMLDivElement>(null)
 
   return (
     <div
+      ref={groupRef}
       id={id}
       role="group"
+      tabIndex={-1}
       aria-labelledby={labelId}
       aria-describedby={errorId}
       className={cn('flex w-full min-w-0 flex-col gap-[7px]', className)}
@@ -396,6 +401,7 @@ export function DurationPicker({
             type="button"
             onClick={() => {
               onChange(null)
+              groupRef.current?.focus()
             }}
             className={cn(CHIP, 'bg-surface-2 border-border text-text')}
           >
@@ -414,6 +420,13 @@ export function DurationPicker({
 - The −/+ buttons are 44 px circles with an `aria-label`. The step defaults to 15 s.
   Rest time keeps 15 s. Gym, walk and swim time pass `SESSION_STEP_SECONDS`, 60 s.
 - `allowClear` adds a Clear chip while a value is set. Clear gives `null`.
+- Focus never drops to the page. Clear hides its own chip, so it moves focus to the
+  picker group. The group has `tabIndex={-1}`: it takes focus from code but is no tab
+  stop. A screen reader reads the group name, and the `<output>` reads "Not set". The
+  group is the target, not the first control, because − is off with no value.
+- An owner that swaps the picker for another block moves focus on purpose too. On
+  `/log`, "Set a value" moves focus to the gym picker group. Clear in that picker brings
+  the session sum back and moves focus to "Set a value". A load never moves focus.
 - From no value, + gives `min`, or one step when `min` is below the step, never more
   than `max`. A goal with `min` 300 and a 5 minute step goes 5:00, then 10:00. Gym and
   walk time on `/log`, `min` 0 and a 1 minute step, go 1:00, then 2:00. − stays off
