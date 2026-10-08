@@ -113,6 +113,15 @@ describe('summarise', () => {
     const summary = summarise([], { ...PROFILE, unit_system: 'imperial' }, TODAY, NOW)
     expect(summary.unitSystem).toBe('imperial')
   })
+  it('takes the sessions per week goal from the profile', () => {
+    expect(summarise([], { ...PROFILE, sessions_per_week_goal: 4 }, TODAY, NOW).sessionsGoal).toBe(
+      4,
+    )
+  })
+
+  it('gives no sessions goal for a profile with no goal field', () => {
+    expect(summarise([], PROFILE, TODAY, NOW).sessionsGoal).toBeNull()
+  })
 })
 
 describe('headerDate', () => {

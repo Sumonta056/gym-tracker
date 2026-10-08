@@ -15,6 +15,7 @@ import { TotalsChart } from './TotalsChart'
 import { useAnalytics } from './useAnalytics'
 import { useLiftData } from './useLiftData'
 import { LineDrawContext } from './useLineDraw'
+import { WalkChart } from './WalkChart'
 import { WeekCharts } from './WeekCharts'
 import { WeightChart } from './WeightChart'
 import { ZoneSplitChart } from './ZoneSplitChart'
@@ -62,13 +63,25 @@ export type AnalyticsViewProps = {
 export function AnalyticsView({ data, testId = 'analytics-grid' }: AnalyticsViewProps) {
   return (
     <div data-testid={testId} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-      <WeightChart days={data.days} tab={data.tab} unit={data.unitSystem} />
-      <CaloriesChart days={data.days} tab={data.tab} />
+      <WeightChart
+        days={data.days}
+        tab={data.tab}
+        unit={data.unitSystem}
+        targetKg={data.goals.weightKg}
+      />
+      <CaloriesChart days={data.days} tab={data.tab} goal={data.goals.calories} />
       <StepsChart days={data.days} tab={data.tab} stepGoal={data.stepGoal} />
+      <WalkChart days={data.days} tab={data.tab} goalSeconds={data.goals.walkSeconds} />
       <HeartRateChart days={data.days} tab={data.tab} />
       <ZoneSplitChart zones={data.zones} date={data.today} />
       <StreakHeatMap weeks={data.heatMap} streak={data.streak} />
-      <TotalsChart days={data.days} totals={data.totals} tab={data.tab} className="md:col-span-2" />
+      <TotalsChart
+        days={data.days}
+        totals={data.totals}
+        tab={data.tab}
+        goalSeconds={data.goals.gymSeconds}
+        className="md:col-span-2"
+      />
     </div>
   )
 }

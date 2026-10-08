@@ -89,7 +89,12 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
 
         <HeartRateZonesCard zones={summary.zones} />
 
-        <WeekTotalsCard totals={summary.week} range={summary.weekRange} className="lg:col-span-3" />
+        <WeekTotalsCard
+          totals={summary.week}
+          range={summary.weekRange}
+          sessionsGoal={summary.sessionsGoal}
+          className="lg:col-span-3"
+        />
       </div>
     </>
   )

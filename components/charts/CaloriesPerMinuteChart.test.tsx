@@ -28,6 +28,7 @@ function day(date: string, gymSeconds: number | null, calories: number | null): 
     calories,
     steps: null,
     avgHeartRate: null,
+    walkSeconds: null,
     maxHeartRate: null,
     gymSeconds,
   }

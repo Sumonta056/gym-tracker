@@ -21,7 +21,19 @@ const entries = [
 const full = analyse(entries, entries, 'week', TODAY, NOW, 12000)
 const one = analyse([entryOn(TODAY, { gym_seconds: 4325 })], [], 'week', TODAY, NOW, 12000)
 
+const allCross = ['21', '22', '24', '25', '26', '27'].map((day) =>
+  entryOn(`2026-09-${day}`, { gym_seconds: 4325 }),
+)
+const crossing = analyse(allCross, allCross, 'week', TODAY, NOW, 12000)
+
 describe('TotalsChart', () => {
+  it('puts the goal label in the band, off the bars, when every bar crosses the goal', () => {
+    const { container } = render(
+      <TotalsChart days={crossing.days} totals={crossing.totals} tab="week" goalSeconds={2700} />,
+    )
+    expect(container.querySelector('.reference-label')).toHaveAttribute('y', '11')
+  })
+
   it('shows its empty state for an empty series, without throwing', () => {
     render(<TotalsChart days={empty.days} totals={empty.totals} tab="week" />)
     expect(screen.getByText('Nothing logged this week yet.')).toBeVisible()
@@ -69,6 +81,22 @@ describe('TotalsChart', () => {
     const data = analyse(rest, [], 'week', TODAY, NOW, 12000)
     const { container } = render(<TotalsChart days={data.days} totals={data.totals} tab="week" />)
     expect(svgTexts(container, REFERENCE_LABELS)).toEqual([])
+  })
+
+  it('draws the gym time goal instead of the average when a goal is set', () => {
+    const { container } = render(
+      <TotalsChart days={full.days} totals={full.totals} tab="week" goalSeconds={2700} />,
+    )
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual(['goal 45m'])
+  })
+
+  it('names the gym time goal in its label', () => {
+    render(<TotalsChart days={full.days} totals={full.totals} tab="week" goalSeconds={2700} />)
+    expect(
+      screen.getByRole('img', {
+        name: 'Time in the gym per day this week. Totals: 2 sessions, 1h 30m in the gym, 1,000 kcal, 12,000 steps. Goal 45m a day.',
+      }),
+    ).toBeInTheDocument()
   })
 })
 

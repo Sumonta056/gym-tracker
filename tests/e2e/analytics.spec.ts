@@ -29,7 +29,7 @@ test('shows two charts per row at 1440 px, on the style guide sample', async ({ 
 
   const boxes = await chartBoxes(page)
 
-  expect(boxes).toHaveLength(7)
+  expect(boxes).toHaveLength(8)
   expect(Math.round(boxes[0]?.y ?? 0)).toBe(Math.round(boxes[1]?.y ?? -1))
   expect(boxes[1]?.x ?? 0).toBeGreaterThan(boxes[0]?.x ?? 0)
   expect(rowCount(boxes, 6)).toBe(3)
@@ -41,7 +41,7 @@ test('shows one chart per row at 390 px, on the style guide sample', async ({ pa
 
   const boxes = await chartBoxes(page)
 
-  expect(rowCount(boxes, 7)).toBe(7)
+  expect(rowCount(boxes, 8)).toBe(8)
   for (const box of boxes) {
     expect(Math.round(box.x)).toBe(Math.round(boxes[0]?.x ?? 0))
   }
@@ -81,7 +81,7 @@ test('reads the weight trend outside the canvas, on the style guide sample', asy
 
   await expect(
     page.getByRole('img', {
-      name: 'Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling, 73.8 on the last day.',
+      name: 'Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling, 73.8 on the last day. Target 72.0 kilograms.',
     }),
   ).toBeAttached()
 })
@@ -95,8 +95,30 @@ const LABEL_CHECKS = [
 async function labelProblems(page: Page, grids: readonly string[]): Promise<string[]> {
   return page.evaluate((ids) => {
     const found: string[] = []
+    const probe = document.createElement('span')
+    probe.style.color = 'var(--color-surface-2)'
+    document.body.append(probe)
+    const ghost = getComputedStyle(probe).color
+    probe.remove()
     const selector = ids.map((id) => `[data-testid="${id}"] [role="img"] svg`).join(', ')
     for (const svg of document.querySelectorAll(selector)) {
+      const bars = Array.from(svg.querySelectorAll('.recharts-bar-rectangle path'))
+        .filter((node) => getComputedStyle(node).fill !== ghost)
+        .map((node) => node.getBoundingClientRect())
+        .filter((box) => box.height > 0)
+      for (const label of svg.querySelectorAll('.reference-label')) {
+        const box = label.getBoundingClientRect()
+        for (const bar of bars) {
+          const apart =
+            box.right <= bar.left + 0.5 ||
+            bar.right <= box.left + 0.5 ||
+            box.bottom <= bar.top + 0.5 ||
+            bar.bottom <= box.top + 0.5
+          if (!apart) {
+            found.push(`${label.textContent} overlaps a bar`)
+          }
+        }
+      }
       const texts = Array.from(svg.querySelectorAll('text'))
         .filter((node) => node.textContent.trim() !== '')
         .map((node) => ({ text: node.textContent, box: node.getBoundingClientRect() }))

@@ -182,9 +182,7 @@ export function volumePlacement(
     return 'band'
   }
 
-  const placement = referencePlacement(rows, top, average, height)
-
-  return placement === 'below' ? 'band' : placement
+  return referencePlacement(rows, top, average, height)
 }
 
 export const LABEL_BOX_TOP = 15

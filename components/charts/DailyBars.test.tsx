@@ -13,13 +13,16 @@ import {
 } from '../../tests/fixtures/recharts'
 
 import {
+  aboveLabelBox,
   barRadius,
   barRows,
   chartTop,
   DailyBars,
   drawnValue,
+  goalOrAverage,
   ReferenceLabel,
   referencePlacement,
+  valueLabelBox,
 } from './DailyBars'
 import { analyse } from './rangeData'
 
@@ -238,7 +241,7 @@ describe('referencePlacement', () => {
     expect(referencePlacement(rows, 12000, 12000, 112)).toBe('above')
   })
 
-  it('goes below the line when a value label at the right end would sit on it', () => {
+  it('takes the band when a bar at the right end crosses the line', () => {
     const rows = [
       label(16000),
       label(9000),
@@ -246,9 +249,24 @@ describe('referencePlacement', () => {
       label(9000),
       label(4000),
       label(4000),
-      label(11000),
+      label(13000),
     ]
-    expect(referencePlacement(rows, 16000, 12000, 112)).toBe('below')
+    expect(referencePlacement(rows, 16000, 12000, 112)).toBe('band')
+  })
+
+  it('takes the band when every bar crosses the goal line, as 72m bars under a 45m goal', () => {
+    const rows = [4325, 4325, null, 4325, 4325, 4325, 4325].map(label)
+    expect(referencePlacement(rows, 4325, 2700, 112)).toBe('band')
+  })
+
+  it('takes the band when a bar with no value label crosses the line, on a month', () => {
+    const rows = [label(16000), label(4000), label(4000), { value: 13000, label: null }]
+    expect(referencePlacement(rows, 16000, 12000, 112)).toBe('band')
+  })
+
+  it('goes above a line that runs over an empty slot', () => {
+    const rows = [label(16000), label(4000), label(4000), label(null)]
+    expect(referencePlacement(rows, 16000, 12000, 112)).toBe('above')
   })
 
   it('takes its own row at the top when a value label sits on each side of the line', () => {
@@ -293,6 +311,37 @@ describe('referencePlacement', () => {
   it('goes above for an empty chart', () => {
     expect(referencePlacement([], 1, 1, 112)).toBe('above')
   })
+
+  it('takes the band when the value label just under the line reaches the label below it', () => {
+    const rows = [620, 780, 410, 985, 540, 900, 705].map(label)
+    expect(referencePlacement(rows, 985, 800, 112)).toBe('band')
+  })
+
+  it('takes the band when a goal line runs just over the value labels', () => {
+    const rows = Array.from({ length: 7 }, () => label(3324))
+    expect(referencePlacement(rows, 3600, 3600, 112)).toBe('band')
+  })
+})
+
+describe('label boxes, measured in the browser', () => {
+  function covers(model: { top: number; bottom: number }, measured: [number, number]): boolean {
+    const [top, bottom] = measured
+    return (
+      model.top <= top && model.bottom >= bottom && top - model.top < 1 && model.bottom - bottom < 1
+    )
+  }
+
+  it('covers a value label above a bar top at 38.47 px, measured at 23.00 to 36.20', () => {
+    expect(covers(valueLabelBox(38.47), [23.0, 36.2])).toBe(true)
+  })
+
+  it('covers a value label above a bar top at 23.52 px, measured at 8.10 to 21.30', () => {
+    expect(covers(valueLabelBox(23.52), [8.1, 21.3])).toBe(true)
+  })
+
+  it('covers a label above a line at 45.05 px, measured at 31.59 to 44.81', () => {
+    expect(covers(aboveLabelBox(45.05), [31.59, 44.81])).toBe(true)
+  })
 })
 
 describe('DailyBars, reference band', () => {
@@ -323,7 +372,7 @@ describe('DailyBars, reference band', () => {
     expect(container.querySelector('.reference-label')).toHaveAttribute('y', '11')
   })
 
-  it('keeps the plot at its usual top when the label fits beside the line', () => {
+  it('lowers the plot when a bar at the right end crosses the average line', () => {
     const calories = [620, 780, 410, 985, 540, 900, 705]
     const data = analyse(
       calories.map((value, index) =>
@@ -348,8 +397,8 @@ describe('DailyBars, reference band', () => {
     const tops = Array.from(container.querySelectorAll('.recharts-bar-rectangle path')).map(
       (path) => Number(path.getAttribute('y')),
     )
-    expect(Math.min(...tops)).toBe(18)
-    expect(container.querySelector('.reference-label')).toHaveAttribute('dy', '0.8em')
+    expect(Math.min(...tops)).toBe(32)
+    expect(container.querySelector('.reference-label')).toHaveAttribute('y', '11')
   })
 })
 
@@ -388,5 +437,25 @@ describe('barRadius', () => {
 
   it('rounds a month of thinner bars by 3 px', () => {
     expect(barRadius(30)).toBe(3)
+  })
+})
+
+describe('goalOrAverage', () => {
+  const format = (value: number) => String(Math.round(value))
+
+  it('takes the goal when the profile holds one', () => {
+    expect(goalOrAverage(800, 603, format)).toEqual({ value: 800, label: 'goal 800' })
+  })
+
+  it('takes the average when there is no goal', () => {
+    expect(goalOrAverage(null, 603, format)).toEqual({ value: 603, label: 'avg 603' })
+  })
+
+  it('draws no line with no goal and no average', () => {
+    expect(goalOrAverage(null, null, format)).toBeNull()
+  })
+
+  it('draws no line for an average of 0', () => {
+    expect(goalOrAverage(null, 0, format)).toBeNull()
   })
 })

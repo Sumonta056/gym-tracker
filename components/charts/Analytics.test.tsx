@@ -73,7 +73,7 @@ describe('Analytics', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Month' }))
 
     expect(screen.getByTestId('analytics-grid')).toBe(grid)
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(13)
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(14)
     expect(screen.queryByText('Reading this device…')).not.toBeInTheDocument()
   })
 
@@ -109,7 +109,7 @@ describe('Analytics', () => {
   it('shows every chart in its empty state when nothing is logged', async () => {
     render(<Analytics clock={clock} />)
     await screen.findByTestId('lift-grid')
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(13)
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(14)
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 
@@ -139,15 +139,24 @@ describe('Analytics', () => {
 })
 
 describe('AnalyticsView', () => {
-  it('renders seven charts, each an image with a label', () => {
+  it('renders eight charts, each an image with a label', () => {
     const entries = [entryOn('2026-09-21'), entryOn(TODAY)]
     render(<AnalyticsView data={analyse(entries, entries, 'week', TODAY, NOW, 12000)} />)
     const grid = screen.getByTestId('analytics-grid')
     const images = within(grid).getAllByRole('img')
-    expect(images).toHaveLength(7)
+    expect(images).toHaveLength(8)
     for (const image of images) {
       expect(image).toHaveAccessibleName()
     }
+  })
+
+  it('shows the walk chart after the steps chart', () => {
+    render(<AnalyticsView data={analyse([], [], 'week', TODAY, NOW, 12000)} />)
+    const headings = within(screen.getByTestId('analytics-grid'))
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent)
+    expect(headings).toContain('Steps')
+    expect(headings[headings.indexOf('Steps') + 1]).toBe('Walk')
   })
 
   it('lays the charts out in one column, and two from the md breakpoint', () => {

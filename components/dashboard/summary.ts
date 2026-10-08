@@ -26,6 +26,7 @@ export type DashboardSummary = {
   weightTrend: number[]
   displayName: string | null
   unitSystem: UnitSystem
+  sessionsGoal: number | null
 }
 
 function fromDayNumber(day: number): string {
@@ -79,6 +80,7 @@ export function summarise(
     weightTrend: weights.filter((row) => row.date >= trendStart).map((row) => row.kg),
     displayName: profile.display_name,
     unitSystem: profile.unit_system,
+    sessionsGoal: profile.sessions_per_week_goal ?? null,
   }
 }
 

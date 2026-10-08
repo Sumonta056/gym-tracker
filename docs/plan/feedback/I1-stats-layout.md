@@ -106,6 +106,9 @@ Item 11: "Swap widget in stats". The card order is hard coded in 3 files:
 - `profile.stats_layout` exists (D1). It is `{ id: string; hidden: boolean }[] | null`.
   Nothing reads it.
 - The lift and week cards wait for `useLiftData`. The daily cards wait for `useAnalytics`.
+- G2 left a hole in the daily grid. With 8 daily cards, `streak` sits alone beside an
+  empty cell at 768 px and 1440 px, because `totals` spans 2 columns. The default order
+  of this step must close that hole.
 
 The 14 cards, in the default order, with the id this step gives them:
 

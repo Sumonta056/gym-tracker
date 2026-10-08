@@ -1,12 +1,22 @@
 'use client'
 
-import { LabelList, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import {
+  LabelList,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  usePlotArea,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 import { colorTokens } from '../../lib/design/tokens'
 import { toDisplayWeight, weightSymbol, weightWord } from '../../lib/format/weight'
 
 import { ChartCard, SparseValue } from './ChartCard'
-import { AXIS_TICK, END_LABEL_GUTTER, LABEL_HALO, RANGE_TICK } from './chartStyle'
+import { AXIS_TICK, END_LABEL_GUTTER, LABEL_HALO, RANGE_TICK, REFERENCE_STROKE } from './chartStyle'
+import { BAND_HEIGHT, ReferenceLabel } from './DailyBars'
 import {
   dayTick,
   formatKg,
@@ -26,6 +36,7 @@ export type WeightChartProps = {
   days: DayPoint[]
   tab: RangeTab
   unit?: UnitSystem
+  targetKg?: number | null
   className?: string
 }
 
@@ -58,15 +69,17 @@ export function weightLabel(
   weights: readonly number[],
   averages: readonly number[],
   unit: UnitSystem = 'metric',
+  target: number | null = null,
 ): string {
   const base = `Weight per day: ${weights.map(formatKg).join(', ')} ${weightWord(unit)}.`
   const last = averages.at(-1)
+  const trend =
+    averages.length < 2 || last === undefined
+      ? ''
+      : ` Seven day average ${trendWord(averages)}, ${formatKg(last)} on the last day.`
+  const goal = target === null ? '' : ` Target ${formatKg(target)} ${weightWord(unit)}.`
 
-  if (averages.length < 2 || last === undefined) {
-    return base
-  }
-
-  return `${base} Seven day average ${trendWord(averages)}, ${formatKg(last)} on the last day.`
+  return `${base}${trend}${goal}`
 }
 
 function inUnit(value: number | null, unit: UnitSystem): number | null {
@@ -114,7 +127,25 @@ export function weightLegend(averages: readonly number[]): LegendItem[] {
     : [...legend, { name: '7-day average', dot: 'bg-data-violet' }]
 }
 
-export function WeightChart({ days: stored, tab, unit = 'metric', className }: WeightChartProps) {
+export type TargetLabelProps = {
+  text: string
+}
+
+export function TargetLabel({ text }: TargetLabelProps) {
+  const area = usePlotArea()
+
+  return area === undefined ? null : (
+    <ReferenceLabel viewBox={{ x: area.x, width: area.width }} text={text} placement="band" />
+  )
+}
+
+export function WeightChart({
+  days: stored,
+  tab,
+  unit = 'metric',
+  targetKg = null,
+  className,
+}: WeightChartProps) {
   const days = daysInUnit(stored, unit)
   const weights = presentValues(days.map((day) => day.weightKg))
   const averages = presentValues(days.map((day) => day.averageKg))
@@ -122,6 +153,7 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
   const color = colorTokens['data-violet']
   const drawAverage = averages.length >= 2
   const rangeTicks = [...new Set([Math.min(...weights), Math.max(...weights)])]
+  const target = targetKg === null ? null : toDisplayWeight(targetKg, unit)
 
   return (
     <ChartCard
@@ -129,7 +161,7 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
       summary={weightSummary(weights, tab, unit)}
       empty={latest === undefined}
       emptyText="Log a weight to see the trend and its 7-day average."
-      label={weightLabel(weights, averages, unit)}
+      label={weightLabel(weights, averages, unit, target)}
       legend={weightLegend(averages)}
       sparse={
         latest !== undefined && weights.length < 2 ? (
@@ -142,7 +174,12 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
         <LineChart
           data={weightRows(days)}
           accessibilityLayer={false}
-          margin={{ top: 10, right: END_LABEL_GUTTER, bottom: 0, left: 0 }}
+          margin={{
+            top: target === null ? 10 : 10 + BAND_HEIGHT,
+            right: END_LABEL_GUTTER,
+            bottom: 0,
+            left: 0,
+          }}
         >
           <XAxis
             dataKey="date"
@@ -194,6 +231,12 @@ export function WeightChart({ days: stored, tab, unit = 'metric', className }: W
               <LabelList dataKey="averageEnd" position="right" fill={color} {...LABEL_HALO} />
             </Line>
           ) : null}
+          {target === null ? null : (
+            <>
+              <ReferenceLine y={target} {...REFERENCE_STROKE} ifOverflow="discard" />
+              <TargetLabel text={`target ${formatKg(target)}`} />
+            </>
+          )}
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>

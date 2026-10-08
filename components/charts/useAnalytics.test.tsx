@@ -87,6 +87,24 @@ describe('useAnalytics', () => {
     })
   })
 
+  it('hands the profile goals to the data', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({
+      ...PROFILE,
+      calorie_goal: 800,
+      target_weight_kg: 72,
+    })
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.data.goals).toEqual({
+      calories: 800,
+      gymSeconds: null,
+      walkSeconds: null,
+      weightKg: 72,
+    })
+  })
+
   it('reports a read that fails', async () => {
     vi.mocked(listRange).mockRejectedValue(new Error('locked'))
     const { result } = renderHook(() => useAnalytics('week', clock))

@@ -3,7 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
 import { setReducedMotion } from '../../tests/fixtures/motion'
-import { AXIS_TICKS, RANGE_TICKS, svgTexts, VALUE_LABELS } from '../../tests/fixtures/recharts'
+import {
+  AXIS_TICKS,
+  RANGE_TICKS,
+  REFERENCE_LABELS,
+  svgTexts,
+  VALUE_LABELS,
+} from '../../tests/fixtures/recharts'
 
 import { analyse } from './rangeData'
 import { DRAW_CLASS, LABEL_FADE_MS, LINE_DRAW_MS } from './useLineDraw'
@@ -223,5 +229,57 @@ describe('weightRows', () => {
   it('carries an end label only on the last day with a value', () => {
     const rows = weightRows(full.days)
     expect(rows.map((row) => row.weightEnd)).toEqual([null, null, '73.4', null, null, null, null])
+  })
+})
+
+describe('WeightChart target', () => {
+  it('draws the target line with its value', () => {
+    const { container } = render(<WeightChart days={full.days} tab="week" targetKg={72} />)
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual(['target 72.0'])
+  })
+
+  it('draws the target in pounds for imperial', () => {
+    const { container } = render(
+      <WeightChart days={inPounds.days} tab="week" unit="imperial" targetKg={70} />,
+    )
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual(['target 154.3'])
+  })
+
+  it('names the target in its label', () => {
+    expect(weightLabel([74.1, 73.4], [], 'metric', 72)).toBe(
+      'Weight per day: 74.1, 73.4 kilograms. Target 72.0 kilograms.',
+    )
+  })
+
+  it('draws no target line for 1 logged day', () => {
+    const { container } = render(<WeightChart days={one.days} tab="week" targetKg={72} />)
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual([])
+  })
+
+  it('draws the target line when the target sits in the weight range', () => {
+    const { container } = render(<WeightChart days={full.days} tab="week" targetKg={73.5} />)
+    expect(container.querySelectorAll('.recharts-reference-line')).toHaveLength(1)
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual(['target 73.5'])
+  })
+
+  it('draws no target line out of the weight range, and still names the target', () => {
+    const { container } = render(<WeightChart days={full.days} tab="week" targetKg={72} />)
+    expect(container.querySelector('.recharts-reference-line')).toBeNull()
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual(['target 72.0'])
+    expect(
+      screen.getByRole('img', {
+        name: 'Weight per day: 74.1, 73.9, 73.4 kilograms. Seven day average falling, 73.8 on the last day. Target 72.0 kilograms.',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the min and max range ticks with a target out of the weight range', () => {
+    const { container } = render(<WeightChart days={full.days} tab="week" targetKg={72} />)
+    expect(svgTexts(container, RANGE_TICKS)).toEqual(['73.4', '74.1'])
+  })
+
+  it('draws no target line without a target', () => {
+    const { container } = render(<WeightChart days={full.days} tab="week" />)
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual([])
   })
 })

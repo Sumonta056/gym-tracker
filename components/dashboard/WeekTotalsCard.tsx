@@ -6,16 +6,36 @@ import { MicroLabel } from '../ui/MicroLabel'
 import { formatCount, weekRangeLabel } from './summary'
 
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
+import type { ReactNode } from 'react'
 
 export type WeekTotalsCardProps = {
   totals: WeekTotals
   range: WeekRange
+  sessionsGoal?: number | null
   className?: string
 }
 
-export function WeekTotalsCard({ totals, range, className }: WeekTotalsCardProps) {
-  const cells = [
-    { label: 'sessions', value: String(totals.sessions) },
+export function sessionsValue(sessions: number, goal: number | null): ReactNode {
+  if (goal === null) {
+    return String(sessions)
+  }
+
+  return (
+    <>
+      <span aria-hidden="true">{`${String(sessions)} / ${String(goal)}`}</span>
+      <span className="sr-only">{`${String(sessions)} of ${String(goal)}`}</span>
+    </>
+  )
+}
+
+export function WeekTotalsCard({
+  totals,
+  range,
+  sessionsGoal = null,
+  className,
+}: WeekTotalsCardProps) {
+  const cells: { label: string; value: ReactNode }[] = [
+    { label: 'sessions', value: sessionsValue(totals.sessions, sessionsGoal) },
     { label: 'gym time', value: formatDuration(totals.gymSeconds, 'short') },
     { label: 'kcal', value: formatCount(totals.calories) },
     { label: 'steps', value: formatCount(totals.steps) },

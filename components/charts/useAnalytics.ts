@@ -6,7 +6,7 @@ import { getProfile, listRange, listSessions } from '../../lib/db/repository'
 import { localDate } from '../../lib/schema/dailyEntry'
 import { HISTORY_START } from '../dashboard/summary'
 
-import { analyse, rangeFor, readWindow } from './rangeData'
+import { analyse, chartGoals, rangeFor, readWindow } from './rangeData'
 import { HISTORY_END } from './useLiftData'
 
 import type { AnalyticsData, RangeTab } from './rangeData'
@@ -92,6 +92,7 @@ export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): An
         profile.step_goal,
         profile.unit_system,
         sessions,
+        chartGoals(profile),
       ),
     }
   }, [loaded, tab])

@@ -227,7 +227,7 @@ describe('the styleguide page', { timeout: 15000 }, () => {
 
   it('renders the heavy week in pounds, every chart with a text alternative', () => {
     const grid = screen.getByTestId('analytics-grid-heavy')
-    expect(within(grid).getAllByRole('img')).toHaveLength(7)
+    expect(within(grid).getAllByRole('img')).toHaveLength(8)
     expect(
       within(grid).getByRole('img', { name: /^Weight per day: .* pounds\./ }),
     ).toBeInTheDocument()
@@ -262,15 +262,33 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     )
   })
 
-  it('renders the seven analytics charts from the sample week, each with a text alternative', () => {
+  it('renders the eight analytics charts from the sample week, each with a text alternative', () => {
     const grid = screen.getByTestId('analytics-grid')
-    expect(within(grid).getAllByRole('img')).toHaveLength(7)
+    expect(within(grid).getAllByRole('img')).toHaveLength(8)
     expect(
       within(grid).getByRole('img', {
-        name: 'Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling, 73.8 on the last day.',
+        name: 'Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling, 73.8 on the last day. Target 72.0 kilograms.',
       }),
     ).toBeInTheDocument()
     expect(screen.getByText('14 – 20 September')).toBeInTheDocument()
+  })
+
+  it('draws a goal line on the sample week for every profile goal', () => {
+    const grid = within(screen.getByTestId('analytics-grid'))
+    expect(
+      grid.getByRole('img', { name: /^Calories per day.* Goal 800 kcal a day\.$/ }),
+    ).toBeInTheDocument()
+    expect(
+      grid.getByRole('img', { name: /^Walk time per day.* Goal 60m a day\.$/ }),
+    ).toBeInTheDocument()
+    expect(
+      grid.getByRole('img', { name: /^Time in the gym per day.* Goal 45m a day\.$/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows the walk chart empty state and the sessions goal on the week card', () => {
+    expect(screen.getByText('Log your walk time to see it per day.')).toBeInTheDocument()
+    expect(screen.getAllByText('3 of 4').length).toBeGreaterThan(0)
   })
 
   it('shows the range tabs under the analytics header, on the week', () => {

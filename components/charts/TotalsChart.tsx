@@ -5,7 +5,7 @@ import { formatDuration } from '../../lib/duration'
 import { formatCount } from '../dashboard/summary'
 
 import { ChartCard } from './ChartCard'
-import { DailyBars } from './DailyBars'
+import { DailyBars, goalOrAverage } from './DailyBars'
 import { averagePerLoggedDay, loggedDays, PERIOD_WORD } from './rangeData'
 
 import type { DayPoint, RangeTab } from './rangeData'
@@ -15,6 +15,7 @@ export type TotalsChartProps = {
   days: DayPoint[]
   totals: WeekTotals
   tab: RangeTab
+  goalSeconds?: number | null
   className?: string
 }
 
@@ -60,14 +61,25 @@ export function totalsLabel(
   totals: WeekTotals,
   tab: RangeTab,
   average: number | null = null,
+  goal: number | null = null,
 ): string {
   const cells = spokenCells(totals)
   const base = `Time in the gym per day ${PERIOD_WORD[tab]}. Totals: ${cells.join(', ')}.`
 
+  if (goal !== null) {
+    return `${base} Goal ${minutes(goal)} a day.`
+  }
+
   return average === null ? base : `${base} Average ${minutes(average)} a logged day.`
 }
 
-export function TotalsChart({ days, totals, tab, className }: TotalsChartProps) {
+export function TotalsChart({
+  days,
+  totals,
+  tab,
+  goalSeconds = null,
+  className,
+}: TotalsChartProps) {
   const average = averagePerLoggedDay(totals.gymSeconds, loggedDays(days))
 
   return (
@@ -76,7 +88,7 @@ export function TotalsChart({ days, totals, tab, className }: TotalsChartProps) 
       summary="Gym time per day"
       empty={isEmptyTotals(totals)}
       emptyText={`Nothing logged ${PERIOD_WORD[tab]} yet.`}
-      label={totalsLabel(totals, tab, average)}
+      label={totalsLabel(totals, tab, average, goalSeconds)}
       footer={
         <dl className="grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-4">
           {totalCells(totals).map((cell) => (
@@ -97,11 +109,7 @@ export function TotalsChart({ days, totals, tab, className }: TotalsChartProps) 
         color={colorTokens.accent}
         tab={tab}
         formatValue={minutes}
-        reference={
-          average === null || average === 0
-            ? null
-            : { value: average, label: `avg ${minutes(average)}` }
-        }
+        reference={goalOrAverage(goalSeconds, average, minutes)}
       />
     </ChartCard>
   )

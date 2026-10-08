@@ -7,7 +7,7 @@ import { streak } from '../../lib/metrics/streak'
 import { weekTotals } from '../../lib/metrics/weekTotals'
 import { daysBefore, formatCount, weekOf } from '../dashboard/summary'
 
-import type { DailyEntry, WorkoutSession } from '../../lib/db/dexie'
+import type { DailyEntry, Profile, WorkoutSession } from '../../lib/db/dexie'
 import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
 import type { Streak } from '../../lib/metrics/streak'
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
@@ -41,6 +41,35 @@ export type DayPoint = {
   avgHeartRate: number | null
   maxHeartRate: number | null
   gymSeconds: number | null
+  walkSeconds: number | null
+}
+
+export type ChartGoals = {
+  calories: number | null
+  gymSeconds: number | null
+  walkSeconds: number | null
+  weightKg: number | null
+}
+
+export const NO_GOALS: ChartGoals = {
+  calories: null,
+  gymSeconds: null,
+  walkSeconds: null,
+  weightKg: null,
+}
+
+export function chartGoals(
+  profile: Pick<
+    Profile,
+    'calorie_goal' | 'gym_goal_seconds' | 'walk_goal_seconds' | 'target_weight_kg'
+  >,
+): ChartGoals {
+  return {
+    calories: profile.calorie_goal ?? null,
+    gymSeconds: profile.gym_goal_seconds ?? null,
+    walkSeconds: profile.walk_goal_seconds ?? null,
+    weightKg: profile.target_weight_kg,
+  }
 }
 
 export type HeatCell = {
@@ -66,6 +95,7 @@ export type AnalyticsData = {
   sessionDates: string[]
   stepGoal: number
   unitSystem: UnitSystem
+  goals: ChartGoals
 }
 
 export const MONTH_TICK_DAYS = ['01', '08', '15', '22', '29']
@@ -170,6 +200,7 @@ export function analyse(
   stepGoal: number,
   unitSystem: UnitSystem = 'metric',
   sessions: readonly WorkoutSession[] = [],
+  goals: ChartGoals = NO_GOALS,
 ): AnalyticsData {
   const range = rangeFor(tab, today)
   const byDate = new Map(entries.map((row) => [row.entry_date, row]))
@@ -193,6 +224,7 @@ export function analyse(
       avgHeartRate: row?.avg_heart_rate ?? null,
       maxHeartRate: row?.max_heart_rate ?? null,
       gymSeconds: gym.source === 'none' ? null : gym.seconds,
+      walkSeconds: row?.walk_seconds ?? null,
     }
   })
   const past = history.filter((row) => row.entry_date <= today)
@@ -219,6 +251,7 @@ export function analyse(
     ),
     stepGoal,
     unitSystem,
+    goals,
   }
 }
 

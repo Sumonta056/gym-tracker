@@ -7,6 +7,7 @@ import { AnalyticsHeader, AnalyticsView, RangeTabs } from '../../components/char
 import { LiftCharts } from '../../components/charts/LiftCharts'
 import { analyse } from '../../components/charts/rangeData'
 import { StepsChart } from '../../components/charts/StepsChart'
+import { WalkChart } from '../../components/charts/WalkChart'
 import { WeekCharts } from '../../components/charts/WeekCharts'
 import { ImportConfirmSheet } from '../../components/csv/ImportConfirmSheet'
 import { ImportConflict } from '../../components/csv/ImportConflict'
@@ -52,7 +53,7 @@ import { formatDuration } from '../../lib/duration'
 import { sessionDays } from '../../lib/metrics/sessionDays'
 import { MAX_REST_SECONDS } from '../../lib/schema/profile'
 
-import type { RangeTab } from '../../components/charts/rangeData'
+import type { ChartGoals, RangeTab } from '../../components/charts/rangeData'
 import type { LiftSource } from '../../components/charts/useLiftData'
 import type { ImportSource } from '../../components/csv/ImportReview'
 import type { DashboardSummary } from '../../components/dashboard/summary'
@@ -248,6 +249,13 @@ const SAMPLE_STATS_ENTRIES: DailyEntry[] = SAMPLE_STATS_DAYS.map(([date, patch],
 
 const SAMPLE_STEP_GOAL = 12000
 
+const SAMPLE_GOALS: ChartGoals = {
+  calories: 800,
+  gymSeconds: 2700,
+  walkSeconds: 3600,
+  weightKg: 72,
+}
+
 const SAMPLE_ONE_DAY = SAMPLE_STATS_ENTRIES.filter((row) => row.entry_date === SAMPLE_STATS_TODAY)
 
 const SAMPLE_HEAVY_ENTRIES: DailyEntry[] = SAMPLE_STATS_ENTRIES.map((row, index) => ({
@@ -278,6 +286,7 @@ const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
   weightTrend: [104.6, 104.3, 104.1, 103.9, 103.4],
   displayName: 'Sumonta',
   unitSystem: 'metric',
+  sessionsGoal: null,
 }
 
 const SAMPLE_LIFT_DATES = [
@@ -410,8 +419,18 @@ function sampleSessionDates(entries: DailyEntry[], source: LiftSource) {
   )
 }
 
-function sampleStats(entries: DailyEntry[], tab: RangeTab) {
-  return analyse(entries, entries, tab, SAMPLE_STATS_TODAY, SAMPLE_STATS_NOW, SAMPLE_STEP_GOAL)
+function sampleStats(entries: DailyEntry[], tab: RangeTab, goals?: ChartGoals) {
+  return analyse(
+    entries,
+    entries,
+    tab,
+    SAMPLE_STATS_TODAY,
+    SAMPLE_STATS_NOW,
+    SAMPLE_STEP_GOAL,
+    'metric',
+    [],
+    goals,
+  )
 }
 
 const SAMPLE_PROFILE: Profile = {
@@ -672,7 +691,7 @@ export default function StyleguidePage() {
 function Styleguide() {
   const [range, setRange] = useState('week')
   const [statsTab, setStatsTab] = useState<RangeTab>('week')
-  const stats = sampleStats(SAMPLE_STATS_ENTRIES, statsTab)
+  const stats = sampleStats(SAMPLE_STATS_ENTRIES, statsTab, SAMPLE_GOALS)
   const oneDay = sampleStats(SAMPLE_ONE_DAY, statsTab)
   const heavy = analyse(
     SAMPLE_HEAVY_ENTRIES,
@@ -812,6 +831,7 @@ function Styleguide() {
           <WeekTotalsCard
             totals={SAMPLE_WEEK}
             range={{ from: '2026-09-07', to: '2026-09-13' }}
+            sessionsGoal={4}
             className="md:col-span-2 lg:col-span-3"
           />
         </div>
@@ -863,6 +883,7 @@ function Styleguide() {
         <h3 className="text-text mt-6 text-base font-bold">Nothing logged</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           <StepsChart days={[]} tab="week" stepGoal={SAMPLE_STEP_GOAL} />
+          <WalkChart days={[]} tab="week" />
         </div>
         <LiftCharts
           source={SAMPLE_NO_LIFTS}

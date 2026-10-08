@@ -8,11 +8,13 @@ import { sessionOn } from '../../tests/fixtures/lifts'
 import {
   analyse,
   averagePerLoggedDay,
+  chartGoals,
   countList,
   dayTick,
   highestIndex,
   lastIndex,
   loggedDays,
+  NO_GOALS,
   tickDates,
   datesIn,
   formatKg,
@@ -141,6 +143,7 @@ describe('analyse', () => {
       avgHeartRate: null,
       maxHeartRate: null,
       gymSeconds: null,
+      walkSeconds: null,
     })
   })
 
@@ -335,5 +338,39 @@ describe('lastIndex', () => {
 
   it('returns -1 when every value is null', () => {
     expect(lastIndex([null])).toBe(-1)
+  })
+})
+
+describe('analyse goals', () => {
+  const goals = { calories: 800, gymSeconds: 2700, walkSeconds: 3600, weightKg: 72 }
+
+  it('returns the goals it is given', () => {
+    expect(analyse([], [], 'week', TODAY, NOW, 12000, 'metric', [], goals).goals).toEqual(goals)
+  })
+
+  it('returns no goal by default', () => {
+    expect(analyse([], [], 'week', TODAY, NOW, 12000).goals).toEqual(NO_GOALS)
+  })
+
+  it('fills the walk seconds of each day', () => {
+    const data = analyse([entryOn(TODAY, { walk_seconds: 1500 })], [], 'week', TODAY, NOW, 12000)
+    expect(data.days.find((day) => day.date === TODAY)?.walkSeconds).toBe(1500)
+  })
+})
+
+describe('chartGoals', () => {
+  it('maps the 4 profile columns', () => {
+    expect(
+      chartGoals({
+        calorie_goal: 800,
+        gym_goal_seconds: 2700,
+        walk_goal_seconds: 3600,
+        target_weight_kg: 72,
+      }),
+    ).toEqual({ calories: 800, gymSeconds: 2700, walkSeconds: 3600, weightKg: 72 })
+  })
+
+  it('gives no goal for a profile from before Dexie v5', () => {
+    expect(chartGoals({ target_weight_kg: null })).toEqual(NO_GOALS)
   })
 })

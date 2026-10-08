@@ -30,4 +30,15 @@ describe('WeekTotalsCard', () => {
     render(<WeekTotalsCard totals={TOTALS} range={RANGE} />)
     expect(screen.getByText('29 Sep – 5 Oct')).toBeVisible()
   })
+  it('shows the sessions against the goal, and reads it in words', () => {
+    render(<WeekTotalsCard totals={TOTALS} range={RANGE} sessionsGoal={4} />)
+    expect(screen.getByText('3 / 4')).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getByText('3 of 4')).toHaveClass('sr-only')
+  })
+
+  it('shows the bare count with no goal', () => {
+    render(<WeekTotalsCard totals={TOTALS} range={RANGE} sessionsGoal={null} />)
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.queryByText('3 / 4')).toBeNull()
+  })
 })
