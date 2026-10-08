@@ -143,6 +143,10 @@ function ignoreReload(): void {
   return undefined
 }
 
+function ignoreDateChange(): void {
+  return undefined
+}
+
 const SAMPLE_ERROR_LOG: ErrorLogSource = {
   listErrors: () =>
     Promise.resolve([
@@ -902,7 +906,11 @@ function Styleguide() {
 
       <Section title="Daily log">
         <div data-testid="log-sample">
-          <DailyEntryForm date={SAMPLE_LOG_DATE} readSessions={readSampleLogSessions} />
+          <DailyEntryForm
+            date={SAMPLE_LOG_DATE}
+            onDateChange={ignoreDateChange}
+            readSessions={readSampleLogSessions}
+          />
         </div>
       </Section>
 

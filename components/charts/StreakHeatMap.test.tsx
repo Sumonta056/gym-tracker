@@ -1,10 +1,17 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
 
 import { analyse } from './rangeData'
-import { cellClass, days, heatMapLabel, StreakHeatMap, WEEKDAY_LABELS } from './StreakHeatMap'
+import {
+  cellClass,
+  days,
+  heatMapLabel,
+  recentDays,
+  StreakHeatMap,
+  WEEKDAY_LABELS,
+} from './StreakHeatMap'
 
 vi.mock('recharts', async (importOriginal) => {
   const { withFixedContainer } = await import('../../tests/fixtures/recharts')
@@ -63,11 +70,12 @@ describe('StreakHeatMap grid', () => {
 
   it('names the 3 states in the legend', () => {
     render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
-    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
-      'Logged',
-      'Not logged',
-      'Ahead',
-    ])
+    const legend = screen.getAllByRole('list')[0] as HTMLElement
+    expect(
+      within(legend)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Logged', 'Not logged', 'Ahead'])
   })
 })
 
@@ -102,5 +110,34 @@ describe('heatMapLabel', () => {
     expect(heatMapLabel(empty.heatMap, { current: 0, longest: 0 })).toBe(
       'Streak over the last 12 weeks: logged 0 of 80 days. Current streak 0 days, longest 0 days.',
     )
+  })
+})
+
+describe('recentDays', () => {
+  it('takes the last 7 days up to today and no future day', () => {
+    const days = recentDays(full.heatMap)
+    expect(days).toHaveLength(7)
+    expect(days.at(-1)?.date).toBe(TODAY)
+    expect(days.every((cell) => cell.state !== 'future')).toBe(true)
+  })
+})
+
+describe('StreakHeatMap day links', () => {
+  it('links the last 7 days to the log, outside the chart image', () => {
+    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    const list = screen.getByRole('list', { name: 'Open a day' })
+    const links = within(list).getAllByRole('link')
+    expect(links).toHaveLength(7)
+    expect(links.at(-1)).toHaveAttribute('href', `/log?date=${TODAY}`)
+    expect(links.at(-1)).toHaveAccessibleName(/, logged$/)
+    for (const link of links) {
+      expect(link).toHaveClass('min-h-11')
+      expect(screen.getByRole('img').contains(link)).toBe(false)
+    }
+  })
+
+  it('shows no day links while the heat map is empty', () => {
+    render(<StreakHeatMap weeks={empty.heatMap} streak={empty.streak} />)
+    expect(screen.queryByRole('list', { name: 'Open a day' })).not.toBeInTheDocument()
   })
 })

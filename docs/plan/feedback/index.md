@@ -164,12 +164,12 @@ Every step follows these. They are not repeated in each step file.
 | E1   | `E1-duration-picker.md`    | The `DurationPicker` primitive                | 3      | M    | W0                  | done `93c6267` |
 | E2   | `E2-picker-in-use.md`      | The picker for rest, gym and walk time        | 3      | S    | E1, B3, B4          | done `85bf1fa` |
 | E3   | `E3-gym-time-in-log.md`    | Gym time from sessions in `/log`, no offer    | 9      | M    | C2, E2, B4          | done `e1753e6` |
-| E4   | `E4-old-days.md`           | `/log?date=`, previous, next, date picker     | 6      | M    | E3, C4              | —              |
+| E4   | `E4-old-days.md`           | `/log?date=`, previous, next, date picker     | 6      | M    | E3, C4              | done           |
 | E5   | `E5-swim-card.md`          | The Swimming card                             | 1      | M    | D1, E2, E4          | —              |
 | F1   | `F1-finish-summary.md`     | The finish summary                            | 4      | M    | B4, E3              | —              |
 | F2   | `F2-session-history.md`    | `/workouts` history and session detail        | 4      | M    | F1, E4, A1          | —              |
 | G1   | `G1-goals-in-profile.md`   | 6 goals in Profile, the week start fact       | 14, 17 | M    | D1, E1, B4          | done `c5c496e` |
-| G2   | `G2-goal-lines.md`         | A goal line on each chart, the Walk chart     | 14     | M    | G1, C1, C4          | done           |
+| G2   | `G2-goal-lines.md`         | A goal line on each chart, the Walk chart     | 14     | M    | G1, C1, C4          | done `553f840` |
 | G3a  | `G3a-today-data.md`        | Today: the data in `summary.ts`               | 8      | M    | C3, G2, E5, F1      | —              |
 | G3b  | `G3b-today-cards.md`       | Today: the cards                              | 8      | M    | G3a, F2, H1         | —              |
 | H1   | `H1-max-heart-rate.md`     | Zones from a true maximum heart rate          | 10     | M    | C3, D1, G1, G2, G3a | —              |

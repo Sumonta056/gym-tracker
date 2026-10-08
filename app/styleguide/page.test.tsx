@@ -262,6 +262,12 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     )
   })
 
+  it('keeps the daily log sample on its day when a day button is pressed', async () => {
+    const sample = within(screen.getByTestId('log-sample'))
+    await userEvent.click(sample.getByRole('button', { name: 'Previous day, Sat 12 Sep' }))
+    expect(sample.getByLabelText('Day')).toHaveValue('2026-09-13')
+  })
+
   it('renders the eight analytics charts from the sample week, each with a text alternative', () => {
     const grid = screen.getByTestId('analytics-grid')
     expect(within(grid).getAllByRole('img')).toHaveLength(8)

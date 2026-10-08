@@ -5,11 +5,11 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** the fix track — the owner feedback · `docs/plan/04-feedback-fixes.md`
 **Step index:** `docs/plan/feedback/index.md`
-**Next step:** E4, 1 step at a time → `docs/plan/feedback/index.md`, "From wave 4: one step at a time". **Deferred by the owner on 2026-10-08:** the device checks of the A–D checkpoint (the full verify ran in D1 and E2). Do them before the wave 8 checkpoint.
+**Next step:** F1, 1 step at a time → `docs/plan/feedback/index.md`, "From wave 4: one step at a time". **Deferred by the owner on 2026-10-08:** the device checks of the A–D checkpoint (the full verify ran in D1 and E2). Do them before the wave 8 checkpoint.
 **Open from wave 2:** the owner checks the B2 bar in the home-screen app at the wave 4 checkpoint. If the bar is still about 58 px high after Start, apply F6 (`overscroll-behavior-y: none` on `html` and `body`).
 **Open from wave 3:** an error at the same moment as a navigation can miss the log (deferred write, A3). The Errors card loop guard matches a text prefix. No plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `fix/feedback-fixes`, cut from `main`. From wave 4, each step commits on it directly, in the main folder.
-**Last commit:** G2 (a goal line on each chart), after `e1753e6` (E3), `c5c496e` (G1), `85bf1fa` (E2) and `25454f6` (D1, migration `20261008014222`). Wave 3 merge: `d70d01c`. Wave 3 reports: `reports/wave-3/`.
+**Last commit:** E4 (`/log?date=`, previous, next, a date picker), after `553f840` (G2), `e1753e6` (E3), `c5c496e` (G1), `85bf1fa` (E2) and `25454f6` (D1, migration `20261008014222`). Wave 3 merge: `d70d01c`. Wave 3 reports: `reports/wave-3/`.
 **Phase 3 waits.** It returns to step 3.1 (`docs/plan/phase-3/S3.1-design-contract.md`) when the fix track closes.
 
 ## Resume here
@@ -123,6 +123,7 @@ that one step only. Stop and report when the step is done.
   plate, and sits after Add set there. Plate p8 says "Sat 20 Sep"; it is a Sunday. Correct the plates. From 2.11.
 - **Later step** — `ImportConfirmSheet.tsx:103` puts its error at the end of the scrolling body, not above the buttons as p10b
   shows. `ResumePrompt.tsx:154` copies the `PrimaryButton` classes by hand. From 2.11.
+- **Later step** — leaving `/log` through the tab bar drops unsaved edits with no question. A day change asks first (E4). A guard needs in-app navigation interception. From E4.
 
 ## Phases
 

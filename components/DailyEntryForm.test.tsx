@@ -1,8 +1,9 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getDay, listSessions, upsertDay } from '../lib/db/repository'
+import { localDate } from '../lib/schema/dailyEntry'
 
 import {
   DailyEntryForm,
@@ -49,7 +50,7 @@ function pickerOf(name: 'Gym time' | 'Walk time') {
 }
 
 async function renderForm() {
-  render(<DailyEntryForm date={DATE} />)
+  render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
   await waitFor(() => {
     expect(getDay).toHaveBeenCalledWith(DATE)
   })
@@ -278,7 +279,7 @@ describe('DailyEntryForm', () => {
   it('shows the Saved toast after a save', async () => {
     render(
       <ToastProvider>
-        <DailyEntryForm date={DATE} />
+        <DailyEntryForm date={DATE} onDateChange={vi.fn()} />
       </ToastProvider>,
     )
     await userEvent.type(await screen.findByLabelText('Steps'), '9000')
@@ -293,7 +294,7 @@ describe('DailyEntryForm', () => {
     vi.mocked(upsertDay).mockRejectedValueOnce(new Error('Dexie is closed.'))
     render(
       <ToastProvider>
-        <DailyEntryForm date={DATE} />
+        <DailyEntryForm date={DATE} onDateChange={vi.fn()} />
       </ToastProvider>,
     )
     await userEvent.type(await screen.findByLabelText('Steps'), '9000')
@@ -439,6 +440,125 @@ describe('DailyEntryForm', () => {
     await renderForm()
     expect(screen.getByText('Sat 19 Sep · 8 fields')).toBeInTheDocument()
   })
+
+  it('names each day button with the day it opens, at the field height', async () => {
+    await renderForm()
+    const previous = screen.getByRole('button', { name: 'Previous day, Fri 18 Sep' })
+    const next = screen.getByRole('button', { name: 'Next day, Sun 20 Sep' })
+    for (const button of [previous, next]) {
+      expect(button).toHaveClass('h-[52px]', 'w-11')
+    }
+  })
+
+  it('hands the previous day to its owner', async () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Previous day, Fri 18 Sep' }))
+    expect(onDateChange).toHaveBeenCalledWith('2026-09-18', 'previous')
+  })
+
+  it('hands the next day to its owner on a past day', async () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Next day, Sun 20 Sep' }))
+    expect(onDateChange).toHaveBeenCalledWith('2026-09-20', 'next')
+  })
+
+  it('turns a picked future day into today', () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    fireEvent.change(screen.getByLabelText('Day'), { target: { value: '2999-01-01' } })
+    expect(onDateChange).toHaveBeenCalledWith(localDate(), 'day')
+  })
+
+  it('changes nothing when the Day field is emptied', () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    fireEvent.change(screen.getByLabelText('Day'), { target: { value: '' } })
+    expect(onDateChange).not.toHaveBeenCalled()
+  })
+})
+
+describe('DailyEntryForm Day field typed with the keyboard', () => {
+  function typeDate(field: HTMLElement, value: string) {
+    fireEvent.keyDown(field, { key: '1' })
+    fireEvent.change(field, { target: { value } })
+    fireEvent.keyUp(field, { key: '1' })
+  }
+
+  it('changes no day while the segments are typed', () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    const field = screen.getByLabelText('Day')
+
+    typeDate(field, '2026-09-01')
+    typeDate(field, '2026-09-15')
+
+    expect(onDateChange).not.toHaveBeenCalled()
+    expect(field).toHaveValue('2026-09-15')
+  })
+
+  it('opens the typed day once on blur', () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    const field = screen.getByLabelText('Day')
+    typeDate(field, '2026-09-15')
+
+    fireEvent.blur(field)
+    fireEvent.blur(field)
+
+    expect(onDateChange).toHaveBeenCalledTimes(1)
+    expect(onDateChange).toHaveBeenCalledWith('2026-09-15', 'day')
+  })
+
+  it('opens the typed day once on Enter, without saving the form', () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    const field = screen.getByLabelText('Day')
+    typeDate(field, '2026-09-15')
+
+    fireEvent.keyDown(field, { key: 'Enter' })
+    fireEvent.blur(field)
+
+    expect(onDateChange).toHaveBeenCalledTimes(1)
+    expect(onDateChange).toHaveBeenCalledWith('2026-09-15', 'day')
+    expect(upsertDay).not.toHaveBeenCalled()
+  })
+
+  it('shows the current day again when a partial date is left on blur', () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    const field = screen.getByLabelText('Day')
+    typeDate(field, '')
+
+    fireEvent.blur(field)
+
+    expect(onDateChange).not.toHaveBeenCalled()
+    expect(field).toHaveValue(DATE)
+  })
+
+  it('turns a typed future day into today on Enter', () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    const field = screen.getByLabelText('Day')
+    typeDate(field, '2999-01-01')
+
+    fireEvent.keyDown(field, { key: 'Enter' })
+
+    expect(onDateChange).toHaveBeenCalledWith(localDate(), 'day')
+  })
+
+  it('opens a day picked with no key pressed at once, as the iOS picker does', () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    const field = screen.getByLabelText('Day')
+
+    fireEvent.change(field, { target: { value: '2026-09-15' } })
+    fireEvent.blur(field)
+
+    expect(onDateChange).toHaveBeenCalledTimes(1)
+    expect(onDateChange).toHaveBeenCalledWith('2026-09-15', 'day')
+  })
 })
 
 describe('sessionsText', () => {
@@ -562,7 +682,7 @@ describe('DailyEntryForm gym time', () => {
 
   it('reads the sessions through a given source instead of the repository', async () => {
     const readSessions = vi.fn(() => Promise.resolve(TWO_SESSIONS))
-    render(<DailyEntryForm date={DATE} readSessions={readSessions} />)
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} readSessions={readSessions} />)
 
     expect(await screen.findByText('From 2 sessions · 1h 12m')).toBeVisible()
     expect(readSessions).toHaveBeenCalledWith(DATE, DATE)

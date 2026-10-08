@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import LogPage from './page'
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(''),
+}))
+
 vi.mock('../../../lib/db/repository', () => ({
   getDay: vi.fn(() => Promise.resolve(undefined)),
   upsertDay: vi.fn(() => Promise.resolve()),
@@ -10,18 +14,19 @@ vi.mock('../../../lib/db/repository', () => ({
 }))
 
 describe('LogPage', () => {
-  it('names the log screen as its heading', () => {
+  it('names the log screen as its heading', async () => {
     render(<LogPage />)
-    expect(screen.getByRole('heading', { level: 1, name: 'Log' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Log' })).toBeInTheDocument()
   })
 
-  it('renders the daily entry form', () => {
+  it('renders the daily entry form', async () => {
     render(<LogPage />)
-    expect(screen.getByRole('button', { name: 'Save entry' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Save entry' })).toBeInTheDocument()
   })
 
-  it('builds no frame of its own, because the route group layout owns it', () => {
+  it('builds no frame of its own, because the route group layout owns it', async () => {
     render(<LogPage />)
+    await screen.findByRole('button', { name: 'Save entry' })
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
   })
 })

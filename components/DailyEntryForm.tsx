@@ -7,6 +7,8 @@ import { z } from 'zod'
 
 import { getDay, listSessions, upsertDay } from '../lib/db/repository'
 import { formatDuration } from '../lib/duration'
+import { parseLogDate, shiftLogDate } from '../lib/format/logDate'
+import { toDayNumber } from '../lib/metrics/day'
 import { effectiveGymSeconds } from '../lib/metrics/gymTime'
 import { dailyEntrySchema, localDate, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from '../lib/schema/dailyEntry'
 
@@ -21,6 +23,7 @@ import { MicroLabel } from './ui/MicroLabel'
 import { NumberField } from './ui/NumberField'
 import { PrimaryButton } from './ui/PrimaryButton'
 import { SecondaryButton } from './ui/SecondaryButton'
+import { SheetModal } from './ui/SheetModal'
 import { StatusChip } from './ui/StatusChip'
 import { SAVED_MESSAGE, useToast } from './ui/Toast'
 
@@ -132,16 +135,35 @@ export function sessionsText(count: number, seconds: number): string {
   return `From ${word} · ${formatDuration(seconds, 'short')}`
 }
 
+const DAY_STEP =
+  'bg-surface-2 border-border text-text rounded-input inline-flex h-[52px] w-11 items-center justify-center border text-xl font-bold disabled:opacity-50'
+
+const TYPING_KEYS = new Set(['Backspace', 'Delete', 'ArrowUp', 'ArrowDown'])
+
+function isTypingKey(key: string): boolean {
+  return key.length === 1 || TYPING_KEYS.has(key)
+}
+
 const PILL =
   'bg-surface-2 border-border text-text inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border px-4 text-[13px] font-bold whitespace-nowrap'
 
+export type DayControl = 'previous' | 'day' | 'next'
+
+export const DAY_FIELD_ID = 'log-day'
+
 export type DailyEntryFormProps = {
-  date?: string
+  date: string
+  onDateChange: (date: string, from?: DayControl) => void
+  focusOn?: DayControl
   readSessions?: (from: string, to: string) => Promise<WorkoutSession[]>
 }
 
-export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntryFormProps) {
-  const [entryDate] = useState(() => date ?? localDate())
+export function DailyEntryForm({
+  date,
+  onDateChange,
+  focusOn,
+  readSessions = listSessions,
+}: DailyEntryFormProps) {
   const toast = useToast()
   const [online, setOnline] = useState(true)
   const [saved, setSaved] = useState(false)
@@ -150,10 +172,20 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
   const loadedSwim = useRef<number | null>(null)
   const gymFocusPending = useRef(false)
   const setGymButton = useRef<HTMLButtonElement>(null)
+  const [pendingDay, setPendingDay] = useState<{ date: string; from: DayControl } | null>(null)
+  const previousButton = useRef<HTMLButtonElement>(null)
+  const nextButton = useRef<HTMLButtonElement>(null)
+  const dayOpener = useRef<HTMLElement | null>(null)
+  const refocusDay = useRef(false)
+  const [dayText, setDayText] = useState(date)
+  const typingDay = useRef(false)
+  const askedDay = useRef<string | null>(null)
+  const sheetActions = useRef<HTMLDivElement>(null)
 
   const {
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors, isDirty, isSubmitting },
+    getValues,
     handleSubmit,
     register,
     reset,
@@ -161,7 +193,7 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
     watch,
   } = useForm<DailyEntryFormValues, unknown, DailyEntryInput>({
     resolver: zodResolver(formSchema),
-    defaultValues: { ...EMPTY_VALUES, entry_date: entryDate },
+    defaultValues: { ...EMPTY_VALUES, entry_date: date },
   })
 
   useEffect(() => {
@@ -182,7 +214,7 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
   useEffect(() => {
     let cancelled = false
 
-    void getDay(entryDate).then(
+    void getDay(date).then(
       (entry) => {
         if (!cancelled && entry !== undefined) {
           loadedSwim.current = entry.swim_seconds ?? null
@@ -197,12 +229,12 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
     return () => {
       cancelled = true
     }
-  }, [entryDate, reset])
+  }, [date, reset])
 
   useEffect(() => {
     let cancelled = false
 
-    void readSessions(entryDate, entryDate).then(
+    void readSessions(date, date).then(
       (found) => {
         if (!cancelled) {
           setSessions(found)
@@ -218,7 +250,7 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
     return () => {
       cancelled = true
     }
-  }, [entryDate, readSessions])
+  }, [date, readSessions])
 
   const save = useCallback(
     (values: DailyEntryInput) => {
@@ -227,6 +259,7 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
 
       return upsertDay({ ...values, swim_seconds: loadedSwim.current }).then(
         () => {
+          reset(getValues())
           setSaved(true)
           toast.show(SAVED_MESSAGE)
         },
@@ -235,7 +268,7 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
         },
       )
     },
-    [toast],
+    [getValues, reset, toast],
   )
 
   const weightText = watch('weight_kg')
@@ -260,6 +293,79 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
     }
   }, [gymFromSessions])
 
+  const today = localDate()
+  const previous = shiftLogDate(date, -1)
+  const next = shiftLogDate(date, 1)
+
+  useEffect(() => {
+    if (pendingDay === null && refocusDay.current) {
+      refocusDay.current = false
+      dayOpener.current?.focus()
+    }
+  }, [pendingDay])
+
+  useEffect(() => {
+    if (focusOn === undefined) {
+      return
+    }
+
+    const button = focusOn === 'previous' ? previousButton.current : nextButton.current
+
+    if (focusOn !== 'day' && button !== null && !button.disabled) {
+      button.focus()
+    } else {
+      document.getElementById(DAY_FIELD_ID)?.focus()
+    }
+  }, [focusOn])
+
+  function askDay(next: string, from: DayControl, opener: HTMLElement): void {
+    if (!isDirty) {
+      onDateChange(next, from)
+      return
+    }
+
+    dayOpener.current = opener
+    setPendingDay({ date: next, from })
+  }
+
+  useEffect(() => {
+    if (pendingDay !== null) {
+      Array.from(sheetActions.current?.querySelectorAll<HTMLElement>('button') ?? [])
+        .at(-1)
+        ?.focus()
+    }
+  }, [pendingDay])
+
+  function commitDay(text: string, input: HTMLElement): void {
+    if (toDayNumber(text) === null) {
+      askedDay.current = null
+      setDayText(date)
+      return
+    }
+
+    const picked = parseLogDate(text, today)
+
+    if (picked === date) {
+      askedDay.current = null
+      setDayText(date)
+      return
+    }
+
+    if (askedDay.current === picked) {
+      return
+    }
+
+    askedDay.current = picked
+    askDay(picked, 'day', input)
+  }
+
+  function keepEditing(): void {
+    askedDay.current = null
+    setDayText(date)
+    refocusDay.current = true
+    setPendingDay(null)
+  }
+
   function nudge(direction: 1 | -1): void {
     if (!canNudge) {
       return
@@ -281,11 +387,74 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
         <div>
           <h1 className="text-[23px] leading-tight font-bold tracking-[-0.6px]">Log</h1>
           <p className="text-muted mt-1 text-[13px]">
-            {`${prettyDate(entryDate)} · ${String(FIELD_COUNT)} fields`}
+            {`${prettyDate(date)} · ${String(FIELD_COUNT)} fields`}
           </p>
         </div>
         {online ? null : <StatusChip status="offline" className="mt-1 shrink-0" />}
       </header>
+
+      <div
+        role="group"
+        aria-label="Choose the day"
+        className="mt-4 grid grid-cols-[44px_minmax(0,1fr)_44px] items-end gap-2 md:max-w-sm"
+      >
+        <button
+          type="button"
+          ref={previousButton}
+          aria-label={`Previous day, ${prettyDate(previous)}`}
+          onClick={(event) => {
+            askDay(previous, 'previous', event.currentTarget)
+          }}
+          className={DAY_STEP}
+        >
+          <span aria-hidden="true">‹</span>
+        </button>
+        <Field
+          id={DAY_FIELD_ID}
+          label="Day"
+          type="date"
+          max={today}
+          value={dayText}
+          onChange={(event) => {
+            const text = event.currentTarget.value
+
+            setDayText(text)
+            askedDay.current = null
+
+            if (!typingDay.current) {
+              commitDay(text, event.currentTarget)
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              typingDay.current = false
+              commitDay(event.currentTarget.value, event.currentTarget)
+            } else if (isTypingKey(event.key)) {
+              typingDay.current = true
+            }
+          }}
+          onKeyUp={() => {
+            typingDay.current = false
+          }}
+          onBlur={(event) => {
+            typingDay.current = false
+            commitDay(event.currentTarget.value, event.currentTarget)
+          }}
+        />
+        <button
+          type="button"
+          ref={nextButton}
+          aria-label={`Next day, ${prettyDate(next)}`}
+          disabled={date >= today}
+          onClick={(event) => {
+            askDay(next, 'next', event.currentTarget)
+          }}
+          className={DAY_STEP}
+        >
+          <span aria-hidden="true">›</span>
+        </button>
+      </div>
 
       <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-x-3">
         {gymFromSessions ? (
@@ -460,6 +629,29 @@ export function DailyEntryForm({ date, readSessions = listSessions }: DailyEntry
       <p role="status" className="text-muted mt-2 min-h-5 text-sm">
         {saved ? 'Saved on this device.' : ''}
       </p>
+
+      <SheetModal
+        open={pendingDay !== null}
+        title={`Discard the changes to ${prettyDate(date)}?`}
+        onClose={keepEditing}
+      >
+        <p className="text-text text-sm">
+          The changes to this day are not saved. Discard drops them and opens the other day.
+        </p>
+        <div ref={sheetActions} className="mt-4 grid gap-2.5">
+          <SecondaryButton
+            tone="danger"
+            onClick={() => {
+              if (pendingDay !== null) {
+                onDateChange(pendingDay.date, pendingDay.from)
+              }
+            }}
+          >
+            Discard
+          </SecondaryButton>
+          <SecondaryButton onClick={keepEditing}>Keep editing</SecondaryButton>
+        </div>
+      </SheetModal>
     </form>
   )
 }

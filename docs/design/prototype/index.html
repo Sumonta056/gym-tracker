@@ -71,7 +71,8 @@
         color: inherit;
       }
 
-      :focus-visible {
+      :focus-visible,
+      input[type='date']:focus {
         outline: 2px solid var(--color-accent);
         outline-offset: 2px;
       }
@@ -331,6 +332,65 @@
 
       .heat-future {
         border: 1px dashed var(--color-dim);
+      }
+
+      .day-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) 44px;
+        align-items: end;
+        gap: 8px;
+      }
+
+      .btn.day-step {
+        width: 44px;
+        min-height: 52px;
+        padding: 0;
+        font-size: 20px;
+      }
+
+      .btn.day-step:disabled {
+        opacity: 0.5;
+      }
+
+      .open-days {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .open-day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 4px 0;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-input);
+        background: var(--color-surface-2);
+        color: var(--color-muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .open-day i {
+        width: 6px;
+        height: 6px;
+        margin-top: 2px;
+        border-radius: var(--radius-pill);
+      }
+
+      .open-day.logged {
+        border-color: var(--color-accent);
+        color: var(--color-text);
+      }
+
+      .open-day.logged i {
+        background: var(--color-accent);
       }
 
       .dot-cyan {
@@ -1757,12 +1817,25 @@
             <div class="topbar">
               <div>
                 <h2>Log</h2>
-                <p class="sub">Sat 20 Sep · 8 fields</p>
+                <p class="sub">Sun 20 Sep · 8 fields</p>
               </div>
               <span class="chip"><span class="dot dot-warn" aria-hidden="true"></span>Offline</span>
             </div>
 
             <div class="body">
+              <div class="day-row" role="group" aria-label="Choose the day">
+                <button class="btn btn-secondary day-step" type="button" aria-label="Previous day, Sat 19 Sep">
+                  <span aria-hidden="true">‹</span>
+                </button>
+                <label class="field" for="log-day">
+                  <span class="micro">Day</span>
+                  <input class="input" id="log-day" type="date" max="2026-09-20" value="2026-09-20" />
+                </label>
+                <button class="btn btn-secondary day-step" type="button" aria-label="Next day, Mon 21 Sep" disabled>
+                  <span aria-hidden="true">›</span>
+                </button>
+              </div>
+
               <div class="dp" role="group" aria-labelledby="log-gym-label">
                 <span class="micro" id="log-gym-label">Gym time</span>
                 <div
@@ -2884,6 +2957,58 @@
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
                   Each column is a week. Weeks start on Monday.
                 </p>
+                <p class="muted" id="p5-open-a-day" style="margin: 10px 0 0; font-size: 12px">Open a day</p>
+                <ul class="open-days" aria-labelledby="p5-open-a-day">
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">M</span><span aria-hidden="true">14</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Mon 14 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">T</span><span aria-hidden="true">15</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Tue 15 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">W</span><span aria-hidden="true">16</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Wed 16 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">T</span><span aria-hidden="true">17</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Thu 17 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">F</span><span aria-hidden="true">18</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Fri 18 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">S</span><span aria-hidden="true">19</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Sat 19 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">S</span><span aria-hidden="true">20</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Sun 20 Sep, logged</span></a
+                    >
+                  </li>
+                </ul>
               </div>
 
               <div class="card">

@@ -1,7 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { Fragment } from 'react'
 
+import { logPath } from '../../lib/format/logDate'
+import { prettyDate } from '../DailyEntryForm'
 import { cn } from '../ui/cn'
 
 import { ChartCard } from './ChartCard'
@@ -57,6 +60,56 @@ function HeatGrid({ weeks }: { weeks: readonly HeatWeek[] }) {
   )
 }
 
+export const OPEN_DAY_COUNT = 7
+
+const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const
+
+export function recentDays(weeks: readonly HeatWeek[], count = OPEN_DAY_COUNT): HeatCell[] {
+  return weeks
+    .flatMap((week) => week.days)
+    .filter((cell) => cell.state !== 'future')
+    .slice(-count)
+}
+
+export function OpenDayLinks({ weeks }: { weeks: readonly HeatWeek[] }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p id="open-a-day" className="text-muted text-xs">
+        Open a day
+      </p>
+      <ul aria-labelledby="open-a-day" className="grid grid-cols-7 gap-1.5">
+        {recentDays(weeks).map((cell) => {
+          const at = new Date(`${cell.date}T00:00:00Z`)
+          const logged = cell.state === 'logged'
+
+          return (
+            <li key={cell.date}>
+              <Link
+                href={logPath(cell.date)}
+                className={cn(
+                  'bg-surface-2 rounded-input flex min-h-11 flex-col items-center justify-center border py-1 text-xs font-bold',
+                  logged ? 'border-accent text-text' : 'border-border text-muted',
+                )}
+              >
+                <span aria-hidden="true">{WEEKDAY_LETTERS[at.getUTCDay()]}</span>
+                <span aria-hidden="true">{at.getUTCDate()}</span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-0.5 size-1.5 rounded-full',
+                    logged ? 'bg-accent' : 'bg-transparent',
+                  )}
+                />
+                <span className="sr-only">{`${prettyDate(cell.date)}, ${logged ? 'logged' : 'not logged'}`}</span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 export function days(count: number): string {
   return count === 1 ? '1 day' : `${String(count)} days`
 }
@@ -83,7 +136,12 @@ export function StreakHeatMap({ weeks, streak, className }: StreakHeatMapProps) 
         { name: 'Not logged', dot: 'bg-dim' },
         { name: 'Ahead', dot: 'border border-dim' },
       ]}
-      footer={<p className="text-muted text-xs">Each column is a week. Weeks start on Monday.</p>}
+      footer={
+        <>
+          <p className="text-muted text-xs">Each column is a week. Weeks start on Monday.</p>
+          <OpenDayLinks weeks={weeks} />
+        </>
+      }
       className={className}
     >
       <HeatGrid weeks={weeks} />
