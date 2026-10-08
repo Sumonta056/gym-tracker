@@ -235,9 +235,14 @@ test('fits the three import choices at 14 px inside their card at 320 px, each 4
 test('fits every import table heading inside its cell at 1024 px and 1440 px', async ({ page }) => {
   await page.goto('/styleguide')
 
-  for (const width of [1024, 1440]) {
+  for (const [sample, width] of [
+    ['import-review-sample', 1024],
+    ['import-review-sample', 1440],
+    ['import-review-swim-sample', 1024],
+    ['import-review-swim-sample', 1440],
+  ] as const) {
     await page.setViewportSize({ width, height: 900 })
-    const table = page.getByTestId('import-review-sample').getByRole('table')
+    const table = page.getByTestId(sample).getByRole('table')
     await table.scrollIntoViewIfNeeded()
     await expect(table).toBeVisible()
 
@@ -258,7 +263,7 @@ test('fits every import table heading inside its cell at 1024 px and 1440 px', a
       }),
     )
 
-    expect(spills, `${String(width)}px`).toEqual([])
+    expect(spills, `${sample} ${String(width)}px`).toEqual([])
   }
 })
 

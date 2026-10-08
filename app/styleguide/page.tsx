@@ -123,6 +123,13 @@ const SAMPLE_IMPORT_SHEET = [
   'August 20,18.75,1:44:50,124,171,73.10,1012,"11,482"',
 ].join('\n')
 
+const SAMPLE_SWIM_SHEET = [
+  'Day,Walk Time,Gym Time,Swim Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
+  'August 12,15.54,1:03:13,30:00,117,174,73.65,963,5909',
+  'August 15,12:40,1:15:37,,121,168,73.40,880,7120',
+  'August 18,20:00,1:02:09,45.30,118,166,73.20,904,5909',
+].join('\n')
+
 function sampleImportSource(): ImportSource {
   return {
     firstPullDone: () => Promise.resolve(true),
@@ -1015,6 +1022,17 @@ function Styleguide() {
           <ImportReview
             fileName="gym-sheet.csv"
             text={SAMPLE_IMPORT_SHEET}
+            initialYear={2026}
+            status={<StatusChip status="synced" announce={false} />}
+            source={importSource}
+            onImported={ignoreImport}
+          />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">A sheet with a Swim Time column</h3>
+        <div className="mt-4" data-testid="import-review-swim-sample">
+          <ImportReview
+            fileName="swim-sheet.csv"
+            text={SAMPLE_SWIM_SHEET}
             initialYear={2026}
             status={<StatusChip status="synced" announce={false} />}
             source={importSource}

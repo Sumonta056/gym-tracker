@@ -12,6 +12,7 @@ import { toDayNumber } from '../lib/metrics/day'
 import { effectiveGymSeconds } from '../lib/metrics/gymTime'
 import { dailyEntrySchema, localDate, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from '../lib/schema/dailyEntry'
 
+import { Card } from './ui/Card'
 import {
   CARDIO_PRESETS,
   DurationPicker,
@@ -32,7 +33,7 @@ import type { DailyEntryDraft, DailyEntryInput } from '../lib/schema/dailyEntry'
 
 export const WEIGHT_STEP = 0.05
 
-export const FIELD_COUNT = 8
+export const FIELD_COUNT = 9
 
 function toNumber(text: string): number | null {
   const raw = text.trim()
@@ -45,6 +46,7 @@ const formSchema = z
     entry_date: z.string(),
     walk_seconds: z.number().nullable(),
     gym_seconds: z.number().nullable(),
+    swim_seconds: z.number().nullable(),
     avg_heart_rate: z.string(),
     max_heart_rate: z.string(),
     weight_kg: z.string(),
@@ -56,6 +58,7 @@ const formSchema = z
     entry_date: raw.entry_date,
     walk_seconds: raw.walk_seconds,
     gym_seconds: raw.gym_seconds,
+    swim_seconds: raw.swim_seconds,
     avg_heart_rate: toNumber(raw.avg_heart_rate),
     max_heart_rate: toNumber(raw.max_heart_rate),
     weight_kg: toNumber(raw.weight_kg),
@@ -70,6 +73,7 @@ export type DailyEntryFormValues = z.input<typeof formSchema>
 const EMPTY_VALUES: Omit<DailyEntryFormValues, 'entry_date'> = {
   walk_seconds: null,
   gym_seconds: null,
+  swim_seconds: null,
   avg_heart_rate: '',
   max_heart_rate: '',
   weight_kg: '',
@@ -83,6 +87,7 @@ export function toFormValues(entry: DailyEntry): DailyEntryFormValues {
     entry_date: entry.entry_date,
     walk_seconds: entry.walk_seconds,
     gym_seconds: entry.gym_seconds,
+    swim_seconds: entry.swim_seconds ?? null,
     avg_heart_rate: entry.avg_heart_rate === null ? '' : String(entry.avg_heart_rate),
     max_heart_rate: entry.max_heart_rate === null ? '' : String(entry.max_heart_rate),
     weight_kg: entry.weight_kg === null ? '' : entry.weight_kg.toFixed(2),
@@ -151,6 +156,11 @@ export type DayControl = 'previous' | 'day' | 'next'
 
 export const DAY_FIELD_ID = 'log-day'
 
+export const READ_FAILED =
+  'The saved entry for this day could not be read, so it cannot be saved. Reload to try again.'
+
+const READ_FAILED_ID = 'log-read-failed'
+
 export type DailyEntryFormProps = {
   date: string
   onDateChange: (date: string, from?: DayControl) => void
@@ -169,7 +179,7 @@ export function DailyEntryForm({
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [sessions, setSessions] = useState<WorkoutSession[]>([])
-  const loadedSwim = useRef<number | null>(null)
+  const [dayRead, setDayRead] = useState<'reading' | 'read' | 'failed'>('reading')
   const gymFocusPending = useRef(false)
   const setGymButton = useRef<HTMLButtonElement>(null)
   const [pendingDay, setPendingDay] = useState<{ date: string; from: DayControl } | null>(null)
@@ -184,7 +194,7 @@ export function DailyEntryForm({
 
   const {
     control,
-    formState: { errors, isDirty, isSubmitting },
+    formState: { dirtyFields, errors, isDirty, isSubmitting },
     getValues,
     handleSubmit,
     register,
@@ -214,15 +224,23 @@ export function DailyEntryForm({
   useEffect(() => {
     let cancelled = false
 
+    setDayRead('reading')
     void getDay(date).then(
       (entry) => {
-        if (!cancelled && entry !== undefined) {
-          loadedSwim.current = entry.swim_seconds ?? null
-          reset(toFormValues(entry))
+        if (cancelled) {
+          return
         }
+
+        if (entry !== undefined) {
+          reset(toFormValues(entry), { keepDirtyValues: true })
+        }
+
+        setDayRead('read')
       },
       () => {
-        setSaveError('The saved entry for this day could not be read.')
+        if (!cancelled) {
+          setDayRead('failed')
+        }
       },
     )
 
@@ -252,14 +270,32 @@ export function DailyEntryForm({
     }
   }, [date, readSessions])
 
+  const swimTouched = dirtyFields.swim_seconds === true
+
   const save = useCallback(
-    (values: DailyEntryInput) => {
+    async (values: DailyEntryInput) => {
+      if (dayRead !== 'read') {
+        return
+      }
+
       setSaved(false)
       setSaveError(null)
 
-      return upsertDay({ ...values, swim_seconds: loadedSwim.current }).then(
+      const { swim_seconds: swim, ...rest } = values
+      const submitted = getValues()
+
+      await upsertDay(swimTouched ? { ...rest, swim_seconds: swim } : rest).then(
         () => {
-          reset(getValues())
+          const current = getValues()
+
+          reset(submitted)
+
+          for (const name of Object.keys(current) as (keyof DailyEntryFormValues)[]) {
+            if (current[name] !== submitted[name]) {
+              setValue(name, current[name], { shouldDirty: true })
+            }
+          }
+
           setSaved(true)
           toast.show(SAVED_MESSAGE)
         },
@@ -268,7 +304,7 @@ export function DailyEntryForm({
         },
       )
     },
-    [getValues, reset, toast],
+    [dayRead, getValues, reset, setValue, swimTouched, toast],
   )
 
   const weightText = watch('weight_kg')
@@ -530,6 +566,28 @@ export function DailyEntryForm({
           )}
         />
 
+        <Card className="flex flex-col gap-3">
+          <h2>
+            <MicroLabel>Swimming</MicroLabel>
+          </h2>
+          <Controller
+            control={control}
+            name="swim_seconds"
+            render={({ field }) => (
+              <DurationPicker
+                id="swim_seconds"
+                label="Swim time"
+                value={field.value}
+                onChange={field.onChange}
+                presets={CARDIO_PRESETS}
+                step={SESSION_STEP_SECONDS}
+                allowClear
+              />
+            )}
+          />
+          <p className="text-muted text-xs">The time in the pool today. No distance.</p>
+        </Card>
+
         <div className="grid grid-cols-2 gap-3">
           <NumberField
             label="Avg heart rate"
@@ -616,13 +674,24 @@ export function DailyEntryForm({
         </p>
       )}
 
+      {dayRead === 'failed' ? (
+        <p id={READ_FAILED_ID} role="alert" className="text-danger mt-2 text-sm">
+          {READ_FAILED}
+        </p>
+      ) : null}
+
       {saveError === null ? null : (
         <p role="alert" className="text-danger mt-2 text-sm">
           {saveError}
         </p>
       )}
 
-      <PrimaryButton type="submit" className="mt-4" disabled={isSubmitting}>
+      <PrimaryButton
+        type="submit"
+        className="mt-4"
+        disabled={isSubmitting || dayRead !== 'read'}
+        aria-describedby={dayRead === 'failed' ? READ_FAILED_ID : undefined}
+      >
         Save entry
       </PrimaryButton>
 

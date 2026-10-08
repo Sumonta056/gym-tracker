@@ -31,7 +31,7 @@ export type SheetIssue = {
   message: string
 }
 
-export type ParsedSheet = { rows: ParsedRow[]; issues: SheetIssue[] }
+export type ParsedSheet = { rows: ParsedRow[]; issues: SheetIssue[]; columns: SheetField[] }
 
 type Kind = 'date' | 'duration' | 'number'
 
@@ -121,7 +121,9 @@ export function parseSheet(text: string, options: { year: number }): ParsedSheet
     rows.push({ line: record.line, cells: readRow(names, record.fields, options.year) })
   }
 
-  return { rows, issues }
+  const columns = COLUMNS.filter(({ name }) => names.includes(name)).map(({ field }) => field)
+
+  return { rows, issues, columns }
 }
 
 function shapeIssues(record: SheetRecord, width: number): SheetIssue[] {

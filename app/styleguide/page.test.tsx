@@ -106,6 +106,15 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(sample.getAllByText(/This row is left out of the import\./).length).toBeGreaterThan(0)
   })
 
+  it('renders an import review sample with a swim column, and one without', () => {
+    const heads = (id: string) =>
+      within(within(screen.getByTestId(id)).getByRole('table'))
+        .getAllByRole('columnheader')
+        .map((cell) => cell.textContent)
+    expect(heads('import-review-swim-sample')).toContain('Swim')
+    expect(heads('import-review-sample')).not.toContain('Swim')
+  })
+
   it('switches the profile sample to imperial from its unit toggle', async () => {
     const grid = within(screen.getByTestId('profile-grid-sample'))
     await userEvent.click(grid.getByRole('button', { name: 'Imperial' }))

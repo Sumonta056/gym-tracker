@@ -235,11 +235,20 @@ export async function listRange(from: string, to: string): Promise<DailyEntry[]>
   )
 }
 
-async function writeDay(parsed: DailyEntryInput, timestamp: string): Promise<DailyEntry> {
+export type DayWrite = Omit<DailyEntryInput, 'swim_seconds'> &
+  Partial<Pick<DailyEntryInput, 'swim_seconds'>>
+
+async function writeDay(
+  parsed: DailyEntryInput,
+  timestamp: string,
+  keepSwim = false,
+): Promise<DailyEntry> {
   const existing = await keepOneLiveRow(parsed.entry_date, timestamp)
+  const storedSwim = existing?.deleted_at === null ? (existing.swim_seconds ?? null) : null
 
   const row: DailyEntry = {
     ...parsed,
+    swim_seconds: keepSwim ? storedSwim : parsed.swim_seconds,
     id: existing?.id ?? newId(),
     created_at: existing?.created_at ?? timestamp,
     updated_at: timestamp,
@@ -252,14 +261,15 @@ async function writeDay(parsed: DailyEntryInput, timestamp: string): Promise<Dai
   return row
 }
 
-export async function upsertDay(input: DailyEntryInput): Promise<DailyEntry> {
+export async function upsertDay(input: DayWrite): Promise<DailyEntry> {
   const parsed = dailyEntrySchema.parse(input)
+  const keepSwim = input.swim_seconds === undefined
   const timestamp = nowIso()
 
   return db.transaction('rw', db.dailyEntries, db.outbox, db.syncMeta, async () => {
     await refuseWhenSignedOut()
 
-    return writeDay(parsed, timestamp)
+    return writeDay(parsed, timestamp, keepSwim)
   })
 }
 
@@ -342,7 +352,11 @@ const COUNTED_CHOICE: Record<'overwrite' | 'merge', 'overwritten' | 'merged'> = 
 }
 
 export async function importDays(days: ImportDay[]): Promise<ImportResult> {
-  const parsed = days.map((day) => ({ ...day, entry: dailyEntrySchema.parse(day.entry) }))
+  const parsed = days.map((day) => ({
+    ...day,
+    entry: dailyEntrySchema.parse(day.entry),
+    keepSwim: day.entry.swim_seconds === undefined,
+  }))
   const seen = new Set<string>()
 
   for (const { entry } of parsed) {
@@ -364,7 +378,7 @@ export async function importDays(days: ImportDay[]): Promise<ImportResult> {
 
     const result: ImportResult = { created: 0, overwritten: 0, merged: 0, skipped: 0 }
 
-    for (const { entry, choice } of parsed) {
+    for (const { entry, choice, keepSwim } of parsed) {
       const existing = await getDay(entry.entry_date)
 
       if (choice === 'skip') {
@@ -375,7 +389,7 @@ export async function importDays(days: ImportDay[]): Promise<ImportResult> {
       } else if (choice === undefined) {
         throw new ImportNeedsAChoice(entry.entry_date)
       } else if (choice === 'overwrite') {
-        await writeDay({ ...entry, note: existing.note }, timestamp)
+        await writeDay({ ...entry, note: existing.note }, timestamp, keepSwim)
         result.overwritten += 1
       } else {
         const merged = mergeDay(existing, entry)

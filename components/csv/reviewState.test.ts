@@ -290,6 +290,23 @@ describe('importPlan', () => {
   )
   const logged = new Set(['2026-08-12', '2026-08-13', '2026-08-14'])
 
+  it('sends no swim time for a sheet with no Swim Time column', () => {
+    const plan = importPlan(sheetOf('August 11,20,,,,,,'), {}, new Set(), {})
+    expect(plan.days[0]?.entry).not.toHaveProperty('swim_seconds')
+  })
+
+  it('sends a blank swim cell as no swim time when the sheet has the column', () => {
+    const swimSheet = parseSheet(
+      [
+        'Day,Walk Time,Gym Time,Swim Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
+        'August 11,20,,,,,,,',
+      ].join('\n'),
+      { year: 2026 },
+    )
+    const plan = importPlan(swimSheet, {}, new Set(), {})
+    expect(plan.days[0]?.entry).toHaveProperty('swim_seconds', null)
+  })
+
   it('counts new, overwritten, merged, skipped and left out rows', () => {
     const plan = importPlan(sheet, { [cellKey(6, 'walk_seconds')]: 0 }, logged, {
       '2026-08-12': 'overwrite',

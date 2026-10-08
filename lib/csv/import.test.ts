@@ -42,6 +42,17 @@ const SHEET = readFileSync(new URL('../../tests/fixtures/gym-sheet.csv', import.
 
 const HEADER = 'Day,Walk Time,Gym Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps'
 
+const SHEET_COLUMNS_WITHOUT_SWIM = [
+  'entry_date',
+  'walk_seconds',
+  'gym_seconds',
+  'avg_heart_rate',
+  'max_heart_rate',
+  'weight_kg',
+  'calories_burnt',
+  'steps',
+]
+
 const YEAR = { year: 2025 }
 
 const REVIEW = 'review'
@@ -511,6 +522,18 @@ describe('parseSheet', () => {
     expect(parsed.rows[0]?.cells.swim_seconds).toEqual({ status: 'ok', raw: '', value: null })
   })
 
+  it('names the columns the sheet holds, in the order of the app', () => {
+    expect(parseSheet('Steps,Swim Time,Day\n', YEAR).columns).toEqual([
+      'entry_date',
+      'swim_seconds',
+      'steps',
+    ])
+  })
+
+  it('names no swim column for a sheet with no Swim Time column', () => {
+    expect(parseSheet(`${HEADER}\n`, YEAR).columns).toEqual(SHEET_COLUMNS_WITHOUT_SWIM)
+  })
+
   it('reads a Swim Time column as a duration', () => {
     const parsed = parseSheet(`Day,Swim Time\nAugust 12,0:25:00\n`, { year: 2026 })
     expect(parsed.rows[0]?.cells.swim_seconds).toEqual({
@@ -631,7 +654,11 @@ describe('parseSheet', () => {
   })
 
   it('returns no rows and no issues for a header with no rows', () => {
-    expect(parseSheet(`${HEADER}\n`, YEAR)).toEqual({ rows: [], issues: [] })
+    expect(parseSheet(`${HEADER}\n`, YEAR)).toEqual({
+      rows: [],
+      issues: [],
+      columns: SHEET_COLUMNS_WITHOUT_SWIM,
+    })
   })
 
   it.each([

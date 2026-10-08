@@ -176,7 +176,6 @@ describe('LogDay', () => {
           entry_date: shiftLogDate(PAST, -1),
           walk_seconds: null,
           gym_seconds: null,
-          swim_seconds: null,
           avg_heart_rate: null,
           max_heart_rate: null,
           weight_kg: null,
@@ -187,6 +186,7 @@ describe('LogDay', () => {
       )
     })
     expect(upsertDay).not.toHaveBeenCalledWith(expect.objectContaining({ entry_date: PAST }))
+    expect(vi.mocked(upsertDay).mock.calls[0]?.[0]).not.toHaveProperty('swim_seconds')
   })
 
   it('keeps the swim time of the day it was read from', async () => {
@@ -210,13 +210,17 @@ describe('LogDay', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Steps')).toHaveValue('222')
     })
+    expect(
+      within(screen.getByRole('group', { name: 'Swim time' })).getByRole('status'),
+    ).toHaveTextContent('10:00')
     await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
 
     await waitFor(() => {
       expect(upsertDay).toHaveBeenCalledWith(
-        expect.objectContaining({ entry_date: previous, swim_seconds: 600, steps: 222 }),
+        expect.objectContaining({ entry_date: previous, steps: 222 }),
       )
     })
+    expect(vi.mocked(upsertDay).mock.calls[0]?.[0]).not.toHaveProperty('swim_seconds')
   })
 
   it('reads the sessions of the new day', async () => {

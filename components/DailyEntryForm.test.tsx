@@ -25,6 +25,9 @@ vi.mock('../lib/db/repository', () => ({
 
 const DATE = '2026-09-19'
 
+const READ_FAILED =
+  'The saved entry for this day could not be read, so it cannot be saved. Reload to try again.'
+
 const STORED: DailyEntry = {
   id: '11111111-1111-4111-8111-111111111111',
   entry_date: DATE,
@@ -35,6 +38,7 @@ const STORED: DailyEntry = {
   weight_kg: 73.4,
   calories_burnt: 985,
   steps: 12480,
+  swim_seconds: 2700,
   note: 'Push day.',
   created_at: '2026-09-19T10:00:00.000Z',
   updated_at: '2026-09-19T10:00:00.000Z',
@@ -53,6 +57,9 @@ async function renderForm() {
   render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
   await waitFor(() => {
     expect(getDay).toHaveBeenCalledWith(DATE)
+  })
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save entry' })).toBeEnabled()
   })
 }
 
@@ -81,6 +88,14 @@ const TWO_SESSIONS = [
     '2026-09-19T17:42:05.000Z',
   ),
 ]
+
+function swim() {
+  return within(screen.getByRole('group', { name: 'Swim time' }))
+}
+
+function swimCall(): unknown {
+  return vi.mocked(upsertDay).mock.calls[0]?.[0]
+}
 
 function gymGroup() {
   return within(screen.getByRole('group', { name: 'Gym time' }))
@@ -124,6 +139,7 @@ describe('toFormValues', () => {
         ...STORED,
         walk_seconds: null,
         gym_seconds: null,
+        swim_seconds: null,
         avg_heart_rate: null,
         max_heart_rate: null,
         weight_kg: null,
@@ -135,6 +151,7 @@ describe('toFormValues', () => {
       entry_date: DATE,
       walk_seconds: null,
       gym_seconds: null,
+      swim_seconds: null,
       avg_heart_rate: '',
       max_heart_rate: '',
       weight_kg: '',
@@ -142,6 +159,16 @@ describe('toFormValues', () => {
       steps: '',
       note: '',
     })
+  })
+
+  it('gives no swim time for a row saved before version 5', () => {
+    const before: DailyEntry = { ...STORED }
+    delete before.swim_seconds
+    expect(toFormValues(before)).toMatchObject({ swim_seconds: null })
+  })
+
+  it('copies the stored swim time', () => {
+    expect(toFormValues(STORED)).toMatchObject({ swim_seconds: 2700 })
   })
 })
 
@@ -245,7 +272,6 @@ describe('DailyEntryForm', () => {
       entry_date: DATE,
       walk_seconds: 2700,
       gym_seconds: 3600,
-      swim_seconds: null,
       avg_heart_rate: null,
       max_heart_rate: null,
       weight_kg: 73.4,
@@ -320,7 +346,7 @@ describe('DailyEntryForm', () => {
     expect(screen.getByLabelText('Note')).toHaveValue('Push day.')
   })
 
-  it('keeps a stored swim time when the form saves the day', async () => {
+  it('leaves a stored swim time to the repository when only another field changes', async () => {
     vi.mocked(getDay).mockResolvedValue({ ...STORED, swim_seconds: 1500 })
     await renderForm()
     await waitFor(() => {
@@ -333,12 +359,11 @@ describe('DailyEntryForm', () => {
     await waitFor(() => {
       expect(upsertDay).toHaveBeenCalledTimes(1)
     })
-    expect(upsertDay).toHaveBeenCalledWith(
-      expect.objectContaining({ steps: 9000, swim_seconds: 1500 }),
-    )
+    expect(upsertDay).toHaveBeenCalledWith(expect.objectContaining({ steps: 9000 }))
+    expect(swimCall()).not.toHaveProperty('swim_seconds')
   })
 
-  it('saves a null swim time for a new day', async () => {
+  it('sends no swim time when the swim picker is untouched', async () => {
     await renderForm()
     await userEvent.type(screen.getByLabelText('Steps'), '9000')
     await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
@@ -346,15 +371,157 @@ describe('DailyEntryForm', () => {
     await waitFor(() => {
       expect(upsertDay).toHaveBeenCalledTimes(1)
     })
-    expect(upsertDay).toHaveBeenCalledWith(expect.objectContaining({ swim_seconds: null }))
+    expect(swimCall()).not.toHaveProperty('swim_seconds')
+  })
+
+  it('keeps Save disabled until the stored day is read', async () => {
+    vi.mocked(getDay).mockReturnValue(new Promise<DailyEntry | undefined>(() => undefined))
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+    const save = screen.getByRole('button', { name: 'Save entry' })
+    expect(save).toBeDisabled()
+
+    await userEvent.click(save)
+
+    expect(upsertDay).not.toHaveBeenCalled()
+  })
+
+  it('saves nothing on a submit before the stored day is read', async () => {
+    vi.mocked(getDay).mockReturnValue(new Promise<DailyEntry | undefined>(() => undefined))
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+
+    const form = screen.getByRole('button', { name: 'Save entry' }).closest('form')
+    if (form === null) throw new Error('no form')
+    fireEvent.submit(form)
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(upsertDay).not.toHaveBeenCalled()
+  })
+
+  it('asks before it leaves a value typed while the save runs', async () => {
+    let finish: (row: DailyEntry) => void = () => undefined
+    vi.mocked(upsertDay).mockImplementationOnce(
+      () =>
+        new Promise<DailyEntry>((resolve) => {
+          finish = resolve
+        }),
+    )
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Save entry' })).toBeEnabled()
+    })
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledTimes(1)
+    })
+
+    await userEvent.type(screen.getByLabelText('Calories'), '700')
+    finish(STORED)
+    expect(await screen.findByText('Saved on this device.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Previous day,/ }))
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Discard the changes to Sat 19 Sep?' }),
+    ).toBeVisible()
+    expect(onDateChange).not.toHaveBeenCalled()
+  })
+
+  it('disables Save again while a new date is read, with no remount', async () => {
+    let read: (entry: DailyEntry | undefined) => void = () => undefined
+    const { rerender } = render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Save entry' })).toBeEnabled()
+    })
+    vi.mocked(getDay).mockReturnValue(
+      new Promise<DailyEntry | undefined>((resolve) => {
+        read = resolve
+      }),
+    )
+
+    rerender(<DailyEntryForm date="2026-09-18" onDateChange={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Save entry' })).toBeDisabled()
+    read(undefined)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Save entry' })).toBeEnabled()
+    })
+  })
+
+  it('enables Save once a day with no entry is read', async () => {
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Save entry' })).toBeEnabled()
+    })
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledWith(expect.objectContaining({ steps: 9000 }))
+    })
+  })
+
+  it('keeps Save disabled after the stored day could not be read, and says why', async () => {
+    vi.mocked(getDay).mockRejectedValue(new Error('no'))
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    const message = await screen.findByText(READ_FAILED)
+    const save = screen.getByRole('button', { name: 'Save entry' })
+    expect(save).toBeDisabled()
+    expect(save).toHaveAttribute('aria-describedby', message.id)
+
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+    await userEvent.click(save)
+
+    expect(upsertDay).not.toHaveBeenCalled()
   })
 
   it('says so when the stored entry cannot be read', async () => {
     vi.mocked(getDay).mockRejectedValueOnce(new Error('no'))
-    await renderForm()
-    expect(
-      await screen.findByText('The saved entry for this day could not be read.'),
-    ).toBeInTheDocument()
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent(READ_FAILED)
+  })
+
+  it('keeps a swim time tapped before the stored day is read', async () => {
+    let read: (entry: DailyEntry) => void = () => undefined
+    vi.mocked(getDay).mockReturnValue(
+      new Promise<DailyEntry | undefined>((resolve) => {
+        read = resolve
+      }),
+    )
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    await userEvent.click(swim().getByRole('button', { name: '30m' }))
+
+    read(STORED)
+    await waitFor(() => {
+      expect(screen.getByLabelText('Steps')).toHaveValue('12480')
+    })
+    expect(swim().getByRole('status')).toHaveTextContent('30:00')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledWith(
+        expect.objectContaining({ swim_seconds: 1800, steps: 12480 }),
+      )
+    })
+  })
+
+  it('keeps a value typed before the stored day is read', async () => {
+    let read: (entry: DailyEntry) => void = () => undefined
+    vi.mocked(getDay).mockReturnValue(
+      new Promise<DailyEntry | undefined>((resolve) => {
+        read = resolve
+      }),
+    )
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    await userEvent.type(screen.getByLabelText('Calories'), '700')
+
+    read(STORED)
+    await waitFor(() => {
+      expect(screen.getByLabelText('Steps')).toHaveValue('12480')
+    })
+    expect(screen.getByLabelText('Calories')).toHaveValue('700')
   })
 
   it('heads the screen with its title and date only, as the prototype log top bar does', async () => {
@@ -438,7 +605,7 @@ describe('DailyEntryForm', () => {
 
   it('names the day and the field count, as the mockup does', async () => {
     await renderForm()
-    expect(screen.getByText('Sat 19 Sep · 8 fields')).toBeInTheDocument()
+    expect(screen.getByText('Sat 19 Sep · 9 fields')).toBeInTheDocument()
   })
 
   it('names each day button with the day it opens, at the field height', async () => {
@@ -687,5 +854,140 @@ describe('DailyEntryForm gym time', () => {
     expect(await screen.findByText('From 2 sessions · 1h 12m')).toBeVisible()
     expect(readSessions).toHaveBeenCalledWith(DATE, DATE)
     expect(listSessions).not.toHaveBeenCalled()
+  })
+})
+
+describe('the Swimming card', () => {
+  it('sits after walk time, under its own heading', async () => {
+    await renderForm()
+    const walk = screen.getByRole('group', { name: 'Walk time' })
+    const picker = screen.getByRole('group', { name: 'Swim time' })
+    expect(walk.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Swimming' })).toBeVisible()
+  })
+
+  it('says the card holds the time in the pool and no distance', async () => {
+    await renderForm()
+    expect(screen.getByText('The time in the pool today. No distance.')).toBeVisible()
+  })
+
+  it('sets swim time with taps only, in 1 minute steps and 4 presets', async () => {
+    await renderForm()
+    expect(swim().queryByRole('textbox')).not.toBeInTheDocument()
+    expect(swim().getByRole('button', { name: 'Increase Swim time by 1 minute' })).toBeVisible()
+    expect(
+      swim()
+        .getAllByRole('button', { pressed: false })
+        .map((button) => button.textContent),
+    ).toEqual(['15m', '30m', '45m', '1h'])
+  })
+
+  it('saves the picked swim time in seconds', async () => {
+    await renderForm()
+    await userEvent.click(swim().getByRole('button', { name: '30m' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledWith(expect.objectContaining({ swim_seconds: 1800 }))
+    })
+  })
+
+  it('saves no swim time after Clear', async () => {
+    vi.mocked(getDay).mockResolvedValue(STORED)
+    await renderForm()
+    await waitFor(() => {
+      expect(swim().getByRole('status')).toHaveTextContent('45:00')
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear Swim time' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledWith(expect.objectContaining({ swim_seconds: null }))
+    })
+  })
+
+  it('fills the swim time from the stored entry', async () => {
+    vi.mocked(getDay).mockResolvedValue(STORED)
+    await renderForm()
+    await waitFor(() => {
+      expect(swim().getByRole('status')).toHaveTextContent('45:00')
+    })
+    expect(swim().getByRole('button', { name: '45m' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('keeps the swim time of a past day', async () => {
+    render(<DailyEntryForm date="2026-09-10" onDateChange={vi.fn()} />)
+    await waitFor(() => {
+      expect(getDay).toHaveBeenCalledWith('2026-09-10')
+    })
+
+    await userEvent.click(swim().getByRole('button', { name: '30m' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledWith(
+        expect.objectContaining({ entry_date: '2026-09-10', swim_seconds: 1800 }),
+      )
+    })
+  })
+
+  it('keeps a swim time picked while the save runs', async () => {
+    let finish: (row: DailyEntry) => void = () => undefined
+    vi.mocked(upsertDay).mockImplementationOnce(
+      () =>
+        new Promise<DailyEntry>((resolve) => {
+          finish = resolve
+        }),
+    )
+    await renderForm()
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledTimes(1)
+    })
+
+    await userEvent.click(swim().getByRole('button', { name: '30m' }))
+    finish(STORED)
+    expect(await screen.findByText('Saved on this device.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledTimes(2)
+    })
+    expect(upsertDay).toHaveBeenLastCalledWith(expect.objectContaining({ swim_seconds: 1800 }))
+  })
+
+  it('sends no swim time when the swim time is set back to the stored one', async () => {
+    vi.mocked(getDay).mockResolvedValue(STORED)
+    await renderForm()
+    await waitFor(() => {
+      expect(swim().getByRole('status')).toHaveTextContent('45:00')
+    })
+
+    await userEvent.click(swim().getByRole('button', { name: '30m' }))
+    await userEvent.click(swim().getByRole('button', { name: '45m' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+
+    await waitFor(() => {
+      expect(upsertDay).toHaveBeenCalledTimes(1)
+    })
+    expect(swimCall()).not.toHaveProperty('swim_seconds')
+  })
+
+  it('asks before it leaves a day with a changed swim time', async () => {
+    const onDateChange = vi.fn()
+    render(<DailyEntryForm date={DATE} onDateChange={onDateChange} />)
+    await waitFor(() => {
+      expect(getDay).toHaveBeenCalledWith(DATE)
+    })
+
+    await userEvent.click(swim().getByRole('button', { name: '30m' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Previous day, Fri 18 Sep' }))
+
+    expect(
+      screen.getByRole('dialog', { name: `Discard the changes to ${prettyDate(DATE)}?` }),
+    ).toBeInTheDocument()
+    expect(onDateChange).not.toHaveBeenCalled()
   })
 })

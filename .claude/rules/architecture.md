@@ -66,6 +66,9 @@ every synced table.
 - A stale offline edit can undo a change or a soft delete made on another device.
 - The pull keeps a local row that still has a queued write, and writes a newer server
   row over any other local row.
+- It covers `swim_seconds` too. A device that has not pulled can push an old swim time
+  back over a clear made on another device. An untouched swim picker sends no key, so
+  the repository keeps the stored value.
 - Kept on purpose. Each account has one person, who rarely edits one row on 2 devices at
   once. A server guard compares a device clock with a server clock, the same limit
   as the server id rule above.

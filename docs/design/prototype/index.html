@@ -1817,7 +1817,7 @@
             <div class="topbar">
               <div>
                 <h2>Log</h2>
-                <p class="sub">Sun 20 Sep · 8 fields</p>
+                <p class="sub">Sun 20 Sep · 9 fields</p>
               </div>
               <span class="chip"><span class="dot dot-warn" aria-hidden="true"></span>Offline</span>
             </div>
@@ -1872,6 +1872,32 @@
                     Clear <span class="visually-hidden">Walk time</span>
                   </button>
                 </div>
+              </div>
+
+              <div class="card stack" style="gap: 12px">
+                <h3 class="micro" style="margin: 0">Swimming</h3>
+                <div class="dp" role="group" aria-labelledby="log-swim-label">
+                  <span class="micro" id="log-swim-label">Swim time</span>
+                  <div class="dp-row">
+                    <button class="dp-step" type="button" aria-label="Decrease Swim time by 1 minute">
+                      <span aria-hidden="true">−</span>
+                    </button>
+                    <output class="dp-value">30:00</output>
+                    <button class="dp-step" type="button" aria-label="Increase Swim time by 1 minute">
+                      <span aria-hidden="true">+</span>
+                    </button>
+                  </div>
+                  <div class="dp-chips">
+                    <button class="pill" type="button" aria-pressed="false">15m</button>
+                    <button class="pill" type="button" aria-pressed="true">30m</button>
+                    <button class="pill" type="button" aria-pressed="false">45m</button>
+                    <button class="pill" type="button" aria-pressed="false">1h</button>
+                    <button class="pill dp-clear" type="button">
+                      Clear <span class="visually-hidden">Swim time</span>
+                    </button>
+                  </div>
+                </div>
+                <p class="muted" style="margin: 0; font-size: 12px">The time in the pool today. No distance.</p>
               </div>
 
               <div class="grid-2">
@@ -4515,6 +4541,10 @@
                       >15.54 <span class="badge badge-warn">Check</span></span
                     >
                   </div>
+                  <div>
+                    <span class="muted">Swim time</span>
+                    <span class="cell" style="margin-top: 4px">—</span>
+                  </div>
                 </div>
                 <fieldset style="border: 0; margin: 12px 0 0; padding: 0">
                   <legend class="muted" style="padding: 0; margin-bottom: 8px">
@@ -4557,6 +4587,10 @@
                       >12.40 <span class="badge badge-warn">Check</span></span
                     >
                   </div>
+                  <div>
+                    <span class="muted">Swim time</span>
+                    <span class="cell" style="margin-top: 4px">—</span>
+                  </div>
                 </div>
                 <fieldset style="border: 0; margin: 12px 0 0; padding: 0">
                   <legend class="muted" style="padding: 0; margin-bottom: 8px">
@@ -4593,6 +4627,10 @@
                   <div>
                     <span class="muted">Walk time · 20.05</span>
                     <span class="cell" style="margin-top: 4px">20m 5s</span>
+                  </div>
+                  <div>
+                    <span class="muted">Swim time</span>
+                    <span class="cell" style="margin-top: 4px">30:00</span>
                   </div>
                 </div>
                 <!-- A picked cell keeps its two readings, so a wrong pick can be changed. -->
@@ -4646,6 +4684,10 @@
                   <div>
                     <span class="muted">Walk time</span>
                     <span class="cell" style="margin-top: 4px">53m 19s</span>
+                  </div>
+                  <div>
+                    <span class="muted">Swim time</span>
+                    <span class="cell" style="margin-top: 4px">45:00</span>
                   </div>
                 </div>
                 <p class="muted" style="margin: 8px 0 10px">
@@ -5374,7 +5416,8 @@
         At 1024 px and up the rows are one table, inside a card. A row with a cell to check is
         followed by its picks. A date already logged is followed by its three choices, and its
         status reads Choose until one is picked. Under 1024 px the same rows are the cards of plate 10, one per
-        row under 640 px and two per row from 640 px.
+        row under 640 px and two per row from 640 px. The Swim column, and the Swim time cell on
+        the cards, show only when the sheet has a Swim Time column.
       </p>
       <div class="laptop-scroll">
         <div class="laptop-frame" style="height: auto; min-height: 900px">
@@ -5446,15 +5489,16 @@
                   <caption class="visually-hidden">Rows of the sheet</caption>
                   <thead>
                     <tr>
-                      <th scope="col" style="width: 15%"><span class="micro">Row</span></th>
+                      <th scope="col" style="width: 12%"><span class="micro">Row</span></th>
                       <th scope="col"><span class="micro">Walk</span></th>
                       <th scope="col"><span class="micro">Gym</span></th>
+                      <th scope="col"><span class="micro">Swim</span></th>
                       <th scope="col"><span class="micro">Avg HR</span></th>
                       <th scope="col"><span class="micro">Max HR</span></th>
                       <th scope="col"><span class="micro">Weight</span></th>
                       <th scope="col"><span class="micro">Kcal</span></th>
                       <th scope="col"><span class="micro">Steps</span></th>
-                      <th scope="col" style="width: 12%"><span class="micro">Status</span></th>
+                      <th scope="col" style="width: 11%"><span class="micro">Status</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -5462,6 +5506,7 @@
                       <th scope="row">Row 1 · 12 Aug</th>
                       <td><span style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center"><strong style="color: var(--color-warn)">15.54</strong> <span class="badge badge-warn">Check</span></span></td>
                       <td>1:03:13</td>
+                      <td>—</td>
                       <td>117</td>
                       <td>174</td>
                       <td>73.65 kg</td>
@@ -5470,7 +5515,7 @@
                       <td><strong style="color: var(--color-warn)">1 to check</strong></td>
                     </tr>
                     <tr class="imp-pick">
-                      <td colspan="9">
+                      <td colspan="10">
                         <div class="grid-2" style="gap: 16px">
                         <div class="stack" style="gap: 10px">
                           <fieldset style="border: 0; margin: 0; padding: 0">
@@ -5501,6 +5546,7 @@
                       <th scope="row">Row 7 · 20 Aug</th>
                       <td>20m 5s</td>
                       <td>1:44:50</td>
+                      <td>30:00</td>
                       <td>122</td>
                       <td>171</td>
                       <td>73.10 kg</td>
@@ -5509,7 +5555,7 @@
                       <td class="muted">Picked</td>
                     </tr>
                     <tr class="imp-pick">
-                      <td colspan="9">
+                      <td colspan="10">
                         <div class="grid-2" style="gap: 16px">
                         <div class="stack" style="gap: 10px">
                           <fieldset style="border: 0; margin: 0; padding: 0">
@@ -5540,6 +5586,7 @@
                       <th scope="row">Row 8 · 22 Aug</th>
                       <td>18:45</td>
                       <td>1:10:02</td>
+                      <td>30:00</td>
                       <td>119</td>
                       <td>165</td>
                       <td>73.00 kg</td>
@@ -5551,6 +5598,7 @@
                       <th scope="row">Row 9 · 18 Aug</th>
                       <td>20:00</td>
                       <td>1:02:09</td>
+                      <td>—</td>
                       <td>118</td>
                       <td>166</td>
                       <td>73.20 kg</td>
@@ -5559,7 +5607,7 @@
                       <td><strong style="color: var(--color-danger)">Error</strong></td>
                     </tr>
                     <tr class="imp-pick">
-                      <td colspan="9" class="muted">
+                      <td colspan="10" class="muted">
                         Steps "5.9k" could not be read. Enter a number. This row is left out of the
                         import.
                       </td>
@@ -5568,6 +5616,7 @@
                       <th scope="row">Row 16 · 13 Sep</th>
                       <td>53m 19s</td>
                       <td>1:11:52</td>
+                      <td>45:00</td>
                       <td>135</td>
                       <td>170</td>
                       <td>79.45 kg</td>
@@ -5576,7 +5625,7 @@
                       <td><strong style="color: var(--color-warn)">Choose</strong></td>
                     </tr>
                     <tr class="imp-pick">
-                      <td colspan="9">
+                      <td colspan="10">
                         <div class="stack" style="gap: 10px; max-width: 420px">
                           <p class="muted" style="margin: 0">
                             This date already has a day in the app. What should the import do?

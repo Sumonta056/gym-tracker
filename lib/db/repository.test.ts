@@ -75,7 +75,7 @@ import {
 import { safeQuery } from './safeQuery'
 
 import type { DailyEntry, Exercise, OutboxEntry, WorkoutSession, WorkoutSet } from './dexie'
-import type { ImportDay } from './repository'
+import type { DayWrite, ImportDay } from './repository'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { MuscleGroup } from '../schema/exercise'
 import type { WorkoutSetDraft } from '../schema/workoutSet'
@@ -138,6 +138,21 @@ function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | '
 
 function entry(entryDate: string, overrides: Partial<DailyEntryInput> = {}): DailyEntryInput {
   return dailyEntrySchema.parse({ entry_date: entryDate, ...overrides })
+}
+
+function dayWithoutSwim(entryDate: string, overrides: Partial<DayWrite> = {}): DayWrite {
+  return {
+    entry_date: entryDate,
+    walk_seconds: null,
+    gym_seconds: null,
+    avg_heart_rate: null,
+    max_heart_rate: null,
+    weight_kg: null,
+    calories_burnt: null,
+    steps: null,
+    note: null,
+    ...overrides,
+  }
 }
 
 beforeEach(async () => {
@@ -292,6 +307,82 @@ describe('upsertDay', () => {
     expect(outboxCountInsideTransaction).toBe(2)
     expect(await db.dailyEntries.toArray()).toEqual(entriesBefore)
     expect(await db.outbox.toArray()).toEqual(outboxBefore)
+  })
+})
+
+describe('upsertDay and the swim time', () => {
+  it('keeps the swim time through a save, the outbox and a read', async () => {
+    await upsertDay(dailyEntrySchema.parse({ entry_date: '2026-09-01', swim_seconds: 1800 }))
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: 1800 })
+    const [queued] = await dailyQueued()
+    expect(queued?.payload).toMatchObject({ swim_seconds: 1800 })
+  })
+
+  it('keeps the stored swim time when the input has no swim_seconds key', async () => {
+    await upsertDay(entry('2026-09-01', { swim_seconds: 1500 }))
+    const write = dayWithoutSwim('2026-09-01', { steps: 9000 })
+
+    expect(write).not.toHaveProperty('swim_seconds')
+    await upsertDay(write)
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: 1500, steps: 9000 })
+    const newest = (await dailyQueued()).at(-1)
+    expect(newest?.payload).toMatchObject({ swim_seconds: 1500, steps: 9000 })
+  })
+
+  it('clears the swim time when the input carries swim_seconds null', async () => {
+    await upsertDay(entry('2026-09-01', { swim_seconds: 1500 }))
+    await upsertDay(dayWithoutSwim('2026-09-01', { swim_seconds: null }))
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: null })
+    const newest = (await dailyQueued()).at(-1)
+    expect(newest?.payload).toMatchObject({ swim_seconds: null })
+  })
+
+  it('saves no swim time for a new day written without the key', async () => {
+    await upsertDay(dayWithoutSwim('2026-09-01', { steps: 9000 }))
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: null })
+    const [queued] = await dailyQueued()
+    expect(queued?.payload).toMatchObject({ swim_seconds: null })
+  })
+
+  it('does not bring back the swim time of a soft deleted day', async () => {
+    await upsertDay(entry('2026-09-01', { swim_seconds: 1500 }))
+    await softDeleteDay('2026-09-01')
+    await upsertDay(dayWithoutSwim('2026-09-01', { steps: 500 }))
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: null, steps: 500 })
+    const newest = (await dailyQueued()).at(-1)
+    expect(newest?.payload).toMatchObject({ swim_seconds: null, deleted_at: null })
+  })
+
+  it('reads no swim time from a row saved before version 5', async () => {
+    const before: DailyEntry = {
+      id: '66666666-6666-4666-8666-666666666666',
+      entry_date: '2026-09-01',
+      walk_seconds: null,
+      gym_seconds: null,
+      avg_heart_rate: null,
+      max_heart_rate: null,
+      weight_kg: null,
+      calories_burnt: null,
+      steps: 4000,
+      note: null,
+      created_at: '2026-08-01T00:00:00.000Z',
+      updated_at: '2026-08-01T00:00:00.000Z',
+      deleted_at: null,
+    }
+    await db.dailyEntries.put(before)
+
+    await upsertDay(dayWithoutSwim('2026-09-01', { steps: 5000 }))
+
+    const read = await getDay('2026-09-01')
+    expect(read?.id).toBe(before.id)
+    expect(read?.swim_seconds).toBeNull()
+    const [queued] = await dailyQueued()
+    expect(queued?.payload).toMatchObject({ swim_seconds: null })
   })
 })
 
@@ -2584,6 +2675,26 @@ describe('importDays', () => {
     await importDays([{ entry: { entry_date: '2025-08-12', steps: 9874 }, choice: 'merge' }])
 
     expect(await getDay('2025-08-12')).toMatchObject({ swim_seconds: 1500, steps: 9874 })
+  })
+
+  it('keeps a stored swim time on Overwrite from a sheet with no swim column', async () => {
+    await upsertDay(entry('2025-08-12', { swim_seconds: 1500 }))
+
+    await importDays([{ entry: { entry_date: '2025-08-12', steps: 9874 }, choice: 'overwrite' }])
+
+    expect(await getDay('2025-08-12')).toMatchObject({ swim_seconds: 1500, steps: 9874 })
+    const queued = await dailyQueued()
+    expect(queued.at(-1)?.payload).toMatchObject({ swim_seconds: 1500, steps: 9874 })
+  })
+
+  it('clears a stored swim time on Overwrite from a blank swim cell', async () => {
+    await upsertDay(entry('2025-08-12', { swim_seconds: 1500 }))
+
+    await importDays([
+      { entry: { entry_date: '2025-08-12', steps: 9874, swim_seconds: null }, choice: 'overwrite' },
+    ])
+
+    expect(await getDay('2025-08-12')).toMatchObject({ swim_seconds: null, steps: 9874 })
   })
 
   it('queues one outbox entry for an overwritten row and one for a merged row', async () => {

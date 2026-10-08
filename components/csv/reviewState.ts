@@ -9,6 +9,7 @@ import type {
   SheetField,
 } from '../../lib/csv/import'
 import type { ImportChoice, ImportDay } from '../../lib/db/repository'
+import type { DailyEntryDraft } from '../../lib/schema/dailyEntry'
 
 export type Picks = Readonly<Record<string, number>>
 
@@ -319,6 +320,14 @@ const COUNTED: Record<ImportChoice, 'skipped' | 'overwritten' | 'merged'> = {
   merge: 'merged',
 }
 
+function withoutSwim(entry: DailyEntryDraft): DailyEntryDraft {
+  const rest = { ...entry }
+
+  delete rest.swim_seconds
+
+  return rest
+}
+
 export function importPlan(
   sheet: ParsedSheet,
   picks: Picks,
@@ -329,8 +338,11 @@ export function importPlan(
   const counts: ImportCounts = { created: 0, overwritten: 0, merged: 0, skipped: 0, leftOut: 0 }
   const days: ImportDay[] = []
 
+  const withSwim = sheet.columns.includes('swim_seconds')
+
   sheet.rows.forEach((row, rowIndex) => {
-    const entry = repeated.has(rowIndex) ? null : rowEntry(row, rowPicks(picks, rowIndex))
+    const found = repeated.has(rowIndex) ? null : rowEntry(row, rowPicks(picks, rowIndex))
+    const entry = found === null || withSwim ? found : withoutSwim(found)
 
     if (entry === null) {
       counts.leftOut += 1
