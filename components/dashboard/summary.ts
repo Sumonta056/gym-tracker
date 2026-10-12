@@ -1,10 +1,15 @@
 import { toDayNumber } from '../../lib/metrics/day'
+import { effectiveGymSeconds } from '../../lib/metrics/gymTime'
 import { heartRateZones } from '../../lib/metrics/heartRateZones'
+import { roundTo2 } from '../../lib/metrics/round'
+import { sessionStats } from '../../lib/metrics/sessionStats'
 import { streak } from '../../lib/metrics/streak'
 import { weekTotals } from '../../lib/metrics/weekTotals'
 
-import type { DailyEntry, Profile, WorkoutSession } from '../../lib/db/dexie'
+import type { DailyEntry, Profile, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
+import type { GymTimeSource } from '../../lib/metrics/gymTime'
 import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
+import type { SessionStats } from '../../lib/metrics/sessionStats'
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
 import type { UnitSystem } from '../../lib/schema/profile'
 
@@ -13,6 +18,18 @@ const MS_PER_DAY = 86400000
 export const WEIGHT_TREND_DAYS = 14
 
 export const HISTORY_START = '0000-01-01'
+
+export type TodayLifts = {
+  sessions: WorkoutSession[]
+  sets: WorkoutSet[]
+  earlierSets: WorkoutSet[]
+}
+
+export const NO_LIFTS: TodayLifts = { sessions: [], sets: [], earlierSets: [] }
+
+export type TodayWorkout = { session: WorkoutSession; stats: SessionStats }
+
+export type TodayGym = { seconds: number; source: GymTimeSource }
 
 export type DashboardSummary = {
   today: string
@@ -27,6 +44,12 @@ export type DashboardSummary = {
   displayName: string | null
   unitSystem: UnitSystem
   sessionsGoal: number | null
+  gym: TodayGym
+  workouts: TodayWorkout[]
+  calorieGoal: number | null
+  walkGoalSeconds: number | null
+  targetWeightKg: number | null
+  weightGapKg: number | null
 }
 
 function fromDayNumber(day: number): string {
@@ -45,12 +68,29 @@ export function daysBefore(date: string, days: number): string {
   return fromDayNumber((toDayNumber(date) ?? 0) - days)
 }
 
+export function todayWorkouts(lifts: TodayLifts, today: string): TodayWorkout[] {
+  return lifts.sessions
+    .filter(
+      (session) =>
+        session.entry_date === today && session.deleted_at === null && session.ended_at !== null,
+    )
+    .sort((left, right) => Date.parse(left.started_at) - Date.parse(right.started_at))
+    .map((session) => ({
+      session,
+      stats: sessionStats(session, lifts.sets, lifts.earlierSets),
+    }))
+}
+
+export function weightGap(latestKg: number | null, targetKg: number | null): number | null {
+  return latestKg === null || targetKg === null ? null : roundTo2(Math.abs(latestKg - targetKg))
+}
+
 export function summarise(
   entries: readonly DailyEntry[],
   profile: Profile,
   today: string,
   now: Date,
-  sessions: readonly WorkoutSession[] = [],
+  lifts: TodayLifts = NO_LIFTS,
 ): DashboardSummary {
   const past = entries
     .filter((row) => row.entry_date <= today)
@@ -73,7 +113,7 @@ export function summarise(
     zones: heartRateZones(
       entry ?? { gym_seconds: null, avg_heart_rate: null, max_heart_rate: null },
     ),
-    week: weekTotals(past, weekRange, sessions),
+    week: weekTotals(past, weekRange, lifts.sessions),
     weekRange,
     stepGoal: profile.step_goal,
     latestWeightKg: latest?.kg ?? null,
@@ -81,6 +121,15 @@ export function summarise(
     displayName: profile.display_name,
     unitSystem: profile.unit_system,
     sessionsGoal: profile.sessions_per_week_goal ?? null,
+    gym: effectiveGymSeconds(
+      entry,
+      lifts.sessions.filter((session) => session.entry_date === today),
+    ),
+    workouts: todayWorkouts(lifts, today),
+    calorieGoal: profile.calorie_goal ?? null,
+    walkGoalSeconds: profile.walk_goal_seconds ?? null,
+    targetWeightKg: profile.target_weight_kg,
+    weightGapKg: weightGap(latest?.kg ?? null, profile.target_weight_kg),
   }
 }
 

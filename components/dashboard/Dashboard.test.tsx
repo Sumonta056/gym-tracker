@@ -3,7 +3,13 @@ import { animate } from 'motion/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db, LOCAL_PROFILE_ID } from '../../lib/db/dexie'
-import { getProfile, listRange, listSessions } from '../../lib/db/repository'
+import {
+  getProfile,
+  listRange,
+  listSessions,
+  listSetsInRange,
+  setsForExercises,
+} from '../../lib/db/repository'
 import { formatDuration } from '../../lib/duration'
 import { streak } from '../../lib/metrics/streak'
 import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
@@ -20,6 +26,8 @@ vi.mock('../../lib/db/repository', async () => {
     getProfile: vi.fn(),
     listRange: vi.fn(),
     listSessions: vi.fn(),
+    listSetsInRange: vi.fn(),
+    setsForExercises: vi.fn(),
     useSyncStatus: syncedStatus,
   }
 })
@@ -37,6 +45,8 @@ beforeEach(() => {
   vi.mocked(listRange).mockResolvedValue([])
   vi.mocked(getProfile).mockResolvedValue(PROFILE)
   vi.mocked(listSessions).mockResolvedValue([])
+  vi.mocked(listSetsInRange).mockResolvedValue([])
+  vi.mocked(setsForExercises).mockResolvedValue([])
   vi.mocked(animate).mockClear()
 })
 

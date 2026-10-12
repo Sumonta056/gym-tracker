@@ -303,6 +303,12 @@ const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
   displayName: 'Sumonta',
   unitSystem: 'metric',
   sessionsGoal: null,
+  gym: { seconds: 5400, source: 'typed' },
+  workouts: [],
+  calorieGoal: null,
+  walkGoalSeconds: null,
+  targetWeightKg: null,
+  weightGapKg: null,
 }
 
 const SAMPLE_LIFT_DATES = [

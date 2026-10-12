@@ -2,7 +2,13 @@
 
 import { useLiveQuery } from 'dexie-react-hooks'
 
-import { getProfile, listRange, listSessions } from '../../lib/db/repository'
+import {
+  getProfile,
+  listRange,
+  listSessions,
+  listSetsInRange,
+  setsForExercises,
+} from '../../lib/db/repository'
 import { localDate } from '../../lib/schema/dailyEntry'
 
 import { HISTORY_START, summarise, weekOf } from './summary'
@@ -28,13 +34,18 @@ async function readDashboard(clock: () => Date): Promise<DashboardState> {
 
   try {
     const week = weekOf(today)
-    const [entries, profile, sessions] = await Promise.all([
+    const [entries, profile, sessions, sets] = await Promise.all([
       listRange(HISTORY_START, today),
       getProfile(),
       listSessions(week.from, today),
+      listSetsInRange(today, today),
     ])
+    const earlierSets = await setsForExercises([...new Set(sets.map((set) => set.exercise_id))])
 
-    return { status: 'ready', summary: summarise(entries, profile, today, now, sessions) }
+    return {
+      status: 'ready',
+      summary: summarise(entries, profile, today, now, { sessions, sets, earlierSets }),
+    }
   } catch {
     return { status: 'error', message: READ_ERROR }
   }
