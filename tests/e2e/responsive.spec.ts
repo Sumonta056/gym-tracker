@@ -7,6 +7,7 @@ import {
   SIGNED_IN_ROUTES as LIVE_ROUTES,
   test as signedIn,
 } from './support/signedIn'
+import { gotoStyleGuide, openStyleGuideSheet } from './support/styleguide'
 import { openLiftCharts, openLiveSession, openPicker, openWithLiftWeek } from './support/workout'
 
 import type { Page } from '@playwright/test'
@@ -171,11 +172,10 @@ for (const route of PUBLIC_ROUTES) {
 
 test('shows no scrollbar on /styleguide at 1440 px, with the sheet open', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto('/styleguide')
+  await gotoStyleGuide(page)
 
   expect(await visibleScrollbars(page)).toEqual([])
-  await page.getByRole('button', { name: 'Open the sheet' }).click()
-  await expect(page.getByRole('dialog', { name: 'Log a set' })).toBeVisible()
+  await openStyleGuideSheet(page)
   expect(await visibleScrollbars(page)).toEqual([])
 })
 
@@ -183,7 +183,7 @@ test('never scrolls sideways on the import review sample at 320 px, with the yea
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 900 })
-  await page.goto('/styleguide')
+  await gotoStyleGuide(page)
   const sample = page.getByTestId('import-review-sample')
   await sample.getByRole('button', { name: 'Change year' }).click()
   await expect(sample.getByLabel('Year of the sheet')).toBeVisible()
@@ -270,9 +270,8 @@ test('fits every import table heading inside its cell at 1024 px and 1440 px', a
 test('keeps every tap target 44 px or taller inside the open sheet, at all seven widths', async ({
   page,
 }) => {
-  await page.goto('/styleguide')
-  await page.getByRole('button', { name: 'Open the sheet' }).click()
-  await expect(page.getByRole('dialog', { name: 'Log a set' })).toBeVisible()
+  await gotoStyleGuide(page)
+  await openStyleGuideSheet(page)
 
   expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
   expect(await atEachWidth(page, STEP_WIDTHS, () => sideways(page))).toEqual([])

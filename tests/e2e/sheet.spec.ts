@@ -1,4 +1,5 @@
 import { expect, test } from './support/signedIn'
+import { gotoStyleGuide, openStyleGuideSheet } from './support/styleguide'
 import {
   benchCard,
   openLiveSession,
@@ -125,9 +126,8 @@ test.describe('the sheet on /workout', () => {
 })
 
 test('keeps focus inside the style guide sheet', async ({ page }) => {
-  await page.goto('/styleguide')
-  await page.getByRole('button', { name: 'Open the sheet' }).click()
-  await expect(page.getByRole('dialog', { name: 'Log a set' })).toBeVisible()
+  await gotoStyleGuide(page)
+  await openStyleGuideSheet(page)
 
   expect(await focusLeaks(page)).toEqual([])
 })

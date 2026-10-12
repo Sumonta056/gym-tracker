@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { navLink, openWithWeek, test as signedIn } from './support/signedIn'
+import { gotoStyleGuide } from './support/styleguide'
 
 import type { Page } from '@playwright/test'
 
@@ -224,7 +225,7 @@ for (const width of [320, 390, 430]) {
 
 test('keeps every lifting chart label apart on the month range at 320 px', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 })
-  await page.goto('/styleguide')
+  await gotoStyleGuide(page)
   await page
     .locator('section', { has: page.getByRole('heading', { level: 2, name: 'Analytics' }) })
     .getByRole('button', { name: 'Month' })
@@ -265,7 +266,7 @@ for (const { width, range } of LINE_CHECKS) {
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.setViewportSize({ width, height: 900 })
-    await page.goto('/styleguide')
+    await gotoStyleGuide(page)
     await page
       .locator('section', { has: page.getByRole('heading', { level: 2, name: 'Analytics' }) })
       .getByRole('button', { name: range })
@@ -356,7 +357,7 @@ for (const { width, range } of WEEK_CHECKS) {
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.setViewportSize({ width, height: 900 })
-    await page.goto('/styleguide')
+    await gotoStyleGuide(page)
     await page
       .locator('section', { has: page.getByRole('heading', { level: 2, name: 'Analytics' }) })
       .getByRole('button', { name: range })
