@@ -20,11 +20,19 @@ rule's `pnpm verify` gate, for the rest of the track.
 3. **No worktree, no step branch, no merge.** The agent works in the main folder on
    `fix/feedback-fixes`. It skips the worktree block of the step file. It still runs the
    dependency checks.
-4. **Tests per step.** Test first, as the step file says. Before the commit, all 3 pass:
-   - `pnpm static`
-   - `pnpm test:cov`, all unit tests with the coverage floors
+4. **Tests per step.** Test first, as the step file says. Changed on 2026-10-12 by the
+   owner, to cut the wait per step. Before the commit, both pass:
+   - `pnpm check:step`: `pnpm static`, then `pnpm test:changed`. `test:changed` runs only
+     the unit tests related to the files changed since `HEAD`, with the coverage floors on
+     those files only. A change to `package.json`, `pnpm-lock.yaml`, `tsconfig.json`,
+     `vitest.config.mts` or `tests/setup.ui.ts` runs every test.
    - the e2e specs that the step adds or changes, on 1 project only:
-     `pnpm exec playwright test <specs> --project=mobile-safari`
+     `pnpm exec playwright test <specs> --project=mobile-safari`. Playwright reuses the
+     last e2e build when no file under `app/`, `components/`, `lib/` or `public/`, and no
+     build config, is newer. Otherwise it builds again.
+
+   While you code, use `pnpm test:watch <path>`, not the full suite.
+
 5. **Acceptance.** The agent checks each acceptance box: match or no match. A box that
    needs the full suite or the iPhone waits for the checkpoint.
 6. **Commit.** The `commit-report` skill, then 1 commit on `fix/feedback-fixes`. A UI

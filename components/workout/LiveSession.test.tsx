@@ -133,6 +133,7 @@ async function renderLive(props: Parameters<typeof LiveSession>[0] = {}) {
   const onFinished = vi.fn()
   const view = render(<LiveSession onFinished={onFinished} {...props} />)
   await screen.findByRole('heading', { level: 1, name: 'Session' })
+  await act(async () => {})
   return { ...view, onFinished }
 }
 
