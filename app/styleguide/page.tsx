@@ -323,6 +323,78 @@ const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
   weightGapKg: null,
 }
 
+const SAMPLE_FULL_DAY: DailyEntry = {
+  ...SAMPLE_DAY,
+  gym_seconds: null,
+  swim_seconds: 1500,
+  note: 'Felt strong on the bench.\nLeft knee a little stiff.',
+}
+
+const SAMPLE_FULL_START = new Date(2026, 8, 13, 17, 30).toISOString()
+const SAMPLE_FULL_END = new Date(2026, 8, 13, 18, 30).toISOString()
+
+const SAMPLE_FULL_SESSION: WorkoutSession = {
+  id: '00000000-0000-4000-8000-000000000501',
+  entry_date: SAMPLE_FULL_DAY.entry_date,
+  started_at: SAMPLE_FULL_START,
+  ended_at: SAMPLE_FULL_END,
+  status: 'finished',
+  created_at: SAMPLE_FULL_START,
+  updated_at: SAMPLE_FULL_END,
+  deleted_at: null,
+}
+
+const SAMPLE_FULL_SUMMARY: DashboardSummary = {
+  ...SAMPLE_HEAVY_SUMMARY,
+  entry: SAMPLE_FULL_DAY,
+  today: SAMPLE_FULL_DAY.entry_date,
+  streak: 4,
+  week: { sessions: 3, gymSeconds: 9120, walkSeconds: 9960, calories: 2627, steps: 21480 },
+  stepGoal: 12000,
+  latestWeightKg: SAMPLE_FULL_DAY.weight_kg,
+  weightTrend: [74.1, 74.6, 74.7, 74.4, 73.9, 73.6, 73.65],
+  sessionsGoal: 4,
+  gym: { seconds: 3600, source: 'sessions' },
+  workouts: [
+    {
+      session: SAMPLE_FULL_SESSION,
+      stats: {
+        durationSeconds: 3600,
+        setCount: 12,
+        exerciseCount: 3,
+        volumeKg: 2410,
+        newRecords: [{ exerciseId: '00000000-0000-4000-8000-000000000301', weightKg: 65, reps: 5 }],
+      },
+    },
+  ],
+  calorieGoal: 800,
+  walkGoalSeconds: 3600,
+  targetWeightKg: 71.25,
+  weightGapKg: 2.4,
+}
+
+const SAMPLE_SPARSE_SUMMARY: DashboardSummary = {
+  ...SAMPLE_FULL_SUMMARY,
+  entry: {
+    ...SAMPLE_DAY,
+    gym_seconds: null,
+    avg_heart_rate: null,
+    max_heart_rate: null,
+    weight_kg: null,
+    calories_burnt: null,
+    walk_seconds: null,
+    swim_seconds: null,
+    note: null,
+  },
+  streak: 1,
+  zones: { warmSeconds: 0, fatBurnSeconds: 0, cardioSeconds: 0, peakSeconds: 0 },
+  latestWeightKg: null,
+  weightTrend: [],
+  gym: { seconds: 0, source: 'none' },
+  workouts: [],
+  weightGapKg: null,
+}
+
 const SAMPLE_LIFT_DATES = [
   '2026-09-02',
   '2026-09-03',
@@ -972,8 +1044,18 @@ function Styleguide() {
           <DashboardHeader date="2026-09-13" displayName="Sumonta" />
         </Card>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <TodayHero entry={SAMPLE_DAY} streak={4} name="Today, logged" />
-          <TodayHero entry={undefined} streak={0} name="Today, empty state" />
+          <TodayHero
+            entry={SAMPLE_DAY}
+            gym={{ seconds: 4325, source: 'typed' }}
+            streak={4}
+            name="Today, logged"
+          />
+          <TodayHero
+            entry={undefined}
+            gym={{ seconds: 0, source: 'none' }}
+            streak={0}
+            name="Today, empty state"
+          />
           <HeartRateZonesCard zones={SAMPLE_ZONES} maxHeartRate={SAMPLE_MAX} />
           <HeartRateZonesCard zones={SAMPLE_SHORT_ZONES} maxHeartRate={null} />
           <WeekTotalsCard
@@ -986,6 +1068,14 @@ function Styleguide() {
         <h3 className="text-text mt-6 text-base font-bold">The full screen, a heavy day</h3>
         <div className="mt-4" data-testid="dashboard-sample">
           <DashboardView summary={SAMPLE_HEAVY_SUMMARY} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">Today, a full day</h3>
+        <div className="mt-4" data-testid="dashboard-full-sample">
+          <DashboardView summary={SAMPLE_FULL_SUMMARY} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">Today, a sparse day</h3>
+        <div className="mt-4" data-testid="dashboard-sparse-sample">
+          <DashboardView summary={SAMPLE_SPARSE_SUMMARY} />
         </div>
       </Section>
 

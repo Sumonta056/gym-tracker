@@ -5,11 +5,11 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** the fix track — the owner feedback · `docs/plan/04-feedback-fixes.md`
 **Step index:** `docs/plan/feedback/index.md`
-**Next step:** G3b, the Today cards → `docs/plan/feedback/G3b-today-cards.md`, 1 step at a time (`docs/plan/feedback/index.md`, "From wave 4: one step at a time"). G3b also fills the Today sample values in `/styleguide`. Then H2. The owner deferred the wave 8 device checks of A to F (2026-10-12); they stay open for the next checkpoint.
+**Next step:** H2, the zone ranges and the info sheet → `docs/plan/feedback/H2-zone-explained.md`, 1 step at a time (`docs/plan/feedback/index.md`, "From wave 4: one step at a time"). H2 must not touch `Dashboard.tsx`. Then the full verify and the wave 11 owner checkpoint (G closes with G3b). The owner deferred the wave 8 device checks of A to F (2026-10-12); they stay open for the next checkpoint.
 **Open from wave 2:** the owner checks the B2 bar in the home-screen app at the wave 4 checkpoint. If the bar is still about 58 px high after Start, apply F6 (`overscroll-behavior-y: none` on `html` and `body`).
 **Open from wave 3:** an error at the same moment as a navigation can miss the log (deferred write, A3). The Errors card loop guard matches a text prefix. No plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `fix/feedback-fixes`, cut from `main`. From wave 4, each step commits on it directly, in the main folder.
-**Last commit:** H1 (zones from a true maximum heart rate), after `70825b2` (G3a), `25d3edd` (fix(test): the style guide hydration wait), `584c182` (chore(test): `pnpm check:step`), `d2c76ba` (F2), `7e9cd9d` (E5), `c69f67e` (F1), `af84ee7` (E4), `553f840` (G2), `e1753e6` (E3), `c5c496e` (G1), `85bf1fa` (E2) and `25454f6` (D1, migration `20261008014222`). Wave 3 merge: `d70d01c`. Wave 3 reports: `reports/wave-3/`.
+**Last commit:** G3b (the Today cards), after `8a0a46f` (H1), `70825b2` (G3a), `25d3edd` (fix(test): the style guide hydration wait), `584c182` (chore(test): `pnpm check:step`), `d2c76ba` (F2), `7e9cd9d` (E5), `c69f67e` (F1), `af84ee7` (E4), `553f840` (G2), `e1753e6` (E3), `c5c496e` (G1), `85bf1fa` (E2) and `25454f6` (D1, migration `20261008014222`). Wave 3 merge: `d70d01c`. Wave 3 reports: `reports/wave-3/`.
 **Phase 3 waits.** It returns to step 3.1 (`docs/plan/phase-3/S3.1-design-contract.md`) when the fix track closes.
 
 ## Resume here

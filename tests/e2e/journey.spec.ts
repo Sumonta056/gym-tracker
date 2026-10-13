@@ -37,10 +37,7 @@ test('changes the dashboard numbers once a day is recorded', async ({ page }) =>
   await page.goto('/')
   const grid = page.getByTestId('dashboard-grid')
   await expect(grid.getByText('Nothing logged yet today.')).toBeVisible()
-  await expect(grid.getByRole('progressbar', { name: 'Steps progress' })).toHaveAttribute(
-    'aria-valuenow',
-    '0',
-  )
+  await expect(grid.getByRole('progressbar', { name: 'Steps progress' })).toHaveCount(0)
 
   await navLink(page, 'Log the day').first().click()
   await expect(page).toHaveURL(/\/log$/)

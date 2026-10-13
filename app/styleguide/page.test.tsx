@@ -214,7 +214,9 @@ describe('the styleguide page', { timeout: 15000 }, () => {
   })
 
   it('renders the dashboard hero, its empty state, the zone bar and the week totals', () => {
-    expect(screen.getByText('4 day streak')).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: 'Today, logged' })).getByText('4 day streak'),
+    ).toBeInTheDocument()
     const empty = screen.getByText('Nothing logged yet today.').closest('section')
     expect(empty).not.toBeNull()
     expect(within(empty as HTMLElement).getByRole('link', { name: 'Log the day' })).toHaveAttribute(
@@ -267,6 +269,27 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(within(sample).getByTestId('dashboard-grid')).toBeInTheDocument()
     expect(within(sample).getByText('103.40')).toBeInTheDocument()
     expect(within(sample).getByText('13,100')).toBeInTheDocument()
+  })
+
+  it('shows a full Today sample with every card', () => {
+    const sample = within(screen.getByTestId('dashboard-full-sample'))
+    expect(sample.getByRole('region', { name: /^Today/ })).toBeInTheDocument()
+    for (const label of ['Steps', 'Calories', 'Walk', 'Swim', 'Weight']) {
+      expect(sample.getByText(label)).toBeInTheDocument()
+    }
+    expect(sample.getByRole('heading', { name: 'Workout today' })).toBeInTheDocument()
+    expect(sample.getByRole('heading', { name: 'Note' })).toBeInTheDocument()
+  })
+
+  it('shows a sparse Today sample with only the hero and Steps', () => {
+    const sample = within(screen.getByTestId('dashboard-sparse-sample'))
+    expect(sample.getByRole('region', { name: /^Today/ })).toBeInTheDocument()
+    expect(sample.getByText('Steps')).toBeInTheDocument()
+    for (const label of ['Calories', 'Walk', 'Swim', 'Weight']) {
+      expect(sample.queryByText(label)).toBeNull()
+    }
+    expect(sample.queryByRole('heading', { name: 'Workout today' })).toBeNull()
+    expect(sample.queryByRole('heading', { name: 'Note' })).toBeNull()
   })
 
   it('renders the heavy week in pounds, every chart with a text alternative', () => {
