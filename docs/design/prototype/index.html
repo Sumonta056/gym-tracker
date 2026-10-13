@@ -1771,7 +1771,7 @@
                   <span><i class="dot" style="background: var(--color-danger)"></i>Peak 5m</span>
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Modelled from the session average and peak.
+                  Based on a max of 190 bpm, from your birth year.
                 </p>
               </div>
 
@@ -2861,7 +2861,7 @@
                   >
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Modelled from the session average and peak.
+                  Based on a max of 190 bpm, from your birth year.
                 </p>
               </div>
 
@@ -3707,7 +3707,7 @@
                   >
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Modelled from the session average and peak.
+                  Based on a max of 190 bpm, from your birth year.
                 </p>
               </div>
 
@@ -4073,6 +4073,34 @@
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div class="card">
+                <span class="micro">Heart rate</span>
+                <div style="display: grid; gap: 10px; margin-top: 10px">
+                  <label class="field" for="pr-birth-year">
+                    <span class="micro">Birth year</span>
+                    <input class="input" id="pr-birth-year" inputmode="numeric" value="1996" />
+                  </label>
+                  <div>
+                    <label class="field" for="pr-max-hr">
+                      <span class="micro">Max heart rate (bpm)</span>
+                      <input
+                        class="input"
+                        id="pr-max-hr"
+                        inputmode="numeric"
+                        value=""
+                        aria-describedby="pr-max-hr-hint"
+                      />
+                    </label>
+                    <p id="pr-max-hr-hint" class="muted" style="margin: 7px 0 0; font-size: 12px">
+                      Leave empty to use 220 minus your age.
+                    </p>
+                  </div>
+                </div>
+                <p class="muted" style="margin: 10px 0 0; font-size: 12px">
+                  The zones use 190 bpm, from your age.
+                </p>
               </div>
 
               <div class="card">

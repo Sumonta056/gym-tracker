@@ -227,6 +227,41 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     )
   })
 
+  it('renders the zones note with a known max and with none', () => {
+    expect(
+      screen.getAllByText('Based on a max of 190 bpm, from your birth year.').length,
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText('Add your birth year in Profile for real zones.').length,
+    ).toBeGreaterThan(0)
+    expect(screen.getByText('Warm <1m')).toBeInTheDocument()
+  })
+
+  it('renders the Heart rate card in the profile sample and on its own', () => {
+    const grid = within(screen.getByTestId('profile-grid-sample'))
+    expect(grid.getByLabelText('Birth year')).toHaveValue('1996')
+    const samples = within(screen.getByTestId('heart-rate-card-sample'))
+    expect(samples.getByText('The zones use 185 bpm, your own value.')).toBeInTheDocument()
+    expect(samples.getByText('Add your birth year to see your max.')).toBeInTheDocument()
+  })
+
+  it('saves a new value into each Heart rate card sample', async () => {
+    const samples = within(screen.getByTestId('heart-rate-card-sample'))
+    const [overrideMax] = samples.getAllByLabelText('Max heart rate (bpm)')
+    const [, emptyYear] = samples.getAllByLabelText('Birth year')
+    await userEvent.clear(overrideMax as HTMLElement)
+    await userEvent.type(overrideMax as HTMLElement, '180')
+    await userEvent.tab()
+    await waitFor(() => {
+      expect(samples.getByText('The zones use 180 bpm, your own value.')).toBeInTheDocument()
+    })
+    await userEvent.type(emptyYear as HTMLElement, '1996')
+    await userEvent.tab()
+    await waitFor(() => {
+      expect(samples.getByText('The zones use 190 bpm, from your age.')).toBeInTheDocument()
+    })
+  })
+
   it('renders the full dashboard screen on a heavy day, the weight and steps in their stat cards', () => {
     const sample = screen.getByTestId('dashboard-sample')
     expect(within(sample).getByTestId('dashboard-grid')).toBeInTheDocument()

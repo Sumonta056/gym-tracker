@@ -73,7 +73,7 @@ export function AnalyticsView({ data, testId = 'analytics-grid' }: AnalyticsView
       <StepsChart days={data.days} tab={data.tab} stepGoal={data.stepGoal} />
       <WalkChart days={data.days} tab={data.tab} goalSeconds={data.goals.walkSeconds} />
       <HeartRateChart days={data.days} tab={data.tab} />
-      <ZoneSplitChart zones={data.zones} date={data.today} />
+      <ZoneSplitChart zones={data.zones} date={data.today} maxHeartRate={data.maxHeartRate} />
       <StreakHeatMap weeks={data.heatMap} streak={data.streak} />
       <TotalsChart
         days={data.days}

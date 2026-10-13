@@ -1,6 +1,6 @@
 import { toDayNumber } from '../../lib/metrics/day'
 import { effectiveGymSeconds } from '../../lib/metrics/gymTime'
-import { heartRateZones } from '../../lib/metrics/heartRateZones'
+import { heartRateZones, resolveMaxHeartRate } from '../../lib/metrics/heartRateZones'
 import { roundTo2 } from '../../lib/metrics/round'
 import { sessionStats } from '../../lib/metrics/sessionStats'
 import { streak } from '../../lib/metrics/streak'
@@ -8,7 +8,7 @@ import { weekTotals } from '../../lib/metrics/weekTotals'
 
 import type { DailyEntry, Profile, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { GymTimeSource } from '../../lib/metrics/gymTime'
-import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
+import type { HeartRateZones, MaxHeartRate } from '../../lib/metrics/heartRateZones'
 import type { SessionStats } from '../../lib/metrics/sessionStats'
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
 import type { UnitSystem } from '../../lib/schema/profile'
@@ -36,6 +36,7 @@ export type DashboardSummary = {
   entry: DailyEntry | undefined
   streak: number
   zones: HeartRateZones
+  maxHeartRate: MaxHeartRate | null
   week: WeekTotals
   weekRange: WeekRange
   stepGoal: number
@@ -102,6 +103,14 @@ export function summarise(
     row.weight_kg === null ? [] : [{ date: row.entry_date, kg: row.weight_kg }],
   )
   const latest = weights.at(-1)
+  const gym = effectiveGymSeconds(
+    entry,
+    lifts.sessions.filter((session) => session.entry_date === today),
+  )
+  const maxHeartRate = resolveMaxHeartRate(
+    { max_heart_rate: profile.max_heart_rate ?? null, birth_year: profile.birth_year ?? null },
+    today,
+  )
 
   return {
     today,
@@ -111,8 +120,14 @@ export function summarise(
       now,
     ).current,
     zones: heartRateZones(
-      entry ?? { gym_seconds: null, avg_heart_rate: null, max_heart_rate: null },
+      {
+        gym_seconds: gym.seconds,
+        avg_heart_rate: entry?.avg_heart_rate ?? null,
+        max_heart_rate: entry?.max_heart_rate ?? null,
+      },
+      maxHeartRate?.bpm ?? null,
     ),
+    maxHeartRate,
     week: weekTotals(past, weekRange, lifts.sessions),
     weekRange,
     stepGoal: profile.step_goal,
@@ -121,10 +136,7 @@ export function summarise(
     displayName: profile.display_name,
     unitSystem: profile.unit_system,
     sessionsGoal: profile.sessions_per_week_goal ?? null,
-    gym: effectiveGymSeconds(
-      entry,
-      lifts.sessions.filter((session) => session.entry_date === today),
-    ),
+    gym,
     workouts: todayWorkouts(lifts, today),
     calorieGoal: profile.calorie_goal ?? null,
     walkGoalSeconds: profile.walk_goal_seconds ?? null,

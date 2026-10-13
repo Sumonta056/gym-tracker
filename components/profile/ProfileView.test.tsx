@@ -77,6 +77,13 @@ describe('ProfileView', () => {
     expect(first.getByText('Goals')).toBeInTheDocument()
   })
 
+  it('renders the Heart rate card right after the Goals card', () => {
+    renderView()
+    const first = screen.getByTestId('profile-grid-column-1')
+    const labels = [...first.children].map((card) => card.firstElementChild?.textContent)
+    expect(labels.indexOf('Heart rate')).toBe(labels.indexOf('Goals') + 1)
+  })
+
   it('stacks the rest timer, the exercises and the data card in the second column', () => {
     renderView({ showImport: true })
     const second = within(screen.getByTestId('profile-grid-column-2'))

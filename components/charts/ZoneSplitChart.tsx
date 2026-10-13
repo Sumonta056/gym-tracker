@@ -4,16 +4,17 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 
 import { colorTokens } from '../../lib/design/tokens'
 import { formatDuration } from '../../lib/duration'
-import { zoneList, zoneSummary } from '../dashboard/HeartRateZonesCard'
+import { zoneList, zoneNote, zoneSummary } from '../dashboard/HeartRateZonesCard'
 
 import { ChartCard } from './ChartCard'
 import { rangeLabel } from './rangeData'
 
-import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
+import type { HeartRateZones, MaxHeartRate } from '../../lib/metrics/heartRateZones'
 
 export type ZoneSplitChartProps = {
   zones: HeartRateZones
   date: string
+  maxHeartRate: MaxHeartRate | null
   className?: string
 }
 
@@ -24,7 +25,7 @@ export const ZONE_SERIES = [
   { key: 'peakSeconds', color: colorTokens.danger },
 ] as const
 
-export function ZoneSplitChart({ zones, date, className }: ZoneSplitChartProps) {
+export function ZoneSplitChart({ zones, date, maxHeartRate, className }: ZoneSplitChartProps) {
   const list = zoneList(zones)
   const total = list.reduce((sum, zone) => sum + zone.seconds, 0)
   const day = rangeLabel({ from: date, to: date })
@@ -40,7 +41,7 @@ export function ZoneSplitChart({ zones, date, className }: ZoneSplitChartProps) 
         name: `${zone.name} ${formatDuration(zone.seconds, 'short')}`,
         dot: zone.fill,
       }))}
-      footer={<p className="text-muted text-xs">Modelled from the session average and peak.</p>}
+      footer={<p className="text-muted text-xs">{zoneNote(maxHeartRate)}</p>}
       className={className}
     >
       <div className="overflow-hidden rounded-full">

@@ -3,11 +3,24 @@ import { Card } from '../ui/Card'
 import { cn } from '../ui/cn'
 import { MicroLabel } from '../ui/MicroLabel'
 
-import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
+import type { HeartRateZones, MaxHeartRate } from '../../lib/metrics/heartRateZones'
 
 export type HeartRateZonesCardProps = {
   zones: HeartRateZones
+  maxHeartRate: MaxHeartRate | null
   className?: string
+}
+
+export const NO_MAX_NOTE = 'Add your birth year in Profile for real zones.'
+
+export function zoneNote(maxHeartRate: MaxHeartRate | null): string {
+  if (maxHeartRate === null) {
+    return NO_MAX_NOTE
+  }
+
+  const from = maxHeartRate.source === 'age' ? 'from your birth year' : 'set in Profile'
+
+  return `Based on a max of ${String(maxHeartRate.bpm)} bpm, ${from}.`
 }
 
 type Zone = {
@@ -31,7 +44,7 @@ export function zoneSummary(zones: HeartRateZones): string {
     .join(', ')
 }
 
-export function HeartRateZonesCard({ zones, className }: HeartRateZonesCardProps) {
+export function HeartRateZonesCard({ zones, maxHeartRate, className }: HeartRateZonesCardProps) {
   const list = zoneList(zones)
   const total = list.reduce((sum, zone) => sum + zone.seconds, 0)
 
@@ -78,7 +91,7 @@ export function HeartRateZonesCard({ zones, className }: HeartRateZonesCardProps
               </li>
             ))}
           </ul>
-          <p className="text-muted text-xs">Modelled from the session average and peak.</p>
+          <p className="text-muted text-xs">{zoneNote(maxHeartRate)}</p>
         </>
       )}
     </Card>

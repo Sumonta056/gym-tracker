@@ -64,7 +64,33 @@ describe('summarise', () => {
 
   it('models the zones from the entry for today', () => {
     const entry = entryOn(TODAY)
-    expect(summarise([entry], PROFILE, TODAY, NOW).zones).toEqual(heartRateZones(entry))
+    expect(summarise([entry], PROFILE, TODAY, NOW).zones).toEqual(heartRateZones(entry, null))
+  })
+
+  it('returns no max for a profile with no heart rate field', () => {
+    expect(summarise([], PROFILE, TODAY, NOW).maxHeartRate).toBeNull()
+  })
+
+  it('returns the max from the birth year of the profile', () => {
+    const profile = { ...PROFILE, birth_year: 1996, max_heart_rate: null }
+    expect(summarise([], profile, TODAY, NOW).maxHeartRate).toEqual({ bpm: 190, source: 'age' })
+  })
+
+  it('models the zones of today against the max of the profile', () => {
+    const entry = entryOn(TODAY, { avg_heart_rate: 150, max_heart_rate: 160, gym_seconds: 3600 })
+    const profile = { ...PROFILE, birth_year: 1996, max_heart_rate: null }
+    expect(summarise([entry], profile, TODAY, NOW).zones.peakSeconds).toBe(0)
+  })
+
+  it('models the zones from the session time when no gym time is typed', () => {
+    const entry = entryOn(TODAY, { gym_seconds: null, avg_heart_rate: 150, max_heart_rate: 160 })
+    const zones = summarise([entry], PROFILE, TODAY, NOW, {
+      ...NO_LIFTS,
+      sessions: [sessionOn(TODAY)],
+    }).zones
+    expect(zones.warmSeconds + zones.fatBurnSeconds + zones.cardioSeconds + zones.peakSeconds).toBe(
+      3600,
+    )
   })
 
   it('reports no zone time when today is not logged', () => {

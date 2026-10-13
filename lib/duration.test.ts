@@ -242,6 +242,12 @@ describe('formatDuration', () => {
     { seconds: 7200, text: '2h' },
     { seconds: -1, text: '0m' },
     { seconds: 86399, text: '23h 59m' },
+    { seconds: 1, text: '<1m' },
+    { seconds: 30, text: '<1m' },
+    { seconds: 59, text: '<1m' },
+    { seconds: 0.4, text: '0m' },
+    { seconds: 59.6, text: '1m' },
+    { seconds: 60, text: '1m' },
   ]
 
   const minuteCases: { seconds: number; text: string }[] = [

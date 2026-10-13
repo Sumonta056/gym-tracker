@@ -23,7 +23,7 @@ const full = analyse(
 
 describe('ZoneSplitChart', () => {
   it('shows its empty state for an empty series, without throwing', () => {
-    render(<ZoneSplitChart zones={empty.zones} date={TODAY} />)
+    render(<ZoneSplitChart zones={empty.zones} date={TODAY} maxHeartRate={null} />)
     expect(
       screen.getByText("Log gym time with an average and a peak heart rate to see today's zones."),
     ).toBeVisible()
@@ -31,7 +31,7 @@ describe('ZoneSplitChart', () => {
   })
 
   it('names the split of the selected day in its label', () => {
-    render(<ZoneSplitChart zones={full.zones} date={TODAY} />)
+    render(<ZoneSplitChart zones={full.zones} date={TODAY} maxHeartRate={null} />)
     expect(
       screen.getByRole('img', {
         name: 'Heart rate zones on 23 September: Warm 24m, Fat burn 9m, Cardio 13m, Peak 13m',
@@ -40,14 +40,28 @@ describe('ZoneSplitChart', () => {
   })
 
   it('reads every zone outside the bar', () => {
-    render(<ZoneSplitChart zones={full.zones} date={TODAY} />)
+    render(<ZoneSplitChart zones={full.zones} date={TODAY} maxHeartRate={null} />)
     for (const text of ['Warm 24m', 'Fat burn 9m', 'Cardio 13m', 'Peak 13m']) {
       expect(screen.getByText(text)).toBeVisible()
     }
   })
 
   it('stacks the four zones in one bar', () => {
-    const { container } = render(<ZoneSplitChart zones={full.zones} date={TODAY} />)
+    const { container } = render(
+      <ZoneSplitChart zones={full.zones} date={TODAY} maxHeartRate={null} />,
+    )
     expect(container.querySelectorAll('.recharts-bar')).toHaveLength(4)
+  })
+
+  it('asks for the birth year in its footer when the max is not known', () => {
+    render(<ZoneSplitChart zones={full.zones} date={TODAY} maxHeartRate={null} />)
+    expect(screen.getByText('Add your birth year in Profile for real zones.')).toBeVisible()
+  })
+
+  it('names the max and its source in its footer when the max is known', () => {
+    render(
+      <ZoneSplitChart zones={full.zones} date={TODAY} maxHeartRate={{ bpm: 190, source: 'age' }} />,
+    )
+    expect(screen.getByText('Based on a max of 190 bpm, from your birth year.')).toBeVisible()
   })
 })

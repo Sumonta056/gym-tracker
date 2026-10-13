@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { getProfile, listRange, listSessions } from '../../lib/db/repository'
+import { resolveMaxHeartRate } from '../../lib/metrics/heartRateZones'
 import { localDate } from '../../lib/schema/dailyEntry'
 import { HISTORY_START } from '../dashboard/summary'
 
@@ -93,6 +94,13 @@ export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): An
         profile.unit_system,
         sessions,
         chartGoals(profile),
+        resolveMaxHeartRate(
+          {
+            max_heart_rate: profile.max_heart_rate ?? null,
+            birth_year: profile.birth_year ?? null,
+          },
+          today,
+        ),
       ),
     }
   }, [loaded, tab])

@@ -341,6 +341,29 @@ describe('lastIndex', () => {
   })
 })
 
+describe('analyse heart rate zones', () => {
+  it('returns no max when none is passed', () => {
+    expect(analyse([], [], 'day', TODAY, NOW, 12000).maxHeartRate).toBeNull()
+  })
+
+  it('models the zones of today against the max it is given', () => {
+    const entry = entryOn(TODAY, { gym_seconds: 3600, avg_heart_rate: 150, max_heart_rate: 160 })
+    const data = analyse([entry], [entry], 'day', TODAY, NOW, 12000, 'metric', [], NO_GOALS, {
+      bpm: 190,
+      source: 'age',
+    })
+    expect(data.maxHeartRate).toEqual({ bpm: 190, source: 'age' })
+    expect(data.zones.peakSeconds).toBe(0)
+    expect(data.zones.cardioSeconds).toBe(3600)
+  })
+
+  it('models the zones of today from its session when no gym time is typed', () => {
+    const entry = entryOn(TODAY, { gym_seconds: null, avg_heart_rate: 150, max_heart_rate: 160 })
+    const data = analyse([entry], [entry], 'day', TODAY, NOW, 12000, 'metric', [sessionOn(TODAY)])
+    expect(data.zones.peakSeconds).toBe(3600)
+  })
+})
+
 describe('analyse goals', () => {
   const goals = { calories: 800, gymSeconds: 2700, walkSeconds: 3600, weightKg: 72 }
 

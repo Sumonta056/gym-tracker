@@ -216,6 +216,11 @@ describe('DashboardView', () => {
     expect(screen.getByRole('heading', { name: 'Heart rate zones' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'This week' })).toBeInTheDocument()
   })
+
+  it('names the max heart rate of the profile under the zones', () => {
+    view([entryOn(TODAY)], { ...PROFILE, birth_year: 1996 })
+    expect(screen.getByText('Based on a max of 190 bpm, from your birth year.')).toBeVisible()
+  })
 })
 
 describe('stepsHint', () => {

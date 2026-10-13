@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { heartRateZones, ZONE_FLOORS } from './heartRateZones'
+import { heartRateZones, resolveMaxHeartRate, ZONE_FLOORS } from './heartRateZones'
 
 import type { HeartRateSession } from './heartRateZones'
 
@@ -23,31 +23,33 @@ describe('ZONE_FLOORS', () => {
 
 describe('heartRateZones', () => {
   it('returns four zeros for a session with no heart rate', () => {
-    expect(heartRateZones(session({ avg_heart_rate: null, max_heart_rate: null }))).toEqual(ZEROS)
+    expect(heartRateZones(session({ avg_heart_rate: null, max_heart_rate: null }), null)).toEqual(
+      ZEROS,
+    )
   })
 
   it('returns four zeros when only the average is missing', () => {
-    expect(heartRateZones(session({ avg_heart_rate: null }))).toEqual(ZEROS)
+    expect(heartRateZones(session({ avg_heart_rate: null }), null)).toEqual(ZEROS)
   })
 
   it('returns four zeros when only the peak is missing', () => {
-    expect(heartRateZones(session({ max_heart_rate: null }))).toEqual(ZEROS)
+    expect(heartRateZones(session({ max_heart_rate: null }), null)).toEqual(ZEROS)
   })
 
   it('returns four zeros for a session with no gym time', () => {
-    expect(heartRateZones(session({ gym_seconds: null }))).toEqual(ZEROS)
+    expect(heartRateZones(session({ gym_seconds: null }), null)).toEqual(ZEROS)
   })
 
   it('returns four zeros for a session of zero seconds', () => {
-    expect(heartRateZones(session({ gym_seconds: 0 }))).toEqual(ZEROS)
+    expect(heartRateZones(session({ gym_seconds: 0 }), null)).toEqual(ZEROS)
   })
 
   it('returns four zeros for a peak heart rate of zero', () => {
-    expect(heartRateZones(session({ max_heart_rate: 0 }))).toEqual(ZEROS)
+    expect(heartRateZones(session({ max_heart_rate: 0 }), null)).toEqual(ZEROS)
   })
 
   it('splits an hour at 120 average and 180 peak into the four zones', () => {
-    expect(heartRateZones(session())).toEqual({
+    expect(heartRateZones(session(), null)).toEqual({
       warmSeconds: 1440,
       fatBurnSeconds: 540,
       cardioSeconds: 810,
@@ -56,14 +58,14 @@ describe('heartRateZones', () => {
   })
 
   it('adds the four zone shares up to the session length', () => {
-    expect(total(heartRateZones(session()))).toBe(3600)
+    expect(total(heartRateZones(session(), null))).toBe(3600)
   })
 
   it('adds up to the session length when the seconds do not divide evenly', () => {
     const odd = [1, 7, 59, 313, 3599, 4271]
 
     for (const seconds of odd) {
-      expect(total(heartRateZones(session({ gym_seconds: seconds })))).toBe(seconds)
+      expect(total(heartRateZones(session({ gym_seconds: seconds }), null))).toBe(seconds)
     }
   })
 
@@ -77,14 +79,17 @@ describe('heartRateZones', () => {
     ]
 
     for (const pair of pairs) {
-      const zones = heartRateZones(session({ avg_heart_rate: pair.avg, max_heart_rate: pair.max }))
+      const zones = heartRateZones(
+        session({ avg_heart_rate: pair.avg, max_heart_rate: pair.max }),
+        null,
+      )
 
       expect(total(zones)).toBe(3600)
     }
   })
 
   it('never returns a negative zone', () => {
-    const zones = heartRateZones(session({ gym_seconds: 71, avg_heart_rate: 99 }))
+    const zones = heartRateZones(session({ gym_seconds: 71, avg_heart_rate: 99 }), null)
 
     for (const value of Object.values(zones)) {
       expect(value).toBeGreaterThanOrEqual(0)
@@ -92,7 +97,7 @@ describe('heartRateZones', () => {
   })
 
   it('puts a flat session at the peak heart rate wholly in the peak zone', () => {
-    const zones = heartRateZones(session({ gym_seconds: 600, avg_heart_rate: 180 }))
+    const zones = heartRateZones(session({ gym_seconds: 600, avg_heart_rate: 180 }), null)
 
     expect(zones).toEqual({
       warmSeconds: 0,
@@ -105,6 +110,7 @@ describe('heartRateZones', () => {
   it('clamps the low end of the range at zero when the average sits far below the peak', () => {
     const zones = heartRateZones(
       session({ gym_seconds: 1000, avg_heart_rate: 40, max_heart_rate: 200 }),
+      null,
     )
 
     expect(zones).toEqual({
@@ -118,9 +124,84 @@ describe('heartRateZones', () => {
   it('reads a peak below the average as the average, rather than throwing', () => {
     const zones = heartRateZones(
       session({ gym_seconds: 600, avg_heart_rate: 150, max_heart_rate: 140 }),
+      null,
     )
 
     expect(total(zones)).toBe(600)
     expect(zones.peakSeconds).toBe(600)
+  })
+})
+
+describe('resolveMaxHeartRate', () => {
+  it('uses the override when the profile holds both fields', () => {
+    expect(resolveMaxHeartRate({ max_heart_rate: 175, birth_year: 1996 }, '2026-09-23')).toEqual({
+      bpm: 175,
+      source: 'override',
+    })
+  })
+
+  it('takes 220 minus the age when only the birth year is set', () => {
+    expect(resolveMaxHeartRate({ max_heart_rate: null, birth_year: 1996 }, '2026-09-23')).toEqual({
+      bpm: 190,
+      source: 'age',
+    })
+  })
+
+  it('counts the age from the year of today', () => {
+    expect(resolveMaxHeartRate({ max_heart_rate: null, birth_year: 1996 }, '2027-01-01')).toEqual({
+      bpm: 189,
+      source: 'age',
+    })
+  })
+
+  it('returns null when the profile holds neither field', () => {
+    expect(resolveMaxHeartRate({ max_heart_rate: null, birth_year: null }, '2026-09-23')).toBeNull()
+  })
+})
+
+describe('heartRateZones with a maximum heart rate', () => {
+  it('keeps an hour at 150 average and 160 peak out of the peak zone with a max of 190', () => {
+    expect(heartRateZones(session({ avg_heart_rate: 150, max_heart_rate: 160 }), 190)).toEqual({
+      warmSeconds: 0,
+      fatBurnSeconds: 0,
+      cardioSeconds: 3600,
+      peakSeconds: 0,
+    })
+  })
+
+  it('puts the same hour wholly in the peak zone with no max, as before', () => {
+    expect(
+      heartRateZones(session({ avg_heart_rate: 150, max_heart_rate: 160 }), null).peakSeconds,
+    ).toBe(3600)
+  })
+
+  it('splits an hour at 120 average and 180 peak against a max of 190', () => {
+    expect(heartRateZones(session(), 190)).toEqual({
+      warmSeconds: 1620,
+      fatBurnSeconds: 570,
+      cardioSeconds: 855,
+      peakSeconds: 555,
+    })
+  })
+
+  it('fills the peak zone when the session peak passes the max', () => {
+    expect(heartRateZones(session({ avg_heart_rate: 170, max_heart_rate: 200 }), 175)).toEqual({
+      warmSeconds: 0,
+      fatBurnSeconds: 0,
+      cardioSeconds: 525,
+      peakSeconds: 3075,
+    })
+  })
+
+  it('puts a flat session below the cardio floor in the fat burn zone', () => {
+    expect(
+      heartRateZones(session({ gym_seconds: 600, avg_heart_rate: 125, max_heart_rate: 125 }), 190),
+    ).toEqual({ warmSeconds: 0, fatBurnSeconds: 600, cardioSeconds: 0, peakSeconds: 0 })
+  })
+
+  it('adds up to the session length for any max', () => {
+    for (const max of [100, 150, 190, 230]) {
+      expect(total(heartRateZones(session(), max))).toBe(3600)
+    }
   })
 })

@@ -8,7 +8,7 @@ import { weekTotals } from '../../lib/metrics/weekTotals'
 import { daysBefore, formatCount, weekOf } from '../dashboard/summary'
 
 import type { DailyEntry, Profile, WorkoutSession } from '../../lib/db/dexie'
-import type { HeartRateZones } from '../../lib/metrics/heartRateZones'
+import type { HeartRateZones, MaxHeartRate } from '../../lib/metrics/heartRateZones'
 import type { Streak } from '../../lib/metrics/streak'
 import type { WeekRange, WeekTotals } from '../../lib/metrics/weekTotals'
 import type { UnitSystem } from '../../lib/schema/profile'
@@ -96,6 +96,7 @@ export type AnalyticsData = {
   stepGoal: number
   unitSystem: UnitSystem
   goals: ChartGoals
+  maxHeartRate: MaxHeartRate | null
 }
 
 export const MONTH_TICK_DAYS = ['01', '08', '15', '22', '29']
@@ -201,6 +202,7 @@ export function analyse(
   unitSystem: UnitSystem = 'metric',
   sessions: readonly WorkoutSession[] = [],
   goals: ChartGoals = NO_GOALS,
+  maxHeartRate: MaxHeartRate | null = null,
 ): AnalyticsData {
   const range = rangeFor(tab, today)
   const byDate = new Map(entries.map((row) => [row.entry_date, row]))
@@ -229,6 +231,7 @@ export function analyse(
   })
   const past = history.filter((row) => row.entry_date <= today)
   const todayEntry = byDate.get(today)
+  const todayGym = effectiveGymSeconds(todayEntry, sessionsOn.get(today) ?? [])
 
   return {
     tab,
@@ -237,7 +240,12 @@ export function analyse(
     label: rangeLabel(range),
     days,
     zones: heartRateZones(
-      todayEntry ?? { gym_seconds: null, avg_heart_rate: null, max_heart_rate: null },
+      {
+        gym_seconds: todayGym.seconds,
+        avg_heart_rate: todayEntry?.avg_heart_rate ?? null,
+        max_heart_rate: todayEntry?.max_heart_rate ?? null,
+      },
+      maxHeartRate?.bpm ?? null,
     ),
     totals: weekTotals(entries, range, sessions),
     streak: streak(
@@ -252,6 +260,7 @@ export function analyse(
     stepGoal,
     unitSystem,
     goals,
+    maxHeartRate,
   }
 }
 

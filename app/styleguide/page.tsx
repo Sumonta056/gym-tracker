@@ -22,6 +22,7 @@ import { WeekTotalsCard } from '../../components/dashboard/WeekTotalsCard'
 import { ErrorScreenView } from '../../components/errors/ErrorScreen'
 import { VersionBannerView } from '../../components/errors/VersionBanner'
 import { DataCard } from '../../components/profile/DataCard'
+import { HeartRateCard } from '../../components/profile/HeartRateCard'
 import { ProfileView } from '../../components/profile/ProfileView'
 import { SyncCard } from '../../components/profile/SyncCard'
 import { AppShell } from '../../components/ui/AppShell'
@@ -75,6 +76,7 @@ import type {
   WorkoutSet,
 } from '../../lib/db/dexie'
 import type { ImportChoice } from '../../lib/db/repository'
+import type { MaxHeartRate } from '../../lib/metrics/heartRateZones'
 import type { SessionStats } from '../../lib/metrics/sessionStats'
 import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
@@ -191,6 +193,15 @@ const SAMPLE_ZONES = {
   peakSeconds: 300,
 }
 
+const SAMPLE_SHORT_ZONES = {
+  warmSeconds: 30,
+  fatBurnSeconds: 1500,
+  cardioSeconds: 900,
+  peakSeconds: 0,
+}
+
+const SAMPLE_MAX: MaxHeartRate = { bpm: 190, source: 'age' }
+
 const SAMPLE_STATS_TODAY = '2026-09-20'
 
 const SAMPLE_STATS_NOW = new Date(2026, 8, 20, 10, 0, 0)
@@ -295,6 +306,7 @@ const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
   entry: SAMPLE_HEAVY_DAY,
   streak: 12,
   zones: { warmSeconds: 600, fatBurnSeconds: 2700, cardioSeconds: 1680, peakSeconds: 420 },
+  maxHeartRate: SAMPLE_MAX,
   week: { sessions: 6, gymSeconds: 25920, walkSeconds: 19440, calories: 7710, steps: 78600 },
   weekRange: { from: '2026-09-07', to: '2026-09-13' },
   stepGoal: 12000,
@@ -441,7 +453,12 @@ function sampleSessionDates(entries: DailyEntry[], source: LiftSource) {
   )
 }
 
-function sampleStats(entries: DailyEntry[], tab: RangeTab, goals?: ChartGoals) {
+function sampleStats(
+  entries: DailyEntry[],
+  tab: RangeTab,
+  goals?: ChartGoals,
+  maxHeartRate: MaxHeartRate | null = null,
+) {
   return analyse(
     entries,
     entries,
@@ -452,6 +469,7 @@ function sampleStats(entries: DailyEntry[], tab: RangeTab, goals?: ChartGoals) {
     'metric',
     [],
     goals,
+    maxHeartRate,
   )
 }
 
@@ -466,7 +484,17 @@ const SAMPLE_PROFILE: Profile = {
   sessions_per_week_goal: 4,
   gym_goal_seconds: 3600,
   walk_goal_seconds: 2700,
+  birth_year: 1996,
+  max_heart_rate: null,
   updated_at: '2026-09-20T10:00:00.000Z',
+}
+
+const SAMPLE_OVERRIDE_PROFILE: Profile = { ...SAMPLE_PROFILE, max_heart_rate: 185 }
+
+const SAMPLE_EMPTY_HEART_PROFILE: Profile = {
+  ...SAMPLE_PROFILE,
+  birth_year: null,
+  max_heart_rate: null,
 }
 
 const SAMPLE_WEEK = { sessions: 3, gymSeconds: 9120, walkSeconds: 0, calories: 2627, steps: 21480 }
@@ -807,7 +835,7 @@ export default function StyleguidePage() {
 function Styleguide() {
   const [range, setRange] = useState('week')
   const [statsTab, setStatsTab] = useState<RangeTab>('week')
-  const stats = sampleStats(SAMPLE_STATS_ENTRIES, statsTab, SAMPLE_GOALS)
+  const stats = sampleStats(SAMPLE_STATS_ENTRIES, statsTab, SAMPLE_GOALS, SAMPLE_MAX)
   const oneDay = sampleStats(SAMPLE_ONE_DAY, statsTab)
   const heavy = analyse(
     SAMPLE_HEAVY_ENTRIES,
@@ -844,6 +872,8 @@ function Styleguide() {
   const [showFieldError, setShowFieldError] = useState(false)
   const [showEmailError, setShowEmailError] = useState(false)
   const [sampleProfile, setSampleProfile] = useState<Profile>(SAMPLE_PROFILE)
+  const [sampleOverride, setSampleOverride] = useState<Profile>(SAMPLE_OVERRIDE_PROFILE)
+  const [sampleEmptyHeart, setSampleEmptyHeart] = useState<Profile>(SAMPLE_EMPTY_HEART_PROFILE)
   const [samplePending, setSamplePending] = useState(0)
   const [showSignOutError, setShowSignOutError] = useState(false)
   const [sampleLost, setSampleLost] = useState<number | null>(null)
@@ -944,7 +974,8 @@ function Styleguide() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <TodayHero entry={SAMPLE_DAY} streak={4} name="Today, logged" />
           <TodayHero entry={undefined} streak={0} name="Today, empty state" />
-          <HeartRateZonesCard zones={SAMPLE_ZONES} />
+          <HeartRateZonesCard zones={SAMPLE_ZONES} maxHeartRate={SAMPLE_MAX} />
+          <HeartRateZonesCard zones={SAMPLE_SHORT_ZONES} maxHeartRate={null} />
           <WeekTotalsCard
             totals={SAMPLE_WEEK}
             range={{ from: '2026-09-07', to: '2026-09-13' }}
@@ -1078,6 +1109,30 @@ function Styleguide() {
           >
             {showSignOutError ? 'Hide the sign-out error' : 'Show the sign-out error'}
           </SecondaryButton>
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">
+          Heart rate card, an override and no max
+        </h3>
+        <div
+          data-testid="heart-rate-card-sample"
+          className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
+        >
+          <HeartRateCard
+            profile={sampleOverride}
+            today={SAMPLE_STATS_TODAY}
+            onSave={(patch) => {
+              setSampleOverride((current) => ({ ...current, ...patch }))
+              return Promise.resolve()
+            }}
+          />
+          <HeartRateCard
+            profile={sampleEmptyHeart}
+            today={SAMPLE_STATS_TODAY}
+            onSave={(patch) => {
+              setSampleEmptyHeart((current) => ({ ...current, ...patch }))
+              return Promise.resolve()
+            }}
+          />
         </div>
         <h3 className="text-text mt-6 text-base font-bold">Sync card, offline and syncing</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">

@@ -87,7 +87,7 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
           />
         </div>
 
-        <HeartRateZonesCard zones={summary.zones} />
+        <HeartRateZonesCard zones={summary.zones} maxHeartRate={summary.maxHeartRate} />
 
         <WeekTotalsCard
           totals={summary.week}

@@ -175,6 +175,18 @@ describe('AnalyticsView', () => {
   })
 })
 
+describe('AnalyticsView heart rate zones', () => {
+  it('names the max heart rate of the data under the zone split', () => {
+    const entries = [entryOn(TODAY)]
+    const data = analyse(entries, entries, 'week', TODAY, NOW, 12000, 'metric', [], undefined, {
+      bpm: 175,
+      source: 'override',
+    })
+    render(<AnalyticsView data={data} />)
+    expect(screen.getByText('Based on a max of 175 bpm, set in Profile.')).toBeVisible()
+  })
+})
+
 describe('AnalyticsHeader', () => {
   it('names the screen Stats', () => {
     render(<AnalyticsHeader label={null} />)

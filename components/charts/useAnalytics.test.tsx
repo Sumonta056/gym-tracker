@@ -105,6 +105,26 @@ describe('useAnalytics', () => {
     })
   })
 
+  it('hands the max heart rate of the profile to the data', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ ...PROFILE, birth_year: 1996 })
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.data.maxHeartRate).toEqual({
+      bpm: 190,
+      source: 'age',
+    })
+  })
+
+  it('hands no max heart rate for a profile with neither field', async () => {
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.data.maxHeartRate).toBeNull()
+  })
+
   it('reports a read that fails', async () => {
     vi.mocked(listRange).mockRejectedValue(new Error('locked'))
     const { result } = renderHook(() => useAnalytics('week', clock))

@@ -11,6 +11,7 @@ import { SecondaryButton } from '../ui/SecondaryButton'
 
 import { DataCard } from './DataCard'
 import { ErrorLogCard, REPOSITORY_ERROR_LOG_SOURCE } from './ErrorLogCard'
+import { HeartRateCard } from './HeartRateCard'
 import { ManageExercisesSheet, REPOSITORY_MANAGE_SOURCE } from './ManageExercisesSheet'
 import { ProfileHeader } from './ProfileHeader'
 import { RestSoundCard } from './RestSoundCard'
@@ -125,6 +126,7 @@ export function ProfileView({
         <div data-testid={`${testId}-column-1`} className="flex flex-col gap-3">
           <UnitsCard unit={unit} onUnitChange={onUnitChange} error={unitError} />
           <TargetsCard profile={profile} unit={unit} onSave={onSaveTarget} />
+          <HeartRateCard profile={profile} onSave={onSaveTarget} />
         </div>
         <div data-testid={`${testId}-column-2-3`} className="flex flex-col gap-3 lg:contents">
           <div data-testid={`${testId}-column-2`} className="flex flex-col gap-3">
