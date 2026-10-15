@@ -1,9 +1,17 @@
 import { formatDuration } from '../../lib/duration'
+import { zoneBands } from '../../lib/metrics/heartRateZones'
 import { Card } from '../ui/Card'
 import { cn } from '../ui/cn'
 import { MicroLabel } from '../ui/MicroLabel'
 
-import type { HeartRateZones, MaxHeartRate } from '../../lib/metrics/heartRateZones'
+import { ZoneInfoButton } from './ZoneInfo'
+
+import type {
+  HeartRateZones,
+  MaxHeartRate,
+  ZoneBand,
+  ZoneName,
+} from '../../lib/metrics/heartRateZones'
 
 export type HeartRateZonesCardProps = {
   zones: HeartRateZones
@@ -24,17 +32,63 @@ export function zoneNote(maxHeartRate: MaxHeartRate | null): string {
 }
 
 type Zone = {
+  zone: ZoneName
   name: string
   seconds: number
   fill: string
+  band: string | null
 }
 
-export function zoneList(zones: HeartRateZones): Zone[] {
+export function bandText(band: ZoneBand): string {
+  if (band.toBpm === null) {
+    return `${String(band.fromBpm)}+ bpm`
+  }
+
+  if (band.fromBpm === 0) {
+    return `under ${String(band.toBpm + 1)} bpm`
+  }
+
+  return `${String(band.fromBpm)}–${String(band.toBpm)} bpm`
+}
+
+export function zoneList(zones: HeartRateZones, maxHeartRate: MaxHeartRate | null = null): Zone[] {
+  const bands = maxHeartRate === null ? null : zoneBands(maxHeartRate.bpm)
+
+  function band(zone: ZoneName): string | null {
+    const found = bands?.find((item) => item.zone === zone)
+
+    return found === undefined ? null : bandText(found)
+  }
+
   return [
-    { name: 'Warm', seconds: zones.warmSeconds, fill: 'bg-data-cyan' },
-    { name: 'Fat burn', seconds: zones.fatBurnSeconds, fill: 'bg-ok' },
-    { name: 'Cardio', seconds: zones.cardioSeconds, fill: 'bg-warn' },
-    { name: 'Peak', seconds: zones.peakSeconds, fill: 'bg-danger' },
+    {
+      zone: 'warm',
+      name: 'Warm',
+      seconds: zones.warmSeconds,
+      fill: 'bg-data-cyan',
+      band: band('warm'),
+    },
+    {
+      zone: 'fatBurn',
+      name: 'Fat burn',
+      seconds: zones.fatBurnSeconds,
+      fill: 'bg-ok',
+      band: band('fatBurn'),
+    },
+    {
+      zone: 'cardio',
+      name: 'Cardio',
+      seconds: zones.cardioSeconds,
+      fill: 'bg-warn',
+      band: band('cardio'),
+    },
+    {
+      zone: 'peak',
+      name: 'Peak',
+      seconds: zones.peakSeconds,
+      fill: 'bg-danger',
+      band: band('peak'),
+    },
   ]
 }
 
@@ -45,18 +99,21 @@ export function zoneSummary(zones: HeartRateZones): string {
 }
 
 export function HeartRateZonesCard({ zones, maxHeartRate, className }: HeartRateZonesCardProps) {
-  const list = zoneList(zones)
+  const list = zoneList(zones, maxHeartRate)
   const total = list.reduce((sum, zone) => sum + zone.seconds, 0)
 
   return (
     <Card className={cn('flex flex-col gap-3', className)}>
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex min-h-11 items-center justify-between gap-3">
         <h2>
           <MicroLabel>Heart rate zones</MicroLabel>
         </h2>
-        {total === 0 ? null : (
-          <p className="text-muted text-xs">{`${formatDuration(zones.cardioSeconds, 'short')} in cardio`}</p>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {total === 0 ? null : (
+            <p className="text-muted text-xs">{`${formatDuration(zones.cardioSeconds, 'short')} in cardio`}</p>
+          )}
+          <ZoneInfoButton maxHeartRate={maxHeartRate} />
+        </div>
       </div>
 
       {total === 0 ? (
@@ -80,14 +137,20 @@ export function HeartRateZonesCard({ zones, maxHeartRate, className }: HeartRate
               ),
             )}
           </div>
-          <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+          <ul className="flex flex-col gap-1.5">
             {list.map((zone) => (
-              <li key={zone.name} className="text-muted flex items-center gap-1.5 text-xs">
-                <span
-                  aria-hidden="true"
-                  className={cn('size-1.5 shrink-0 rounded-full', zone.fill)}
-                />
-                {`${zone.name} ${formatDuration(zone.seconds, 'short')}`}
+              <li
+                key={zone.name}
+                className="text-muted flex items-center justify-between gap-3 text-xs"
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className={cn('size-1.5 shrink-0 rounded-full', zone.fill)}
+                  />
+                  <span>{`${zone.name} ${formatDuration(zone.seconds, 'short')}`}</span>
+                </span>
+                {zone.band === null ? null : <span className="text-muted">{zone.band}</span>}
               </li>
             ))}
           </ul>

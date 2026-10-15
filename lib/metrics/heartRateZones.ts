@@ -21,6 +21,27 @@ export const ZONE_FLOORS = {
 
 export type MaxHeartRate = { bpm: number; source: 'override' | 'age' }
 
+export type ZoneName = 'warm' | 'fatBurn' | 'cardio' | 'peak'
+
+export type ZoneBand = { zone: ZoneName; fromBpm: number; toBpm: number | null }
+
+function floorBeat(floor: number, maxHeartRate: number): number {
+  return Math.round(Number((floor * maxHeartRate).toFixed(6)))
+}
+
+export function zoneBands(maxHeartRate: number): ZoneBand[] {
+  const fatBurn = floorBeat(ZONE_FLOORS.fatBurn, maxHeartRate)
+  const cardio = floorBeat(ZONE_FLOORS.cardio, maxHeartRate)
+  const peak = floorBeat(ZONE_FLOORS.peak, maxHeartRate)
+
+  return [
+    { zone: 'warm', fromBpm: 0, toBpm: fatBurn - 1 },
+    { zone: 'fatBurn', fromBpm: fatBurn, toBpm: cardio - 1 },
+    { zone: 'cardio', fromBpm: cardio, toBpm: peak - 1 },
+    { zone: 'peak', fromBpm: peak, toBpm: null },
+  ]
+}
+
 export const AGE_FORMULA_BASE = 220
 
 export function resolveMaxHeartRate(

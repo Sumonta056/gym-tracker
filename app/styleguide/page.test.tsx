@@ -239,6 +239,21 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.getByText('Warm <1m')).toBeInTheDocument()
   })
 
+  it('renders the zone info sheet sample with its info button', () => {
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'The zone info sheet' }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'What the zones mean' }).length).toBeGreaterThan(0)
+  })
+
+  it('renders the bpm range of each zone on the card with a max of 190', () => {
+    expect(screen.getAllByText('133–161 bpm').length).toBeGreaterThan(0)
+  })
+
+  it('renders the bpm range of each zone in the zone split chart legend', () => {
+    expect(screen.getAllByText(/^Cardio .* · \d+–\d+ bpm$/).length).toBeGreaterThan(0)
+  })
+
   it('renders the Heart rate card in the profile sample and on its own', () => {
     const grid = within(screen.getByTestId('profile-grid-sample'))
     expect(grid.getByLabelText('Birth year')).toHaveValue('1996')

@@ -64,4 +64,16 @@ describe('ZoneSplitChart', () => {
     )
     expect(screen.getByText('Based on a max of 190 bpm, from your birth year.')).toBeVisible()
   })
+
+  it('shows the bpm range of each zone in the legend when the max is known', () => {
+    render(
+      <ZoneSplitChart zones={full.zones} date={TODAY} maxHeartRate={{ bpm: 190, source: 'age' }} />,
+    )
+    expect(screen.getByText('Cardio 13m · 133–161 bpm')).toBeVisible()
+  })
+
+  it('shows the info button in its empty state', () => {
+    render(<ZoneSplitChart zones={empty.zones} date={TODAY} maxHeartRate={null} />)
+    expect(screen.getByRole('button', { name: 'What the zones mean' })).toBeInTheDocument()
+  })
 })

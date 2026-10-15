@@ -1014,6 +1014,60 @@
         cursor: pointer;
       }
 
+      .zone-info {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .zone-head-end {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+      }
+
+      .zone-rows {
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .zone-rows li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--color-muted);
+      }
+
+      .zone-rows li > span:first-child {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .zone-sheet {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .zone-sheet dt {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .zone-sheet dd {
+        margin: 2px 0 0;
+        font-size: 14px;
+        color: var(--color-muted);
+      }
+
       .pick-body {
         flex: 1 1 auto;
         min-height: 0;
@@ -1789,9 +1843,12 @@ Left knee a little stiff.</p>
               </div>
 
               <div class="card">
-                <div class="row-tight">
+                <div class="row">
                   <h3 class="micro">Heart rate zones</h3>
-                  <span class="muted" style="font-size: 12px">21m in cardio</span>
+                  <span class="zone-head-end">
+                    <span class="muted" style="font-size: 12px">21m in cardio</span>
+                    <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
+                  </span>
                 </div>
                 <div
                   class="zonebar"
@@ -1803,12 +1860,12 @@ Left knee a little stiff.</p>
                   <span style="width: 29%; background: var(--color-warn)"></span>
                   <span style="width: 7%; background: var(--color-danger)"></span>
                 </div>
-                <div class="legend">
-                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 8m</span>
-                  <span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 38m</span>
-                  <span><i class="dot" style="background: var(--color-warn)"></i>Cardio 21m</span>
-                  <span><i class="dot" style="background: var(--color-danger)"></i>Peak 5m</span>
-                </div>
+                <ul class="zone-rows">
+                  <li><span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 8m</span><span>under 114 bpm</span></li>
+                  <li><span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 38m</span><span>114–132 bpm</span></li>
+                  <li><span><i class="dot" style="background: var(--color-warn)"></i>Cardio 21m</span><span>133–161 bpm</span></li>
+                  <li><span><i class="dot" style="background: var(--color-danger)"></i>Peak 5m</span><span>162+ bpm</span></li>
+                </ul>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
                   Based on a max of 190 bpm, from your birth year.
                 </p>
@@ -2858,7 +2915,10 @@ Left knee a little stiff.</p>
               <div class="card">
                 <div class="row">
                   <span class="micro">Heart rate zones</span>
-                  <span class="muted">20 September</span>
+                  <span class="zone-head-end">
+                    <span class="muted">20 September</span>
+                    <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
+                  </span>
                 </div>
                 <div
                   class="zonebar"
@@ -2879,25 +2939,10 @@ Left knee a little stiff.</p>
                   ></span>
                 </div>
                 <div class="legend">
-                  <span
-                    ><i
-                      class="dot"
-                      style="background: var(--color-data-cyan)"
-                    ></i
-                    >Warm 28m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-ok)"></i>Fat
-                    burn 11m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-warn)"></i
-                    >Cardio 16m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-danger)"></i
-                    >Peak 16m</span
-                  >
+                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 28m · under 114 bpm</span>
+                  <span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 11m · 114–132 bpm</span>
+                  <span><i class="dot" style="background: var(--color-warn)"></i>Cardio 16m · 133–161 bpm</span>
+                  <span><i class="dot" style="background: var(--color-danger)"></i>Peak 16m · 162+ bpm</span>
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
                   Based on a max of 190 bpm, from your birth year.
@@ -3491,6 +3536,85 @@ Left knee a little stiff.</p>
         </div>
       </section>
 
+      <!-- ============ H2 · heart rate zones explained ============
+           New classes: zone-info, zone-head-end, zone-rows, zone-sheet. -->
+      <section class="plate" aria-labelledby="p-zone-info">
+        <div class="plate-label">
+          <span class="n">H2</span>
+          <span class="name" id="p-zone-info">Heart rate zones explained</span>
+          <span class="route">/ · sheet</span>
+        </div>
+        <div class="frame">
+          <div class="screen" aria-hidden="true">
+            <div class="topbar">
+              <div>
+                <h2>Today</h2>
+                <p class="sub">Sunday 13 September</p>
+              </div>
+            </div>
+            <div class="body">
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Heart rate zones</span>
+                  <span class="zone-head-end">
+                    <span class="muted" style="font-size: 12px">21m in cardio</span>
+                    <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scrim"></div>
+
+          <div class="bottomsheet" role="dialog" aria-modal="true" aria-labelledby="zone-info-title">
+            <div class="grabber" aria-hidden="true"></div>
+
+            <div class="sheet-top">
+              <h3 id="zone-info-title">Heart rate zones</h3>
+              <button class="sheet-close" type="button" aria-label="Close Heart rate zones">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+
+            <dl class="zone-sheet">
+              <div>
+                <dt>Warm, under 114 bpm</dt>
+                <dd>Easy movement below 60 % of your max, such as a warm-up or the rest between sets.</dd>
+              </div>
+              <div>
+                <dt>Fat burn, 114–132 bpm</dt>
+                <dd>A steady effort from 60 to 70 % of your max that you could keep up for a long time.</dd>
+              </div>
+              <div>
+                <dt>Cardio, 133–161 bpm</dt>
+                <dd>Hard work from 70 to 85 % of your max that builds your heart and lung fitness.</dd>
+              </div>
+              <div>
+                <dt>Peak, 162+ bpm</dt>
+                <dd>An all-out effort above 85 % of your max that you can hold only for short bursts.</dd>
+              </div>
+            </dl>
+
+            <p class="muted" style="margin: 0; font-size: 14px">
+              The app spreads your gym time between your average and your peak heart rate, so the
+              split is a model, not a measurement.
+            </p>
+            <p class="muted" style="margin: 0; font-size: 14px">
+              Your max heart rate is the value you set in Profile. Without one, it is 220 minus
+              your age, from your birth year.
+            </p>
+            <p style="margin: 0; font-size: 14px">Based on a max of 190 bpm, from your birth year.</p>
+          </div>
+        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          The round i button in the header of the zones card on Today and of the zone split chart
+          on Stats opens this sheet. With no max, the rows show the zone names only and the last
+          line reads "Add your birth year in Profile for real zones." Focus lands on × first, and
+          closing gives focus back to the i button.
+        </p>
+      </section>
+
       <!-- ============ 5b · analytics, one logged day ============ -->
       <section class="plate" aria-labelledby="p5-one-day">
         <div class="plate-label">
@@ -3704,7 +3828,10 @@ Left knee a little stiff.</p>
               <div class="card">
                 <div class="row">
                   <span class="micro">Heart rate zones</span>
-                  <span class="muted">20 September</span>
+                  <span class="zone-head-end">
+                    <span class="muted">20 September</span>
+                    <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
+                  </span>
                 </div>
                 <div
                   class="zonebar"
@@ -3725,25 +3852,10 @@ Left knee a little stiff.</p>
                   ></span>
                 </div>
                 <div class="legend">
-                  <span
-                    ><i
-                      class="dot"
-                      style="background: var(--color-data-cyan)"
-                    ></i
-                    >Warm 28m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-ok)"></i>Fat
-                    burn 11m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-warn)"></i
-                    >Cardio 16m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-danger)"></i
-                    >Peak 16m</span
-                  >
+                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 28m · under 114 bpm</span>
+                  <span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 11m · 114–132 bpm</span>
+                  <span><i class="dot" style="background: var(--color-warn)"></i>Cardio 16m · 133–161 bpm</span>
+                  <span><i class="dot" style="background: var(--color-danger)"></i>Peak 16m · 162+ bpm</span>
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
                   Based on a max of 190 bpm, from your birth year.

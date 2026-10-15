@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { HeartRateZonesCard, zoneSummary } from './HeartRateZonesCard'
+import { bandText, HeartRateZonesCard, zoneSummary } from './HeartRateZonesCard'
 
 const ZONES = {
   warmSeconds: 480,
@@ -11,6 +11,8 @@ const ZONES = {
 }
 
 const NONE = { warmSeconds: 0, fatBurnSeconds: 0, cardioSeconds: 0, peakSeconds: 0 }
+
+const MAX = { bpm: 190, source: 'age' } as const
 
 describe('HeartRateZonesCard', () => {
   it('gives the bar a text alternative with every zone', () => {
@@ -74,5 +76,43 @@ describe('HeartRateZonesCard', () => {
 describe('zoneSummary', () => {
   it('lists the four zones in order', () => {
     expect(zoneSummary(NONE)).toBe('Warm 0m, Fat burn 0m, Cardio 0m, Peak 0m')
+  })
+})
+
+describe('bandText', () => {
+  it('writes the warm band as under its top', () => {
+    expect(bandText({ zone: 'warm', fromBpm: 0, toBpm: 113 })).toBe('under 114 bpm')
+  })
+
+  it('writes a middle band as a range', () => {
+    expect(bandText({ zone: 'cardio', fromBpm: 133, toBpm: 161 })).toBe('133–161 bpm')
+  })
+
+  it('writes the peak band with no top', () => {
+    expect(bandText({ zone: 'peak', fromBpm: 162, toBpm: null })).toBe('162+ bpm')
+  })
+})
+
+describe('HeartRateZonesCard bands', () => {
+  it('shows the bpm range of each zone when the max is known', () => {
+    render(<HeartRateZonesCard zones={ZONES} maxHeartRate={MAX} />)
+    for (const text of ['under 114 bpm', '114–132 bpm', '133–161 bpm', '162+ bpm']) {
+      expect(screen.getByText(text)).toBeInTheDocument()
+    }
+  })
+
+  it('keeps the zone name in text beside its range', () => {
+    render(<HeartRateZonesCard zones={ZONES} maxHeartRate={MAX} />)
+    expect(screen.getByText('133–161 bpm').closest('li')).toHaveTextContent('Cardio 21m')
+  })
+
+  it('shows no bpm range when the max is not known', () => {
+    render(<HeartRateZonesCard zones={ZONES} maxHeartRate={null} />)
+    expect(screen.queryByText(/bpm$/)).not.toBeInTheDocument()
+  })
+
+  it('shows the info button in the empty state', () => {
+    render(<HeartRateZonesCard zones={NONE} maxHeartRate={null} />)
+    expect(screen.getByRole('button', { name: 'What the zones mean' })).toBeInTheDocument()
   })
 })

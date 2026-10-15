@@ -5,6 +5,7 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { colorTokens } from '../../lib/design/tokens'
 import { formatDuration } from '../../lib/duration'
 import { zoneList, zoneNote, zoneSummary } from '../dashboard/HeartRateZonesCard'
+import { ZoneInfoButton } from '../dashboard/ZoneInfo'
 
 import { ChartCard } from './ChartCard'
 import { rangeLabel } from './rangeData'
@@ -26,7 +27,7 @@ export const ZONE_SERIES = [
 ] as const
 
 export function ZoneSplitChart({ zones, date, maxHeartRate, className }: ZoneSplitChartProps) {
-  const list = zoneList(zones)
+  const list = zoneList(zones, maxHeartRate)
   const total = list.reduce((sum, zone) => sum + zone.seconds, 0)
   const day = rangeLabel({ from: date, to: date })
 
@@ -38,9 +39,10 @@ export function ZoneSplitChart({ zones, date, maxHeartRate, className }: ZoneSpl
       emptyText="Log gym time with an average and a peak heart rate to see today's zones."
       label={`Heart rate zones on ${day}: ${zoneSummary(zones)}`}
       legend={list.map((zone) => ({
-        name: `${zone.name} ${formatDuration(zone.seconds, 'short')}`,
+        name: `${zone.name} ${formatDuration(zone.seconds, 'short')}${zone.band === null ? '' : ` · ${zone.band}`}`,
         dot: zone.fill,
       }))}
+      action={<ZoneInfoButton maxHeartRate={maxHeartRate} />}
       footer={<p className="text-muted text-xs">{zoneNote(maxHeartRate)}</p>}
       className={className}
     >

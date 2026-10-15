@@ -9,6 +9,7 @@ import { analyse } from '../../components/charts/rangeData'
 import { StepsChart } from '../../components/charts/StepsChart'
 import { WalkChart } from '../../components/charts/WalkChart'
 import { WeekCharts } from '../../components/charts/WeekCharts'
+import { ZoneSplitChart } from '../../components/charts/ZoneSplitChart'
 import { ImportConfirmSheet } from '../../components/csv/ImportConfirmSheet'
 import { ImportConflict } from '../../components/csv/ImportConflict'
 import { ImportReview } from '../../components/csv/ImportReview'
@@ -19,6 +20,7 @@ import { HeartRateZonesCard } from '../../components/dashboard/HeartRateZonesCar
 import { ImportNoticeView } from '../../components/dashboard/ImportNotice'
 import { TodayHero } from '../../components/dashboard/TodayHero'
 import { WeekTotalsCard } from '../../components/dashboard/WeekTotalsCard'
+import { ZoneInfoButton } from '../../components/dashboard/ZoneInfo'
 import { ErrorScreenView } from '../../components/errors/ErrorScreen'
 import { VersionBannerView } from '../../components/errors/VersionBanner'
 import { DataCard } from '../../components/profile/DataCard'
@@ -201,6 +203,15 @@ const SAMPLE_SHORT_ZONES = {
 }
 
 const SAMPLE_MAX: MaxHeartRate = { bpm: 190, source: 'age' }
+
+const SAMPLE_SPLIT_ZONES = {
+  warmSeconds: 1200,
+  fatBurnSeconds: 1500,
+  cardioSeconds: 1080,
+  peakSeconds: 240,
+}
+
+const SAMPLE_NO_ZONES = { warmSeconds: 0, fatBurnSeconds: 0, cardioSeconds: 0, peakSeconds: 0 }
 
 const SAMPLE_STATS_TODAY = '2026-09-20'
 
@@ -1136,6 +1147,33 @@ function Styleguide() {
           today={SAMPLE_WEEK_TODAY}
           testId="week-grid-empty"
         />
+        <h3 className="text-text mt-6 text-base font-bold">
+          The zone split chart, a max of 190 and none
+        </h3>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <ZoneSplitChart
+            zones={SAMPLE_SPLIT_ZONES}
+            date={SAMPLE_STATS_TODAY}
+            maxHeartRate={SAMPLE_MAX}
+          />
+          <ZoneSplitChart
+            zones={SAMPLE_SPLIT_ZONES}
+            date={SAMPLE_STATS_TODAY}
+            maxHeartRate={null}
+          />
+          <ZoneSplitChart zones={SAMPLE_NO_ZONES} date={SAMPLE_STATS_TODAY} maxHeartRate={null} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">The zone info sheet</h3>
+        <div className="mt-4 flex flex-wrap items-center gap-3" data-testid="zone-info-sample">
+          <span className="flex items-center gap-2">
+            <ZoneInfoButton maxHeartRate={SAMPLE_MAX} />
+            <span className="text-muted text-sm">A max of 190, from the birth year</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <ZoneInfoButton maxHeartRate={null} />
+            <span className="text-muted text-sm">No max</span>
+          </span>
+        </div>
       </Section>
 
       <Section title="Daily log">

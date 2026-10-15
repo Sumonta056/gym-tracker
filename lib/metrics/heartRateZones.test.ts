@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { heartRateZones, resolveMaxHeartRate, ZONE_FLOORS } from './heartRateZones'
+import { heartRateZones, resolveMaxHeartRate, ZONE_FLOORS, zoneBands } from './heartRateZones'
 
 import type { HeartRateSession } from './heartRateZones'
 
@@ -202,6 +202,31 @@ describe('heartRateZones with a maximum heart rate', () => {
   it('adds up to the session length for any max', () => {
     for (const max of [100, 150, 190, 230]) {
       expect(total(heartRateZones(session(), max))).toBe(3600)
+    }
+  })
+})
+
+describe('zoneBands', () => {
+  it('splits a max of 190 at 114, 133 and 162 beats', () => {
+    expect(zoneBands(190)).toEqual([
+      { zone: 'warm', fromBpm: 0, toBpm: 113 },
+      { zone: 'fatBurn', fromBpm: 114, toBpm: 132 },
+      { zone: 'cardio', fromBpm: 133, toBpm: 161 },
+      { zone: 'peak', fromBpm: 162, toBpm: null },
+    ])
+  })
+
+  it('rounds a half beat up', () => {
+    expect(zoneBands(175).map((band) => band.fromBpm)).toEqual([0, 105, 123, 149])
+  })
+
+  it('leaves no gap and no overlap between the bands', () => {
+    for (let max = 100; max <= 230; max += 1) {
+      const bands = zoneBands(max)
+
+      for (let index = 1; index < bands.length; index += 1) {
+        expect(bands[index]?.fromBpm).toBe((bands[index - 1]?.toBpm ?? 0) + 1)
+      }
     }
   })
 })
