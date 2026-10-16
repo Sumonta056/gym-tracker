@@ -2,12 +2,13 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { listRange, listSetsInRange } from '../../lib/db/repository'
-import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
+import { getProfile, listRange, listSetsInRange } from '../../lib/db/repository'
+import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 import { setReducedMotion } from '../../tests/fixtures/motion'
 
 import { Analytics, AnalyticsHeader, AnalyticsView } from './Analytics'
 import { analyse } from './rangeData'
+import { moveCard, resolveLayout } from './statsCards'
 import { DRAW_CLASS } from './useLineDraw'
 
 vi.mock('recharts', async (importOriginal) => {
@@ -24,6 +25,7 @@ vi.mock('../../lib/db/repository', async () => {
     listSetsInRange: vi.fn(() => Promise.resolve([])),
     listExercises: vi.fn(() => Promise.resolve([])),
     getProfile: vi.fn(() => Promise.resolve({ ...PROFILE, step_goal: 10000 })),
+    updateProfile: vi.fn(() => Promise.resolve()),
     useSyncStatus: syncedStatus,
   }
 })
@@ -67,12 +69,12 @@ describe('Analytics', () => {
   it('keeps every card in the document during a tab switch', async () => {
     vi.mocked(listRange).mockResolvedValue(WEEK_ENTRIES)
     render(<Analytics clock={clock} />)
-    await screen.findByTestId('lift-grid')
-    const grid = screen.getByTestId('analytics-grid')
+    await screen.findByRole('heading', { level: 2, name: 'Personal records' })
+    const grid = screen.getByTestId('stats-grid')
 
     fireEvent.click(screen.getByRole('button', { name: 'Month' }))
 
-    expect(screen.getByTestId('analytics-grid')).toBe(grid)
+    expect(screen.getByTestId('stats-grid')).toBe(grid)
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(14)
     expect(screen.queryByText('Reading this device…')).not.toBeInTheDocument()
   })
@@ -108,17 +110,22 @@ describe('Analytics', () => {
 
   it('shows every chart in its empty state when nothing is logged', async () => {
     render(<Analytics clock={clock} />)
-    await screen.findByTestId('lift-grid')
+    await screen.findByRole('heading', { level: 2, name: 'Personal records' })
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(14)
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 
   it('shows the lifting charts after the daily charts', async () => {
     render(<Analytics clock={clock} />)
-    const lifts = await screen.findByTestId('lift-grid')
-    expect(within(lifts).getByRole('heading', { name: 'Volume load per session' })).toBeVisible()
-    expect(within(lifts).getByRole('heading', { name: 'Estimated one-rep max' })).toBeVisible()
-    expect(within(lifts).getByRole('heading', { name: 'Personal records' })).toBeVisible()
+    await screen.findByRole('heading', { level: 2, name: 'Personal records' })
+    const names = within(screen.getByTestId('stats-grid'))
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent)
+    expect(names.slice(8, 11)).toEqual([
+      'Volume load per session',
+      'Estimated one-rep max',
+      'Personal records',
+    ])
   })
 
   it('says it is reading the workouts while that read is open', async () => {
@@ -133,8 +140,133 @@ describe('Analytics', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The workouts on this device could not be read.',
     )
-    expect(await screen.findByTestId('analytics-grid')).toBeVisible()
-    expect(screen.queryByTestId('lift-grid')).not.toBeInTheDocument()
+    expect(await screen.findByTestId('stats-grid')).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { level: 2, name: 'Personal records' }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('stats-grid')).getAllByRole('heading', { level: 2 }),
+    ).toHaveLength(8)
+  })
+})
+
+function headings(): string[] {
+  return within(screen.getByTestId('stats-grid'))
+    .getAllByRole('heading', { level: 2 })
+    .map((heading) => heading.textContent)
+}
+
+describe('Analytics layout', () => {
+  it('renders the cards in the stored order', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({
+      ...PROFILE,
+      stats_layout: [
+        { id: 'steps', hidden: false },
+        { id: 'weight', hidden: false },
+        ...resolveLayout(null).filter((item) => item.id !== 'steps' && item.id !== 'weight'),
+      ],
+    })
+    render(<Analytics clock={clock} />)
+    await screen.findByTestId('stats-grid')
+    expect(headings().slice(0, 3)).toEqual(['Steps', 'Weight', 'Calories burnt'])
+  })
+
+  it('leaves a hidden card out of the grid', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({
+      ...PROFILE,
+      stats_layout: [{ id: 'weight', hidden: true }],
+    })
+    render(<Analytics clock={clock} />)
+    await screen.findByTestId('stats-grid')
+    expect(headings()).not.toContain('Weight')
+  })
+
+  it('saves the new order on Done and leaves edit mode', async () => {
+    const user = userEvent.setup()
+    const save = vi.fn(() => Promise.resolve())
+    render(<Analytics clock={clock} save={save} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Move Calories burnt up' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(save).toHaveBeenCalledWith({
+      stats_layout: moveCard(resolveLayout(null), 'calories', -1),
+    })
+    expect(await screen.findByTestId('stats-grid')).toBeVisible()
+    expect(headings().slice(0, 2)).toEqual(['Calories burnt', 'Weight'])
+  })
+
+  it('saves the default layout after Reset and Done', async () => {
+    const user = userEvent.setup()
+    const save = vi.fn(() => Promise.resolve())
+    vi.mocked(getProfile).mockResolvedValueOnce({
+      ...PROFILE,
+      stats_layout: [{ id: 'steps', hidden: true }],
+    })
+    render(<Analytics clock={clock} save={save} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(save).toHaveBeenCalledWith({ stats_layout: resolveLayout(null) })
+  })
+
+  it('stays in edit mode and says so when the save is refused', async () => {
+    const user = userEvent.setup()
+    const save = vi.fn(() => Promise.reject(new Error('locked')))
+    render(<Analytics clock={clock} save={save} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The layout could not be saved on this device.',
+    )
+    expect(screen.getByRole('list', { name: 'Stats cards' })).toBeInTheDocument()
+  })
+})
+
+describe('Analytics layout focus', () => {
+  it('moves the focus to the Stats cards heading on Edit', async () => {
+    const user = userEvent.setup()
+    render(<Analytics clock={clock} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('heading', { level: 2, name: 'Stats cards' })).toHaveFocus()
+  })
+
+  it('gives the focus back to the Edit button after Done saves', async () => {
+    const user = userEvent.setup()
+    render(<Analytics clock={clock} save={() => Promise.resolve()} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(await screen.findByRole('button', { name: 'Edit' })).toHaveFocus()
+  })
+
+  it('keeps the focus on Done when the save is refused', async () => {
+    const user = userEvent.setup()
+    render(<Analytics clock={clock} save={() => Promise.reject(new Error('locked'))} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    await screen.findByRole('alert')
+    expect(screen.getByRole('button', { name: 'Done' })).toHaveFocus()
+  })
+
+  it('keeps the focus on Reset, which stays in edit mode', async () => {
+    const user = userEvent.setup()
+    render(<Analytics clock={clock} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(screen.getByRole('button', { name: 'Reset' })).toHaveFocus()
+    expect(screen.getByRole('list', { name: 'Stats cards' })).toBeInTheDocument()
+  })
+
+  it('moves no focus when the screen first opens', async () => {
+    render(<Analytics clock={clock} />)
+    await screen.findByTestId('stats-grid')
+    expect(document.body).toHaveFocus()
   })
 })
 

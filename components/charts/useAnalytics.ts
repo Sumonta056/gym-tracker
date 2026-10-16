@@ -8,15 +8,17 @@ import { localDate } from '../../lib/schema/dailyEntry'
 import { HISTORY_START } from '../dashboard/summary'
 
 import { analyse, chartGoals, rangeFor, readWindow } from './rangeData'
+import { resolveLayout } from './statsCards'
 import { HISTORY_END } from './useLiftData'
 
 import type { AnalyticsData, RangeTab } from './rangeData'
+import type { StatsLayoutItem } from './statsCards'
 import type { DailyEntry, Profile, WorkoutSession } from '../../lib/db/dexie'
 
 export type AnalyticsState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; data: AnalyticsData }
+  | { status: 'ready'; data: AnalyticsData; layout: StatsLayoutItem[] }
 
 type Source = {
   history: DailyEntry[]
@@ -102,6 +104,7 @@ export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): An
           today,
         ),
       ),
+      layout: resolveLayout(profile.stats_layout ?? null),
     }
   }, [loaded, tab])
 }

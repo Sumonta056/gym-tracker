@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react'
 import { AnalyticsHeader, AnalyticsView, RangeTabs } from '../../components/charts/Analytics'
 import { LiftCharts } from '../../components/charts/LiftCharts'
 import { analyse } from '../../components/charts/rangeData'
+import { resolveLayout } from '../../components/charts/statsCards'
+import { StatsLayoutEditor } from '../../components/charts/StatsLayoutEditor'
 import { StepsChart } from '../../components/charts/StepsChart'
 import { WalkChart } from '../../components/charts/WalkChart'
 import { WeekCharts } from '../../components/charts/WeekCharts'
@@ -1176,6 +1178,12 @@ function Styleguide() {
         </div>
       </Section>
 
+      <Section title="Stats layout">
+        <div data-testid="stats-layout-sample">
+          <StatsLayoutSample />
+        </div>
+      </Section>
+
       <Section title="Daily log">
         <div data-testid="log-sample">
           <DailyEntryForm
@@ -1688,6 +1696,12 @@ function Styleguide() {
       </Section>
     </AppShell>
   )
+}
+
+function StatsLayoutSample() {
+  const [layout, setLayout] = useState(() => resolveLayout(null))
+
+  return <StatsLayoutEditor layout={layout} onChange={setLayout} />
 }
 
 function ToastSample() {

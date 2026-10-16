@@ -150,7 +150,14 @@ export async function openLiftCharts(
 ): Promise<void> {
   await openWithLiftWeek(page, context, account, day)
   await openRoute(page, '/analytics')
-  for (const grid of ['lift-grid', 'week-grid']) {
-    await expect(page.getByTestId(grid).getByRole('img').first()).toBeVisible()
+  const grid = page.getByTestId('stats-grid')
+  for (const title of ['Volume load per session', 'Muscle group balance']) {
+    await expect(
+      grid
+        .locator(':scope > *')
+        .filter({ has: page.getByRole('heading', { name: title }) })
+        .getByRole('img')
+        .first(),
+    ).toBeVisible()
   }
 }

@@ -215,7 +215,7 @@ export async function openRoute(page: Page, route: SignedInRoute): Promise<void>
       'Not set',
     )
   } else if (route === '/analytics') {
-    await expect(page.getByTestId('analytics-grid').getByRole('img').first()).toBeVisible()
+    await expect(page.getByTestId('stats-grid').getByRole('img').first()).toBeVisible()
   } else if (route === '/workouts') {
     await expect(page.getByRole('region', { name: 'History' })).toBeVisible()
   } else {

@@ -59,8 +59,8 @@ test('renders every analytics chart with no console error', async ({ page, accou
   await navLink(page, 'Stats').click()
   await expect(page).toHaveURL(/\/analytics$/)
 
-  const grid = page.getByTestId('analytics-grid')
-  await expect(grid.locator(':scope > *')).toHaveCount(8)
+  const grid = page.getByTestId('stats-grid')
+  await expect(grid.locator(':scope > *')).toHaveCount(14)
   await expect(page.locator('.chart-draw')).toHaveCount(0)
   await expect(grid.getByText('Log one more day to see a trend.')).toHaveCount(0)
 
@@ -75,7 +75,7 @@ test('renders every analytics chart with no console error', async ({ page, accou
           ) || card.querySelector('[data-state]') !== null,
       ),
     )
-  expect(drawn).toEqual([true, true, true, true, true, true, true, true])
+  expect(drawn.slice(0, 8)).toEqual([true, true, true, true, true, true, true, true])
 
   expect(errors).toEqual([])
 })

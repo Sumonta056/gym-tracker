@@ -1,16 +1,13 @@
 'use client'
 
-import { muscleBalance } from '../../lib/metrics/muscleBalance'
-import { weekOf } from '../dashboard/summary'
+import { StatsCard } from './StatsCard'
+import { cardsInGroup } from './statsCards'
 
-import { CaloriesPerMinuteChart } from './CaloriesPerMinuteChart'
-import { MuscleBalanceChart } from './MuscleBalanceChart'
-import { SessionGapChart } from './SessionGapChart'
+export { weekBalance } from './StatsCard'
 
 import type { DayPoint } from './rangeData'
+import type { StatsCardContext } from './StatsCard'
 import type { LiftSource } from './useLiftData'
-import type { MuscleBalance } from '../../lib/metrics/muscleBalance'
-import type { MuscleGroup } from '../../lib/schema/exercise'
 
 export type WeekChartsProps = {
   source: LiftSource
@@ -20,23 +17,6 @@ export type WeekChartsProps = {
   testId?: string
 }
 
-export function weekBalance(source: LiftSource, today: string): MuscleBalance {
-  const week = weekOf(today)
-  const inWeek = new Set(
-    source.sessions
-      .filter((session) => session.entry_date >= week.from && session.entry_date <= week.to)
-      .map((session) => session.id),
-  )
-  const groups: Record<string, MuscleGroup> = Object.fromEntries(
-    source.exercises.map((exercise) => [exercise.id, exercise.muscle_group]),
-  )
-
-  return muscleBalance(
-    source.sets.filter((set) => inWeek.has(set.session_id)),
-    groups,
-  )
-}
-
 export function WeekCharts({
   source,
   days,
@@ -44,11 +24,17 @@ export function WeekCharts({
   today,
   testId = 'week-grid',
 }: WeekChartsProps) {
+  const context: StatsCardContext = {
+    daily: null,
+    lifts: null,
+    week: { source, days, today, sessionDates },
+  }
+
   return (
     <div data-testid={testId} className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-      <MuscleBalanceChart balance={weekBalance(source, today)} />
-      <SessionGapChart dates={sessionDates} />
-      <CaloriesPerMinuteChart days={days} className="md:col-span-2" />
+      {cardsInGroup('week').map((id) => (
+        <StatsCard key={id} id={id} context={context} />
+      ))}
     </div>
   )
 }

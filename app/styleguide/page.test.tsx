@@ -68,6 +68,7 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       'Stat cards',
       'Dashboard',
       'Analytics',
+      'Stats layout',
       'Profile',
       'Status chips',
       'Segmented tabs',
@@ -430,6 +431,14 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(within(one).getAllByRole('img')).toHaveLength(1)
     const none = screen.getByTestId('week-grid-empty')
     expect(within(none).queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('renders the stats layout sample and moves a card in its own state', async () => {
+    expect(screen.getByRole('heading', { level: 2, name: 'Stats layout' })).toBeInTheDocument()
+    const sample = screen.getByTestId('stats-layout-sample')
+    expect(within(sample).getAllByRole('switch')).toHaveLength(14)
+    await userEvent.click(within(sample).getByRole('button', { name: 'Move Steps up' }))
+    expect(within(sample).getAllByRole('listitem')[1]).toHaveAttribute('data-card-id', 'steps')
   })
 
   it('renders a chart in its empty state', () => {

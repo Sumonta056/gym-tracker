@@ -404,7 +404,7 @@ test('shows the balance warning as text with a shape, on the style guide sample'
 signedIn('switches the /analytics range from week to month', async ({ page, account, day }) => {
   await openWithWeek(page, account, day)
   await navLink(page, 'Stats').click()
-  await expect(page.getByTestId('analytics-grid')).toBeVisible()
+  await expect(page.getByTestId('stats-grid')).toBeVisible()
 
   await page.getByRole('button', { name: 'Month' }).click()
 

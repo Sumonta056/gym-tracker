@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getProfile, listRange, listSessions } from '../../lib/db/repository'
 import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 
+import { resolveLayout, STATS_CARD_IDS } from './statsCards'
 import { entriesIn, READ_ERROR, useAnalytics } from './useAnalytics'
 
 vi.mock('../../lib/db/repository', async () => {
@@ -123,6 +124,31 @@ describe('useAnalytics', () => {
       expect(result.current.status).toBe('ready')
     })
     expect(result.current.status === 'ready' && result.current.data.maxHeartRate).toBeNull()
+  })
+
+  it('hands the default layout when the profile stores none', async () => {
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.layout).toEqual(resolveLayout(null))
+  })
+
+  it('hands the stored layout, with the cards it lacks added', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({
+      ...PROFILE,
+      stats_layout: [
+        { id: 'steps', hidden: true },
+        { id: 'sleep', hidden: false },
+      ],
+    })
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    const layout = result.current.status === 'ready' ? result.current.layout : []
+    expect(layout.find((item) => item.id === 'steps')).toEqual({ id: 'steps', hidden: true })
+    expect(layout).toHaveLength(STATS_CARD_IDS.length)
   })
 
   it('reports a read that fails', async () => {
