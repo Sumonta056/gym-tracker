@@ -114,7 +114,7 @@ test('keeps every set of a session logged offline through a finish and a reload'
   await page.reload()
   await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()
 
-  const row = page.getByRole('link', { name: /3 sets · 1,440 kg/ })
+  const row = page.getByRole('link', { name: /1,440 kg.*3 sets/ })
   await expect(row).toBeVisible()
   await row.click()
   await expect(page).toHaveURL(/\/workouts\?session=/)

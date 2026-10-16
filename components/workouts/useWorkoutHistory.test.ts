@@ -76,7 +76,7 @@ describe('readHistory', () => {
     ])
   })
 
-  it('names no record in a row, even when an earlier session was lighter', async () => {
+  it('names a record in a row when an earlier session was lighter', async () => {
     const old = sessionOn('2026-09-01')
     const recent = sessionOn('2026-09-08')
     await db.workoutSessions.bulkPut([old, recent])
@@ -84,7 +84,42 @@ describe('readHistory', () => {
 
     const list = await readHistory(30)
 
-    expect(list.rows[0]?.stats.newRecords).toEqual([])
+    expect(list.rows.map((row) => row.stats.newRecords)).toEqual([
+      [{ exerciseId: BENCH, weightKg: 80, reps: 10 }],
+      [],
+    ])
+  })
+
+  it('counts a record against an earlier session past the loaded page', async () => {
+    const old = sessionOn('2026-09-01')
+    const recent = sessionOn('2026-09-08')
+    await db.workoutSessions.bulkPut([old, recent])
+    await db.workoutSets.bulkPut([liftSet(old, BENCH, 10, 60), liftSet(recent, BENCH, 10, 80)])
+
+    const list = await readHistory(1)
+
+    expect(list.rows[0]?.stats.newRecords).toEqual([{ exerciseId: BENCH, weightKg: 80, reps: 10 }])
+  })
+
+  it('lists the muscle groups of each session once, in the order of the first set', async () => {
+    const session = sessionOn('2026-09-08')
+    await db.exercises.put({ ...exercise(LEG, 'Leg press'), muscle_group: 'legs' })
+    await db.exercises.put({
+      ...exercise(ROW, 'Seated row'),
+      muscle_group: 'back',
+      is_archived: true,
+    })
+    await db.workoutSessions.put(session)
+    await db.workoutSets.bulkPut([
+      liftSet(session, LEG, 10, 100),
+      liftSet(session, BENCH, 10, 60),
+      liftSet(session, ROW, 10, 50),
+      liftSet(session, LEG, 8, 110),
+    ])
+
+    const list = await readHistory(30)
+
+    expect(list.rows[0]?.groups).toEqual(['legs', 'chest', 'back'])
   })
 
   it('leaves out a soft-deleted set', async () => {

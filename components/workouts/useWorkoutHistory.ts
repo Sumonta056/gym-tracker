@@ -14,13 +14,16 @@ import {
 import { safeQuery } from '../../lib/db/safeQuery'
 import { sessionStats } from '../../lib/metrics/sessionStats'
 
+import { groupsOf } from './historyText'
+
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { SessionStats } from '../../lib/metrics/sessionStats'
+import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
 
 export const HISTORY_PAGE = 30
 
-export type HistoryRow = { session: WorkoutSession; stats: SessionStats }
+export type HistoryRow = { session: WorkoutSession; stats: SessionStats; groups: MuscleGroup[] }
 
 export type HistoryList = { rows: HistoryRow[]; hasMore: boolean; unit: UnitSystem }
 
@@ -36,11 +39,24 @@ export type FoundSession = {
 export type SessionView = { status: 'missing' } | { status: 'running' } | FoundSession
 
 export async function readHistory(limit: number): Promise<HistoryList> {
-  const [page, profile] = await Promise.all([listFinishedSessions(limit), getProfile()])
+  const [page, profile, catalogue] = await Promise.all([
+    listFinishedSessions(limit),
+    getProfile(),
+    listExercises({ includeArchived: true }),
+  ])
   const sets = await listSetsForSessions(page.sessions.map((session) => session.id))
+  const earlier = await setsForExercises([...new Set(sets.map((set) => set.exercise_id))])
+  const groupOf = new Map(catalogue.map((exercise) => [exercise.id, exercise.muscle_group]))
 
   return {
-    rows: page.sessions.map((session) => ({ session, stats: sessionStats(session, sets, []) })),
+    rows: page.sessions.map((session) => ({
+      session,
+      stats: sessionStats(session, sets, earlier),
+      groups: groupsOf(
+        sets.filter((set) => set.session_id === session.id),
+        groupOf,
+      ),
+    })),
     hasMore: page.hasMore,
     unit: profile.unit_system,
   }

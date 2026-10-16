@@ -1,22 +1,33 @@
 'use client'
 
+import { useState } from 'react'
+
 import { formatDuration } from '../../lib/duration'
 import { Card } from '../ui/Card'
 import { cn } from '../ui/cn'
 import { MicroLabel } from '../ui/MicroLabel'
 import { recordText, summaryCells } from '../workout/SessionSummary'
 
+import { DangerButton } from './DangerButton'
+import { DeleteSessionSheet } from './DeleteSessionSheet'
 import { HistoryLink } from './HistoryLink'
-import { byExercise, rowTitle, setText, WORKOUTS_PATH } from './historyText'
+import { byExercise, DELETE_HINT, rowTitle, setText, WORKOUTS_PATH } from './historyText'
+import { TrashIcon } from './icons'
 
+import type { Discard } from './DeleteSessionSheet'
 import type { FoundSession } from './useWorkoutHistory'
 
 export const UNKNOWN_EXERCISE = 'Unknown exercise'
 
-export type SessionDetailProps = { view: FoundSession }
+export type SessionDetailProps = { view: FoundSession; discard?: Discard }
 
-export function SessionDetail({ view }: SessionDetailProps) {
+export function backToList(): void {
+  window.history.pushState(null, '', WORKOUTS_PATH)
+}
+
+export function SessionDetail({ view, discard }: SessionDetailProps) {
   const { session, sets, stats, exercises, unit } = view
+  const [deleting, setDeleting] = useState(false)
   const nameOf = (exerciseId: string) => exercises.get(exerciseId)?.name ?? UNKNOWN_EXERCISE
   const cells = [
     { label: 'duration', value: formatDuration(stats.durationSeconds, 'short') },
@@ -94,6 +105,28 @@ export function SessionDetail({ view }: SessionDetailProps) {
           </Card>
         ))}
       </div>
+
+      <div className="mt-6 flex max-w-sm flex-col gap-2">
+        <DangerButton
+          onClick={() => {
+            setDeleting(true)
+          }}
+        >
+          <TrashIcon className="size-[18px]" />
+          Delete session
+        </DangerButton>
+        <p className="text-muted text-[13px]">{DELETE_HINT}</p>
+      </div>
+
+      <DeleteSessionSheet
+        target={deleting ? { session, stats } : null}
+        unit={unit}
+        discard={discard}
+        onDeleted={backToList}
+        onClose={() => {
+          setDeleting(false)
+        }}
+      />
     </div>
   )
 }
