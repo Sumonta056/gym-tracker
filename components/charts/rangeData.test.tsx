@@ -206,6 +206,58 @@ describe('analyse', () => {
     expect(data.sessionDates).toEqual([])
   })
 
+  it('holds the 7 days ending today as the recent days', () => {
+    expect(data.recentDays.map((day) => day.date)).toEqual(
+      datesIn(readWindow(rangeFor('day', TODAY))),
+    )
+  })
+
+  it('reads the recent days from the history on the month tab', () => {
+    const month = analyse(
+      [entryOn(TODAY, { steps: 9000 })],
+      [entryOn('2026-09-17', { steps: 4000 }), entryOn(TODAY, { steps: 9000 })],
+      'month',
+      TODAY,
+      NOW,
+      12000,
+    )
+    expect(month.recentDays.map((day) => day.steps)).toEqual([
+      4000,
+      null,
+      null,
+      null,
+      null,
+      null,
+      9000,
+    ])
+  })
+
+  it('prefers the range entry over the history row for the same date', () => {
+    const both = analyse(
+      [entryOn(TODAY, { steps: 9000 })],
+      [entryOn(TODAY, { steps: 1 })],
+      'day',
+      TODAY,
+      NOW,
+      12000,
+    )
+    expect(both.recentDays.at(-1)?.steps).toBe(9000)
+  })
+
+  it('leaves out a history row after today from the recent days', () => {
+    expect(data.recentDays.some((day) => day.date === '2026-09-30')).toBe(false)
+  })
+
+  it('averages the recent weight over the history, the 20 September row included', () => {
+    expect(data.recentDays.find((day) => day.date === '2026-09-17')?.averageKg).toBeNull()
+    expect(data.recentDays.at(-1)?.averageKg).toBeCloseTo((74 + 73.65 + 73) / 3)
+  })
+
+  it('keeps the range days the same as the day tab on the day tab', () => {
+    const day = analyse(entries, entries, 'day', TODAY, NOW, 12000)
+    expect(day.days).toEqual([day.recentDays.at(-1)])
+  })
+
   it('returns zero zones when today has no entry', () => {
     const empty = analyse([], [], 'day', TODAY, NOW, 12000)
     expect(empty.zones).toEqual({

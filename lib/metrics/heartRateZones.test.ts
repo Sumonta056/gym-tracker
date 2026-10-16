@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { heartRateZones, resolveMaxHeartRate, ZONE_FLOORS, zoneBands } from './heartRateZones'
+import {
+  hardEffortSeconds,
+  heartRateZones,
+  resolveMaxHeartRate,
+  ZONE_FLOORS,
+  zoneBands,
+  zoneOfBeat,
+} from './heartRateZones'
 
 import type { HeartRateSession } from './heartRateZones'
 
@@ -228,5 +235,46 @@ describe('zoneBands', () => {
         expect(bands[index]?.fromBpm).toBe((bands[index - 1]?.toBpm ?? 0) + 1)
       }
     }
+  })
+})
+
+describe('hardEffortSeconds', () => {
+  it('adds the cardio time and the peak time', () => {
+    expect(
+      hardEffortSeconds({
+        warmSeconds: 2160,
+        fatBurnSeconds: 360,
+        cardioSeconds: 540,
+        peakSeconds: 540,
+      }),
+    ).toBe(1080)
+  })
+
+  it('returns 0 when there is no zone time', () => {
+    expect(hardEffortSeconds(ZEROS)).toBe(0)
+  })
+})
+
+describe('zoneOfBeat', () => {
+  const bands = zoneBands(200)
+
+  it('puts a beat under the fat burn floor in warm', () => {
+    expect(zoneOfBeat(100, bands)).toBe('warm')
+  })
+
+  it('puts a beat on the fat burn floor in fat burn', () => {
+    expect(zoneOfBeat(120, bands)).toBe('fatBurn')
+  })
+
+  it('puts the last beat under the peak floor in cardio', () => {
+    expect(zoneOfBeat(169, bands)).toBe('cardio')
+  })
+
+  it('puts a beat over the max in peak', () => {
+    expect(zoneOfBeat(230, bands)).toBe('peak')
+  })
+
+  it('puts a beat of 0 in warm', () => {
+    expect(zoneOfBeat(0, bands)).toBe('warm')
   })
 })

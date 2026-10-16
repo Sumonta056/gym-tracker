@@ -68,6 +68,7 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       'Stat cards',
       'Dashboard',
       'Analytics',
+      'Stats, Day tab',
       'Stats layout',
       'Profile',
       'Status chips',
@@ -79,6 +80,18 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     ]) {
       expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
     }
+  })
+
+  it('renders the 5 day cards, the no goal pair and the empty pair', () => {
+    expect(within(screen.getByTestId('day-cards')).getAllByTestId('day-card')).toHaveLength(5)
+    const noGoal = within(screen.getByTestId('day-cards-no-goal'))
+    expect(noGoal.queryByTestId('goal-ring')).not.toBeInTheDocument()
+    expect(noGoal.getByText('lb')).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('day-cards-empty')).getByText(
+        'Log your steps to see them against your goal.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('renders the hero card and the four sync chips', () => {
@@ -237,7 +250,9 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(
       screen.getAllByText('Add your birth year in Profile for real zones.').length,
     ).toBeGreaterThan(0)
-    expect(screen.getByText('Warm <1m')).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('listitem').some((item) => /^Warm.*<1m/.test(item.textContent)),
+    ).toBe(true)
   })
 
   it('renders the zone info sheet sample with its info button', () => {
@@ -291,7 +306,7 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     const sample = within(screen.getByTestId('dashboard-full-sample'))
     expect(sample.getByRole('region', { name: /^Today/ })).toBeInTheDocument()
     for (const label of ['Steps', 'Calories', 'Walk', 'Swim', 'Weight']) {
-      expect(sample.getByText(label)).toBeInTheDocument()
+      expect(sample.getByText(label, { selector: 'span' })).toBeInTheDocument()
     }
     expect(sample.getByRole('heading', { name: 'Workout today' })).toBeInTheDocument()
     expect(sample.getByRole('heading', { name: 'Note' })).toBeInTheDocument()
@@ -300,9 +315,9 @@ describe('the styleguide page', { timeout: 15000 }, () => {
   it('shows a sparse Today sample with only the hero and Steps', () => {
     const sample = within(screen.getByTestId('dashboard-sparse-sample'))
     expect(sample.getByRole('region', { name: /^Today/ })).toBeInTheDocument()
-    expect(sample.getByText('Steps')).toBeInTheDocument()
+    expect(sample.getByText('Steps', { selector: 'span' })).toBeInTheDocument()
     for (const label of ['Calories', 'Walk', 'Swim', 'Weight']) {
-      expect(sample.queryByText(label)).toBeNull()
+      expect(sample.queryByText(label, { selector: 'span' })).toBeNull()
     }
     expect(sample.queryByRole('heading', { name: 'Workout today' })).toBeNull()
     expect(sample.queryByRole('heading', { name: 'Note' })).toBeNull()
@@ -330,10 +345,10 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     for (const label of [
       'Gym time',
       'Walk time',
-      'Avg heart rate',
-      'Max heart rate',
-      'Weight (kg)',
-      'Calories',
+      'Avg heart rate, bpm',
+      'Max heart rate, bpm',
+      'Weight, kg',
+      'Calories, kcal',
       'Steps',
       'Note',
     ]) {
@@ -377,7 +392,7 @@ describe('the styleguide page', { timeout: 15000 }, () => {
 
   it('shows the walk chart empty state and the sessions goal on the week card', () => {
     expect(screen.getByText('Log your walk time to see it per day.')).toBeInTheDocument()
-    expect(screen.getAllByText('3 of 4').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('3 of 4 sessions').length).toBeGreaterThan(0)
   })
 
   it('shows the range tabs under the analytics header, on the week', () => {
@@ -463,10 +478,15 @@ describe('the styleguide page', { timeout: 15000 }, () => {
 
   it('shows the weight nudge pair from the daily log', async () => {
     const sample = within(screen.getByTestId('nudge-sample'))
-    const weight = sample.getByLabelText('Weight (kg)')
+    const weight = sample.getByLabelText('Weight, kg')
     expect(weight).toHaveValue('73.40')
     await userEvent.click(sample.getByRole('button', { name: '+0.05 kg, increase the weight' }))
     expect(weight).toHaveValue('73.45')
+  })
+
+  it('shows the note text area', () => {
+    const sample = within(screen.getByTestId('text-area-sample'))
+    expect(sample.getByLabelText('Note')).toBeInstanceOf(HTMLTextAreaElement)
   })
 
   it('switches the segmented tabs', async () => {

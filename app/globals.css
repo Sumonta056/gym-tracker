@@ -45,6 +45,27 @@
     outline-offset: 2px;
   }
 
+  input[type='date'] {
+    position: relative;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: transparent;
+    cursor: pointer;
+    opacity: 0;
+  }
+
+  input[type='date']::-webkit-date-and-time-value {
+    text-align: left;
+  }
+
   html,
   body,
   * {

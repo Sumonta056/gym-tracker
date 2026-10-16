@@ -84,3 +84,22 @@ export function sessionStats(
     newRecords: newRecords(session, live, earlierSets),
   }
 }
+
+export type DayTotals = {
+  durationSeconds: number
+  setCount: number
+  volumeKg: number
+  recordCount: number
+}
+
+export function dayTotals(sessions: readonly SessionStats[]): DayTotals {
+  return sessions.reduce<DayTotals>(
+    (sum, stats) => ({
+      durationSeconds: sum.durationSeconds + stats.durationSeconds,
+      setCount: sum.setCount + stats.setCount,
+      volumeKg: sum.volumeKg + stats.volumeKg,
+      recordCount: sum.recordCount + stats.newRecords.length,
+    }),
+    { durationSeconds: 0, setCount: 0, volumeKg: 0, recordCount: 0 },
+  )
+}

@@ -8,8 +8,10 @@ import { localDate } from '../lib/schema/dailyEntry'
 import {
   DailyEntryForm,
   finishedCount,
+  nextField,
   nextWeight,
   prettyDate,
+  saveState,
   sessionsText,
   toFormValues,
 } from './DailyEntryForm'
@@ -108,6 +110,35 @@ beforeEach(() => {
   setOnline(true)
 })
 
+describe('nextField', () => {
+  it('returns null for a field outside a form', () => {
+    const input = document.createElement('input')
+    expect(nextField(input)).toBeNull()
+  })
+
+  it('returns null after the last field, and skips the date and disabled fields', () => {
+    const form = document.createElement('form')
+    form.innerHTML =
+      '<input type="date" id="d" /><input id="a" /><input id="b" disabled /><textarea id="c"></textarea>'
+    const field = (id: string) => form.querySelector<HTMLElement>(`#${id}`) as HTMLElement
+    expect(nextField(field('a'))).toBe(field('c'))
+    expect(nextField(field('c'))).toBeNull()
+    expect(nextField(field('d'))).toBeNull()
+  })
+})
+
+describe('saveState', () => {
+  it('says nothing until the day is read', () => {
+    expect(saveState('reading', true)).toBeNull()
+    expect(saveState('failed', false)).toBeNull()
+  })
+
+  it('says saved with no change and not saved with one', () => {
+    expect(saveState('read', false)).toBe('Saved')
+    expect(saveState('read', true)).toBe('Not saved')
+  })
+})
+
 describe('nextWeight', () => {
   it('adds 0.05 without a floating point tail', () => {
     expect(nextWeight(73.4, 1)).toBe(73.45)
@@ -176,27 +207,27 @@ describe('DailyEntryForm', () => {
   it('ties every input to a label', async () => {
     await renderForm()
     for (const label of [
-      'Avg heart rate',
-      'Max heart rate',
-      'Weight (kg)',
-      'Calories',
+      'Avg heart rate, bpm',
+      'Max heart rate, bpm',
+      'Weight, kg',
+      'Calories, kcal',
       'Steps',
-      'Note',
     ]) {
       expect(screen.getByLabelText(label)).toBeInstanceOf(HTMLInputElement)
     }
+    expect(screen.getByLabelText('Note')).toBeInstanceOf(HTMLTextAreaElement)
     expect(screen.getByRole('group', { name: 'Gym time' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Walk time' })).toBeInTheDocument()
   })
 
   it('blocks the save when the max heart rate is below the average', async () => {
     await renderForm()
-    await userEvent.type(screen.getByLabelText('Avg heart rate'), '150')
-    await userEvent.type(screen.getByLabelText('Max heart rate'), '120')
+    await userEvent.type(screen.getByLabelText('Avg heart rate, bpm'), '150')
+    await userEvent.type(screen.getByLabelText('Max heart rate, bpm'), '120')
     await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Max heart rate')).toHaveAttribute('aria-invalid', 'true')
+      expect(screen.getByLabelText('Max heart rate, bpm')).toHaveAttribute('aria-invalid', 'true')
     })
     expect(screen.getByRole('alert')).toHaveTextContent(
       'The peak heart rate cannot be below the average.',
@@ -206,7 +237,7 @@ describe('DailyEntryForm', () => {
 
   it('adds 0.05 to the weight from the plus button', async () => {
     await renderForm()
-    const weight = screen.getByLabelText('Weight (kg)')
+    const weight = screen.getByLabelText('Weight, kg')
     await userEvent.type(weight, '73.40')
     await userEvent.click(screen.getByRole('button', { name: '+0.05 kg, increase the weight' }))
     expect(weight).toHaveValue('73.45')
@@ -214,7 +245,7 @@ describe('DailyEntryForm', () => {
 
   it('takes 0.05 off the weight from the minus button', async () => {
     await renderForm()
-    const weight = screen.getByLabelText('Weight (kg)')
+    const weight = screen.getByLabelText('Weight, kg')
     await userEvent.type(weight, '73.40')
     await userEvent.click(screen.getByRole('button', { name: '−0.05 kg, decrease the weight' }))
     expect(weight).toHaveValue('73.35')
@@ -222,7 +253,7 @@ describe('DailyEntryForm', () => {
 
   it('holds the weight at the schema floor of 20', async () => {
     await renderForm()
-    const weight = screen.getByLabelText('Weight (kg)')
+    const weight = screen.getByLabelText('Weight, kg')
     await userEvent.type(weight, '20.02')
     await userEvent.click(screen.getByRole('button', { name: '−0.05 kg, decrease the weight' }))
     expect(weight).toHaveValue('20.00')
@@ -253,7 +284,7 @@ describe('DailyEntryForm', () => {
 
   it('drops the nudge hint once a weight is there', async () => {
     await renderForm()
-    await userEvent.type(screen.getByLabelText('Weight (kg)'), '73.40')
+    await userEvent.type(screen.getByLabelText('Weight, kg'), '73.40')
     expect(screen.queryByText('Enter a weight to use the 0.05 steps.')).not.toBeInTheDocument()
   })
 
@@ -261,7 +292,7 @@ describe('DailyEntryForm', () => {
     await renderForm()
     await userEvent.click(pickerOf('Gym time').getByRole('button', { name: '1h' }))
     await userEvent.click(pickerOf('Walk time').getByRole('button', { name: '45m' }))
-    await userEvent.type(screen.getByLabelText('Weight (kg)'), '73.40')
+    await userEvent.type(screen.getByLabelText('Weight, kg'), '73.40')
     await userEvent.type(screen.getByLabelText('Steps'), '12480')
     await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
 
@@ -338,10 +369,10 @@ describe('DailyEntryForm', () => {
       expect(pickerOf('Gym time').getByRole('status')).toHaveTextContent('1:12:05')
     })
     expect(pickerOf('Walk time').getByRole('status')).toHaveTextContent('42:18')
-    expect(screen.getByLabelText('Avg heart rate')).toHaveValue('118')
-    expect(screen.getByLabelText('Max heart rate')).toHaveValue('164')
-    expect(screen.getByLabelText('Weight (kg)')).toHaveValue('73.40')
-    expect(screen.getByLabelText('Calories')).toHaveValue('985')
+    expect(screen.getByLabelText('Avg heart rate, bpm')).toHaveValue('118')
+    expect(screen.getByLabelText('Max heart rate, bpm')).toHaveValue('164')
+    expect(screen.getByLabelText('Weight, kg')).toHaveValue('73.40')
+    expect(screen.getByLabelText('Calories, kcal')).toHaveValue('985')
     expect(screen.getByLabelText('Steps')).toHaveValue('12480')
     expect(screen.getByLabelText('Note')).toHaveValue('Push day.')
   })
@@ -418,7 +449,7 @@ describe('DailyEntryForm', () => {
       expect(upsertDay).toHaveBeenCalledTimes(1)
     })
 
-    await userEvent.type(screen.getByLabelText('Calories'), '700')
+    await userEvent.type(screen.getByLabelText('Calories, kcal'), '700')
     finish(STORED)
     expect(await screen.findByText('Saved on this device.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /^Previous day,/ }))
@@ -515,13 +546,13 @@ describe('DailyEntryForm', () => {
       }),
     )
     render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
-    await userEvent.type(screen.getByLabelText('Calories'), '700')
+    await userEvent.type(screen.getByLabelText('Calories, kcal'), '700')
 
     read(STORED)
     await waitFor(() => {
       expect(screen.getByLabelText('Steps')).toHaveValue('12480')
     })
-    expect(screen.getByLabelText('Calories')).toHaveValue('700')
+    expect(screen.getByLabelText('Calories, kcal')).toHaveValue('700')
   })
 
   it('heads the screen with its title and date only, as the prototype log top bar does', async () => {
@@ -597,15 +628,139 @@ describe('DailyEntryForm', () => {
 
   it('reads the phone keypad right for each kind of number', async () => {
     await renderForm()
-    expect(screen.getByLabelText('Weight (kg)')).toHaveAttribute('inputMode', 'decimal')
-    for (const label of ['Avg heart rate', 'Max heart rate', 'Calories', 'Steps']) {
+    expect(screen.getByLabelText('Weight, kg')).toHaveAttribute('inputMode', 'decimal')
+    for (const label of ['Avg heart rate, bpm', 'Max heart rate, bpm', 'Calories, kcal', 'Steps']) {
       expect(screen.getByLabelText(label)).toHaveAttribute('inputMode', 'numeric')
     }
   })
 
-  it('names the day and the field count, as the mockup does', async () => {
+  it('names the day and says the form is saved while nothing has changed', async () => {
     await renderForm()
-    expect(screen.getByText('Sat 19 Sep · 9 fields')).toBeInTheDocument()
+    expect(screen.getByText('Sat 19 Sep · Saved')).toBeInTheDocument()
+  })
+
+  it('says the day is not saved once a field changes, and saved again after the save', async () => {
+    await renderForm()
+    await userEvent.type(screen.getByLabelText('Steps'), '9000')
+    expect(screen.getByText('Sat 19 Sep · Not saved')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+    expect(await screen.findByText('Sat 19 Sep · Saved')).toBeInTheDocument()
+  })
+
+  it('names only the day while the stored day is read', () => {
+    vi.mocked(getDay).mockReturnValue(new Promise(() => undefined))
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    expect(screen.getByText('Sat 19 Sep')).toBeInTheDocument()
+    expect(screen.queryByText(/· (Not )?saved$/i)).not.toBeInTheDocument()
+  })
+
+  it('names only the day when the stored day could not be read', async () => {
+    vi.mocked(getDay).mockRejectedValue(new Error('broken'))
+    render(<DailyEntryForm date={DATE} onDateChange={vi.fn()} />)
+    expect(await screen.findByText(READ_FAILED)).toBeInTheDocument()
+    expect(screen.getByText('Sat 19 Sep')).toBeInTheDocument()
+  })
+
+  it('shows the unit beside each number that has one', async () => {
+    await renderForm()
+    for (const unit of ['bpm', 'kg', 'kcal']) {
+      expect(
+        screen.getAllByText(unit, { selector: '[aria-hidden="true"]' }).length,
+      ).toBeGreaterThan(0)
+    }
+  })
+
+  it('shows a calendar icon in the Day field, hidden from assistive technology', async () => {
+    await renderForm()
+    const day = screen.getByLabelText('Day')
+    const icon = day.parentElement?.querySelector('svg[data-icon="calendar"]')
+    expect(icon).not.toBeNull()
+    expect(icon?.closest('[aria-hidden="true"]')).not.toBeNull()
+    expect(day).toHaveClass('min-w-0', 'appearance-none')
+  })
+
+  it('groups the fields under the Training, Heart, Body, Activity and Note headings', async () => {
+    await renderForm()
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(headings).toEqual(['Training', 'Heart', 'Body', 'Activity', 'Note'])
+  })
+
+  it('offers next on the keyboard of every number field and done on the note', async () => {
+    await renderForm()
+    for (const label of [
+      'Avg heart rate, bpm',
+      'Max heart rate, bpm',
+      'Weight, kg',
+      'Calories, kcal',
+      'Steps',
+    ]) {
+      expect(screen.getByLabelText(label)).toHaveAttribute('enterKeyHint', 'next')
+    }
+    expect(screen.getByLabelText('Note')).toHaveAttribute('enterKeyHint', 'done')
+  })
+
+  it('moves to the next field on Enter in a number field, and saves nothing', async () => {
+    await renderForm()
+    const order = [
+      'Avg heart rate, bpm',
+      'Max heart rate, bpm',
+      'Weight, kg',
+      'Calories, kcal',
+      'Steps',
+      'Note',
+    ]
+    screen.getByLabelText(order[0] ?? '').focus()
+    for (const label of order.slice(1)) {
+      await userEvent.keyboard('{Enter}')
+      expect(screen.getByLabelText(label)).toHaveFocus()
+    }
+    expect(upsertDay).not.toHaveBeenCalled()
+  })
+
+  it('leaves focus alone on Enter while a word is still being composed', async () => {
+    await renderForm()
+    const steps = screen.getByLabelText('Steps')
+    steps.focus()
+    fireEvent.keyDown(steps, { key: 'Enter', isComposing: true })
+    expect(steps).toHaveFocus()
+  })
+
+  it('ignores keys other than Enter in a number field', async () => {
+    await renderForm()
+    const steps = screen.getByLabelText('Steps')
+    steps.focus()
+    fireEvent.keyDown(steps, { key: 'Tab' })
+    expect(steps).toHaveFocus()
+  })
+
+  it('leaves the note on Enter, with no new line and no save', async () => {
+    await renderForm()
+    const note = screen.getByLabelText('Note')
+    await userEvent.type(note, 'Push day{Enter}')
+    expect(note).not.toHaveFocus()
+    expect(note).toHaveValue('Push day')
+    expect(upsertDay).not.toHaveBeenCalled()
+  })
+
+  it('starts a new line in the note on Shift and Enter', async () => {
+    await renderForm()
+    const note = screen.getByLabelText('Note')
+    await userEvent.type(note, 'Push{Shift>}{Enter}{/Shift}day')
+    expect(note).toHaveFocus()
+    expect(note).toHaveValue('Push\nday')
+  })
+
+  it('shows the max heart rate error under the max heart rate field', async () => {
+    await renderForm()
+    await userEvent.type(screen.getByLabelText('Avg heart rate, bpm'), '150')
+    await userEvent.type(screen.getByLabelText('Max heart rate, bpm'), '120')
+    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }))
+    const max = screen.getByLabelText('Max heart rate, bpm')
+    await waitFor(() => {
+      expect(max).toHaveAccessibleDescription('The peak heart rate cannot be below the average.')
+    })
+    expect(screen.getByLabelText('Avg heart rate, bpm')).not.toHaveAttribute('aria-invalid')
   })
 
   it('names each day button with the day it opens, at the field height', async () => {
@@ -857,13 +1012,16 @@ describe('DailyEntryForm gym time', () => {
   })
 })
 
-describe('the Swimming card', () => {
-  it('sits after walk time, under its own heading', async () => {
+describe('the swim time in the Training card', () => {
+  it('sits after walk time, under the Training heading', async () => {
     await renderForm()
     const walk = screen.getByRole('group', { name: 'Walk time' })
     const picker = screen.getByRole('group', { name: 'Swim time' })
     expect(walk.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 2, name: 'Swimming' })).toBeVisible()
+    const training = screen.getByRole('heading', { level: 2, name: 'Training' })
+    expect(training.parentElement).toContainElement(picker)
+    expect(training.parentElement).toContainElement(screen.getByRole('group', { name: 'Gym time' }))
+    expect(screen.queryByRole('heading', { level: 2, name: 'Swimming' })).not.toBeInTheDocument()
   })
 
   it('says the card holds the time in the pool and no distance', async () => {

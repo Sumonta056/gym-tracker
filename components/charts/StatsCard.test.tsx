@@ -6,7 +6,7 @@ import { REFERENCE_LABELS, svgTexts } from '../../tests/fixtures/recharts'
 
 import { analyseLifts } from './liftData'
 import { analyse, NO_GOALS } from './rangeData'
-import { StatsCard } from './StatsCard'
+import { DAY_CARD_IDS, StatsCard } from './StatsCard'
 import { STATS_CARD_IDS, STATS_CARDS } from './statsCards'
 
 import type { StatsCardContext } from './StatsCard'
@@ -94,5 +94,48 @@ describe('StatsCard', () => {
   it('carries the zone info button on the zone split card', () => {
     render(<StatsCard id="zone-split" context={FULL} />)
     expect(screen.getByRole('button', { name: 'What the zones mean' })).toBeInTheDocument()
+  })
+})
+
+const DAY = analyse(
+  ENTRIES.filter((row) => row.entry_date === TODAY),
+  ENTRIES,
+  'day',
+  TODAY,
+  NOW,
+  12000,
+  'metric',
+  [],
+  { ...NO_GOALS, walkSeconds: 3600 },
+  { bpm: 190, source: 'override' },
+)
+
+describe('StatsCard on the day tab', () => {
+  it.each([...DAY_CARD_IDS])('renders the %s day card in place of the chart', (id) => {
+    render(<StatsCard id={id} context={{ ...EMPTY, daily: DAY }} />)
+    expect(screen.getByTestId('day-card')).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1)
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+
+  it('keeps the chart for a card with no day card', () => {
+    render(<StatsCard id="totals" context={{ ...EMPTY, daily: DAY }} />)
+    expect(screen.queryByTestId('day-card')).toBeNull()
+  })
+
+  it('keeps the charts on the week tab', () => {
+    render(<StatsCard id="steps" context={FULL} />)
+    expect(screen.queryByTestId('day-card')).toBeNull()
+  })
+
+  it('reads the 7 recent days and the walk goal on the day tab', () => {
+    render(<StatsCard id="walk" context={{ ...EMPTY, daily: DAY }} />)
+    expect(screen.getByText('Mon 21: 30m')).toBeInTheDocument()
+    expect(screen.getByText('100%')).toBeInTheDocument()
+  })
+
+  it('keeps a narrow day card to 1 column', () => {
+    render(<StatsCard id="steps" context={{ ...EMPTY, daily: DAY }} />)
+    expect(screen.getByTestId('day-card')).not.toHaveClass('md:col-span-2')
   })
 })

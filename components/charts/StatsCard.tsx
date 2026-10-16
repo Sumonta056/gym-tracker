@@ -5,6 +5,13 @@ import { weekOf } from '../dashboard/summary'
 
 import { CaloriesChart } from './CaloriesChart'
 import { CaloriesPerMinuteChart } from './CaloriesPerMinuteChart'
+import {
+  CaloriesDayCard,
+  HeartRateDayCard,
+  StepsDayCard,
+  WalkDayCard,
+  WeightDayCard,
+} from './DayCards'
 import { HeartRateChart } from './HeartRateChart'
 import { MuscleBalanceChart } from './MuscleBalanceChart'
 import { OneRepMaxChart } from './OneRepMaxChart'
@@ -50,6 +57,46 @@ export function weekBalance(source: LiftSource, today: string): MuscleBalance {
   )
 }
 
+export function DayCard({
+  id,
+  daily,
+  className,
+}: {
+  id: StatsCardId
+  daily: AnalyticsData
+  className: string | undefined
+}) {
+  const days = daily.recentDays
+
+  switch (id) {
+    case 'weight':
+      return (
+        <WeightDayCard
+          days={days}
+          unit={daily.unitSystem}
+          targetKg={daily.goals.weightKg}
+          className={className}
+        />
+      )
+    case 'calories':
+      return <CaloriesDayCard days={days} goal={daily.goals.calories} className={className} />
+    case 'steps':
+      return <StepsDayCard days={days} stepGoal={daily.stepGoal} className={className} />
+    case 'walk':
+      return <WalkDayCard days={days} goalSeconds={daily.goals.walkSeconds} className={className} />
+    default:
+      return <HeartRateDayCard days={days} className={className} />
+  }
+}
+
+export const DAY_CARD_IDS: ReadonlySet<StatsCardId> = new Set([
+  'weight',
+  'calories',
+  'steps',
+  'walk',
+  'heart-rate',
+])
+
 export type StatsCardProps = {
   id: StatsCardId
   context: StatsCardContext
@@ -58,6 +105,10 @@ export type StatsCardProps = {
 export function StatsCard({ id, context }: StatsCardProps) {
   const className = STATS_CARDS[id].wide ? 'md:col-span-2' : undefined
   const { daily, lifts, week } = context
+
+  if (daily?.tab === 'day' && DAY_CARD_IDS.has(id)) {
+    return <DayCard id={id} daily={daily} className={className} />
+  }
 
   switch (id) {
     case 'weight':

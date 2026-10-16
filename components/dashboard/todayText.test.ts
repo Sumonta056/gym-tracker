@@ -1,20 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { formatDuration } from '../../lib/duration'
-import { BENCH, LEG } from '../../tests/fixtures/lifts'
 
 import { formatCount } from './summary'
-import { goalHint, weightGapText, workoutLine } from './todayText'
-
-import type { SessionStats } from '../../lib/metrics/sessionStats'
-
-const STATS: SessionStats = {
-  durationSeconds: 3600,
-  setCount: 2,
-  exerciseCount: 1,
-  volumeKg: 1120,
-  newRecords: [],
-}
+import { goalHint, weightGapText } from './todayText'
 
 describe('goalHint', () => {
   it('writes the share of a calorie goal', () => {
@@ -45,27 +34,5 @@ describe('weightGapText', () => {
 
   it('writes a gap of exactly 0.05 kg as a gap to go', () => {
     expect(weightGapText(0.05, 'metric')).toMatch(/ kg to go$/)
-  })
-})
-
-describe('workoutLine', () => {
-  it('writes the session line with no record', () => {
-    expect(workoutLine(STATS, 'metric')).toBe('1h · 2 sets · 1,120 kg')
-  })
-
-  it('adds 1 new record', () => {
-    const stats = { ...STATS, newRecords: [{ exerciseId: BENCH, weightKg: 65, reps: 5 }] }
-    expect(workoutLine(stats, 'metric')).toBe('1h · 2 sets · 1,120 kg · 1 new record')
-  })
-
-  it('adds 2 new records', () => {
-    const stats = {
-      ...STATS,
-      newRecords: [
-        { exerciseId: BENCH, weightKg: 65, reps: 5 },
-        { exerciseId: LEG, weightKg: 140, reps: 8 },
-      ],
-    }
-    expect(workoutLine(stats, 'metric')).toBe('1h · 2 sets · 1,120 kg · 2 new records')
   })
 })

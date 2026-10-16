@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 import { PageTransition } from '../motion/PageTransition'
 
+import { BottomNav } from './BottomNav'
 import { cn } from './cn'
 import { MicroLabel } from './MicroLabel'
 import { ToastProvider } from './Toast'
@@ -103,7 +104,7 @@ export function AppShell({
           </main>
         </div>
 
-        <nav
+        <BottomNav
           aria-label="Bottom navigation"
           className="border-border bg-surface fixed inset-x-0 bottom-0 z-40 grid auto-cols-fr grid-flow-col items-center gap-1 border-t px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),10px)] lg:hidden"
         >
@@ -127,7 +128,7 @@ export function AppShell({
           {rightItems.map((item) => (
             <BottomLink key={item.href} item={item} />
           ))}
-        </nav>
+        </BottomNav>
       </div>
     </ToastProvider>
   )

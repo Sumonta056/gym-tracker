@@ -759,6 +759,448 @@
         margin-top: 8px;
       }
 
+      .wk-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .wk-count {
+        background: var(--color-surface-2);
+        border-radius: var(--radius-pill);
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .wk-icon {
+        flex-shrink: 0;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .wk-totals {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .wk-total {
+        background: var(--color-surface-2);
+        border-radius: 16px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .wk-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-muted);
+      }
+
+      .wk-total b {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1;
+      }
+
+      .wk-total b span {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-muted);
+        letter-spacing: 0;
+        margin-left: 2px;
+      }
+
+      .wk-list {
+        list-style: none;
+        margin: 14px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .wk-row {
+        display: grid;
+        grid-template-columns: 40px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        min-height: 56px;
+        padding: 8px 10px 8px 8px;
+        border: 1px solid var(--color-border);
+        border-radius: 16px;
+        color: var(--color-text);
+        text-decoration: none;
+      }
+
+      .wk-tile {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        color: var(--color-accent);
+        background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+      }
+
+      .wk-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        font-size: 12px;
+      }
+
+      .wk-title {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .wk-title b {
+        font-size: 15px;
+      }
+
+      .wk-pr {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: var(--radius-pill);
+        background: var(--color-accent);
+        color: var(--color-accent-ink);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .wkg {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .wkg-ring {
+        position: relative;
+        width: 64px;
+        height: 64px;
+        flex-shrink: 0;
+      }
+
+      .wkg-ring svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      .wkg-ring span {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .wkg-line {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .wkd-strip {
+        list-style: none;
+        margin: 16px 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+      }
+
+      .wkd {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-muted);
+      }
+
+      .wkd.is-today {
+        color: var(--color-text);
+      }
+
+      .wkd-dot {
+        width: 100%;
+        max-width: 36px;
+        aspect-ratio: 1;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: var(--color-surface-2);
+      }
+
+      .wkd-dot.done {
+        background: var(--color-accent);
+        color: var(--color-accent-ink);
+      }
+
+      .wkd-dot.today {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+      }
+
+      .wkt {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 16px 0 0;
+      }
+
+      .wkt dd {
+        margin: 0;
+      }
+
+      .hrz-top {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+      }
+
+      .hrz-ring {
+        position: relative;
+        width: 128px;
+        height: 128px;
+        flex-shrink: 0;
+      }
+
+      .hrz-ring svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      .hrz-mid {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+      }
+
+      .hrz-mid b {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin-bottom: 4px;
+      }
+
+      .hrz-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .hrz-big {
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        font-size: 12px;
+      }
+
+      .hrz-big b {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+
+      .hrz-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .hrz-pill {
+        background: var(--color-surface-2);
+        border-radius: var(--radius-pill);
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .hrz-scale {
+        padding-top: 56px;
+        margin-top: 16px;
+      }
+
+      .hrz-bar-wrap {
+        position: relative;
+      }
+
+      .hrz-mark {
+        position: absolute;
+        bottom: 100%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .hrz-mark-end {
+        transform: translateX(-100%);
+        align-items: flex-end;
+      }
+
+      .hrz-mark i {
+        width: 2px;
+        margin-top: 4px;
+        border-radius: 2px;
+        background: var(--color-text);
+      }
+
+      .hrz-bands {
+        display: flex;
+        height: 14px;
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+      }
+
+      .hrz-ticks {
+        position: relative;
+        height: 16px;
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--color-muted);
+      }
+
+      .hrz-ticks span {
+        position: absolute;
+        transform: translateX(-50%);
+      }
+
+      .hrz-rows {
+        list-style: none;
+        margin: 16px 0 0;
+        padding: 16px 0 0;
+        border-top: 1px solid var(--color-border);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .hrz-rows li {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 6px 12px;
+      }
+
+      .hrz-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        min-width: 0;
+      }
+
+      .hrz-name .muted,
+      .hrz-time .muted {
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .hrz-time {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .hrz-track {
+        grid-column: 1 / -1;
+        height: 8px;
+        border-radius: var(--radius-pill);
+        background: var(--color-surface-2);
+        overflow: hidden;
+      }
+
+      .hrz-track span {
+        display: block;
+        height: 100%;
+        border-radius: var(--radius-pill);
+      }
+
+      .hrz-fact {
+        margin: 16px 0 0;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: var(--color-surface-2);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .stat-grid > .card {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .stat-grid > .card:last-child:nth-child(odd) {
+        grid-column: span 2;
+      }
+
+      .stat-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .stat-icon {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .stat-body-wide {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: end;
+        gap: 16px;
+      }
+
+      .stat-body-wide .spark {
+        height: 44px;
+        margin-top: 0;
+      }
+
       .week-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -961,7 +1403,66 @@
       }
 
       .dp-clear {
-        color: var(--color-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        padding: 0;
+        color: var(--color-muted);
+      }
+
+      .dp-clear:hover,
+      .dp-clear:active {
+        color: var(--color-danger);
+      }
+
+      .dp-clear-icon,
+      .field-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .log-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--gap);
+      }
+
+      .log-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .log-section > h3.micro {
+        margin: 0;
+      }
+
+      .textarea {
+        display: block;
+        min-height: 74px;
+        max-height: 160px;
+        padding: 12px 14px;
+        line-height: 24px;
+        resize: none;
+        field-sizing: content;
+        font-family: inherit;
+      }
+
+      .day-row .input {
+        min-width: 0;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      .day-row .input::-webkit-calendar-picker-indicator {
+        position: absolute;
+        inset: 0;
+        width: auto;
+        height: auto;
+        opacity: 0;
+        cursor: pointer;
       }
 
       .pickrow {
@@ -1398,23 +1899,37 @@
       .imp-table .imp-pick td {
         padding: 0 12px 16px;
       }
-      .edit-row {
+      .topbar-actions {
         display: flex;
-        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
       }
 
-      .edit-pill {
+      .edit-icon {
         display: inline-flex;
         align-items: center;
-        min-height: 44px;
-        padding: 0 16px;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
         border-radius: var(--radius-pill);
         border: 1px solid var(--color-border);
         background: var(--color-surface-2);
         color: var(--color-text);
-        font-size: 13px;
-        font-weight: 700;
         cursor: pointer;
+      }
+
+      .edit-icon svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+      }
+
+      .edit-icon circle {
+        fill: var(--color-surface-2);
       }
 
       .layout-list {
@@ -1501,6 +2016,185 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
+      }
+      .day-hero {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+      }
+
+      .ring {
+        position: relative;
+        flex: none;
+        width: 72px;
+        height: 72px;
+      }
+
+      .ring svg {
+        width: 72px;
+        height: 72px;
+        transform: rotate(-90deg);
+      }
+
+      .ring span {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .day-value {
+        margin: 0;
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        line-height: 1;
+      }
+
+      .day-value span {
+        margin-left: 4px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: var(--color-muted);
+      }
+
+      .hr-cell .day-value {
+        margin-top: 6px;
+        font-size: 26px;
+      }
+
+      .goal-line {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: var(--color-muted);
+      }
+
+      .goal-line .hit {
+        color: var(--color-ok);
+        font-weight: 700;
+      }
+
+      .delta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 8px 0 0;
+        padding: 4px 10px;
+        border-radius: var(--radius-pill);
+        background: var(--color-surface-2);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .delta-up {
+        color: var(--color-ok);
+      }
+
+      .delta-down {
+        color: var(--color-warn);
+      }
+
+      .delta-same {
+        color: var(--color-muted);
+      }
+
+      .day-spark {
+        margin-top: 14px;
+      }
+
+      .spark-plot {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        align-items: end;
+        justify-items: center;
+        height: 64px;
+      }
+
+      .spark-plot svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .spark-bar {
+        width: 100%;
+        max-width: 22px;
+        min-height: 3px;
+        border-radius: 5px;
+        opacity: 0.3;
+      }
+
+      .spark-bar.today {
+        opacity: 1;
+      }
+
+      .spark-bar.cyan {
+        background: var(--color-data-cyan);
+      }
+
+      .spark-bar.warn {
+        background: var(--color-warn);
+      }
+
+      .spark-goal {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 1px dashed var(--color-muted);
+      }
+
+      .spark-dot {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border: 2px solid var(--color-data-violet);
+        border-radius: 50%;
+        background: var(--color-surface);
+        transform: translate(-50%, -50%);
+      }
+
+      .spark-dot.today {
+        width: 10px;
+        height: 10px;
+        background: var(--color-data-violet);
+      }
+
+      .spark-labels {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        margin-top: 6px;
+        font-size: 11px;
+        text-align: center;
+        color: var(--color-muted);
+      }
+
+      .spark-labels .today {
+        color: var(--color-text);
+        font-weight: 700;
+      }
+
+      .hr-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .hr-cell {
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--color-surface-2);
+      }
+
+      .hr-cell .micro {
+        margin: 0;
       }
     </style>
   </head>
@@ -1868,73 +2562,112 @@
                 </div>
               </section>
 
-              <div class="grid-2">
+              <div class="grid-2 stat-grid">
                 <div class="card">
-                  <span class="micro">Steps</span>
-                  <p class="stat-num">5,909</p>
-                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">49% of 12,000</p>
-                  <div class="bar">
-                    <span style="width: 49%; background: var(--color-data-cyan)"></span>
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-data-cyan)" aria-hidden="true" focusable="false"><path d="M4 16v-2.4C4 11.5 3 10.5 3 8c0-2.7 1.5-6 4.5-6C9.4 2 10 3.8 10 5.5c0 3.1-2 5.7-2 8.7V16a2 2 0 1 1-4 0Z" /><path d="M20 20v-2.4c0-2.1 1-3.1 1-5.6 0-2.7-1.5-6-4.5-6-1.9 0-2.5 1.8-2.5 3.5 0 3.1 2 5.7 2 8.7V20a2 2 0 1 0 4 0Z" /></svg>
+                    <span class="micro">Steps</span>
+                  </div>
+                  <div class="stat-body">
+                    <p class="stat-num">5,909</p>
+                    <p class="muted" style="margin: 6px 0 0; font-size: 12px">49% of 12,000</p>
+                    <div class="bar">
+                      <span style="width: 49%; background: var(--color-data-cyan)"></span>
+                  </div>
                   </div>
                 </div>
                 <div class="card">
-                  <span class="micro">Calories</span>
-                  <p class="stat-num">
-                    963 <span class="muted" style="font-size: 12px; font-weight: 600">kcal</span>
-                  </p>
-                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">120% of 800 kcal</p>
-                  <div class="bar">
-                    <span style="width: 100%; background: var(--color-warn)"></span>
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-warn)" aria-hidden="true" focusable="false"><path d="M12 2c1 4 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 2 2 2 0 0-2-1-4 0-5z" /><path d="M6.5 14.5A6 6 0 0 0 12 22a6 6 0 0 0 5.5-7.5" /></svg>
+                    <span class="micro">Calories</span>
+                  </div>
+                  <div class="stat-body">
+                    <p class="stat-num">
+                      963 <span class="muted" style="font-size: 12px; font-weight: 600">kcal</span>
+                    </p>
+                    <p class="muted" style="margin: 6px 0 0; font-size: 12px">120% of 800 kcal</p>
+                    <div class="bar">
+                      <span style="width: 100%; background: var(--color-warn)"></span>
+                  </div>
                   </div>
                 </div>
                 <div class="card">
-                  <span class="micro">Walk</span>
-                  <p class="stat-num">55m</p>
-                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">92% of 1h</p>
-                  <div class="bar">
-                    <span style="width: 92%; background: var(--color-data-cyan)"></span>
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-data-cyan)" aria-hidden="true" focusable="false"><circle cx="13" cy="4" r="2" /><path d="m10 22 2-7 3 3v4" /><path d="M8 12.5 10.5 8l3.5 1 2 3.5 2.5 1" /><path d="m10.5 8-2 6-2.5 2" /></svg>
+                    <span class="micro">Walk</span>
+                  </div>
+                  <div class="stat-body">
+                    <p class="stat-num">55m</p>
+                    <p class="muted" style="margin: 6px 0 0; font-size: 12px">92% of 1h</p>
+                    <div class="bar">
+                      <span style="width: 92%; background: var(--color-data-cyan)"></span>
+                  </div>
                   </div>
                 </div>
                 <div class="card">
-                  <span class="micro">Swim</span>
-                  <p class="stat-num">25m</p>
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-data-cyan)" aria-hidden="true" focusable="false"><path d="M2 18c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0 3-1 4.5 0" /><path d="M2 13.5c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0 3-1 4.5 0" /><circle cx="17" cy="6" r="2" /><path d="m6 11 4-4 3 3" /></svg>
+                    <span class="micro">Swim</span>
+                  </div>
+                  <div class="stat-body">
+                    <p class="stat-num">25m</p>
+                  </div>
                 </div>
                 <div class="card">
-                  <span class="micro">Weight</span>
-                  <p class="stat-num">
-                    73.65 <span class="muted" style="font-size: 12px; font-weight: 600">kg</span>
-                  </p>
-                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">2.4 kg to go</p>
-                  <svg
-                    class="spark"
-                    viewBox="0 0 100 32"
-                    preserveAspectRatio="none"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <polyline
-                      points="0,16 11,6 22,4 33,10 44,19 56,26 67,25 78,21 89,28 100,15"
-                      fill="none"
-                      stroke="var(--color-data-violet)"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      vector-effect="non-scaling-stroke"
-                    />
-                  </svg>
-                  <p class="visually-hidden">
-                    Weight series: 74.1, 74.6, 74.7, 74.4, 73.9, 73.6, 73.6, 73.9, 73.5, 73.65
-                  </p>
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-data-violet)" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5" /><path d="M8.5 9.5a5 5 0 0 1 7 0" /><path d="m12 10.5 1.5-2" /></svg>
+                    <span class="micro">Weight</span>
+                  </div>
+                  <div class="stat-body stat-body-wide">
+                    <div>
+                      <p class="stat-num">
+                        73.65 <span class="muted" style="font-size: 12px; font-weight: 600">kg</span>
+                      </p>
+                      <p class="muted" style="margin: 6px 0 0; font-size: 12px">2.4 kg to go</p>
+                    </div>
+                    <svg
+                      class="spark"
+                      viewBox="0 0 100 32"
+                      preserveAspectRatio="none"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <polyline
+                        points="0,16 11,6 22,4 33,10 44,19 56,26 67,25 78,21 89,28 100,15"
+                        fill="none"
+                        stroke="var(--color-data-violet)"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        vector-effect="non-scaling-stroke"
+                      />
+                    </svg>
+                    <p class="visually-hidden">
+                      Weight series: 74.1, 74.6, 74.7, 74.4, 73.9, 73.6, 73.6, 73.9, 73.5, 73.65
+                    </p>
+                  </div>
                 </div>
               </div>
 
               <div class="card">
-                <h3 class="micro" style="margin: 0">Workout today</h3>
-                <ul class="list" style="margin-top: 6px">
+                <div class="wk-head">
+                  <h3 class="micro" style="margin: 0">Workout today</h3>
+                  <span class="wk-count">1 session</span>
+                </div>
+                <div class="wk-totals">
+                  <div class="wk-total"><span class="wk-label"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--color-accent)" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Time</span><b>1h</b></div>
+                  <div class="wk-total"><span class="wk-label"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--color-data-cyan)" aria-hidden="true" focusable="false"><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /></svg>Sets</span><b>12</b></div>
+                  <div class="wk-total"><span class="wk-label"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--color-data-violet)" aria-hidden="true" focusable="false"><path d="M6 8h12l2 12H4L6 8Z" /><circle cx="12" cy="5" r="2" /></svg>Volume</span><b>2,410<span>kg</span></b></div>
+                </div>
+                <ul class="wk-list">
                   <li>
-                    <a class="row" href="#" style="color: var(--color-text); text-decoration: none">
-                      <span class="muted" style="font-size: 14px">17:30</span>
-                      <strong style="font-size: 14px; text-align: right">1h · 12 sets · 2,410 kg · 1 new record</strong>
+                    <a class="wk-row" href="#">
+                      <span class="wk-tile"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: currentColor" aria-hidden="true" focusable="false"><path d="M6.5 6.5v11" /><path d="M17.5 6.5v11" /><path d="M3.5 9v6" /><path d="M20.5 9v6" /><path d="M6.5 12h11" /></svg></span>
+                      <span class="wk-main">
+                        <span class="wk-title"><b>17:30</b><span class="wk-pr"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 12px; height: 12px; color: currentColor" aria-hidden="true" focusable="false"><path d="M8 21h8" /><path d="M12 17v4" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M17 5h3v2a3 3 0 0 1-3 3" /><path d="M7 5H4v2a3 3 0 0 0 3 3" /></svg>1 record</span></span>
+                        <span class="muted">3 exercises · 12 sets · 2,410 kg · 1h</span>
+                      </span>
+                      <svg class="wk-icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: var(--color-dim)" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg>
                     </a>
                   </li>
                 </ul>
@@ -1950,26 +2683,67 @@ Left knee a little stiff.</p>
                 <div class="row">
                   <h3 class="micro">Heart rate zones</h3>
                   <span class="zone-head-end">
-                    <span class="muted" style="font-size: 12px">21m in cardio</span>
                     <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
                   </span>
                 </div>
-                <div
-                  class="zonebar"
-                  role="img"
-                  aria-label="Heart rate zones: Warm 8m, Fat burn 38m, Cardio 21m, Peak 5m"
-                >
-                  <span style="width: 11%; background: var(--color-data-cyan)"></span>
-                  <span style="width: 53%; background: var(--color-ok)"></span>
-                  <span style="width: 29%; background: var(--color-warn)"></span>
-                  <span style="width: 7%; background: var(--color-danger)"></span>
+                <div class="hrz-top">
+                  <div class="hrz-ring">
+                    <svg viewBox="0 0 42 42" role="img" aria-label="Heart rate zones: Warm 8m, Fat burn 38m, Cardio 21m, Peak 5m">
+                      <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--color-surface-2)" stroke-width="5" />
+                      <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--color-data-cyan)" stroke-width="5" stroke-dasharray="11 89" stroke-dashoffset="0" />
+                      <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--color-ok)" stroke-width="5" stroke-dasharray="53 47" stroke-dashoffset="-11" />
+                      <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--color-warn)" stroke-width="5" stroke-dasharray="29 71" stroke-dashoffset="-64" />
+                      <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--color-danger)" stroke-width="5" stroke-dasharray="7 93" stroke-dashoffset="-93" />
+                    </svg>
+                    <span class="hrz-mid"><b>1h 12m</b><span class="muted">gym time</span></span>
+                  </div>
+                  <div class="hrz-stats">
+                    <p class="hrz-big"><b>26m</b><span class="muted">hard effort, cardio and peak</span></p>
+                    <div class="hrz-pills">
+                      <span class="hrz-pill"><span class="muted">Avg</span> 117</span>
+                      <span class="hrz-pill"><span class="muted">Peak</span> 174</span>
+                      <span class="hrz-pill"><span class="muted">Max</span> 190</span>
+                    </div>
+                  </div>
                 </div>
-                <ul class="zone-rows">
-                  <li><span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 8m</span><span>under 114 bpm</span></li>
-                  <li><span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 38m</span><span>114–132 bpm</span></li>
-                  <li><span><i class="dot" style="background: var(--color-warn)"></i>Cardio 21m</span><span>133–161 bpm</span></li>
-                  <li><span><i class="dot" style="background: var(--color-danger)"></i>Peak 5m</span><span>162+ bpm</span></li>
+                <div class="hrz-scale" role="img" aria-label="Heart rate scale to 190 bpm. Zones start at 114, 133, 162 bpm. Avg 117 bpm. Peak 174 bpm.">
+                  <div class="hrz-bar-wrap">
+                    <span class="hrz-mark" style="left: 61.6%" aria-hidden="true">Avg 117<i style="height: 16px"></i></span>
+                    <span class="hrz-mark hrz-mark-end" style="left: 91.6%" aria-hidden="true">Peak 174<i style="height: 36px"></i></span>
+                    <div class="hrz-bands" aria-hidden="true">
+                      <span style="width: 60%; background: var(--color-data-cyan)"></span>
+                      <span style="width: 10%; background: var(--color-ok)"></span>
+                      <span style="width: 15.3%; background: var(--color-warn)"></span>
+                      <span style="width: 14.7%; background: var(--color-danger)"></span>
+                    </div>
+                  </div>
+                  <div class="hrz-ticks" aria-hidden="true">
+                    <span style="left: 0; transform: none">0</span><span style="left: 60%">114</span><span style="left: 70%">133</span><span style="left: 85.3%">162</span><span style="left: auto; right: 0; transform: none">bpm</span>
+                  </div>
+                </div>
+                <ul class="hrz-rows">
+                  <li>
+                    <span class="hrz-name"><i class="dot" style="background: var(--color-danger)"></i><span>Peak</span> <span class="muted">162+ bpm</span></span>
+                    <span class="hrz-time">5m <span class="muted">7%</span></span>
+                    <span class="hrz-track" aria-hidden="true"><span style="width: 7%; background: var(--color-danger)"></span></span>
+                  </li>
+                  <li>
+                    <span class="hrz-name"><i class="dot" style="background: var(--color-warn)"></i><span>Cardio</span> <span class="muted">133–161 bpm</span></span>
+                    <span class="hrz-time">21m <span class="muted">29%</span></span>
+                    <span class="hrz-track" aria-hidden="true"><span style="width: 29%; background: var(--color-warn)"></span></span>
+                  </li>
+                  <li>
+                    <span class="hrz-name"><i class="dot" style="background: var(--color-ok)"></i><span>Fat burn</span> <span class="muted">114–132 bpm</span></span>
+                    <span class="hrz-time">38m <span class="muted">53%</span></span>
+                    <span class="hrz-track" aria-hidden="true"><span style="width: 53%; background: var(--color-ok)"></span></span>
+                  </li>
+                  <li>
+                    <span class="hrz-name"><i class="dot" style="background: var(--color-data-cyan)"></i><span>Warm</span> <span class="muted">under 114 bpm</span></span>
+                    <span class="hrz-time">8m <span class="muted">11%</span></span>
+                    <span class="hrz-track" aria-hidden="true"><span style="width: 11%; background: var(--color-data-cyan)"></span></span>
+                  </li>
                 </ul>
+                <p class="hrz-fact">Your average, 117 bpm, sits in Fat burn. Your peak reached Peak.</p>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
                   Based on a max of 190 bpm, from your birth year.
                 </p>
@@ -1980,14 +2754,33 @@ Left knee a little stiff.</p>
                   <h3 class="micro">This week</h3>
                   <span class="muted" style="font-size: 13px">7 – 13 Sep</span>
                 </div>
-                <dl class="week-grid">
-                  <div>
-                    <dt>sessions</dt>
-                    <dd><span aria-hidden="true">3 / 4</span><span class="sr-only">3 of 4</span></dd>
+                <div class="wkg">
+                  <div class="wkg-ring">
+                    <svg viewBox="0 0 42 42" aria-hidden="true" focusable="false">
+                      <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--color-surface-2)" stroke-width="5" />
+                      <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--color-accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="75 25" />
+                    </svg>
+                    <span aria-hidden="true">3/4</span>
                   </div>
-                  <div><dt>gym time</dt><dd>2h 32m</dd></div>
-                  <div><dt>kcal</dt><dd>2,627</dd></div>
-                  <div><dt>steps</dt><dd>21,480</dd></div>
+                  <div>
+                    <p class="wkg-line">3 of 4 sessions</p>
+                    <p class="muted" style="margin: 2px 0 0; font-size: 12px">1 more to reach your goal. This is the last day.</p>
+                  </div>
+                </div>
+                <ol class="wkd-strip" aria-label="Gym days this week">
+                  <li class="wkd"><span class="wkd-dot " aria-hidden="true"></span><span aria-hidden="true">M</span><span class="sr-only">Monday 7 September, no gym</span></li>
+                  <li class="wkd"><span class="wkd-dot done" aria-hidden="true"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: currentColor" aria-hidden="true" focusable="false"><path d="M6.5 6.5v11" /><path d="M17.5 6.5v11" /><path d="M3.5 9v6" /><path d="M20.5 9v6" /><path d="M6.5 12h11" /></svg></span><span aria-hidden="true">T</span><span class="sr-only">Tuesday 8 September, gym day</span></li>
+                  <li class="wkd"><span class="wkd-dot " aria-hidden="true"></span><span aria-hidden="true">W</span><span class="sr-only">Wednesday 9 September, no gym</span></li>
+                  <li class="wkd"><span class="wkd-dot done" aria-hidden="true"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: currentColor" aria-hidden="true" focusable="false"><path d="M6.5 6.5v11" /><path d="M17.5 6.5v11" /><path d="M3.5 9v6" /><path d="M20.5 9v6" /><path d="M6.5 12h11" /></svg></span><span aria-hidden="true">T</span><span class="sr-only">Thursday 10 September, gym day</span></li>
+                  <li class="wkd"><span class="wkd-dot " aria-hidden="true"></span><span aria-hidden="true">F</span><span class="sr-only">Friday 11 September, no gym</span></li>
+                  <li class="wkd"><span class="wkd-dot " aria-hidden="true"></span><span aria-hidden="true">S</span><span class="sr-only">Saturday 12 September, no gym</span></li>
+                  <li class="wkd is-today"><span class="wkd-dot done today" aria-hidden="true"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: currentColor" aria-hidden="true" focusable="false"><path d="M6.5 6.5v11" /><path d="M17.5 6.5v11" /><path d="M3.5 9v6" /><path d="M20.5 9v6" /><path d="M6.5 12h11" /></svg></span><span aria-hidden="true">S</span><span class="sr-only">Sunday 13 September, gym day, today</span></li>
+                </ol>
+                <dl class="wkt">
+                  <div class="wk-total"><dt class="wk-label"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--color-accent)" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gym time</dt><dd><b>2h 32m</b></dd></div>
+                  <div class="wk-total"><dt class="wk-label"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--color-warn)" aria-hidden="true" focusable="false"><path d="M12 2c1 4 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 2 2 2 0 0-2-1-4 0-5z" /><path d="M6.5 14.5A6 6 0 0 0 12 22a6 6 0 0 0 5.5-7.5" /></svg>Calories</dt><dd><b>2,627<span>kcal</span></b></dd></div>
+                  <div class="wk-total"><dt class="wk-label"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--color-data-cyan)" aria-hidden="true" focusable="false"><path d="M4 16v-2.4C4 11.5 3 10.5 3 8c0-2.7 1.5-6 4.5-6C9.4 2 10 3.8 10 5.5c0 3.1-2 5.7-2 8.7V16a2 2 0 1 1-4 0Z" /><path d="M20 20v-2.4c0-2.1 1-3.1 1-5.6 0-2.7-1.5-6-4.5-6-1.9 0-2.5 1.8-2.5 3.5 0 3.1 2 5.7 2 8.7V20a2 2 0 1 0 4 0Z" /></svg>Steps</dt><dd><b>21,480</b></dd></div>
+                  <div class="wk-total"><dt class="wk-label"><svg class="wk-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--color-data-cyan)" aria-hidden="true" focusable="false"><circle cx="13" cy="4" r="2" /><path d="m10 22 2-7 3 3v4" /><path d="M8 12.5 10.5 8l3.5 1 2 3.5 2.5 1" /><path d="m10.5 8-2 6-2.5 2" /></svg>Walk</dt><dd><b>3h 12m</b></dd></div>
                 </dl>
               </div>
             </div>
@@ -2017,7 +2810,7 @@ Left knee a little stiff.</p>
             <div class="topbar">
               <div>
                 <h2>Log</h2>
-                <p class="sub">Sun 20 Sep · 9 fields</p>
+                <p class="sub">Sun 20 Sep · Saved</p>
               </div>
               <span class="chip"><span class="dot dot-warn" aria-hidden="true"></span>Offline</span>
             </div>
@@ -2027,122 +2820,143 @@ Left knee a little stiff.</p>
                 <button class="btn btn-secondary day-step" type="button" aria-label="Previous day, Sat 19 Sep">
                   <span aria-hidden="true">‹</span>
                 </button>
-                <label class="field" for="log-day">
+                <label class="field" for="log-day" style="min-width: 0">
                   <span class="micro">Day</span>
-                  <input class="input" id="log-day" type="date" max="2026-09-20" value="2026-09-20" />
+                  <span class="input-unit">
+                    <input class="input" id="log-day" type="date" max="2026-09-20" value="2026-09-20" />
+                    <span><svg class="stat-icon field-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="18" rx="3" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h18" /></svg></span>
+                  </span>
                 </label>
                 <button class="btn btn-secondary day-step" type="button" aria-label="Next day, Mon 21 Sep" disabled>
                   <span aria-hidden="true">›</span>
                 </button>
               </div>
 
-              <div class="dp" role="group" aria-labelledby="log-gym-label">
-                <span class="micro" id="log-gym-label">Gym time</span>
-                <div
-                  class="dp-row"
-                  style="padding: 12px; gap: 12px"
-                >
-                  <div style="min-width: 0">
-                    <output class="dp-value" style="display: block">1:12:05</output>
-                    <p class="muted" style="margin: 0; font-size: 12px">From 2 sessions · 1h 12m</p>
+              <div class="log-grid">
+                <div class="card log-section">
+                  <h3 class="micro">Training</h3>
+                  <div class="dp" role="group" aria-labelledby="log-gym-label">
+                    <span class="micro" id="log-gym-label">Gym time</span>
+                    <div
+                      class="dp-row"
+                      style="padding: 12px; gap: 12px"
+                    >
+                      <div style="min-width: 0">
+                        <output class="dp-value" style="display: block">1:12:05</output>
+                        <p class="muted" style="margin: 0; font-size: 12px">From 2 sessions · 1h 12m</p>
+                      </div>
+                      <button class="pill" type="button" style="color: var(--color-text); flex: 0 0 auto">
+                        Set a value
+                      </button>
+                    </div>
                   </div>
-                  <button class="pill" type="button" style="color: var(--color-text); flex: 0 0 auto">
-                    Set a value
-                  </button>
+                  <div class="dp" role="group" aria-labelledby="log-walk-label">
+                    <span class="micro" id="log-walk-label">Walk time</span>
+                    <div class="dp-row">
+                      <button class="dp-step" type="button" aria-label="Decrease Walk time by 1 minute">
+                        <span aria-hidden="true">−</span>
+                      </button>
+                      <output class="dp-value">45:00</output>
+                      <button class="dp-step" type="button" aria-label="Increase Walk time by 1 minute">
+                        <span aria-hidden="true">+</span>
+                      </button>
+                    </div>
+                    <div class="dp-chips">
+                      <button class="pill" type="button" aria-pressed="false">15m</button>
+                      <button class="pill" type="button" aria-pressed="false">30m</button>
+                      <button class="pill" type="button" aria-pressed="true">45m</button>
+                      <button class="pill" type="button" aria-pressed="false">1h</button>
+                      <button class="pill dp-clear" type="button" aria-label="Clear Walk time">
+                        <svg class="stat-icon dp-clear-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="dp" role="group" aria-labelledby="log-swim-label">
+                    <span class="micro" id="log-swim-label">Swim time</span>
+                    <div class="dp-row">
+                      <button class="dp-step" type="button" aria-label="Decrease Swim time by 1 minute">
+                        <span aria-hidden="true">−</span>
+                      </button>
+                      <output class="dp-value">30:00</output>
+                      <button class="dp-step" type="button" aria-label="Increase Swim time by 1 minute">
+                        <span aria-hidden="true">+</span>
+                      </button>
+                    </div>
+                    <div class="dp-chips">
+                      <button class="pill" type="button" aria-pressed="false">15m</button>
+                      <button class="pill" type="button" aria-pressed="true">30m</button>
+                      <button class="pill" type="button" aria-pressed="false">45m</button>
+                      <button class="pill" type="button" aria-pressed="false">1h</button>
+                      <button class="pill dp-clear" type="button" aria-label="Clear Swim time">
+                        <svg class="stat-icon dp-clear-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="muted" style="margin: -4px 0 0; font-size: 12px">The time in the pool today. No distance.</p>
                 </div>
-              </div>
 
-              <div class="dp" role="group" aria-labelledby="log-walk-label">
-                <span class="micro" id="log-walk-label">Walk time</span>
-                <div class="dp-row">
-                  <button class="dp-step" type="button" aria-label="Decrease Walk time by 1 minute">
-                    <span aria-hidden="true">−</span>
-                  </button>
-                  <output class="dp-value">45:00</output>
-                  <button class="dp-step" type="button" aria-label="Increase Walk time by 1 minute">
-                    <span aria-hidden="true">+</span>
-                  </button>
+                <div class="card log-section">
+                  <h3 class="micro">Heart</h3>
+                  <div class="grid-2">
+                    <label class="field" for="log-avg-hr">
+                      <span class="micro">Avg heart rate</span>
+                      <span class="input-unit">
+                        <input class="input" id="log-avg-hr" inputmode="numeric" enterkeyhint="next" value="118" />
+                        <span aria-hidden="true">bpm</span>
+                      </span>
+                    </label>
+                    <label class="field" for="log-max-hr">
+                      <span class="micro">Max heart rate</span>
+                      <span class="input-unit">
+                        <input class="input" id="log-max-hr" inputmode="numeric" enterkeyhint="next" value="164" />
+                        <span aria-hidden="true">bpm</span>
+                      </span>
+                    </label>
+                  </div>
                 </div>
-                <div class="dp-chips">
-                  <button class="pill" type="button" aria-pressed="false">15m</button>
-                  <button class="pill" type="button" aria-pressed="false">30m</button>
-                  <button class="pill" type="button" aria-pressed="true">45m</button>
-                  <button class="pill" type="button" aria-pressed="false">1h</button>
-                  <button class="pill dp-clear" type="button">
-                    Clear <span class="visually-hidden">Walk time</span>
-                  </button>
-                </div>
-              </div>
 
-              <div class="card stack" style="gap: 12px">
-                <h3 class="micro" style="margin: 0">Swimming</h3>
-                <div class="dp" role="group" aria-labelledby="log-swim-label">
-                  <span class="micro" id="log-swim-label">Swim time</span>
-                  <div class="dp-row">
-                    <button class="dp-step" type="button" aria-label="Decrease Swim time by 1 minute">
-                      <span aria-hidden="true">−</span>
+                <div class="card log-section">
+                  <h3 class="micro">Body</h3>
+                  <label class="field" for="log-weight">
+                    <span class="micro">Weight</span>
+                    <span class="input-unit">
+                      <input class="input" id="log-weight" inputmode="decimal" enterkeyhint="next" value="73.40" />
+                      <span aria-hidden="true">kg</span>
+                    </span>
+                  </label>
+                  <div class="grid-2" style="gap: 8px">
+                    <button class="btn btn-secondary" type="button">
+                      −0.05 <span class="sr-only">kg, decrease the weight</span>
                     </button>
-                    <output class="dp-value">30:00</output>
-                    <button class="dp-step" type="button" aria-label="Increase Swim time by 1 minute">
-                      <span aria-hidden="true">+</span>
+                    <button class="btn btn-secondary" type="button">
+                      +0.05 <span class="sr-only">kg, increase the weight</span>
                     </button>
                   </div>
-                  <div class="dp-chips">
-                    <button class="pill" type="button" aria-pressed="false">15m</button>
-                    <button class="pill" type="button" aria-pressed="true">30m</button>
-                    <button class="pill" type="button" aria-pressed="false">45m</button>
-                    <button class="pill" type="button" aria-pressed="false">1h</button>
-                    <button class="pill dp-clear" type="button">
-                      Clear <span class="visually-hidden">Swim time</span>
-                    </button>
+                </div>
+
+                <div class="card log-section">
+                  <h3 class="micro">Activity</h3>
+                  <div class="grid-2">
+                    <label class="field" for="log-calories">
+                      <span class="micro">Calories</span>
+                      <span class="input-unit">
+                        <input class="input" id="log-calories" inputmode="numeric" enterkeyhint="next" value="985" />
+                        <span aria-hidden="true">kcal</span>
+                      </span>
+                    </label>
+                    <label class="field" for="log-steps">
+                      <span class="micro">Steps</span>
+                      <input class="input" id="log-steps" inputmode="numeric" enterkeyhint="next" value="12480" />
+                    </label>
                   </div>
                 </div>
-                <p class="muted" style="margin: 0; font-size: 12px">The time in the pool today. No distance.</p>
-              </div>
 
-              <div class="grid-2">
-                <label class="field" for="log-avg-hr">
-                  <span class="micro">Avg heart rate</span>
-                  <input class="input" id="log-avg-hr" inputmode="numeric" value="118" />
-                </label>
-                <label class="field" for="log-max-hr">
-                  <span class="micro">Max heart rate</span>
-                  <input class="input" id="log-max-hr" inputmode="numeric" value="164" />
-                </label>
+                <div class="card log-section">
+                  <h3 class="micro">Note</h3>
+                  <label class="sr-only" for="log-note">Note</label>
+                  <textarea class="input textarea" id="log-note" rows="2" enterkeyhint="done">Push day. Bench felt light.</textarea>
+                </div>
               </div>
-
-              <label class="field" for="log-weight">
-                <span class="micro">Weight (kg)</span>
-                <input class="input" id="log-weight" inputmode="decimal" value="73.40" />
-              </label>
-              <div class="grid-2" style="gap: 8px">
-                <button class="btn btn-secondary" type="button">
-                  −0.05 <span class="sr-only">kg, decrease the weight</span>
-                </button>
-                <button class="btn btn-secondary" type="button">
-                  +0.05 <span class="sr-only">kg, increase the weight</span>
-                </button>
-              </div>
-
-              <div class="grid-2">
-                <label class="field" for="log-calories">
-                  <span class="micro">Calories</span>
-                  <input class="input" id="log-calories" inputmode="numeric" value="985" />
-                </label>
-                <label class="field" for="log-steps">
-                  <span class="micro">Steps</span>
-                  <input class="input" id="log-steps" inputmode="numeric" value="12480" />
-                </label>
-              </div>
-
-              <label class="field" for="log-note">
-                <span class="micro">Note</span>
-                <input
-                  class="input"
-                  id="log-note"
-                  value="Push day. Bench felt light."
-                />
-              </label>
 
               <p class="muted" style="margin: 0">
                 Saved on this phone first. It uploads when the signal comes back, so nothing is
@@ -2444,9 +3258,19 @@ Left knee a little stiff.</p>
                 <h2>Stats</h2>
                 <p class="sub">14 – 20 September</p>
               </div>
-              <span class="chip"
-                ><span class="dot dot-ok" aria-hidden="true"></span>Synced</span
-              >
+              <div class="topbar-actions">
+                <span class="chip"
+                  ><span class="dot dot-ok" aria-hidden="true"></span>Synced</span
+                >
+                <button class="edit-icon" type="button" aria-label="Customise cards">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M3 5h14M3 10h14M3 15h14" />
+                    <circle cx="7" cy="5" r="1.9" />
+                    <circle cx="13" cy="10" r="1.9" />
+                    <circle cx="8" cy="15" r="1.9" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div class="body">
@@ -2454,10 +3278,6 @@ Left knee a little stiff.</p>
                 <button type="button" aria-pressed="false">Day</button>
                 <button type="button" aria-pressed="true">Week</button>
                 <button type="button" aria-pressed="false">Month</button>
-              </div>
-
-              <div class="edit-row">
-                <button class="edit-pill" type="button">Edit</button>
               </div>
 
               <div class="card">
@@ -3737,9 +4557,19 @@ Left knee a little stiff.</p>
                 <h2>Stats</h2>
                 <p class="sub">14 – 20 September</p>
               </div>
-              <span class="chip"
-                ><span class="dot dot-ok" aria-hidden="true"></span>Synced</span
-              >
+              <div class="topbar-actions">
+                <span class="chip"
+                  ><span class="dot dot-ok" aria-hidden="true"></span>Synced</span
+                >
+                <button class="edit-icon" type="button" aria-label="Customise cards">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M3 5h14M3 10h14M3 15h14" />
+                    <circle cx="7" cy="5" r="1.9" />
+                    <circle cx="13" cy="10" r="1.9" />
+                    <circle cx="8" cy="15" r="1.9" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div class="body">
@@ -4212,6 +5042,175 @@ Left knee a little stiff.</p>
         </div>
       </section>
 
+      <!-- ============ 5c · stats, day tab ============
+           New classes: day-hero, ring, day-value, goal-line, delta, delta-up, delta-down,
+           delta-same, day-spark, spark-plot, spark-bar, spark-goal, spark-dot, spark-labels, hr-grid,
+           hr-cell. -->
+      <section class="plate" aria-labelledby="p5-day">
+        <div class="plate-label">
+          <span class="n">05c</span>
+          <span class="name" id="p5-day">Stats, Day tab</span>
+          <span class="route">/analytics</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <h2>Stats</h2>
+                <p class="sub">20 September</p>
+              </div>
+              <span class="chip"
+                ><span class="dot dot-ok" aria-hidden="true"></span>Synced</span
+              >
+            </div>
+
+            <div class="body">
+              <div class="seg" role="group" aria-label="Range">
+                <button type="button" aria-pressed="true">Day</button>
+                <button type="button" aria-pressed="false">Week</button>
+                <button type="button" aria-pressed="false">Month</button>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-data-violet)" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5" /><path d="M8.5 9.5a5 5 0 0 1 7 0" /><path d="m12 10.5 1.5-2" /></svg>
+                    <span class="micro">Weight</span>
+                  </div>
+                  <span class="muted">goal 72.0 kg</span>
+                </div>
+                <div>
+                  <p class="day-value">73.4<span>kg</span></p>
+                  <p class="delta"><span class="delta-down" aria-hidden="true">▼</span><span><span class="visually-hidden">Down </span>0.1 kg since Sat</span></p>
+                </div>
+                <div class="day-spark" aria-hidden="true">
+                  <div class="spark-plot">
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M7.14 31.25 L21.43 43.75 L35.71 25.00 L50.00 56.25 L64.29 62.50 L78.57 68.75 L92.86 75.00" fill="none" stroke="var(--color-data-violet)" stroke-width="2" vector-effect="non-scaling-stroke" /></svg>
+                    <i class="spark-dot" style="left: 7.14%; top: 31.25%"></i><i class="spark-dot" style="left: 21.43%; top: 43.75%"></i><i class="spark-dot" style="left: 35.71%; top: 25.00%"></i><i class="spark-dot" style="left: 50.00%; top: 56.25%"></i><i class="spark-dot" style="left: 64.29%; top: 62.50%"></i><i class="spark-dot" style="left: 78.57%; top: 68.75%"></i><i class="spark-dot today" style="left: 92.86%; top: 75.00%"></i>
+                  </div>
+                  <div class="spark-labels"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span class="today">Today</span></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-data-cyan)" aria-hidden="true" focusable="false"><path d="M4 16v-2.4C4 11.5 3 10.5 3 8c0-2.7 1.5-6 4.5-6C9.4 2 10 3.8 10 5.5c0 3.1-2 5.7-2 8.7V16a2 2 0 1 1-4 0Z" /><path d="M20 20v-2.4c0-2.1 1-3.1 1-5.6 0-2.7-1.5-6-4.5-6-1.9 0-2.5 1.8-2.5 3.5 0 3.1 2 5.7 2 8.7V20a2 2 0 1 0 4 0Z" /></svg>
+                    <span class="micro">Steps</span>
+                  </div>
+                  <span class="muted">6-day avg 10,217</span>
+                </div>
+                <div class="day-hero">
+                  <div class="ring">
+                    <svg viewBox="0 0 72 72" aria-hidden="true">
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="var(--color-surface-2)" stroke-width="7" />
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="var(--color-data-cyan)" stroke-width="7" stroke-linecap="round" stroke-dasharray="156.5 188.5" />
+                    </svg>
+                    <span>83%</span>
+                  </div>
+                  <div>
+                    <p class="day-value">9,904</p>
+                    <p class="goal-line">goal 12,000 · 2,096 to go</p>
+                    <p class="delta"><span class="delta-down" aria-hidden="true">▼</span><span><span class="visually-hidden">Down </span>313 vs 6-day avg</span></p>
+                  </div>
+                </div>
+                <div class="day-spark" aria-hidden="true"><div class="spark-plot"><i class="spark-bar cyan" style="height: 63.3%"></i><i class="spark-bar cyan" style="height: 79.1%"></i><i class="spark-bar cyan" style="height: 47.9%"></i><i class="spark-bar cyan" style="height: 86.6%"></i><i class="spark-bar cyan" style="height: 57.6%"></i><i class="spark-bar cyan" style="height: 90.9%"></i><i class="spark-bar cyan today" style="height: 68.7%"></i><b class="spark-goal" style="bottom: 83.3%"></b></div><div class="spark-labels"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span class="today">Today</span></div></div>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-warn)" aria-hidden="true" focusable="false"><path d="M12 2c1 4 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 2 2 2 0 0-2-1-4 0-5z" /><path d="M6.5 14.5A6 6 0 0 0 12 22a6 6 0 0 0 5.5-7.5" /></svg>
+                    <span class="micro">Calories burnt</span>
+                  </div>
+                  <span class="muted">6-day avg 706</span>
+                </div>
+                <div class="day-hero">
+                  <div class="ring">
+                    <svg viewBox="0 0 72 72" aria-hidden="true">
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="var(--color-surface-2)" stroke-width="7" />
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="var(--color-warn)" stroke-width="7" stroke-linecap="round" stroke-dasharray="165.9 188.5" />
+                    </svg>
+                    <span>88%</span>
+                  </div>
+                  <div>
+                    <p class="day-value">705<span>kcal</span></p>
+                    <p class="goal-line">goal 800 · 95 to go</p>
+                    <p class="delta"><span class="delta-down" aria-hidden="true">▼</span><span><span class="visually-hidden">Down </span>1 vs 6-day avg</span></p>
+                  </div>
+                </div>
+                <div class="day-spark" aria-hidden="true"><div class="spark-plot"><i class="spark-bar warn" style="height: 57.2%"></i><i class="spark-bar warn" style="height: 72.0%"></i><i class="spark-bar warn" style="height: 37.8%"></i><i class="spark-bar warn" style="height: 90.9%"></i><i class="spark-bar warn" style="height: 49.8%"></i><i class="spark-bar warn" style="height: 83.1%"></i><i class="spark-bar warn today" style="height: 65.1%"></i><b class="spark-goal" style="bottom: 73.8%"></b></div><div class="spark-labels"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span class="today">Today</span></div></div>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <div class="stat-label">
+                    <svg class="stat-icon" viewBox="0 0 24 24" style="color: var(--color-data-cyan)" aria-hidden="true" focusable="false"><circle cx="13" cy="4" r="2" /><path d="m10 22 2-7 3 3v4" /><path d="M8 12.5 10.5 8l3.5 1 2 3.5 2.5 1" /><path d="m10.5 8-2 6-2.5 2" /></svg>
+                    <span class="micro">Walk</span>
+                  </div>
+                  <span class="muted">6-day avg 55m</span>
+                </div>
+                <div class="day-hero">
+                  <div class="ring">
+                    <svg viewBox="0 0 72 72" aria-hidden="true">
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="var(--color-surface-2)" stroke-width="7" />
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="var(--color-data-cyan)" stroke-width="7" stroke-linecap="round" stroke-dasharray="173.4 188.5" />
+                    </svg>
+                    <span>92%</span>
+                  </div>
+                  <div>
+                    <p class="day-value">55m</p>
+                    <p class="goal-line">goal 1h · 4m to go</p>
+                    <p class="delta"><span class="delta-same" aria-hidden="true">=</span><span>same as 6-day avg</span></p>
+                  </div>
+                </div>
+                <div class="day-spark" aria-hidden="true"><div class="spark-plot"><i class="spark-bar cyan" style="height: 83.9%"></i><i class="spark-bar cyan" style="height: 83.9%"></i><i class="spark-bar cyan" style="height: 83.9%"></i><i class="spark-bar cyan" style="height: 83.9%"></i><i class="spark-bar cyan" style="height: 83.9%"></i><i class="spark-bar cyan" style="height: 83.9%"></i><i class="spark-bar cyan today" style="height: 83.9%"></i><b class="spark-goal" style="bottom: 90.9%"></b></div><div class="spark-labels"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span class="today">Today</span></div></div>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Heart rate</span>
+                  <span class="muted">6-day avg 115 bpm</span>
+                </div>
+                <div class="hr-grid">
+                  <div class="hr-cell"><p class="micro">Average</p><p class="day-value">113<span>bpm</span></p></div>
+                  <div class="hr-cell"><p class="micro">Highest</p><p class="day-value">168<span>bpm</span></p></div>
+                </div>
+                <p class="delta"><span class="delta-down" aria-hidden="true">▼</span><span><span class="visually-hidden">Down </span>2 bpm avg vs 6-day avg</span></p>
+              </div>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"
+                ><span class="glyph" aria-hidden="true">◧</span>Today</a
+              >
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button
+                class="center"
+                type="button"
+                aria-label="Start a live workout"
+              >
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#" aria-current="page"
+                ><span class="glyph" aria-hidden="true">◔</span>Stats</a
+              >
+              <a href="#"
+                ><span class="glyph" aria-hidden="true">☰</span>Profile</a
+              >
+            </nav>
+          </div>
+        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          On the Day tab, weight, steps, calories, walk and heart rate leave the one bar chart. A
+          ring shows the share of the goal, capped full past 100 % with the real percent in the
+          centre, and is left out with no goal. The chip compares today with the days before it
+          in the last 7, by arrow and words, never by colour alone. The bars show the last 7 days,
+          today at full strength, the goal dashed. Weight shows the change since the last weigh-in
+          and a 7-day line. The heart rate zones stay on their own card.
+        </p>
+      </section>
+
       <!-- ============ 6 · profile ============ -->
       <section class="plate" aria-labelledby="p6">
         <div class="plate-label">
@@ -4297,8 +5296,8 @@ Left knee a little stiff.</p>
                       <button class="pill" type="button" aria-pressed="true">1h</button>
                       <button class="pill" type="button" aria-pressed="false">1h 30m</button>
                       <button class="pill" type="button" aria-pressed="false">2h</button>
-                      <button class="pill dp-clear" type="button">
-                        Clear <span class="visually-hidden">Daily gym time goal</span>
+                      <button class="pill dp-clear" type="button" aria-label="Clear Daily gym time goal">
+                        <svg class="stat-icon dp-clear-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
                       </button>
                     </div>
                   </div>
@@ -4326,8 +5325,8 @@ Left knee a little stiff.</p>
                       <button class="pill" type="button" aria-pressed="true">45m</button>
                       <button class="pill" type="button" aria-pressed="false">1h</button>
                       <button class="pill" type="button" aria-pressed="false">1h 30m</button>
-                      <button class="pill dp-clear" type="button">
-                        Clear <span class="visually-hidden">Daily walk time goal</span>
+                      <button class="pill dp-clear" type="button" aria-label="Clear Daily walk time goal">
+                        <svg class="stat-icon dp-clear-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
                       </button>
                     </div>
                   </div>
@@ -5146,7 +6145,17 @@ Left knee a little stiff.</p>
                 <h2>Stats</h2>
                 <p class="sub">1 – 13 September · 6 sessions</p>
               </div>
-              <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+              <div class="topbar-actions">
+                <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+                <button class="edit-icon" type="button" aria-label="Customise cards">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M3 5h14M3 10h14M3 15h14" />
+                    <circle cx="7" cy="5" r="1.9" />
+                    <circle cx="13" cy="10" r="1.9" />
+                    <circle cx="8" cy="15" r="1.9" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div class="body">
@@ -5402,7 +6411,7 @@ Left knee a little stiff.</p>
       </section>
 
       <!-- ============ I1 · stats, edit the layout ============
-           New classes: edit-row, edit-pill, layout-list, layout-row, layout-name, layout-state,
+           New classes: topbar-actions, edit-icon, layout-list, layout-row, layout-name, layout-state,
            layout-move, switch, layout-actions. -->
       <section class="plate" aria-labelledby="p-stats-edit">
         <div class="plate-label">
@@ -5417,7 +6426,14 @@ Left knee a little stiff.</p>
                 <h2>Stats</h2>
                 <p class="sub">14 – 20 September</p>
               </div>
-              <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+              <div class="topbar-actions">
+                <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+                <button class="edit-icon" type="button" aria-label="Cancel, keep the old layout">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M5 5l10 10M15 5L5 15" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div class="body">

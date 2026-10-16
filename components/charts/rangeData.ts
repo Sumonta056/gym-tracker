@@ -88,6 +88,7 @@ export type AnalyticsData = {
   range: WeekRange
   label: string
   days: DayPoint[]
+  recentDays: DayPoint[]
   zones: HeartRateZones
   totals: WeekTotals
   streak: Streak
@@ -192,27 +193,19 @@ export function heatMapFor(logged: ReadonlySet<string>, today: string): HeatWeek
   return weeks
 }
 
-export function analyse(
-  entries: readonly DailyEntry[],
-  history: readonly DailyEntry[],
-  tab: RangeTab,
-  today: string,
-  now: Date,
-  stepGoal: number,
-  unitSystem: UnitSystem = 'metric',
-  sessions: readonly WorkoutSession[] = [],
-  goals: ChartGoals = NO_GOALS,
-  maxHeartRate: MaxHeartRate | null = null,
-): AnalyticsData {
-  const range = rangeFor(tab, today)
-  const byDate = new Map(entries.map((row) => [row.entry_date, row]))
-  const sessionsOn = sessionsByDate(sessions)
+export function dayPoints(
+  dates: readonly string[],
+  rows: readonly DailyEntry[],
+  sessionsOn: ReadonlyMap<string, WorkoutSession[]>,
+): DayPoint[] {
+  const byDate = new Map(rows.map((row) => [row.entry_date, row]))
   const averages = new Map(
-    movingAverage(entries.map((row) => ({ date: row.entry_date, value: row.weight_kg }))).map(
+    movingAverage(rows.map((row) => ({ date: row.entry_date, value: row.weight_kg }))).map(
       (point) => [point.date, point.average],
     ),
   )
-  const days = datesIn(range).map((date): DayPoint => {
+
+  return dates.map((date): DayPoint => {
     const row = byDate.get(date)
     const gym = effectiveGymSeconds(row, sessionsOn.get(date) ?? [])
 
@@ -229,6 +222,34 @@ export function analyse(
       walkSeconds: row?.walk_seconds ?? null,
     }
   })
+}
+
+export function analyse(
+  entries: readonly DailyEntry[],
+  history: readonly DailyEntry[],
+  tab: RangeTab,
+  today: string,
+  now: Date,
+  stepGoal: number,
+  unitSystem: UnitSystem = 'metric',
+  sessions: readonly WorkoutSession[] = [],
+  goals: ChartGoals = NO_GOALS,
+  maxHeartRate: MaxHeartRate | null = null,
+): AnalyticsData {
+  const range = rangeFor(tab, today)
+  const byDate = new Map(entries.map((row) => [row.entry_date, row]))
+  const sessionsOn = sessionsByDate(sessions)
+  const days = dayPoints(datesIn(range), entries, sessionsOn)
+  const recent = readWindow(rangeFor('day', today))
+  const averageFrom = daysBefore(recent.from, DEFAULT_WINDOW_DAYS - 1)
+  const recentRows = [
+    ...new Map(
+      [...history, ...entries]
+        .filter((row) => row.entry_date >= averageFrom && row.entry_date <= recent.to)
+        .map((row) => [row.entry_date, row]),
+    ).values(),
+  ]
+  const recentDays = dayPoints(datesIn(recent), recentRows, sessionsOn)
   const past = history.filter((row) => row.entry_date <= today)
   const todayEntry = byDate.get(today)
   const todayGym = effectiveGymSeconds(todayEntry, sessionsOn.get(today) ?? [])
@@ -239,6 +260,7 @@ export function analyse(
     range,
     label: rangeLabel(range),
     days,
+    recentDays,
     zones: heartRateZones(
       {
         gym_seconds: todayGym.seconds,

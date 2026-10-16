@@ -297,6 +297,26 @@ test('keeps the dashboard, log, profile and import review samples inside the pag
   }
 })
 
+test('keeps the Day field of the log clear of the next day button on a phone', async ({ page }) => {
+  await gotoStyleGuide(page)
+  const sample = page.getByTestId('log-sample')
+  const day = sample.getByLabel('Day', { exact: true })
+  const next = sample.getByRole('button', { name: /^Next day,/ })
+
+  for (const width of [320, 390, 430]) {
+    await page.setViewportSize({ width, height: 900 })
+    await day.scrollIntoViewIfNeeded()
+    const field = await day.boundingBox()
+    const button = await next.boundingBox()
+    expect(field, `${String(width)}px day field`).not.toBeNull()
+    expect(button, `${String(width)}px next button`).not.toBeNull()
+    expect(
+      (field?.x ?? 0) + (field?.width ?? 0),
+      `${String(width)}px: the day field ends before the next button`,
+    ).toBeLessThanOrEqual((button?.x ?? 0) + 0.5)
+  }
+})
+
 for (const route of SIGNED_IN_ROUTES) {
   test(`sends a visitor with no session from ${route} to a sign in screen that fits every width`, async ({
     page,

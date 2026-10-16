@@ -65,4 +65,26 @@ describe('StatCard', () => {
     render(<StatCard label="Steps" value="8,240" />)
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
   })
+
+  it('draws the icon beside the label in the tone colour', () => {
+    const { container } = render(<StatCard label="Steps" value="8,240" icon="steps" tone="cyan" />)
+    const icon = container.querySelector('svg[data-icon="steps"]')
+    expect(icon).toHaveClass('text-data-cyan')
+    expect(icon?.nextElementSibling).toHaveTextContent('Steps')
+  })
+
+  it('draws no icon when none is given', () => {
+    const { container } = render(<StatCard label="Steps" value="8,240" />)
+    expect(container.querySelector('svg[data-icon]')).toBeNull()
+  })
+
+  it('puts the sparkline beside the value when the card is wide', () => {
+    render(<StatCard label="Weight" value="79.95" sparkline={[80, 79.95]} />)
+    expect(screen.getByTestId('stat-body')).toHaveClass('@2xs:grid', '@2xs:grid-cols-[auto_1fr]')
+  })
+
+  it('keeps one column when there is no sparkline', () => {
+    render(<StatCard label="Steps" value="8,240" progress={0.5} />)
+    expect(screen.getByTestId('stat-body')).not.toHaveClass('@2xs:grid')
+  })
 })

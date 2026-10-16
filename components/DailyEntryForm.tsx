@@ -13,6 +13,7 @@ import { effectiveGymSeconds } from '../lib/metrics/gymTime'
 import { dailyEntrySchema, localDate, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from '../lib/schema/dailyEntry'
 
 import { Card } from './ui/Card'
+import { cn } from './ui/cn'
 import {
   CARDIO_PRESETS,
   DurationPicker,
@@ -25,15 +26,16 @@ import { NumberField } from './ui/NumberField'
 import { PrimaryButton } from './ui/PrimaryButton'
 import { SecondaryButton } from './ui/SecondaryButton'
 import { SheetModal } from './ui/SheetModal'
+import { StatIcon } from './ui/StatIcon'
 import { StatusChip } from './ui/StatusChip'
+import { TextAreaField } from './ui/TextAreaField'
 import { SAVED_MESSAGE, useToast } from './ui/Toast'
 
 import type { DailyEntry, WorkoutSession } from '../lib/db/dexie'
 import type { DailyEntryDraft, DailyEntryInput } from '../lib/schema/dailyEntry'
+import type { KeyboardEvent } from 'react'
 
 export const WEIGHT_STEP = 0.05
-
-export const FIELD_COUNT = 9
 
 function toNumber(text: string): number | null {
   const raw = text.trim()
@@ -151,6 +153,58 @@ function isTypingKey(key: string): boolean {
 
 const PILL =
   'bg-surface-2 border-border text-text inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border px-4 text-[13px] font-bold whitespace-nowrap'
+
+export function nextField(current: HTMLElement): HTMLElement | null {
+  const form = current.closest('form')
+
+  if (form === null) {
+    return null
+  }
+
+  const fields = Array.from(
+    form.querySelectorAll<HTMLElement>(
+      'input:not([type="date"]):not([disabled]), textarea:not([disabled])',
+    ),
+  )
+  const at = fields.indexOf(current)
+
+  return at === -1 ? null : (fields[at + 1] ?? null)
+}
+
+function enterMovesOn(event: KeyboardEvent<HTMLInputElement>): void {
+  if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+    return
+  }
+
+  event.preventDefault()
+
+  const next = nextField(event.currentTarget)
+
+  if (next === null) {
+    event.currentTarget.blur()
+  } else {
+    next.focus()
+  }
+}
+
+function enterLeavesNote(event: KeyboardEvent<HTMLTextAreaElement>): void {
+  if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
+    return
+  }
+
+  event.preventDefault()
+  event.currentTarget.blur()
+}
+
+export function saveState(dayRead: 'reading' | 'read' | 'failed', dirty: boolean): string | null {
+  if (dayRead !== 'read') {
+    return null
+  }
+
+  return dirty ? 'Not saved' : 'Saved'
+}
+
+const SECTION = 'flex min-w-0 flex-col gap-3'
 
 export type DayControl = 'previous' | 'day' | 'next'
 
@@ -329,6 +383,7 @@ export function DailyEntryForm({
     }
   }, [gymFromSessions])
 
+  const state = saveState(dayRead, isDirty)
   const today = localDate()
   const previous = shiftLogDate(date, -1)
   const next = shiftLogDate(date, 1)
@@ -423,7 +478,7 @@ export function DailyEntryForm({
         <div>
           <h1 className="text-[23px] leading-tight font-bold tracking-[-0.6px]">Log</h1>
           <p className="text-muted mt-1 text-[13px]">
-            {`${prettyDate(date)} · ${String(FIELD_COUNT)} fields`}
+            {state === null ? prettyDate(date) : `${prettyDate(date)} · ${state}`}
           </p>
         </div>
         {online ? null : <StatusChip status="offline" className="mt-1 shrink-0" />}
@@ -450,6 +505,8 @@ export function DailyEntryForm({
           label="Day"
           type="date"
           max={today}
+          className="min-w-0 appearance-none"
+          adornment={<StatIcon name="calendar" className="text-muted size-[18px]" />}
           value={dayText}
           onChange={(event) => {
             const text = event.currentTarget.value
@@ -492,84 +549,83 @@ export function DailyEntryForm({
         </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-x-3">
-        {gymFromSessions ? (
-          <div
-            role="group"
-            aria-labelledby="gym_seconds-label"
-            className="flex w-full min-w-0 flex-col gap-[7px]"
-          >
-            <MicroLabel id="gym_seconds-label">Gym time</MicroLabel>
-            <div className="bg-surface border-border rounded-input flex items-center justify-between gap-3 border p-3">
-              <div className="min-w-0">
-                <output className="text-text block text-lg font-extrabold tracking-[-0.4px]">
-                  {formatDuration(fromSessions.seconds, 'clock')}
-                </output>
-                <p className="text-muted text-xs">
-                  {sessionsText(sessionCount, fromSessions.seconds)}
-                </p>
-              </div>
-              <button
-                ref={setGymButton}
-                type="button"
-                className={PILL}
-                onClick={() => {
-                  gymFocusPending.current = true
-                  setValue('gym_seconds', fromSessions.seconds, { shouldDirty: true })
-                }}
-              >
-                Set a value
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            <Controller
-              control={control}
-              name="gym_seconds"
-              render={({ field }) => (
-                <DurationPicker
-                  id="gym_seconds"
-                  label="Gym time"
-                  value={field.value}
-                  onChange={(seconds) => {
-                    gymFocusPending.current = seconds === null && fromSessions.source === 'sessions'
-                    field.onChange(seconds)
-                  }}
-                  presets={SESSION_PRESETS}
-                  step={SESSION_STEP_SECONDS}
-                  allowClear
-                />
-              )}
-            />
-            {gymValue !== null && fromSessions.source === 'sessions' ? (
-              <p className="text-muted text-xs">
-                {`The sessions say ${formatDuration(fromSessions.seconds, 'short')}. Clear to use them.`}
-              </p>
-            ) : null}
-          </div>
-        )}
-
-        <Controller
-          control={control}
-          name="walk_seconds"
-          render={({ field }) => (
-            <DurationPicker
-              id="walk_seconds"
-              label="Walk time"
-              value={field.value}
-              onChange={field.onChange}
-              presets={CARDIO_PRESETS}
-              step={SESSION_STEP_SECONDS}
-              allowClear
-            />
-          )}
-        />
-
-        <Card className="flex flex-col gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <Card className={cn(SECTION, 'md:row-span-3')}>
           <h2>
-            <MicroLabel>Swimming</MicroLabel>
+            <MicroLabel>Training</MicroLabel>
           </h2>
+          {gymFromSessions ? (
+            <div
+              role="group"
+              aria-labelledby="gym_seconds-label"
+              className="flex w-full min-w-0 flex-col gap-[7px]"
+            >
+              <MicroLabel id="gym_seconds-label">Gym time</MicroLabel>
+              <div className="bg-surface border-border rounded-input flex items-center justify-between gap-3 border p-3">
+                <div className="min-w-0">
+                  <output className="text-text block text-lg font-extrabold tracking-[-0.4px]">
+                    {formatDuration(fromSessions.seconds, 'clock')}
+                  </output>
+                  <p className="text-muted text-xs">
+                    {sessionsText(sessionCount, fromSessions.seconds)}
+                  </p>
+                </div>
+                <button
+                  ref={setGymButton}
+                  type="button"
+                  className={PILL}
+                  onClick={() => {
+                    gymFocusPending.current = true
+                    setValue('gym_seconds', fromSessions.seconds, { shouldDirty: true })
+                  }}
+                >
+                  Set a value
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Controller
+                control={control}
+                name="gym_seconds"
+                render={({ field }) => (
+                  <DurationPicker
+                    id="gym_seconds"
+                    label="Gym time"
+                    value={field.value}
+                    onChange={(seconds) => {
+                      gymFocusPending.current =
+                        seconds === null && fromSessions.source === 'sessions'
+                      field.onChange(seconds)
+                    }}
+                    presets={SESSION_PRESETS}
+                    step={SESSION_STEP_SECONDS}
+                    allowClear
+                  />
+                )}
+              />
+              {gymValue !== null && fromSessions.source === 'sessions' ? (
+                <p className="text-muted text-xs">
+                  {`The sessions say ${formatDuration(fromSessions.seconds, 'short')}. Clear to use them.`}
+                </p>
+              ) : null}
+            </div>
+          )}
+          <Controller
+            control={control}
+            name="walk_seconds"
+            render={({ field }) => (
+              <DurationPicker
+                id="walk_seconds"
+                label="Walk time"
+                value={field.value}
+                onChange={field.onChange}
+                presets={CARDIO_PRESETS}
+                step={SESSION_STEP_SECONDS}
+                allowClear
+              />
+            )}
+          />
           <Controller
             control={control}
             name="swim_seconds"
@@ -585,33 +641,50 @@ export function DailyEntryForm({
               />
             )}
           />
-          <p className="text-muted text-xs">The time in the pool today. No distance.</p>
+          <p className="text-muted -mt-1 text-xs">The time in the pool today. No distance.</p>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3">
-          <NumberField
-            label="Avg heart rate"
-            inputMode="numeric"
-            placeholder="118"
-            {...register('avg_heart_rate')}
-            error={errors.avg_heart_rate?.message}
-          />
-          <NumberField
-            label="Max heart rate"
-            inputMode="numeric"
-            placeholder="164"
-            {...register('max_heart_rate')}
-            error={errors.max_heart_rate?.message}
-          />
-        </div>
+        <Card className={SECTION}>
+          <h2>
+            <MicroLabel>Heart</MicroLabel>
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Avg heart rate"
+              unit="bpm"
+              inputMode="numeric"
+              enterKeyHint="next"
+              placeholder="118"
+              {...register('avg_heart_rate')}
+              onKeyDown={enterMovesOn}
+              error={errors.avg_heart_rate?.message}
+            />
+            <NumberField
+              label="Max heart rate"
+              unit="bpm"
+              inputMode="numeric"
+              enterKeyHint="next"
+              placeholder="164"
+              {...register('max_heart_rate')}
+              onKeyDown={enterMovesOn}
+              error={errors.max_heart_rate?.message}
+            />
+          </div>
+        </Card>
 
-        <div className="flex flex-col gap-2">
+        <Card className={SECTION}>
+          <h2>
+            <MicroLabel>Body</MicroLabel>
+          </h2>
           <NumberField
-            label="Weight (kg)"
+            label="Weight"
+            unit="kg"
             inputMode="decimal"
+            enterKeyHint="next"
             placeholder="73.40"
             hint={canNudge ? undefined : 'Enter a weight to use the 0.05 steps.'}
             {...register('weight_kg')}
+            onKeyDown={enterMovesOn}
             error={errors.weight_kg?.message}
           />
           <div className="grid grid-cols-2 gap-2">
@@ -632,35 +705,50 @@ export function DailyEntryForm({
               +0.05 <span className="sr-only">kg, increase the weight</span>
             </SecondaryButton>
           </div>
-        </div>
+        </Card>
 
-        <div className="grid grid-cols-2 gap-3">
-          <NumberField
-            label="Calories"
-            inputMode="numeric"
-            placeholder="985"
-            {...register('calories_burnt')}
-            error={errors.calories_burnt?.message}
-          />
-          <NumberField
-            label="Steps"
-            inputMode="numeric"
-            placeholder="12480"
-            {...register('steps')}
-            error={errors.steps?.message}
-          />
-        </div>
+        <Card className={SECTION}>
+          <h2>
+            <MicroLabel>Activity</MicroLabel>
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Calories"
+              unit="kcal"
+              inputMode="numeric"
+              enterKeyHint="next"
+              placeholder="985"
+              {...register('calories_burnt')}
+              onKeyDown={enterMovesOn}
+              error={errors.calories_burnt?.message}
+            />
+            <NumberField
+              label="Steps"
+              inputMode="numeric"
+              enterKeyHint="next"
+              placeholder="12480"
+              {...register('steps')}
+              onKeyDown={enterMovesOn}
+              error={errors.steps?.message}
+            />
+          </div>
+        </Card>
 
-        <div className="md:col-span-2">
-          <Field
+        <Card className={cn(SECTION, 'md:col-span-2')}>
+          <h2>
+            <MicroLabel>Note</MicroLabel>
+          </h2>
+          <TextAreaField
             label="Note"
-            type="text"
+            hideLabel
             autoComplete="off"
+            enterKeyHint="done"
             placeholder="Push day. Bench felt light."
             {...register('note')}
+            onKeyDown={enterLeavesNote}
             error={errors.note?.message}
           />
-        </div>
+        </Card>
       </div>
 
       <p className="text-muted mt-4 text-sm">

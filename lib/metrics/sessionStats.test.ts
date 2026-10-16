@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { BENCH, LEG, liftSet, sessionOn } from '../../tests/fixtures/lifts'
 
-import { sessionStats } from './sessionStats'
+import { dayTotals, sessionStats } from './sessionStats'
 import { volumeLoad } from './volumeLoad'
+
+import type { SessionStats } from './sessionStats'
 
 const TODAY = sessionOn('2026-09-23')
 const EARLIER = sessionOn('2026-09-20')
@@ -164,5 +166,34 @@ describe('sessionStats', () => {
     const sets = [liftSet(TODAY, BENCH, 15, null)]
 
     expect(sessionStats(TODAY, sets, earlier).newRecords).toEqual([])
+  })
+})
+
+describe('dayTotals', () => {
+  const stats = (patch: Partial<SessionStats>): SessionStats => ({
+    durationSeconds: 0,
+    setCount: 0,
+    exerciseCount: 0,
+    volumeKg: 0,
+    newRecords: [],
+    ...patch,
+  })
+
+  it('returns zeros for a day with no session', () => {
+    expect(dayTotals([])).toEqual({ durationSeconds: 0, setCount: 0, volumeKg: 0, recordCount: 0 })
+  })
+
+  it('adds the time, the sets, the volume and the records of every session', () => {
+    expect(
+      dayTotals([
+        stats({ durationSeconds: 1800, setCount: 4, volumeKg: 1200 }),
+        stats({
+          durationSeconds: 600,
+          setCount: 1,
+          volumeKg: 20,
+          newRecords: [{ exerciseId: 'bench', weightKg: 20, reps: 1 }],
+        }),
+      ]),
+    ).toEqual({ durationSeconds: 2400, setCount: 5, volumeKg: 1220, recordCount: 1 })
   })
 })

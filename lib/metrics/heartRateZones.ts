@@ -103,3 +103,13 @@ export function heartRateZones(
     peakSeconds: seconds - belowPeak,
   }
 }
+
+export function hardEffortSeconds(zones: HeartRateZones): number {
+  return zones.cardioSeconds + zones.peakSeconds
+}
+
+export function zoneOfBeat(beat: number, bands: ZoneBand[]): ZoneName {
+  const found = bands.find((band) => band.toBpm === null || beat <= band.toBpm)
+
+  return found?.zone ?? 'peak'
+}

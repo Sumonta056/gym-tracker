@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { weekTotals } from './weekTotals'
+import { gymDates, weekDates, weekTotals } from './weekTotals'
 
 import type { SessionRow } from './sessionDays'
 import type { DailyEntryInput } from '../schema/dailyEntry'
@@ -176,5 +176,63 @@ describe('weekTotals with sessions', () => {
 
   it('ignores a session outside the range', () => {
     expect(weekTotals([], WEEK, [session('2026-09-20')])).toEqual(EMPTY)
+  })
+})
+
+describe('weekDates', () => {
+  it('lists the 7 dates from the first day of the range', () => {
+    expect(weekDates({ from: '2026-10-12', to: '2026-10-18' })).toEqual([
+      '2026-10-12',
+      '2026-10-13',
+      '2026-10-14',
+      '2026-10-15',
+      '2026-10-16',
+      '2026-10-17',
+      '2026-10-18',
+    ])
+  })
+
+  it('crosses the end of a month', () => {
+    expect(weekDates({ from: '2026-09-28', to: '2026-10-04' }).slice(2, 4)).toEqual([
+      '2026-09-30',
+      '2026-10-01',
+    ])
+  })
+})
+
+describe('gymDates', () => {
+  const RANGE = { from: '2026-09-21', to: '2026-09-27' }
+
+  it('returns no date for an empty week', () => {
+    expect(gymDates([], RANGE, [])).toEqual([])
+  })
+
+  it('lists each day with typed gym time or a session, in order', () => {
+    const rows = [
+      row({ entry_date: '2026-09-24', gym_seconds: 2700 }),
+      row({ entry_date: '2026-09-22', steps: 9000 }),
+    ]
+
+    expect(gymDates(rows, RANGE, [session('2026-09-21')])).toEqual(['2026-09-21', '2026-09-24'])
+  })
+
+  it('lists a day with 2 sessions once', () => {
+    const evening = session('2026-09-22', {
+      started_at: '2026-09-22T18:00:00.000Z',
+      ended_at: '2026-09-22T18:30:00.000Z',
+    })
+
+    expect(gymDates([], RANGE, [session('2026-09-22'), evening])).toEqual(['2026-09-22'])
+  })
+
+  it('leaves out a day outside the range', () => {
+    expect(gymDates([], RANGE, [session('2026-09-20')])).toEqual([])
+  })
+
+  it('agrees with the session count of weekTotals', () => {
+    const rows = [row({ entry_date: '2026-09-23', gym_seconds: 600 })]
+    const sessions = [session('2026-09-25')]
+
+    expect(gymDates(rows, RANGE, sessions)).toHaveLength(weekTotals(rows, RANGE, sessions).sessions)
   })
 })

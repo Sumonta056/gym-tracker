@@ -22,19 +22,67 @@ import type { AnalyticsData, RangeTab } from './rangeData'
 import type { StatsCardContext } from './StatsCard'
 import type { StatsLayoutItem } from './statsCards'
 import type { Profile } from '../../lib/db/dexie'
+import type { Ref } from 'react'
 
 export type AnalyticsHeaderProps = {
   label: string | null
+  onEdit?: () => void
+  onCancel?: () => void
+  editing?: boolean
+  editDisabled?: boolean
+  editRef?: Ref<HTMLButtonElement>
 }
 
-export function AnalyticsHeader({ label }: AnalyticsHeaderProps) {
+export function AnalyticsHeader({
+  label,
+  onEdit,
+  onCancel,
+  editing = false,
+  editDisabled,
+  editRef,
+}: AnalyticsHeaderProps) {
+  const action = editing ? onCancel : onEdit
+
   return (
     <header className="flex items-center justify-between gap-3">
       <div className="min-w-0">
         <h1 className="text-text text-[23px] leading-tight font-bold tracking-[-0.6px]">Stats</h1>
         {label === null ? null : <p className="text-muted text-[13px]">{label}</p>}
       </div>
-      <SyncChip className="shrink-0" />
+      <div className="flex shrink-0 items-center gap-2">
+        <SyncChip />
+        {action === undefined ? null : (
+          <button
+            ref={editRef}
+            type="button"
+            aria-label={editing ? 'Cancel, keep the old layout' : 'Customise cards'}
+            disabled={editDisabled}
+            onClick={action}
+            className="bg-surface-2 border-border text-text flex size-11 items-center justify-center rounded-full border disabled:opacity-50"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              className="size-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            >
+              {editing ? (
+                <path d="M5 5l10 10M15 5L5 15" />
+              ) : (
+                <>
+                  <path d="M3 5h14M3 10h14M3 15h14" />
+                  <circle cx="7" cy="5" r="1.9" className="fill-surface-2" />
+                  <circle cx="13" cy="10" r="1.9" className="fill-surface-2" />
+                  <circle cx="8" cy="15" r="1.9" className="fill-surface-2" />
+                </>
+              )}
+            </svg>
+          </button>
+        )}
+      </div>
     </header>
   )
 }
@@ -105,6 +153,24 @@ export function Analytics({ clock, save = updateProfile }: AnalyticsProps) {
     }
   }, [editing])
 
+  useEffect(() => {
+    if (!editing || saving) {
+      return
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        cancelEditing()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [editing, saving])
+
   const layout = saved ?? (state.status === 'ready' ? state.layout : resolveLayout(null))
 
   function changeTab(next: RangeTab) {
@@ -117,6 +183,13 @@ export function Analytics({ clock, save = updateProfile }: AnalyticsProps) {
     setSaveError(null)
     focusNext.current = 'editor'
     setEditing(true)
+  }
+
+  function cancelEditing() {
+    focusNext.current = 'edit'
+    setEditing(false)
+    setDraft(null)
+    setSaveError(null)
   }
 
   async function finishEditing(next: StatsLayoutItem[]) {
@@ -166,22 +239,15 @@ export function Analytics({ clock, save = updateProfile }: AnalyticsProps) {
 
   return (
     <>
-      <AnalyticsHeader label={state.status === 'ready' ? state.data.label : null} />
+      <AnalyticsHeader
+        label={state.status === 'ready' ? state.data.label : null}
+        onEdit={startEditing}
+        onCancel={cancelEditing}
+        editing={editing}
+        editDisabled={editing ? saving : state.status !== 'ready'}
+        editRef={editButton}
+      />
       <RangeTabs value={tab} onValueChange={changeTab} />
-
-      {editing ? null : (
-        <div className="mt-3 flex justify-end">
-          <button
-            ref={editButton}
-            type="button"
-            disabled={state.status !== 'ready'}
-            onClick={startEditing}
-            className="text-text bg-surface-2 border-border inline-flex min-h-11 items-center rounded-full border px-4 text-[13px] font-bold disabled:opacity-50"
-          >
-            Edit
-          </button>
-        </div>
-      )}
 
       {editing && draft !== null ? (
         <>

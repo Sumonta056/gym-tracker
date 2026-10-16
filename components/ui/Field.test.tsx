@@ -81,6 +81,17 @@ describe('Field', () => {
     expect(input).not.toHaveClass('px-4')
   })
 
+  it('keeps an icon adornment out of the name and hidden from assistive technology', () => {
+    render(<Field label="Day" adornment={<svg data-testid="icon" />} />)
+    expect(screen.getByRole('textbox', { name: 'Day' })).toHaveClass('pr-14')
+    expect(screen.getByTestId('icon').parentElement).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('lets the input shrink below its intrinsic width inside a grid', () => {
+    render(<Field label="Day" />)
+    expect(screen.getByLabelText('Day').parentElement).toHaveClass('min-w-0')
+  })
+
   it('takes an id from its caller', () => {
     render(<Field label="Weight" id="given" />)
     expect(screen.getByLabelText('Weight')).toHaveAttribute('id', 'given')

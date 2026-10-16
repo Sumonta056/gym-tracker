@@ -14,7 +14,7 @@ export function sessionPath(id: string): string {
   return `${WORKOUTS_PATH}?session=${encodeURIComponent(id)}`
 }
 
-function plural(count: number, word: string): string {
+export function plural(count: number, word: string): string {
   return `${String(count)} ${word}${count === 1 ? '' : 's'}`
 }
 

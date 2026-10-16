@@ -204,6 +204,14 @@ describe('DurationPicker', () => {
     expect(group()).toHaveFocus()
   })
 
+  it('draws the clear button as a trash icon with no visible text', () => {
+    render(<Harness allowClear />)
+    const clear = screen.getByRole('button', { name: 'Clear Rest time' })
+    expect(clear).toHaveTextContent('')
+    expect(clear.querySelector('svg')).toHaveAttribute('data-icon', 'trash')
+    expect(clear).toHaveClass('text-muted')
+  })
+
   it('keeps the picker group focusable but out of the tab order', () => {
     render(<Harness />)
     expect(group()).toHaveAttribute('tabindex', '-1')

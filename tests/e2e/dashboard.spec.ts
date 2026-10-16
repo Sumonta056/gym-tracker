@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { heroValue, pickPreset, test as signedIn } from './support/signedIn'
 
-test('reads the heart rate zones outside the bar, on the style guide sample', async ({ page }) => {
+test('reads the heart rate zones outside the ring, on the style guide sample', async ({ page }) => {
   await page.goto('/styleguide')
 
   await expect(
@@ -11,8 +11,18 @@ test('reads the heart rate zones outside the bar, on the style guide sample', as
     }),
   ).toBeVisible()
 
-  for (const text of ['Warm 8m', 'Fat burn 38m', 'Cardio 21m', 'Peak 5m']) {
-    await expect(page.getByText(text, { exact: true })).toBeVisible()
+  for (const [name, time] of [
+    ['Warm', '8m'],
+    ['Fat burn', '38m'],
+    ['Cardio', '21m'],
+    ['Peak', '5m'],
+  ] as const) {
+    await expect(
+      page
+        .getByRole('listitem')
+        .filter({ hasText: new RegExp(`^${name}.*${time}`) })
+        .first(),
+    ).toBeVisible()
   }
 })
 

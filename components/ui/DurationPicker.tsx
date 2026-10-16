@@ -6,6 +6,7 @@ import { formatDuration, MAX_DURATION_SECONDS } from '../../lib/duration'
 
 import { cn } from './cn'
 import { MicroLabel } from './MicroLabel'
+import { StatIcon } from './StatIcon'
 
 export const DEFAULT_STEP_SECONDS = 15
 
@@ -35,6 +36,9 @@ export type DurationPickerProps = {
 
 const STEP_BUTTON =
   'bg-surface-2 border-border text-text inline-flex size-11 shrink-0 items-center justify-center rounded-full border text-xl font-bold disabled:opacity-50'
+
+const CLEAR_BUTTON =
+  'bg-surface-2 border-border text-muted hover:text-danger active:text-danger inline-flex size-11 shrink-0 items-center justify-center rounded-full border'
 
 const CHIP =
   'inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-[13px] font-bold whitespace-nowrap'
@@ -147,13 +151,14 @@ export function DurationPicker({
         {allowClear && value !== null ? (
           <button
             type="button"
+            aria-label={`Clear ${label}`}
             onClick={() => {
               onChange(null)
               groupRef.current?.focus()
             }}
-            className={cn(CHIP, 'bg-surface-2 border-border text-text')}
+            className={CLEAR_BUTTON}
           >
-            Clear <span className="sr-only">{label}</span>
+            <StatIcon name="trash" className="size-[18px]" />
           </button>
         ) : null}
       </div>

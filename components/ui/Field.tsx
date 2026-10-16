@@ -43,7 +43,7 @@ export function Field({
         {label}
         {typeof adornment === 'string' ? <span className="sr-only">{`, ${adornment}`}</span> : null}
       </MicroLabel>
-      <div className="relative">
+      <div className="relative min-w-0">
         <input
           id={inputId}
           aria-invalid={error === undefined ? undefined : true}

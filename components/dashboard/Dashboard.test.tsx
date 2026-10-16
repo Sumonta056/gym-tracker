@@ -209,7 +209,7 @@ describe('DashboardView', () => {
 
   it('hides the steps and weight cards when neither was ever logged', () => {
     view([])
-    expect(screen.queryByText('Steps')).toBeNull()
+    expect(screen.queryByText('Steps', { selector: 'span' })).toBeNull()
     expect(screen.queryByText('Weight')).toBeNull()
     expect(screen.queryByText('—')).toBeNull()
     expect(screen.queryByText('Not logged yet')).toBeNull()
@@ -218,10 +218,10 @@ describe('DashboardView', () => {
 
   it('shows the calories and the walk time as their own stat cards', () => {
     view()
-    expect(screen.getByText('Calories')).toBeVisible()
+    expect(screen.getByText('Calories', { selector: 'span' })).toBeVisible()
     expect(screen.getAllByText('963')).toHaveLength(2)
-    expect(screen.getByText('Walk')).toBeVisible()
-    expect(screen.getByText(formatDuration(3324, 'short'))).toBeVisible()
+    expect(screen.getByText('Walk', { selector: 'span' })).toBeVisible()
+    expect(screen.getAllByText(formatDuration(3324, 'short'))[0]).toBeVisible()
     expect(screen.queryByText('Kcal')).toBeNull()
   })
 
@@ -271,7 +271,7 @@ describe('DashboardView, a full Today', () => {
       }),
     ])
     for (const label of ['Steps', 'Calories', 'Walk', 'Swim', 'Weight', 'Note']) {
-      expect(screen.queryByText(label)).toBeNull()
+      expect(screen.queryByText(label, { selector: 'span' })).toBeNull()
     }
     expect(screen.queryByText('—')).toBeNull()
   })
@@ -284,12 +284,12 @@ describe('DashboardView, a full Today', () => {
     ['Weight', { weight_kg: null }],
   ] as const)('hides the %s card alone when its value is null', (label, patch) => {
     view([entryOn(TODAY, { swim_seconds: 1500, ...patch })])
-    expect(screen.queryByText(label)).toBeNull()
+    expect(screen.queryByText(label, { selector: 'span' })).toBeNull()
     const others = ['Steps', 'Calories', 'Walk', 'Swim', 'Weight'].filter(
       (other) => other !== label,
     )
     for (const other of others) {
-      expect(screen.getByText(other)).toBeVisible()
+      expect(screen.getByText(other, { selector: 'span' })).toBeVisible()
     }
   })
 
@@ -329,13 +329,34 @@ describe('DashboardView, a full Today', () => {
 
   it('shows calories with no bar when there is no goal', () => {
     view([entryOn(TODAY)], PROFILE)
-    expect(screen.getByText('Calories')).toBeVisible()
+    expect(screen.getByText('Calories', { selector: 'span' })).toBeVisible()
     expect(screen.queryByText(/% of .* kcal/)).toBeNull()
   })
 
   it('draws no calorie bar when there is no calorie goal', () => {
     view([entryOn(TODAY)], PROFILE)
     expect(screen.queryByRole('progressbar', { name: 'Calories progress' })).toBeNull()
+  })
+
+  it('says burnt today on the calorie card when there is no calorie goal', () => {
+    view([entryOn(TODAY)], PROFILE)
+    expect(screen.getByText('Burnt today')).toBeVisible()
+  })
+
+  it('draws an icon on each stat card', () => {
+    view([entryOn(TODAY, { swim_seconds: 1500 })])
+    for (const name of ['steps', 'flame', 'walk', 'swim', 'scale']) {
+      expect(document.querySelector(`svg[data-icon="${name}"]`)).not.toBeNull()
+    }
+  })
+
+  it('stretches the last stat card across the phone row when the count is odd', () => {
+    view([entryOn(TODAY, { swim_seconds: 1500 })])
+    const stats = screen.getByTestId('dashboard-grid').children[1]
+    expect(stats).toHaveClass(
+      '[&>*:last-child:nth-child(odd)]:col-span-2',
+      'md:[&>*:last-child:nth-child(odd)]:col-span-1',
+    )
   })
 
   it('shows the walk time against the walk goal', () => {
@@ -388,7 +409,7 @@ describe('DashboardView, a full Today', () => {
     const session = sessionOn(TODAY)
     const lifts = { sessions: [session], sets: [liftSet(session, BENCH, 10, 60)], earlierSets: [] }
     view([entryOn(TODAY, { gym_seconds: null })], GOALS, lifts)
-    expect(screen.getByRole('link', { name: /1h · 1 set · 600 kg/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /1 exercise · 1 set · 600 kg · 1h/ })).toHaveAttribute(
       'href',
       `/workouts?session=${session.id}`,
     )
@@ -415,9 +436,9 @@ describe('DashboardView, a full Today', () => {
     const grid = within(screen.getByTestId('dashboard-grid'))
     const order = [
       grid.getByRole('region', { name: 'Today' }),
-      grid.getByText('Steps'),
-      grid.getByText('Calories'),
-      grid.getByText('Walk'),
+      grid.getByText('Steps', { selector: 'span' }),
+      grid.getByText('Calories', { selector: 'span' }),
+      grid.getByText('Walk', { selector: 'span' }),
       grid.getByText('Swim'),
       grid.getByText('Weight'),
       grid.getByRole('heading', { name: 'Workout today' }),

@@ -77,7 +77,7 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
           className="md:col-span-2 lg:col-span-3"
         />
 
-        <div className="grid grid-cols-2 gap-3 md:contents">
+        <div className="grid grid-cols-2 gap-3 md:contents [&>*:last-child:nth-child(odd)]:col-span-2 md:[&>*:last-child:nth-child(odd)]:col-span-1">
           {steps === null ? null : (
             <StatCard
               label="Steps"
@@ -85,6 +85,7 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
               hint={stepsHint(steps, summary.stepGoal)}
               progress={steps / summary.stepGoal}
               tone="cyan"
+              icon="steps"
             />
           )}
           {calories === null ? null : (
@@ -94,11 +95,12 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
               unit="kcal"
               hint={
                 summary.calorieGoal === null
-                  ? undefined
+                  ? 'Burnt today'
                   : goalHint(calories, summary.calorieGoal, kcal)
               }
               progress={summary.calorieGoal === null ? undefined : calories / summary.calorieGoal}
               tone="warn"
+              icon="flame"
             />
           )}
           {walk === null ? null : (
@@ -114,9 +116,12 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
                 summary.walkGoalSeconds === null ? undefined : walk / summary.walkGoalSeconds
               }
               tone="cyan"
+              icon="walk"
             />
           )}
-          {swim === null ? null : <StatCard label="Swim" value={short(swim)} tone="cyan" />}
+          {swim === null ? null : (
+            <StatCard label="Swim" value={short(swim)} tone="cyan" icon="swim" />
+          )}
           {weight === null ? null : (
             <StatCard
               label="Weight"
@@ -129,6 +134,7 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
               }
               sparkline={trend.length > 1 ? trend : undefined}
               tone="violet"
+              icon="scale"
             />
           )}
         </div>
@@ -138,11 +144,18 @@ export function DashboardView({ summary }: { summary: DashboardSummary }) {
         )}
         {note === '' ? null : <NoteCard note={note} />}
 
-        <HeartRateZonesCard zones={summary.zones} maxHeartRate={summary.maxHeartRate} />
+        <HeartRateZonesCard
+          zones={summary.zones}
+          maxHeartRate={summary.maxHeartRate}
+          avgBpm={entry?.avg_heart_rate ?? null}
+          peakBpm={entry?.max_heart_rate ?? null}
+        />
 
         <WeekTotalsCard
           totals={summary.week}
           range={summary.weekRange}
+          gymDates={summary.weekGymDates}
+          today={summary.today}
           sessionsGoal={summary.sessionsGoal}
           className="md:col-span-2 lg:col-span-3"
         />

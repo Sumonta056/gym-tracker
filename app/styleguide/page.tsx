@@ -4,6 +4,15 @@ import { notFound } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { AnalyticsHeader, AnalyticsView, RangeTabs } from '../../components/charts/Analytics'
+import {
+  CaloriesDayCard,
+  HeartRateDayCard,
+  StepsDayCard,
+  WalkDayCard,
+  WeightDayCard,
+} from '../../components/charts/DayCards'
+import { DeltaChip } from '../../components/charts/DeltaChip'
+import { GoalRing } from '../../components/charts/GoalRing'
 import { LiftCharts } from '../../components/charts/LiftCharts'
 import { analyse } from '../../components/charts/rangeData'
 import { resolveLayout } from '../../components/charts/statsCards'
@@ -44,6 +53,7 @@ import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
+import { TextAreaField } from '../../components/ui/TextAreaField'
 import { SAVED_MESSAGE, useToast } from '../../components/ui/Toast'
 import { EditSetSheet } from '../../components/workout/EditSetSheet'
 import { ExerciseCard } from '../../components/workout/ExerciseCard'
@@ -322,6 +332,14 @@ const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
   maxHeartRate: SAMPLE_MAX,
   week: { sessions: 6, gymSeconds: 25920, walkSeconds: 19440, calories: 7710, steps: 78600 },
   weekRange: { from: '2026-09-07', to: '2026-09-13' },
+  weekGymDates: [
+    '2026-09-07',
+    '2026-09-08',
+    '2026-09-09',
+    '2026-09-10',
+    '2026-09-12',
+    '2026-09-13',
+  ],
   stepGoal: 12000,
   latestWeightKg: SAMPLE_HEAVY_DAY.weight_kg,
   weightTrend: [104.6, 104.3, 104.1, 103.9, 103.4],
@@ -537,6 +555,8 @@ function sampleSessionDates(entries: DailyEntry[], source: LiftSource) {
     source.sessions.filter((session) => session.entry_date <= SAMPLE_WEEK_TODAY),
   )
 }
+
+const SAMPLE_DAY_TAB = sampleStats(SAMPLE_STATS_ENTRIES, 'day', SAMPLE_GOALS, SAMPLE_MAX)
 
 function sampleStats(
   entries: DailyEntry[],
@@ -1040,8 +1060,22 @@ function Styleguide() {
 
       <Section title="Stat cards">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <StatCard label="Steps" value="8,240" hint="Goal 10,000" progress={0.82} />
-          <StatCard label="Body weight" value="82.4" unit="kg" tone="violet" hint="7 day average" />
+          <StatCard
+            label="Steps"
+            value="8,240"
+            hint="Goal 10,000"
+            progress={0.82}
+            tone="cyan"
+            icon="steps"
+          />
+          <StatCard
+            label="Body weight"
+            value="82.4"
+            unit="kg"
+            tone="violet"
+            hint="7 day average"
+            icon="scale"
+          />
           <StatCard
             label="Volume load"
             value="12,400"
@@ -1069,11 +1103,18 @@ function Styleguide() {
             streak={0}
             name="Today, empty state"
           />
-          <HeartRateZonesCard zones={SAMPLE_ZONES} maxHeartRate={SAMPLE_MAX} />
+          <HeartRateZonesCard
+            zones={SAMPLE_ZONES}
+            maxHeartRate={SAMPLE_MAX}
+            avgBpm={132}
+            peakBpm={171}
+          />
           <HeartRateZonesCard zones={SAMPLE_SHORT_ZONES} maxHeartRate={null} />
           <WeekTotalsCard
             totals={SAMPLE_WEEK}
             range={{ from: '2026-09-07', to: '2026-09-13' }}
+            gymDates={['2026-09-08', '2026-09-10', '2026-09-12']}
+            today="2026-09-12"
             sessionsGoal={4}
             className="md:col-span-2 lg:col-span-3"
           />
@@ -1094,7 +1135,7 @@ function Styleguide() {
 
       <Section title="Analytics">
         <Card className="mb-3">
-          <AnalyticsHeader label={stats.label} />
+          <AnalyticsHeader label={stats.label} onEdit={() => undefined} />
           <RangeTabs value={statsTab} onValueChange={setStatsTab} />
         </Card>
         <AnalyticsView data={stats} />
@@ -1176,6 +1217,39 @@ function Styleguide() {
             <span className="text-muted text-sm">No max</span>
           </span>
         </div>
+      </Section>
+
+      <Section title="Stats, Day tab">
+        <div data-testid="day-cards" className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <WeightDayCard
+            days={SAMPLE_DAY_TAB.recentDays}
+            unit="metric"
+            targetKg={SAMPLE_GOALS.weightKg}
+          />
+          <StepsDayCard days={SAMPLE_DAY_TAB.recentDays} stepGoal={SAMPLE_STEP_GOAL} />
+          <CaloriesDayCard days={SAMPLE_DAY_TAB.recentDays} goal={SAMPLE_GOALS.calories} />
+          <WalkDayCard days={SAMPLE_DAY_TAB.recentDays} goalSeconds={SAMPLE_GOALS.walkSeconds} />
+          <HeartRateDayCard days={SAMPLE_DAY_TAB.recentDays} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">No goal set, weight in pounds</h3>
+        <div data-testid="day-cards-no-goal" className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <StepsDayCard days={SAMPLE_DAY_TAB.recentDays} stepGoal={null} />
+          <WeightDayCard days={SAMPLE_DAY_TAB.recentDays} unit="imperial" targetKg={null} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">Nothing logged today</h3>
+        <div data-testid="day-cards-empty" className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <StepsDayCard days={[]} stepGoal={SAMPLE_STEP_GOAL} />
+          <HeartRateDayCard days={[]} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">The goal ring and the delta chip</h3>
+        <Card className="mt-4 flex flex-wrap items-center gap-4" data-testid="day-parts">
+          <GoalRing percent={45} tone="warn" />
+          <GoalRing percent={100} tone="cyan" />
+          <GoalRing percent={200} tone="violet" />
+          <DeltaChip direction="up" text="3,400 vs 6-day avg" />
+          <DeltaChip direction="down" text="0.4 kg since Tue" />
+          <DeltaChip direction="same" text="same as 6-day avg" />
+        </Card>
       </Section>
 
       <Section title="Stats layout">
@@ -1449,7 +1523,8 @@ function Styleguide() {
           </Card>
           <Card className="flex flex-col gap-2" data-testid="nudge-sample">
             <NumberField
-              label="Weight (kg)"
+              label="Weight"
+              unit="kg"
               inputMode="decimal"
               value={nudgeWeight.toFixed(2)}
               onChange={(event) => {
@@ -1475,6 +1550,17 @@ function Styleguide() {
             <p className="text-muted text-xs">
               The weight nudge pair from the daily log. One step is 0.05 kg, and it never crosses
               the schema floor or ceiling.
+            </p>
+          </Card>
+          <Card className="flex flex-col gap-4" data-testid="text-area-sample">
+            <TextAreaField
+              label="Note"
+              enterKeyHint="done"
+              placeholder="Push day. Bench felt light."
+              defaultValue={'Push day.\nBench felt light, add 2.5 kg next week.'}
+            />
+            <p className="text-muted text-xs">
+              Two rows to start. It grows with the text up to 160 px, then scrolls.
             </p>
           </Card>
         </div>

@@ -4,7 +4,7 @@ import { heartRateZones, resolveMaxHeartRate } from '../../lib/metrics/heartRate
 import { roundTo2 } from '../../lib/metrics/round'
 import { sessionStats } from '../../lib/metrics/sessionStats'
 import { streak } from '../../lib/metrics/streak'
-import { weekTotals } from '../../lib/metrics/weekTotals'
+import { gymDates, weekTotals } from '../../lib/metrics/weekTotals'
 
 import type { DailyEntry, Profile, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { GymTimeSource } from '../../lib/metrics/gymTime'
@@ -39,6 +39,7 @@ export type DashboardSummary = {
   maxHeartRate: MaxHeartRate | null
   week: WeekTotals
   weekRange: WeekRange
+  weekGymDates: string[]
   stepGoal: number
   latestWeightKg: number | null
   weightTrend: number[]
@@ -130,6 +131,7 @@ export function summarise(
     maxHeartRate,
     week: weekTotals(past, weekRange, lifts.sessions),
     weekRange,
+    weekGymDates: gymDates(past, weekRange, lifts.sessions),
     stepGoal: profile.step_goal,
     latestWeightKg: latest?.kg ?? null,
     weightTrend: weights.filter((row) => row.date >= trendStart).map((row) => row.kg),

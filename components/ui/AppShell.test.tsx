@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -56,6 +56,22 @@ describe('AppShell', () => {
     const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
     expect(bar).toHaveClass('lg:hidden')
     expect(bar).toHaveClass('fixed')
+  })
+
+  it('hides the bottom bar while the on-screen keyboard is open', () => {
+    const viewport = Object.assign(new EventTarget(), { height: 800, scale: 1 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 })
+    setup()
+    expect(screen.getByRole('navigation', { name: 'Bottom navigation' })).toBeInTheDocument()
+
+    act(() => {
+      viewport.height = 420
+      viewport.dispatchEvent(new Event('resize'))
+    })
+    expect(screen.queryByRole('navigation', { name: 'Bottom navigation' })).toBeNull()
+    expect(screen.getByRole('navigation', { name: 'Sidebar', hidden: true })).toBeInTheDocument()
+    Reflect.deleteProperty(window, 'visualViewport')
   })
 
   it('pads the bottom bar with the safe area inset, or 10 px when the device has none', () => {

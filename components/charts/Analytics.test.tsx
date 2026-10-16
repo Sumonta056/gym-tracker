@@ -186,7 +186,7 @@ describe('Analytics layout', () => {
     const save = vi.fn(() => Promise.resolve())
     render(<Analytics clock={clock} save={save} />)
     await screen.findByTestId('stats-grid')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
     await user.click(screen.getByRole('button', { name: 'Move Calories burnt up' }))
     await user.click(screen.getByRole('button', { name: 'Done' }))
     expect(save).toHaveBeenCalledWith({
@@ -205,7 +205,7 @@ describe('Analytics layout', () => {
     })
     render(<Analytics clock={clock} save={save} />)
     await screen.findByTestId('stats-grid')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
     await user.click(screen.getByRole('button', { name: 'Reset' }))
     await user.click(screen.getByRole('button', { name: 'Done' }))
     expect(save).toHaveBeenCalledWith({ stats_layout: resolveLayout(null) })
@@ -216,7 +216,7 @@ describe('Analytics layout', () => {
     const save = vi.fn(() => Promise.reject(new Error('locked')))
     render(<Analytics clock={clock} save={save} />)
     await screen.findByTestId('stats-grid')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
     await user.click(screen.getByRole('button', { name: 'Done' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The layout could not be saved on this device.',
@@ -225,29 +225,64 @@ describe('Analytics layout', () => {
   })
 })
 
+describe('Analytics layout cancel', () => {
+  it('leaves edit mode with no save when Cancel is tapped', async () => {
+    const user = userEvent.setup()
+    const save = vi.fn(() => Promise.resolve())
+    render(<Analytics clock={clock} save={save} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
+    await user.click(screen.getByRole('button', { name: 'Move Calories burnt up' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel, keep the old layout' }))
+    expect(save).not.toHaveBeenCalled()
+    expect(await screen.findByTestId('stats-grid')).toBeVisible()
+    expect(headings().slice(0, 2)).toEqual(['Weight', 'Calories burnt'])
+  })
+
+  it('leaves edit mode with no save on Escape', async () => {
+    const user = userEvent.setup()
+    const save = vi.fn(() => Promise.resolve())
+    render(<Analytics clock={clock} save={save} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
+    await user.keyboard('{Escape}')
+    expect(save).not.toHaveBeenCalled()
+    expect(screen.queryByRole('list', { name: 'Stats cards' })).toBeNull()
+  })
+
+  it('gives the focus back to the Customise cards button after Cancel', async () => {
+    const user = userEvent.setup()
+    render(<Analytics clock={clock} />)
+    await screen.findByTestId('stats-grid')
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel, keep the old layout' }))
+    expect(await screen.findByRole('button', { name: 'Customise cards' })).toHaveFocus()
+  })
+})
+
 describe('Analytics layout focus', () => {
   it('moves the focus to the Stats cards heading on Edit', async () => {
     const user = userEvent.setup()
     render(<Analytics clock={clock} />)
     await screen.findByTestId('stats-grid')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
     expect(screen.getByRole('heading', { level: 2, name: 'Stats cards' })).toHaveFocus()
   })
 
-  it('gives the focus back to the Edit button after Done saves', async () => {
+  it('gives the focus back to the Customise cards button after Done saves', async () => {
     const user = userEvent.setup()
     render(<Analytics clock={clock} save={() => Promise.resolve()} />)
     await screen.findByTestId('stats-grid')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
     await user.click(screen.getByRole('button', { name: 'Done' }))
-    expect(await screen.findByRole('button', { name: 'Edit' })).toHaveFocus()
+    expect(await screen.findByRole('button', { name: 'Customise cards' })).toHaveFocus()
   })
 
   it('keeps the focus on Done when the save is refused', async () => {
     const user = userEvent.setup()
     render(<Analytics clock={clock} save={() => Promise.reject(new Error('locked'))} />)
     await screen.findByTestId('stats-grid')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
     await user.click(screen.getByRole('button', { name: 'Done' }))
     await screen.findByRole('alert')
     expect(screen.getByRole('button', { name: 'Done' })).toHaveFocus()
@@ -257,7 +292,7 @@ describe('Analytics layout focus', () => {
     const user = userEvent.setup()
     render(<Analytics clock={clock} />)
     await screen.findByTestId('stats-grid')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
     await user.click(screen.getByRole('button', { name: 'Reset' }))
     expect(screen.getByRole('button', { name: 'Reset' })).toHaveFocus()
     expect(screen.getByRole('list', { name: 'Stats cards' })).toBeInTheDocument()
@@ -323,5 +358,31 @@ describe('AnalyticsHeader', () => {
   it('names the screen Stats', () => {
     render(<AnalyticsHeader label={null} />)
     expect(screen.getByRole('heading', { level: 1, name: 'Stats' })).toBeInTheDocument()
+  })
+
+  it('shows no Customise cards button without an edit handler', () => {
+    render(<AnalyticsHeader label={null} />)
+    expect(screen.queryByRole('button', { name: 'Customise cards' })).toBeNull()
+  })
+
+  it('disables the Customise cards button when asked', () => {
+    render(<AnalyticsHeader label={null} onEdit={() => undefined} editDisabled />)
+    expect(screen.getByRole('button', { name: 'Customise cards' })).toBeDisabled()
+  })
+
+  it('shows the Cancel button while editing', async () => {
+    const user = userEvent.setup()
+    const onCancel = vi.fn()
+    render(<AnalyticsHeader label={null} onEdit={() => undefined} onCancel={onCancel} editing />)
+    await user.click(screen.getByRole('button', { name: 'Cancel, keep the old layout' }))
+    expect(onCancel).toHaveBeenCalledOnce()
+  })
+
+  it('calls the edit handler on a tap', async () => {
+    const user = userEvent.setup()
+    const onEdit = vi.fn()
+    render(<AnalyticsHeader label={null} onEdit={onEdit} />)
+    await user.click(screen.getByRole('button', { name: 'Customise cards' }))
+    expect(onEdit).toHaveBeenCalledOnce()
   })
 })
