@@ -431,9 +431,9 @@ describe('ExercisePicker', () => {
 
   it('locks the page scroll while it is open', async () => {
     setup()
-    expect(document.body.style.overflow).toBe('hidden')
+    expect(document.documentElement.style.overflow).toBe('hidden')
     await userEvent.keyboard('{Escape}')
-    expect(document.body.style.overflow).toBe('')
+    expect(document.documentElement.style.overflow).toBe('')
   })
 
   it('ignores a slow answer for an old search', async () => {

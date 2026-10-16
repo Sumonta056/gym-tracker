@@ -67,10 +67,10 @@ test.describe('the sheet on /workout', () => {
     const cardTop = (await benchCard(page).boundingBox())?.y
 
     await openEdit(page)
-    await page.evaluate(() => {
-      window.scrollBy(0, 400)
-    })
 
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY)).toBe(
+      'hidden',
+    )
     expect((await benchCard(page).boundingBox())?.y).toBe(cardTop)
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).toHaveCount(0)

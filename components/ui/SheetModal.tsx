@@ -47,41 +47,18 @@ function trapTab(event: KeyboardEvent, dialog: HTMLElement): void {
   next.focus({ preventScroll: true })
 }
 
-type HeldBodyStyle = {
-  position: string
-  top: string
-  left: string
-  right: string
-  width: string
-  overflow: string
-}
-
 let lockHolders = 0
 
-let releaseBody: (() => void) | null = null
+let releaseRoot: (() => void) | null = null
 
-function fixBody(): () => void {
-  const { style } = document.body
-  const scrollY = window.scrollY
-  const held: HeldBodyStyle = {
-    position: style.position,
-    top: style.top,
-    left: style.left,
-    right: style.right,
-    width: style.width,
-    overflow: style.overflow,
-  }
+function hideRootOverflow(): () => void {
+  const { style } = document.documentElement
+  const held = style.overflow
 
-  style.position = 'fixed'
-  style.top = `-${String(scrollY)}px`
-  style.left = '0'
-  style.right = '0'
-  style.width = '100%'
   style.overflow = 'hidden'
 
   return () => {
-    Object.assign(style, held)
-    window.scrollTo(0, scrollY)
+    style.overflow = held
   }
 }
 
@@ -89,7 +66,7 @@ export function lockScroll(): () => void {
   lockHolders += 1
 
   if (lockHolders === 1) {
-    releaseBody = fixBody()
+    releaseRoot = hideRootOverflow()
   }
 
   let released = false
@@ -103,8 +80,8 @@ export function lockScroll(): () => void {
     lockHolders -= 1
 
     if (lockHolders === 0) {
-      releaseBody?.()
-      releaseBody = null
+      releaseRoot?.()
+      releaseRoot = null
     }
   }
 }

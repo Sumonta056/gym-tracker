@@ -265,20 +265,20 @@ describe('SheetModal', () => {
   })
 
   it('locks the page scroll while open and restores it on close', () => {
-    document.body.style.overflow = 'auto'
+    document.documentElement.style.overflow = 'auto'
     const { rerender } = render(
       <SheetModal open title="Log a set" onClose={vi.fn()}>
         <p>Sheet body</p>
       </SheetModal>,
     )
-    expect(document.body.style.overflow).toBe('hidden')
+    expect(document.documentElement.style.overflow).toBe('hidden')
     rerender(
       <SheetModal open={false} title="Log a set" onClose={vi.fn()}>
         <p>Sheet body</p>
       </SheetModal>,
     )
-    expect(document.body.style.overflow).toBe('auto')
-    document.body.style.overflow = ''
+    expect(document.documentElement.style.overflow).toBe('auto')
+    document.documentElement.style.overflow = ''
   })
 
   it('disables its close button and backdrop while closing is not allowed', async () => {
@@ -373,7 +373,7 @@ describe('SheetModal', () => {
 
   it('locks the page scroll with a footer too', () => {
     withFooter()
-    expect(document.body.style.overflow).toBe('hidden')
+    expect(document.documentElement.style.overflow).toBe('hidden')
   })
 })
 
@@ -391,18 +391,16 @@ describe('SheetModal on a phone', () => {
     expect(screen.getByTestId('sheet-overlay').parentElement).toBe(document.body)
   })
 
-  it('fixes the body at the scroll offset while open, which iOS respects', () => {
-    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  it('hides the root overflow while open and leaves the body untouched', () => {
     setScrollY(240)
     setup()
 
-    expect(document.body.style.position).toBe('fixed')
-    expect(document.body.style.top).toBe('-240px')
-    expect(document.body.style.width).toBe('100%')
-    expect(document.body.style.overflow).toBe('hidden')
+    expect(document.documentElement.style.overflow).toBe('hidden')
+    expect(document.body.style.position).toBe('')
+    expect(document.body.style.top).toBe('')
   })
 
-  it('puts the page back at the same scroll offset on close', () => {
+  it('does not scroll the page on close, so iOS keeps the bottom bar in place', () => {
     const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
     setScrollY(240)
     const { rerender } = render(
@@ -417,14 +415,11 @@ describe('SheetModal on a phone', () => {
       </SheetModal>,
     )
 
-    expect(document.body.style.position).toBe('')
-    expect(document.body.style.top).toBe('')
-    expect(scrollTo).toHaveBeenCalledWith(0, 240)
+    expect(document.documentElement.style.overflow).toBe('')
+    expect(scrollTo).not.toHaveBeenCalled()
   })
 
-  it('keeps the body fixed until the last of 2 open sheets closes', () => {
-    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
-    setScrollY(120)
+  it('keeps the root overflow hidden until the last of 2 open sheets closes', () => {
     const { rerender } = render(
       <>
         <SheetModal open title="First" onClose={vi.fn()}>
@@ -447,8 +442,7 @@ describe('SheetModal on a phone', () => {
       </>,
     )
 
-    expect(document.body.style.position).toBe('fixed')
-    expect(document.body.style.top).toBe('-120px')
+    expect(document.documentElement.style.overflow).toBe('hidden')
   })
 
   it('pins the overlay to the visual viewport', () => {
