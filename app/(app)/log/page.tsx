@@ -1,5 +1,11 @@
-import { DailyEntryForm } from '../../../components/DailyEntryForm'
+import { Suspense } from 'react'
+
+import { LogDay } from '../../../components/LogDay'
 
 export default function LogPage() {
-  return <DailyEntryForm />
+  return (
+    <Suspense fallback={null}>
+      <LogDay />
+    </Suspense>
+  )
 }

@@ -223,60 +223,6 @@ export function NumberField({ id, label, inputMode = 'decimal', ...rest }: Numbe
 - On an error: `aria-invalid` on the input, `aria-describedby` pointing at the message,
   and the message in `text-danger` with words, not colour alone.
 
----
-
-## 8. `DurationField`
-
-Accepts `1:12:05`, `72m`, `1h 12m`. **It never parses by hand** — it calls
-`lib/duration.ts`, which owns every parse and every format, and stores integer seconds.
-
-It is a **controlled text field**, the same shape as `NumberField`: `value`, `onChange`
-and `error`. It holds text, not seconds. The owning form parses the text once, on
-submit, and stores the seconds.
-
-```tsx
-export const DURATION_HINT = 'Accepts 1:12:05, 72m or 1h 12m.'
-
-export function durationPreview(text: string): string | null {
-  const raw = text.trim()
-  if (raw === '') return null
-  const parsed = parseInput(raw)
-  if (!parsed.ok) return null
-  return `${formatDuration(parsed.seconds, 'clock')} · ${formatDuration(parsed.seconds, 'short')}`
-}
-
-export function DurationField({ hint = DURATION_HINT, value, ...rest }: DurationFieldProps) {
-  const preview = durationPreview(typeof value === 'string' ? value : '')
-  return (
-    <Field
-      type="text"
-      inputMode="text"
-      autoComplete="off"
-      placeholder="1:12:05"
-      value={value}
-      hint={
-        <>
-          {hint}
-          {preview === null ? null : (
-            <span className="text-text mt-1 block font-semibold">{preview}</span>
-          )}
-        </>
-      }
-      {...rest}
-    />
-  )
-}
-```
-
-- The hint line is the only place the accepted formats are written. Keep it.
-- The preview under the hint shows the parsed value as the user types, so a wrong guess
-  is visible before the save.
-- **`inputMode` is `text`, not `numeric`.** The hint promises `72m` and `1h 12m`, and an
-  iOS numeric keypad offers no `m` and no `h`. A numeric keypad would contradict the
-  field's own hint. This is the one duration field that is not a number pad.
-- The field never reports a silent `null`. Unreadable text stays in the field, and the
-  owning form blocks the save and names the problem.
-
 ### Field wrappers: `EmailField` and `PasswordField`
 
 These are not primitives. Each one is a thin wrapper on `Field` that fixes `type` and a
@@ -294,6 +240,206 @@ export function PasswordField({ autoComplete = 'current-password', ...rest }: Pa
   `current-password` on `PasswordField`, iOS Keychain then saves and fills the pair.
 - A new wrapper of this kind needs a test and a `/styleguide` entry, the same as a
   primitive.
+
+---
+
+## 8. `DurationPicker`
+
+Rest time, gym time, walk time. A tap-only duration input: a −/+ stepper and a row of
+preset chips. **It parses nothing.** The value is integer seconds in and out, and it
+formats with `formatDuration` from `lib/duration.ts`.
+
+```tsx
+'use client'
+
+import { useRef } from 'react'
+
+import { formatDuration, MAX_DURATION_SECONDS } from '../../lib/duration'
+
+import { cn } from './cn'
+import { MicroLabel } from './MicroLabel'
+
+export const DEFAULT_STEP_SECONDS = 15
+
+export const REST_PRESETS = [60, 90, 120, 180] as const
+
+export const SESSION_PRESETS = [1800, 2700, 3600, 5400] as const
+
+export const CARDIO_PRESETS = [900, 1800, 2700, 3600] as const
+
+export const SESSION_STEP_SECONDS = 60
+
+export const NOT_SET = 'Not set'
+
+export type DurationPickerProps = {
+  id: string
+  label: string
+  value: number | null
+  onChange: (seconds: number | null) => void
+  presets: readonly number[]
+  step?: number
+  min?: number
+  max?: number
+  allowClear?: boolean
+  errorId?: string
+  className?: string
+}
+
+const STEP_BUTTON =
+  'bg-surface-2 border-border text-text inline-flex size-11 shrink-0 items-center justify-center rounded-full border text-xl font-bold disabled:opacity-50'
+
+const CHIP =
+  'inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-[13px] font-bold whitespace-nowrap'
+
+export function clampSeconds(seconds: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, seconds))
+}
+
+export function stepSeconds(value: number | null, by: number, min: number, max: number): number {
+  return clampSeconds(value === null ? Math.max(min, by) : value + by, min, max)
+}
+
+export function presetLabel(seconds: number): string {
+  return formatDuration(seconds, seconds % 60 === 0 ? 'short' : 'clock')
+}
+
+export function stepWords(step: number): string {
+  if (step % 60 === 0) {
+    const minutes = step / 60
+
+    return minutes === 1 ? '1 minute' : `${String(minutes)} minutes`
+  }
+
+  return step === 1 ? '1 second' : `${String(step)} seconds`
+}
+
+export function DurationPicker({
+  id,
+  label,
+  value,
+  onChange,
+  presets,
+  step = DEFAULT_STEP_SECONDS,
+  min = 0,
+  max = MAX_DURATION_SECONDS,
+  allowClear = false,
+  errorId,
+  className,
+}: DurationPickerProps) {
+  const labelId = `${id}-label`
+  const words = stepWords(step)
+  const groupRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <div
+      ref={groupRef}
+      id={id}
+      role="group"
+      tabIndex={-1}
+      aria-labelledby={labelId}
+      aria-describedby={errorId}
+      className={cn('flex w-full min-w-0 flex-col gap-[7px]', className)}
+    >
+      <MicroLabel id={labelId}>{label}</MicroLabel>
+      <div className="bg-surface border-border rounded-input flex items-center justify-between gap-2 border p-1">
+        <button
+          type="button"
+          aria-label={`Decrease ${label} by ${words}`}
+          disabled={value === null || value <= min}
+          onClick={() => {
+            onChange(stepSeconds(value, -step, min, max))
+          }}
+          className={STEP_BUTTON}
+        >
+          <span aria-hidden="true">−</span>
+        </button>
+        <output
+          className={cn(
+            'min-w-0 text-center text-lg font-extrabold tracking-[-0.4px]',
+            value === null ? 'text-muted' : 'text-text',
+          )}
+        >
+          {value === null ? NOT_SET : formatDuration(value, 'clock')}
+        </output>
+        <button
+          type="button"
+          aria-label={`Increase ${label} by ${words}`}
+          disabled={value !== null && value >= max}
+          onClick={() => {
+            onChange(stepSeconds(value, step, min, max))
+          }}
+          className={STEP_BUTTON}
+        >
+          <span aria-hidden="true">+</span>
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {presets.map((preset) => {
+          const pressed = value === preset
+
+          return (
+            <button
+              key={preset}
+              type="button"
+              aria-pressed={pressed}
+              onClick={() => {
+                onChange(clampSeconds(preset, min, max))
+              }}
+              className={cn(
+                CHIP,
+                pressed
+                  ? 'bg-accent border-accent text-accent-ink'
+                  : 'bg-surface-2 border-border text-muted',
+              )}
+            >
+              {presetLabel(preset)}
+            </button>
+          )
+        })}
+        {allowClear && value !== null ? (
+          <button
+            type="button"
+            onClick={() => {
+              onChange(null)
+              groupRef.current?.focus()
+            }}
+            className={cn(CHIP, 'bg-surface-2 border-border text-text')}
+          >
+            Clear <span className="sr-only">{label}</span>
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+```
+
+- The value is integer seconds in and out. It formats with `formatDuration` and parses
+  nothing.
+- The chips are `aria-pressed` toggles, the same look as `SegmentedTabs`.
+- The −/+ buttons are 44 px circles with an `aria-label`. The step defaults to 15 s.
+  Rest time keeps 15 s. Gym, walk and swim time pass `SESSION_STEP_SECONDS`, 60 s.
+- `allowClear` adds a Clear chip while a value is set. Clear gives `null`.
+- Focus never drops to the page. Clear hides its own chip, so it moves focus to the
+  picker group. The group has `tabIndex={-1}`: it takes focus from code but is no tab
+  stop. A screen reader reads the group name, and the `<output>` reads "Not set". The
+  group is the target, not the first control, because − is off with no value.
+- An owner that swaps the picker for another block moves focus on purpose too. On
+  `/log`, "Set a value" moves focus to the gym picker group. Clear in that picker brings
+  the session sum back and moves focus to "Set a value". A load never moves focus.
+- From no value, + gives `min`, or one step when `min` is below the step, never more
+  than `max`. A goal with `min` 300 and a 5 minute step goes 5:00, then 10:00. Gym and
+  walk time on `/log`, `min` 0 and a 1 minute step, go 1:00, then 2:00. − stays off
+  while there is no value.
+- `errorId` ties an error to the picker. The group takes `aria-describedby`, so a
+  screen reader reads the error when focus enters the picker. The owner renders the
+  error, with that id and `role="alert"`, under the picker. Leave it out when there is
+  no error. The group carries no `aria-invalid`: the `group` role does not support it.
+- The chip row wraps. It never scrolls sideways.
+- The `<output>` element has the `status` role, so a screen reader reads the new value
+  after each tap. No `<input>`, so no keyboard opens on the phone.
+- No duration in the app is typed. `lib/duration.ts` keeps `parseInput` for the CSV
+  import.
 
 ---
 

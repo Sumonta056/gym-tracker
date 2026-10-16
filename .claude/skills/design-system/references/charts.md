@@ -28,24 +28,33 @@ prototype plates `p5` and `p5-one-day`. The shared parts live in `components/cha
    ending at its right edge, just above the line (`ReferenceLabel`). A bar chart keeps
    no right gutter for it, so the bars get the whole width.
    - The label carries the same `surface` halo as the value labels, so it reads over a
-     bar.
+     ghost slot. It never sits over a bar's fill or a value label.
    - `referencePlacement` in `components/charts/DailyBars.tsx` picks the spot. It checks
-     the value labels in the right 22 % of the slots, the ones the label spans at 320 px.
-     1. **Above the line**, when no value label there sits on it.
-     2. **Just below the line**, when above collides, below is clear and below still
-        clears the day labels.
-     3. **The band**, when both collide: the plot drops by one 14 px label row and the
-        label sits in that row at the top right. It is never beside its line there, but
-        it never overlaps a value.
+     the bars and value labels in the right 22 % of the slots, the ones the label spans
+     at 320 px. A ghost slot does not count. Its label boxes are measured in the browser,
+     not taken from the font size:
+     - a value label: from 15.5 px to 2 px above its bar top (`valueLabelBox`)
+     - a label above the line: from 13.5 px above the line to the line (`aboveLabelBox`)
+     1. **Above the line**, when no bar and no value label there reaches it.
+     2. **The band** otherwise: the plot drops by one 14 px label row and the label sits
+        in that row at the top right. It is never beside its line there, but it never
+        overlaps a bar or a value.
+   - A bar chart has no spot just below its line. Whatever blocks the spot above, a bar
+     or the value label on its top, has that bar's fill right under the line.
    - A goal when the profile holds one, for example the steps goal.
    - Otherwise the average over logged days.
    - No average line with fewer than 2 logged days. A goal line always shows.
-   - The steps goal, the calories average and the gym time average all use this one
-     label, so every bar chart places it the same way.
-   - **Named exception: the volume load per session chart never uses spot 2.** Where
-     `referencePlacement` picks "just below", it takes the band. In the browser the
-     value label box ends 3 px lower than the model says, so "just below" can touch it.
-     On the Month range its average label always sits in the band (settled in 2.0).
+   - The steps, calories, gym time and walk time charts all use this one label, for a
+     goal or an average, so every bar chart places it the same way. `goalOrAverage` in
+     `DailyBars.tsx` picks the line.
+   - **The weight target label always sits in the band.** The weight chart has end
+     labels on the right and range labels on the left. `WeightChart.tsx` holds the rule.
+     The target line shows only when the target sits inside the weight range. A target
+     outside it never stretches the range, so the end labels and the min and max labels
+     keep their room. The band label and the text alternative always name the target.
+   - **Named exception: on the Month range the volume load average label always sits in
+     the band** (settled in 2.0). On the Week range it uses the same 2 spots as every bar
+     chart.
    - **The average line never touches a value label, on the volume load chart.** A bar
      drops its value label when the line would pass within 3 px of the label box. The
      box is measured in the browser: from 15 px to 2 px above the bar top. The value
@@ -89,6 +98,6 @@ the last values, and the goal or the average when a reference line shows.
   range.
 - The style guide Analytics section shows the full sample, "One logged day" and
   "Nothing logged".
-- `tests/e2e/analytics.spec.ts` proves that no two labels overlap and none is cut off at
-  320 px, 390 px and 430 px, on the full week, the one logged day and a heavy week in
-  pounds with five character values.
+- `tests/e2e/analytics.spec.ts` proves that no two labels overlap, no reference label
+  overlaps a bar's fill and none is cut off at 320 px, 390 px and 430 px, on the full
+  week, the one logged day and a heavy week in pounds with five character values.

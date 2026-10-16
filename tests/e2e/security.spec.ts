@@ -115,7 +115,7 @@ test.describe('the service worker cache', () => {
 
     await page.reload()
     await expect(page.getByRole('button', { name: 'Save entry' })).toBeEnabled()
-    await recordDay(page, { gym: '0:42:00', steps: '5100' })
+    await recordDay(page, { gym: '45m', steps: '5100' })
     await page.goto('/')
     await expect(navLink(page, 'Today').first()).toBeVisible()
     const synced = chip(page, 'Synced')

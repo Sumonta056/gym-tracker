@@ -7,10 +7,12 @@ import { MicroLabel } from '../ui/MicroLabel'
 
 import { formatCount } from './summary'
 
+import type { TodayGym } from './summary'
 import type { DailyEntry } from '../../lib/db/dexie'
 
 export type TodayHeroProps = {
   entry: DailyEntry | undefined
+  gym: TodayGym
   streak: number
   name?: string
   className?: string
@@ -18,15 +20,6 @@ export type TodayHeroProps = {
 
 export function streakLabel(days: number): string {
   return `${String(days)} day streak`
-}
-
-function Missing() {
-  return (
-    <>
-      <span aria-hidden="true">—</span>
-      <span className="sr-only">not logged</span>
-    </>
-  )
 }
 
 function StreakPill({ days }: { days: number }) {
@@ -48,30 +41,29 @@ function StreakPill({ days }: { days: number }) {
   )
 }
 
-function Inline({ label, value }: { label: string; value: string | null }) {
+function Inline({ label, value }: { label: string; value: number | null }) {
+  if (value === null) {
+    return null
+  }
+
   return (
     <div className="min-w-0">
       <MicroLabel tone="accent-ink" as="p">
         {label}
       </MicroLabel>
-      <p className="text-lg leading-tight font-bold">{value ?? <Missing />}</p>
+      <p className="text-lg leading-tight font-bold">{formatCount(value)}</p>
     </div>
   )
-}
-
-function countOrNull(value: number | null): string | null {
-  return value === null ? null : formatCount(value)
 }
 
 function clock(seconds: number): string {
   return formatDuration(seconds, 'clock')
 }
 
-function clockOrNull(seconds: number | null): string | null {
-  return seconds === null ? null : clock(seconds)
-}
+export function TodayHero({ entry, gym, streak, name = 'Today', className }: TodayHeroProps) {
+  const avg = entry?.avg_heart_rate ?? null
+  const peak = entry?.max_heart_rate ?? null
 
-export function TodayHero({ entry, streak, name = 'Today', className }: TodayHeroProps) {
   return (
     <HeroCard aria-label={name} className={className}>
       <div className="flex items-center justify-between gap-3">
@@ -79,7 +71,7 @@ export function TodayHero({ entry, streak, name = 'Today', className }: TodayHer
         <StreakPill days={streak} />
       </div>
 
-      {entry === undefined ? (
+      {entry === undefined && gym.source === 'none' ? (
         <div className="mt-2 flex flex-col gap-3">
           <p className="text-[23px] leading-tight font-bold tracking-[-0.6px]">
             Nothing logged yet today.
@@ -96,19 +88,24 @@ export function TodayHero({ entry, streak, name = 'Today', className }: TodayHer
         </div>
       ) : (
         <>
-          <p className="mt-2.5 mb-1.5 text-[48px] leading-none font-extrabold tracking-[-2.4px]">
-            {entry.gym_seconds === null ? (
-              <Missing />
-            ) : (
-              <CountUp value={entry.gym_seconds} format={clock} />
-            )}
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 md:grid-cols-4 md:gap-5">
-            <Inline label="Avg HR" value={countOrNull(entry.avg_heart_rate)} />
-            <Inline label="Peak" value={countOrNull(entry.max_heart_rate)} />
-            <Inline label="Kcal" value={countOrNull(entry.calories_burnt)} />
-            <Inline label="Walk" value={clockOrNull(entry.walk_seconds)} />
-          </div>
+          {gym.source === 'none' ? (
+            <p className="mt-2.5 mb-1.5 text-[23px] leading-tight font-bold tracking-[-0.6px]">
+              No gym time today
+            </p>
+          ) : (
+            <p className="mt-2.5 mb-1.5 text-[48px] leading-none font-extrabold tracking-[-2.4px]">
+              <CountUp value={gym.seconds} format={clock} />
+            </p>
+          )}
+          {gym.source === 'sessions' ? (
+            <p className="text-accent-ink/80 text-[13px] font-semibold">From your sessions</p>
+          ) : null}
+          {avg === null && peak === null ? null : (
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+              <Inline label="Avg HR" value={avg} />
+              <Inline label="Peak" value={peak} />
+            </div>
+          )}
         </>
       )}
     </HeroCard>

@@ -1,10 +1,25 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { SheetModal } from './SheetModal'
+
+class FakeViewport extends EventTarget {
+  height = 844
+  offsetTop = 0
+}
+
+function setScrollY(value: number) {
+  Object.defineProperty(window, 'scrollY', { configurable: true, value })
+}
+
+afterEach(() => {
+  setScrollY(0)
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
 
 function setup(open = true) {
   const onClose = vi.fn()
@@ -25,6 +40,22 @@ describe('SheetModal', () => {
   it('renders a modal dialog named by its title when open', () => {
     setup()
     expect(screen.getByRole('dialog', { name: 'Log a set' })).toHaveAttribute('aria-modal', 'true')
+  })
+
+  it('has no description unless one is given', () => {
+    setup()
+    expect(screen.getByRole('dialog')).not.toHaveAttribute('aria-describedby')
+  })
+
+  it('is described by the element a describedBy id names', () => {
+    render(
+      <SheetModal open title="Log a set" describedBy="sheet-summary" onClose={vi.fn()}>
+        <p id="sheet-summary">3 sets done</p>
+      </SheetModal>,
+    )
+    expect(screen.getByRole('dialog', { name: 'Log a set' })).toHaveAccessibleDescription(
+      '3 sets done',
+    )
   })
 
   it('renders its children', () => {
@@ -97,12 +128,12 @@ describe('SheetModal', () => {
 
     const focusedInside = await new Promise<boolean>((resolve) => {
       const observer = new MutationObserver(() => {
-        const dialog = host.querySelector('[role="dialog"]')
+        const dialog = document.body.querySelector('[role="dialog"]')
         if (dialog === null) return
         observer.disconnect()
         resolve(dialog.contains(document.activeElement))
       })
-      observer.observe(host, { childList: true, subtree: true })
+      observer.observe(document.body, { childList: true, subtree: true })
       root.render(
         <SheetModal open title="Log a set" onClose={vi.fn()}>
           <p>Sheet body</p>
@@ -343,5 +374,152 @@ describe('SheetModal', () => {
   it('locks the page scroll with a footer too', () => {
     withFooter()
     expect(document.body.style.overflow).toBe('hidden')
+  })
+})
+
+describe('SheetModal on a phone', () => {
+  it('renders into document.body, outside the parent that holds it', () => {
+    render(
+      <div data-testid="frame">
+        <SheetModal open title="Log a set" onClose={vi.fn()}>
+          <p>Sheet body</p>
+        </SheetModal>
+      </div>,
+    )
+
+    expect(screen.getByTestId('frame')).not.toContainElement(screen.getByRole('dialog'))
+    expect(screen.getByTestId('sheet-overlay').parentElement).toBe(document.body)
+  })
+
+  it('fixes the body at the scroll offset while open, which iOS respects', () => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    setScrollY(240)
+    setup()
+
+    expect(document.body.style.position).toBe('fixed')
+    expect(document.body.style.top).toBe('-240px')
+    expect(document.body.style.width).toBe('100%')
+    expect(document.body.style.overflow).toBe('hidden')
+  })
+
+  it('puts the page back at the same scroll offset on close', () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    setScrollY(240)
+    const { rerender } = render(
+      <SheetModal open title="Log a set" onClose={vi.fn()}>
+        <p>Sheet body</p>
+      </SheetModal>,
+    )
+
+    rerender(
+      <SheetModal open={false} title="Log a set" onClose={vi.fn()}>
+        <p>Sheet body</p>
+      </SheetModal>,
+    )
+
+    expect(document.body.style.position).toBe('')
+    expect(document.body.style.top).toBe('')
+    expect(scrollTo).toHaveBeenCalledWith(0, 240)
+  })
+
+  it('keeps the body fixed until the last of 2 open sheets closes', () => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    setScrollY(120)
+    const { rerender } = render(
+      <>
+        <SheetModal open title="First" onClose={vi.fn()}>
+          <p>One</p>
+        </SheetModal>
+        <SheetModal open title="Second" onClose={vi.fn()}>
+          <p>Two</p>
+        </SheetModal>
+      </>,
+    )
+
+    rerender(
+      <>
+        <SheetModal open title="First" onClose={vi.fn()}>
+          <p>One</p>
+        </SheetModal>
+        <SheetModal open={false} title="Second" onClose={vi.fn()}>
+          <p>Two</p>
+        </SheetModal>
+      </>,
+    )
+
+    expect(document.body.style.position).toBe('fixed')
+    expect(document.body.style.top).toBe('-120px')
+  })
+
+  it('pins the overlay to the visual viewport', () => {
+    vi.stubGlobal('visualViewport', new FakeViewport())
+    setup()
+
+    const overlay = screen.getByTestId('sheet-overlay')
+    expect(overlay.style.top).toBe('0px')
+    expect(overlay.style.height).toBe('844px')
+  })
+
+  it('follows the visual viewport when the keyboard opens, so the footer stays above it', () => {
+    const viewport = new FakeViewport()
+    vi.stubGlobal('visualViewport', viewport)
+    setup()
+
+    act(() => {
+      viewport.height = 500
+      viewport.offsetTop = 120
+      viewport.dispatchEvent(new Event('resize'))
+    })
+
+    const overlay = screen.getByTestId('sheet-overlay')
+    expect(overlay.style.top).toBe('120px')
+    expect(overlay.style.height).toBe('500px')
+  })
+
+  it('fills the screen with no inline size where the browser has no visual viewport', () => {
+    setup()
+
+    const overlay = screen.getByTestId('sheet-overlay')
+    expect(overlay).toHaveClass('fixed', 'inset-0')
+    expect(overlay.style.height).toBe('')
+  })
+
+  it('contains the overscroll of a sheet with no footer', () => {
+    setup()
+
+    expect(screen.getByRole('dialog')).toHaveClass('overflow-y-auto', 'overscroll-contain')
+  })
+
+  it('contains the overscroll of the body of a sheet with a footer', () => {
+    render(
+      <SheetModal open title="Log a set" onClose={vi.fn()} footer={<p>Footer</p>}>
+        <p>Sheet body</p>
+      </SheetModal>,
+    )
+
+    expect(screen.getByTestId('sheet-body')).toHaveClass('overflow-y-auto', 'overscroll-contain')
+  })
+
+  it('still closes on Escape from inside the portal', async () => {
+    const { onClose } = setup()
+    await userEvent.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('still keeps focus inside the portal on tab and shift tab', async () => {
+    render(
+      <SheetModal open title="Log a set" onClose={vi.fn()}>
+        <button type="button">Save</button>
+      </SheetModal>,
+    )
+    const close = screen.getByRole('button', { name: 'Close Log a set' })
+    const save = screen.getByRole('button', { name: 'Save' })
+
+    await userEvent.tab()
+    expect(save).toHaveFocus()
+    await userEvent.tab()
+    expect(close).toHaveFocus()
+    await userEvent.tab({ shift: true })
+    expect(save).toHaveFocus()
   })
 })

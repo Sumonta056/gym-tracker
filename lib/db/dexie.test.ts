@@ -1,9 +1,22 @@
 import 'fake-indexeddb/auto'
 
 import Dexie from 'dexie'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createDatabase, DATABASE_NAME, DATABASE_VERSION, db, STORES_V1 } from './dexie'
+import {
+  createDatabase,
+  createVersionWatch,
+  DATABASE_NAME,
+  DATABASE_VERSION,
+  db,
+  getVersionState,
+  STORES,
+  STORES_V1,
+  STORES_V3,
+  STORES_V4,
+  subscribeVersionState,
+  versionWatch,
+} from './dexie'
 
 describe('createDatabase', () => {
   const opened: { close: () => void; delete: () => Promise<void> }[] = []
@@ -31,7 +44,7 @@ describe('createDatabase', () => {
     expect(instance.name).toBe('gym-tracker-alt')
   })
 
-  it('declares the eight tables of version 3', async () => {
+  it('declares the nine tables of version 5', async () => {
     const instance = createDatabase('gym-tracker-tables')
     opened.push(instance)
     await instance.open()
@@ -39,6 +52,7 @@ describe('createDatabase', () => {
     expect(instance.tables.map((table) => table.name).sort()).toEqual([
       'dailyEntries',
       'deadLetters',
+      'errorLog',
       'exercises',
       'outbox',
       'profiles',
@@ -46,8 +60,8 @@ describe('createDatabase', () => {
       'workoutSessions',
       'workoutSets',
     ])
-    expect(instance.verno).toBe(3)
-    expect(DATABASE_VERSION).toBe(3)
+    expect(instance.verno).toBe(5)
+    expect(DATABASE_VERSION).toBe(5)
   })
 
   it('upgrades a version 1 database and keeps every row it held', async () => {
@@ -126,7 +140,7 @@ describe('createDatabase', () => {
     opened.push(instance)
     await instance.open()
 
-    expect(instance.verno).toBe(3)
+    expect(instance.verno).toBe(DATABASE_VERSION)
     expect(await instance.dailyEntries.toArray()).toEqual([entry])
     expect(await instance.profiles.toArray()).toEqual([profile])
     expect(await instance.outbox.toArray()).toEqual([queued])
@@ -135,6 +149,72 @@ describe('createDatabase', () => {
     expect(await instance.exercises.count()).toBe(0)
     expect(await instance.workoutSessions.count()).toBe(0)
     expect(await instance.workoutSets.count()).toBe(0)
+  })
+
+  it('upgrades a version 3 database, keeps every row and starts an empty error log', async () => {
+    const name = 'gym-tracker-upgrade-v3'
+    const old = new Dexie(name)
+    old.version(1).stores(STORES_V1)
+    old.version(3).stores(STORES_V3)
+    await old.open()
+    await old.table('syncMeta').put({ key: 'outbox_sequence', value: '9' })
+    old.close()
+
+    const instance = createDatabase(name)
+    opened.push(instance)
+    await instance.open()
+
+    expect(instance.verno).toBe(DATABASE_VERSION)
+    expect(await instance.syncMeta.get('outbox_sequence')).toEqual({
+      key: 'outbox_sequence',
+      value: '9',
+    })
+    expect(await instance.errorLog.count()).toBe(0)
+  })
+
+  it('upgrades a version 4 database and keeps every row it held', async () => {
+    const name = 'gym-tracker-upgrade-v4'
+    const old = new Dexie(name)
+    old.version(4).stores(STORES_V4)
+    await old.open()
+    const entry = {
+      id: '11111111-1111-4111-8111-111111111111',
+      entry_date: '2026-10-01',
+      walk_seconds: 1800,
+      gym_seconds: null,
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+      deleted_at: null,
+    }
+    const profile = {
+      id: '00000000-0000-4000-8000-000000000000',
+      unit_system: 'metric',
+      step_goal: 12000,
+      updated_at: '2026-10-01T08:00:00.000Z',
+    }
+    await old.table('dailyEntries').put(entry)
+    await old.table('profiles').put(profile)
+    old.close()
+
+    const instance = createDatabase(name)
+    opened.push(instance)
+    await instance.open()
+
+    expect(instance.verno).toBe(5)
+    expect(await instance.dailyEntries.toArray()).toEqual([entry])
+    expect(await instance.profiles.toArray()).toEqual([profile])
+  })
+
+  it('indexes the error log on at', async () => {
+    const instance = createDatabase('gym-tracker-error-indexes')
+    opened.push(instance)
+    await instance.open()
+
+    const indexes = instance.tables
+      .filter((table) => table.name === 'errorLog')
+      .flatMap((table) => table.schema.indexes.map((index) => index.name))
+
+    expect(indexes).toEqual(['at'])
   })
 
   it('indexes the exercises on muscle_group and on updated_at', async () => {
@@ -216,6 +296,7 @@ describe('createDatabase', () => {
       exercises: 'id',
       workoutSessions: 'id',
       workoutSets: 'id',
+      errorLog: 'id',
     })
   })
 })
@@ -223,5 +304,115 @@ describe('createDatabase', () => {
 describe('db', () => {
   it('is a single shared instance of the gym tracker database', () => {
     expect(db.name).toBe(DATABASE_NAME)
+  })
+})
+
+describe('the version watch', () => {
+  const opened: Dexie[] = []
+
+  afterEach(async () => {
+    for (const instance of opened) {
+      instance.close()
+      await instance.delete()
+    }
+
+    opened.length = 0
+  })
+
+  it('starts current', () => {
+    expect(createVersionWatch().get()).toBe('current')
+  })
+
+  it('tells a listener when the state changes', () => {
+    const watch = createVersionWatch()
+    const listener = vi.fn()
+    watch.subscribe(listener)
+
+    watch.set('stale')
+
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not tell a listener when the state stays the same', () => {
+    const watch = createVersionWatch()
+    const listener = vi.fn()
+    watch.subscribe(listener)
+
+    watch.set('current')
+
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('stops telling a listener after it unsubscribes', () => {
+    const watch = createVersionWatch()
+    const listener = vi.fn()
+    const stop = watch.subscribe(listener)
+
+    stop()
+    watch.set('stale')
+
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('turns stale and closes the database when another tab opens a newer version', async () => {
+    const name = 'gym-tracker-versionchange'
+    const watch = createVersionWatch()
+    const instance = createDatabase(name, watch)
+    await instance.open()
+
+    const newer = new Dexie(name)
+    newer.version(DATABASE_VERSION + 1).stores(STORES)
+    opened.push(newer)
+    await newer.open()
+
+    expect(watch.get()).toBe('stale')
+    expect(instance.isOpen()).toBe(false)
+  })
+
+  it('refuses every read after it turned stale, so no old code writes to a new schema', async () => {
+    const name = 'gym-tracker-stale-read'
+    const watch = createVersionWatch()
+    const instance = createDatabase(name, watch)
+    await instance.open()
+
+    const newer = new Dexie(name)
+    newer.version(DATABASE_VERSION + 1).stores(STORES)
+    opened.push(newer)
+    await newer.open()
+
+    await expect(instance.syncMeta.count()).rejects.toThrow()
+  })
+
+  it('turns blocked while an old tab holds the database open, then current once it opens', async () => {
+    const name = 'gym-tracker-blocked'
+    const old = new Dexie(name)
+    old.version(1).stores(STORES_V1)
+    old.on('versionchange', () => false)
+    await old.open()
+
+    const watch = createVersionWatch()
+    const instance = createDatabase(name, watch)
+    opened.push(instance)
+    const opening = instance.open()
+
+    await vi.waitFor(() => {
+      expect(watch.get()).toBe('blocked')
+    })
+    old.close()
+    await opening
+
+    expect(watch.get()).toBe('current')
+  })
+
+  it('reads and subscribes to the shared watch of the app database', () => {
+    const listener = vi.fn()
+    const stop = subscribeVersionState(listener)
+
+    versionWatch.set('blocked')
+    expect(getVersionState()).toBe('blocked')
+    versionWatch.set('current')
+    stop()
+
+    expect(listener).toHaveBeenCalledTimes(2)
   })
 })

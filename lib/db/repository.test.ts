@@ -2,21 +2,21 @@ import 'fake-indexeddb/auto'
 
 import { readFileSync } from 'node:fs'
 
+import { liveQuery } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { parseSheet, rowEntry } from '../csv/import'
+import { ERROR_LOG_QUERY } from '../errors/report'
 import { dailyEntrySchema, localDate } from '../schema/dailyEntry'
+import { MAX_ERROR_RECORDS, MAX_MESSAGE_LENGTH, MAX_STACK_LENGTH } from '../schema/errorRecord'
 import { moveToDeadLetters } from '../sync/deadLetters'
 import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
 import { DAILY_CURSOR_KEY, DAILY_PULLED_KEY, db, SIGNED_OUT_KEY } from './dexie'
 import {
-  acceptGymTimeOffer,
   archiveExercise,
   clearAll,
-  gymTimeOfferFor,
-  gymTimeOfferOn,
-  NoGymTimeOffer,
+  clearErrors,
   addSet,
   createExercise,
   deleteSet,
@@ -24,10 +24,13 @@ import {
   discardSession,
   finishSession,
   getActiveSession,
+  getSession,
   lastSetFor,
   lastSetsFor,
+  listFinishedSessions,
   listSessions,
   listSets,
+  listSetsForSessions,
   listSetsInRange,
   setsForExercises,
   restoreSet,
@@ -54,12 +57,14 @@ import {
   ImportRepeatsADate,
   importDays,
   listDeadLetters,
+  listErrors,
   loggedDates,
   listRange,
   LOCAL_PROFILE_ID,
   NEVER_WRITTEN,
   OUTBOX_SEQUENCE_KEY,
   pendingWrites,
+  recordError,
   resumeSync as resumeFromRepository,
   retryDeadLetter,
   setRestSeconds,
@@ -70,9 +75,10 @@ import {
   UnsyncedWritesChanged,
   upsertDay,
 } from './repository'
+import { safeQuery } from './safeQuery'
 
 import type { DailyEntry, Exercise, OutboxEntry, WorkoutSession, WorkoutSet } from './dexie'
-import type { ImportDay } from './repository'
+import type { DayWrite, ImportDay } from './repository'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { MuscleGroup } from '../schema/exercise'
 import type { WorkoutSetDraft } from '../schema/workoutSet'
@@ -137,6 +143,21 @@ function entry(entryDate: string, overrides: Partial<DailyEntryInput> = {}): Dai
   return dailyEntrySchema.parse({ entry_date: entryDate, ...overrides })
 }
 
+function dayWithoutSwim(entryDate: string, overrides: Partial<DayWrite> = {}): DayWrite {
+  return {
+    entry_date: entryDate,
+    walk_seconds: null,
+    gym_seconds: null,
+    avg_heart_rate: null,
+    max_heart_rate: null,
+    weight_kg: null,
+    calories_burnt: null,
+    steps: null,
+    note: null,
+    ...overrides,
+  }
+}
+
 beforeEach(async () => {
   vi.restoreAllMocks()
   vi.stubGlobal('localStorage', memoryStorage())
@@ -151,6 +172,7 @@ beforeEach(async () => {
     db.exercises.clear(),
     db.workoutSessions.clear(),
     db.workoutSets.clear(),
+    db.errorLog.clear(),
   ])
 })
 
@@ -291,6 +313,82 @@ describe('upsertDay', () => {
   })
 })
 
+describe('upsertDay and the swim time', () => {
+  it('keeps the swim time through a save, the outbox and a read', async () => {
+    await upsertDay(dailyEntrySchema.parse({ entry_date: '2026-09-01', swim_seconds: 1800 }))
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: 1800 })
+    const [queued] = await dailyQueued()
+    expect(queued?.payload).toMatchObject({ swim_seconds: 1800 })
+  })
+
+  it('keeps the stored swim time when the input has no swim_seconds key', async () => {
+    await upsertDay(entry('2026-09-01', { swim_seconds: 1500 }))
+    const write = dayWithoutSwim('2026-09-01', { steps: 9000 })
+
+    expect(write).not.toHaveProperty('swim_seconds')
+    await upsertDay(write)
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: 1500, steps: 9000 })
+    const newest = (await dailyQueued()).at(-1)
+    expect(newest?.payload).toMatchObject({ swim_seconds: 1500, steps: 9000 })
+  })
+
+  it('clears the swim time when the input carries swim_seconds null', async () => {
+    await upsertDay(entry('2026-09-01', { swim_seconds: 1500 }))
+    await upsertDay(dayWithoutSwim('2026-09-01', { swim_seconds: null }))
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: null })
+    const newest = (await dailyQueued()).at(-1)
+    expect(newest?.payload).toMatchObject({ swim_seconds: null })
+  })
+
+  it('saves no swim time for a new day written without the key', async () => {
+    await upsertDay(dayWithoutSwim('2026-09-01', { steps: 9000 }))
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: null })
+    const [queued] = await dailyQueued()
+    expect(queued?.payload).toMatchObject({ swim_seconds: null })
+  })
+
+  it('does not bring back the swim time of a soft deleted day', async () => {
+    await upsertDay(entry('2026-09-01', { swim_seconds: 1500 }))
+    await softDeleteDay('2026-09-01')
+    await upsertDay(dayWithoutSwim('2026-09-01', { steps: 500 }))
+
+    expect(await getDay('2026-09-01')).toMatchObject({ swim_seconds: null, steps: 500 })
+    const newest = (await dailyQueued()).at(-1)
+    expect(newest?.payload).toMatchObject({ swim_seconds: null, deleted_at: null })
+  })
+
+  it('reads no swim time from a row saved before version 5', async () => {
+    const before: DailyEntry = {
+      id: '66666666-6666-4666-8666-666666666666',
+      entry_date: '2026-09-01',
+      walk_seconds: null,
+      gym_seconds: null,
+      avg_heart_rate: null,
+      max_heart_rate: null,
+      weight_kg: null,
+      calories_burnt: null,
+      steps: 4000,
+      note: null,
+      created_at: '2026-08-01T00:00:00.000Z',
+      updated_at: '2026-08-01T00:00:00.000Z',
+      deleted_at: null,
+    }
+    await db.dailyEntries.put(before)
+
+    await upsertDay(dayWithoutSwim('2026-09-01', { steps: 5000 }))
+
+    const read = await getDay('2026-09-01')
+    expect(read?.id).toBe(before.id)
+    expect(read?.swim_seconds).toBeNull()
+    const [queued] = await dailyQueued()
+    expect(queued?.payload).toMatchObject({ swim_seconds: null })
+  })
+})
+
 describe('getDay', () => {
   it('returns the row saved for that date', async () => {
     const saved = await upsertDay(entry('2026-09-01', { steps: 8000 }))
@@ -403,6 +501,13 @@ describe('getProfile', () => {
       step_goal: 12000,
       rest_sound_muted: false,
       rest_seconds_by_exercise: {},
+      calorie_goal: null,
+      gym_goal_seconds: null,
+      walk_goal_seconds: null,
+      sessions_per_week_goal: null,
+      birth_year: null,
+      max_heart_rate: null,
+      stats_layout: null,
     })
   })
 
@@ -424,6 +529,20 @@ describe('getProfile', () => {
     expect(profile.step_goal).toBe(9000)
   })
 
+  it('reads a profile saved before version 5 with every new field null', async () => {
+    await db.profiles.put({
+      id: LOCAL_PROFILE_ID,
+      display_name: null,
+      unit_system: 'metric',
+      height_cm: null,
+      target_weight_kg: null,
+      step_goal: 12000,
+      updated_at: '2026-10-01T08:00:00.000Z',
+    })
+
+    expect(await getProfile()).toMatchObject({ calorie_goal: null, stats_layout: null })
+  })
+
   it('writes nothing when no profile row exists yet', async () => {
     await getProfile()
 
@@ -439,6 +558,13 @@ describe('getProfile', () => {
 })
 
 describe('updateProfile', () => {
+  it('saves a calorie goal and queues it in the outbox', async () => {
+    await updateProfile({ calorie_goal: 2400 })
+
+    expect((await getProfile()).calorie_goal).toBe(2400)
+    expect((await db.outbox.toArray()).at(-1)?.payload).toMatchObject({ calorie_goal: 2400 })
+  })
+
   it('creates the profile row and one outbox entry', async () => {
     const saved = await updateProfile({ display_name: 'Sumonta' })
 
@@ -1306,6 +1432,15 @@ describe('finishSession', () => {
     })
     expect(await db.workoutSessions.get(session.id)).toEqual(finished)
   })
+
+  it('writes no daily entry and queues no daily write', async () => {
+    const session = await startSession('2026-09-01')
+
+    await finishSession(session.id)
+
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(await dailyQueued()).toEqual([])
+  })
 })
 
 describe('addSet', () => {
@@ -1744,6 +1879,91 @@ describe('listSetsInRange', () => {
     await db.workoutSets.put(storedSet({}))
 
     expect(await listSetsInRange('2026-09-01', '2026-09-30')).toEqual([])
+  })
+})
+
+describe('listFinishedSessions', () => {
+  it('returns the finished sessions newest first', async () => {
+    const old = storedSession({ entry_date: '2026-09-02', started_at: '2026-09-02T17:00:00.000Z' })
+    const recent = storedSession({
+      entry_date: '2026-09-09',
+      started_at: '2026-09-09T07:00:00.000Z',
+    })
+    await db.workoutSessions.bulkPut([old, recent])
+
+    expect((await listFinishedSessions(30)).sessions.map((row) => row.id)).toEqual([
+      recent.id,
+      old.id,
+    ])
+  })
+
+  it('hides an active session and a soft-deleted session', async () => {
+    const kept = storedSession({})
+    await db.workoutSessions.bulkPut([
+      kept,
+      storedSession({ status: 'active', ended_at: null }),
+      storedSession({ deleted_at: '2026-09-03T10:00:00.000Z' }),
+    ])
+
+    expect(await listFinishedSessions(30)).toEqual({ sessions: [kept], hasMore: false })
+  })
+
+  it('returns at most the limit and says that more exist', async () => {
+    await db.workoutSessions.bulkPut([
+      storedSession({ started_at: '2026-09-02T17:00:00.000Z' }),
+      storedSession({ started_at: '2026-09-03T17:00:00.000Z' }),
+      storedSession({ started_at: '2026-09-04T17:00:00.000Z' }),
+    ])
+
+    const page = await listFinishedSessions(2)
+
+    expect([page.sessions.length, page.hasMore]).toEqual([2, true])
+  })
+})
+
+describe('getSession', () => {
+  it('returns a live session by id', async () => {
+    const session = storedSession({})
+    await db.workoutSessions.put(session)
+
+    expect(await getSession(session.id)).toEqual(session)
+  })
+
+  it('returns undefined for an unknown id', async () => {
+    expect(await getSession(crypto.randomUUID())).toBeUndefined()
+  })
+
+  it('returns undefined for a soft-deleted session', async () => {
+    const removed = storedSession({ deleted_at: '2026-09-03T10:00:00.000Z' })
+    await db.workoutSessions.put(removed)
+
+    expect(await getSession(removed.id)).toBeUndefined()
+  })
+})
+
+describe('listSetsForSessions', () => {
+  it('returns the live sets of the named sessions in the order they were done', async () => {
+    const one = storedSession({})
+    const other = storedSession({})
+    const second = storedSet({ session_id: one.id, completed_at: '2026-09-02T17:20:00.000Z' })
+    const first = storedSet({ session_id: other.id, completed_at: '2026-09-02T17:10:00.000Z' })
+    await db.workoutSets.bulkPut([
+      second,
+      first,
+      storedSet({ session_id: one.id, deleted_at: '2026-09-02T18:00:00.000Z' }),
+      storedSet({}),
+    ])
+
+    expect((await listSetsForSessions([one.id, other.id])).map((row) => row.id)).toEqual([
+      first.id,
+      second.id,
+    ])
+  })
+
+  it('returns an empty list for no session', async () => {
+    await db.workoutSets.put(storedSet({}))
+
+    expect(await listSetsForSessions([])).toEqual([])
   })
 })
 
@@ -2270,6 +2490,34 @@ describe('clearAll', () => {
 
     expect((await getProfile()).step_goal).toBe(12000)
   })
+
+  it('clears an error recorded after the clear and before the session ends', async () => {
+    await clearAll(await counted(), async () => {
+      await db.syncMeta.delete(SIGNED_OUT_KEY)
+      await recordError({ source: 'sync', message: 'late', stack: null, route: '/' })
+      return 'signed out'
+    })
+
+    expect(await listErrors()).toEqual([])
+  })
+
+  it('still signs out when the clear of the error log after the session fails', async () => {
+    const clear = db.errorLog.clear.bind(db.errorLog)
+    vi.spyOn(db.errorLog, 'clear')
+      .mockImplementationOnce(clear)
+      .mockRejectedValueOnce(new Error('DatabaseClosedError'))
+
+    await expect(clearAll(await counted(), endSession)).resolves.toBe('signed out')
+    expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeDefined()
+  })
+
+  it('clears the error log at sign-out', async () => {
+    await recordError({ source: 'sync', message: 'boom', stack: null, route: '/' })
+
+    await clearAll(await counted(), endSession)
+
+    expect(await db.errorLog.count()).toBe(0)
+  })
 })
 
 describe('pendingWrites', () => {
@@ -2341,218 +2589,18 @@ async function dailyQueued(): Promise<OutboxEntry[]> {
   return (await queuedInOrder()).filter((item) => item.table_name === 'daily_entries')
 }
 
-describe('finishing a session and the gym time offer', () => {
-  it('creates a row with only the session seconds when the day has no row', async () => {
-    const session = await startSession('2026-09-01')
-    await db.workoutSessions.put({
-      ...session,
-      started_at: new Date(Date.now() - 4325_000).toISOString(),
-    })
-    const finished = await finishSession(session.id)
-    const offer = await gymTimeOfferFor(finished.id)
-
-    expect(offer).toMatchObject({ entryDate: '2026-09-01', loggedSeconds: null })
-    expect(await getDay('2026-09-01')).toBeUndefined()
-
-    const day = await acceptGymTimeOffer(finished.id)
-
-    expect(day).toEqual(
-      expect.objectContaining({
-        ...entry('2026-09-01', { gym_seconds: offer?.sessionSeconds ?? -1 }),
-        deleted_at: null,
-      }),
-    )
-    expect(offer?.sessionSeconds).toBeGreaterThanOrEqual(4325)
-    expect(offer?.sessionSeconds).toBeLessThan(4335)
-    expect(await getDay('2026-09-01')).toEqual(day)
-    expect(await dailyQueued()).toEqual([
-      expect.objectContaining({ operation: 'upsert', payload: day }),
-    ])
-  })
-
-  it('does not overwrite an existing row before the user accepts', async () => {
-    const before = await upsertDay(entry('2026-09-01', { gym_seconds: 3900, steps: 9000 }))
-    const queued = await db.outbox.count()
-    const session = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-
-    expect(await gymTimeOfferFor(session.id)).toEqual({
-      sessionId: session.id,
-      entryDate: '2026-09-01',
-      sessionSeconds: 4325,
-      loggedSeconds: 3900,
-    })
-    expect(await getDay('2026-09-01')).toEqual(before)
-    expect(await db.outbox.count()).toBe(queued)
-  })
-
-  it('writes only the gym time into an existing row on accept', async () => {
-    const before = await upsertDay(entry('2026-09-01', { gym_seconds: 3900, steps: 9000 }))
-    const session = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-
-    const after = await acceptGymTimeOffer(session.id)
-
-    expect(after).toMatchObject({ id: before.id, gym_seconds: 4325, steps: 9000 })
-    expect(after.created_at).toBe(before.created_at)
-    expect(await dailyQueued()).toHaveLength(2)
-  })
-
-  it('leaves the row as it was and queues nothing when the user declines', async () => {
-    const before = await upsertDay(entry('2026-09-01', { gym_seconds: 3900 }))
-    const session = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-    const queued = await dailyQueued()
-
-    expect(await gymTimeOfferFor(session.id)).not.toBeNull()
-    expect(await gymTimeOfferOn('2026-09-01')).not.toBeNull()
-
-    expect(await getDay('2026-09-01')).toEqual(before)
-    expect(await dailyQueued()).toEqual(queued)
-  })
-
-  it('makes no offer when the row already holds the session length', async () => {
-    await upsertDay(entry('2026-09-01', { gym_seconds: 4325 }))
-    const session = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-
-    expect(await gymTimeOfferFor(session.id)).toBeNull()
-    expect(await gymTimeOfferOn('2026-09-01')).toBeNull()
-  })
-
-  it('makes no offer for an active session', async () => {
-    const session = await startSession('2026-09-01')
-
-    expect(await gymTimeOfferFor(session.id)).toBeNull()
-    expect(await gymTimeOfferOn('2026-09-01')).toBeNull()
-  })
-
-  it('throws SessionNotFound for a session the device does not hold', async () => {
-    expect(await refusal(gymTimeOfferFor(crypto.randomUUID()))).toBeInstanceOf(SessionNotFound)
-    expect(await refusal(acceptGymTimeOffer(crypto.randomUUID()))).toBeInstanceOf(SessionNotFound)
-  })
-
-  it('treats a soft deleted row as no row', async () => {
-    await upsertDay(entry('2026-09-01', { gym_seconds: 4325, steps: 9000 }))
-    await softDeleteDay('2026-09-01')
-    const session = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-
-    expect(await gymTimeOfferFor(session.id)).toMatchObject({ loggedSeconds: null })
-
-    const day = await acceptGymTimeOffer(session.id)
-
-    expect(day).toMatchObject({ gym_seconds: 4325, steps: null, deleted_at: null })
-  })
-
-  it('writes nothing on accept when the row already holds the value', async () => {
-    const before = await upsertDay(entry('2026-09-01', { gym_seconds: 4325 }))
-    const session = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-    const queued = await db.outbox.count()
-
-    expect(await acceptGymTimeOffer(session.id)).toEqual(before)
-    expect(await db.outbox.count()).toBe(queued)
-  })
-
-  it('refuses an accept for a session with no length to offer', async () => {
-    const active = await startSession('2026-09-01')
-    const empty = await finishedSession(
-      '2026-08-31',
-      '2026-08-31T17:30:00.000Z',
-      '2026-08-31T17:30:00.000Z',
-    )
-
-    expect(await refusal(acceptGymTimeOffer(active.id))).toBeInstanceOf(NoGymTimeOffer)
-    expect(await refusal(acceptGymTimeOffer(empty.id))).toBeInstanceOf(NoGymTimeOffer)
-    expect(await dailyQueued()).toEqual([])
-  })
-
-  it('refuses an accept on a signed-out device and writes nothing', async () => {
-    const session = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-09-02T00:00:00.000Z' })
-
-    expect(await refusal(acceptGymTimeOffer(session.id))).toBeInstanceOf(SignedOutOnThisDevice)
-    expect(await db.dailyEntries.count()).toBe(0)
-    expect(await db.outbox.count()).toBe(0)
-  })
-
-  it('reads the newest finished session of the date for the /log offer', async () => {
-    await finishedSession('2026-09-01', '2026-09-01T08:00:00.000Z', '2026-09-01T08:30:00.000Z')
-    const late = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-
-    expect(await gymTimeOfferOn('2026-09-01')).toMatchObject({
-      sessionId: late.id,
-      sessionSeconds: 4325,
-    })
-  })
-
-  it('makes no /log offer for a date with no session', async () => {
-    await upsertDay(entry('2026-09-01', { gym_seconds: 3900 }))
-
-    expect(await gymTimeOfferOn('2026-09-01')).toBeNull()
-  })
-
-  it('skips a discarded session in the /log offer', async () => {
-    const session = await finishedSession(
-      '2026-09-01',
-      '2026-09-01T17:30:00.000Z',
-      '2026-09-01T18:42:05.000Z',
-    )
-    await discardSession(session.id)
-
-    expect(await gymTimeOfferOn('2026-09-01')).toBeNull()
-  })
-})
-
 describe('a session that runs past midnight', () => {
-  const started = new Date(2026, 8, 19, 23, 30).toISOString()
-  const ended = new Date(2026, 8, 20, 0, 30).toISOString()
+  it('is listed under its own entry_date, not the date it ended', async () => {
+    const session = await finishedSession(
+      '2026-09-19',
+      new Date(2026, 8, 19, 23, 30).toISOString(),
+      new Date(2026, 8, 20, 0, 30).toISOString(),
+    )
 
-  it('offers its hour to its own entry_date, not the date it ended', async () => {
-    const session = await finishedSession('2026-09-19', started, ended)
-
-    expect(await gymTimeOfferFor(session.id)).toMatchObject({
-      entryDate: '2026-09-19',
-      sessionSeconds: 3600,
-    })
-    expect(await gymTimeOfferOn('2026-09-19')).toMatchObject({ sessionId: session.id })
-    expect(await gymTimeOfferOn('2026-09-20')).toBeNull()
-  })
-
-  it('writes the hour into the row of its entry_date on accept', async () => {
-    const session = await finishedSession('2026-09-19', started, ended)
-
-    await acceptGymTimeOffer(session.id)
-
-    expect(await getDay('2026-09-19')).toMatchObject({ gym_seconds: 3600 })
-    expect(await getDay('2026-09-20')).toBeUndefined()
+    expect((await listSessions('2026-09-19', '2026-09-19')).map((row) => row.id)).toEqual([
+      session.id,
+    ])
+    expect(await listSessions('2026-09-20', '2026-09-20')).toEqual([])
   })
 })
 
@@ -2707,6 +2755,34 @@ describe('importDays', () => {
       weight_kg: 81.4,
       walk_seconds: null,
     })
+  })
+
+  it('keeps a stored swim time on Merge when the import fills the steps', async () => {
+    await upsertDay(entry('2025-08-12', { swim_seconds: 1500 }))
+
+    await importDays([{ entry: { entry_date: '2025-08-12', steps: 9874 }, choice: 'merge' }])
+
+    expect(await getDay('2025-08-12')).toMatchObject({ swim_seconds: 1500, steps: 9874 })
+  })
+
+  it('keeps a stored swim time on Overwrite from a sheet with no swim column', async () => {
+    await upsertDay(entry('2025-08-12', { swim_seconds: 1500 }))
+
+    await importDays([{ entry: { entry_date: '2025-08-12', steps: 9874 }, choice: 'overwrite' }])
+
+    expect(await getDay('2025-08-12')).toMatchObject({ swim_seconds: 1500, steps: 9874 })
+    const queued = await dailyQueued()
+    expect(queued.at(-1)?.payload).toMatchObject({ swim_seconds: 1500, steps: 9874 })
+  })
+
+  it('clears a stored swim time on Overwrite from a blank swim cell', async () => {
+    await upsertDay(entry('2025-08-12', { swim_seconds: 1500 }))
+
+    await importDays([
+      { entry: { entry_date: '2025-08-12', steps: 9874, swim_seconds: null }, choice: 'overwrite' },
+    ])
+
+    expect(await getDay('2025-08-12')).toMatchObject({ swim_seconds: null, steps: 9874 })
   })
 
   it('queues one outbox entry for an overwritten row and one for a merged row', async () => {
@@ -3075,5 +3151,134 @@ describe('exportTables', () => {
     await exportTables()
 
     expect(await pendingWrites()).toBe(before)
+  })
+})
+
+describe('the error log', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function failure(message = 'boom') {
+    return {
+      source: 'boundary' as const,
+      message,
+      stack: 'Error: boom\n    at render',
+      route: '/log',
+    }
+  }
+
+  it('records an error with a new id and the time it happened', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-05T10:00:00.000Z'))
+
+    await recordError(failure())
+
+    const [row] = await listErrors()
+    expect(row).toMatchObject({ ...failure(), at: '2026-10-05T10:00:00.000Z' })
+    expect(row?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  })
+
+  it('writes no outbox entry for an error', async () => {
+    await recordError(failure())
+
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('lists the newest error first', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-05T10:00:00.000Z'))
+    await recordError(failure('first'))
+    vi.setSystemTime(new Date('2026-10-05T10:00:01.000Z'))
+    await recordError(failure('second'))
+
+    expect((await listErrors()).map((row) => row.message)).toEqual(['second', 'first'])
+  })
+
+  it('keeps only the last 50 errors', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+
+    for (let index = 0; index <= MAX_ERROR_RECORDS; index += 1) {
+      vi.setSystemTime(Date.UTC(2026, 9, 5, 10, 0, index))
+      await recordError(failure(`error ${String(index)}`))
+    }
+
+    const rows = await listErrors()
+    expect(rows).toHaveLength(MAX_ERROR_RECORDS)
+    expect(rows[0]?.message).toBe(`error ${String(MAX_ERROR_RECORDS)}`)
+    expect(rows.at(-1)?.message).toBe('error 1')
+  })
+
+  it('cuts a long stack at the stack limit', async () => {
+    await recordError({ ...failure(), stack: 'x'.repeat(MAX_STACK_LENGTH + 500) })
+
+    const [row] = await listErrors()
+    expect(row?.stack).toHaveLength(MAX_STACK_LENGTH)
+  })
+
+  it('cuts a long message at the message limit', async () => {
+    await recordError(failure('x'.repeat(MAX_MESSAGE_LENGTH + 500)))
+
+    const [row] = await listErrors()
+    expect(row?.message).toHaveLength(MAX_MESSAGE_LENGTH)
+  })
+
+  it('writes nothing while the device is signed out', async () => {
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-10-05T10:00:00.000Z' })
+
+    await expect(recordError(failure())).resolves.toBeUndefined()
+
+    expect(await listErrors()).toEqual([])
+  })
+
+  it('records again once the device is no longer signed out', async () => {
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-10-05T10:00:00.000Z' })
+    await recordError(failure('while signed out'))
+    await db.syncMeta.delete(SIGNED_OUT_KEY)
+
+    await recordError(failure('after sign-in'))
+
+    expect((await listErrors()).map((row) => row.message)).toEqual(['after sign-in'])
+  })
+
+  it('records a failed live query from inside the liveQuery context', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const subscription = liveQuery(
+      safeQuery(() => Promise.reject(new Error('closed')), 'probe'),
+    ).subscribe({ next: () => undefined, error: () => undefined })
+
+    try {
+      await vi.waitFor(async () => {
+        expect(await listErrors()).toHaveLength(1)
+      })
+    } finally {
+      subscription.unsubscribe()
+    }
+
+    expect((await listErrors())[0]).toMatchObject({
+      source: 'live-query',
+      message: 'probe: closed',
+    })
+  })
+
+  it('records nothing when the read of the error log itself fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const subscription = liveQuery(
+      safeQuery(() => Promise.reject(new Error('closed')), ERROR_LOG_QUERY),
+    ).subscribe({ next: () => undefined, error: () => undefined })
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    subscription.unsubscribe()
+
+    expect(await listErrors()).toEqual([])
+  })
+
+  it('clears every error', async () => {
+    await recordError(failure('first'))
+    await recordError(failure('second'))
+
+    await clearErrors()
+
+    expect(await listErrors()).toEqual([])
   })
 })

@@ -32,6 +32,7 @@ const IMPORTED_FIELDS = [
   'entry_date',
   'walk_seconds',
   'gym_seconds',
+  'swim_seconds',
   'avg_heart_rate',
   'max_heart_rate',
   'weight_kg',
@@ -66,7 +67,7 @@ const FULL_DAYS: DailyEntry[] = [
     note: 'Legs, then "a long" walk',
   }),
   day('2026-02-28', { walk_seconds: 59, gym_seconds: 86400, weight_kg: 80 }),
-  day('2026-08-12', { walk_seconds: 3600, steps: 0, calories_burnt: 0 }),
+  day('2026-08-12', { walk_seconds: 3600, swim_seconds: 1500, steps: 0, calories_burnt: 0 }),
   day('2026-09-30'),
   day('2026-10-04', { gym_seconds: 2700, note: 'Line one\nline two' }),
 ]
@@ -188,8 +189,16 @@ describe('the daily entries round trip', () => {
 
   it('writes the header and nothing else for no days', () => {
     expect(dailyEntriesCsv([])).toBe(
-      'Day,Walk Time,Gym Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps,Note\n',
+      'Day,Walk Time,Gym Time,Swim Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps,Note\n',
     )
+  })
+
+  it('writes the swim time in its own column', () => {
+    const [header, first] = dailyEntriesCsv([day('2026-09-01', { swim_seconds: 1500 })]).split('\n')
+    expect(header).toBe(
+      'Day,Walk Time,Gym Time,Swim Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps,Note',
+    )
+    expect(first?.split(',')[3]).toBe('0:25:00')
   })
 
   it('leaves out a soft-deleted day', () => {

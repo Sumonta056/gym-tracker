@@ -10,6 +10,8 @@ import { MicroLabel } from '../ui/MicroLabel'
 import { SecondaryButton } from '../ui/SecondaryButton'
 
 import { DataCard } from './DataCard'
+import { ErrorLogCard, REPOSITORY_ERROR_LOG_SOURCE } from './ErrorLogCard'
+import { HeartRateCard } from './HeartRateCard'
 import { ManageExercisesSheet, REPOSITORY_MANAGE_SOURCE } from './ManageExercisesSheet'
 import { ProfileHeader } from './ProfileHeader'
 import { RestSoundCard } from './RestSoundCard'
@@ -19,6 +21,7 @@ import { TargetsCard } from './TargetsCard'
 import { UnitsCard } from './UnitsCard'
 
 import type { ChosenSheet } from './DataCard'
+import type { ErrorLogSource } from './ErrorLogCard'
 import type { ManageExerciseSource } from './ManageExercisesSheet'
 import type { DeadLetter, Profile } from '../../lib/db/dexie'
 import type { SyncStatusReport } from '../../lib/db/repository'
@@ -61,6 +64,7 @@ export type ProfileViewProps = {
   onConfirmSignOut?: () => void
   onCancelSignOut?: () => void
   exerciseSource?: ManageExerciseSource
+  errorLogSource?: ErrorLogSource
   testId?: string
 }
 
@@ -87,6 +91,7 @@ export function ProfileView({
   onConfirmSignOut = ignore,
   onCancelSignOut = ignore,
   exerciseSource = REPOSITORY_MANAGE_SOURCE,
+  errorLogSource = REPOSITORY_ERROR_LOG_SOURCE,
   testId = 'profile-grid',
 }: ProfileViewProps) {
   const [managing, setManaging] = useState(false)
@@ -118,60 +123,68 @@ export function ProfileView({
         data-testid={testId}
         className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
       >
-        <UnitsCard unit={unit} onUnitChange={onUnitChange} error={unitError} />
-        <TargetsCard
-          profile={profile}
-          unit={unit}
-          onSave={onSaveTarget}
-          className="md:row-span-2"
-        />
-        <RestSoundCard
-          muted={profile.rest_sound_muted ?? false}
-          onMutedChange={onMutedChange}
-          error={soundError}
-        />
-        <Card data-testid="exercises-card">
-          <MicroLabel as="p">Exercises</MicroLabel>
-          <button
-            type="button"
-            onClick={() => {
-              setManaging(true)
-            }}
-            className="text-text mt-1.5 flex min-h-11 w-full items-center justify-between gap-3 text-left text-[15px] font-bold"
-          >
-            Manage exercises
-            <span aria-hidden="true" className="text-muted text-lg">
-              ›
-            </span>
-          </button>
-        </Card>
-        {showImport ? <DataCard onSheet={setImporting} /> : null}
-        <SyncCard
-          report={report}
-          busy={syncBusy}
-          onSyncNow={onSyncNow}
-          deadLetters={deadLetters}
-          onRetry={onRetryDeadLetter}
-          onDiscard={onDiscardDeadLetter}
-          deadLetterError={deadLetterError}
-        />
-        <div className="flex flex-col gap-2">
-          <SecondaryButton
-            tone="danger"
-            disabled={signingOut}
-            aria-describedby={cn(hintId, signOutError === null ? undefined : errorId)}
-            onClick={onSignOut}
-          >
-            {signingOut ? 'Signing out…' : 'Sign out'}
-          </SecondaryButton>
-          <p id={hintId} className={unsynced === 0 ? 'text-muted text-xs' : 'text-warn text-xs'}>
-            {signOutHint(unsynced)}
-          </p>
-          {signOutError === null ? null : (
-            <p id={errorId} role="alert" className="text-danger text-xs">
-              {signOutError}
-            </p>
-          )}
+        <div data-testid={`${testId}-column-1`} className="flex flex-col gap-3">
+          <UnitsCard unit={unit} onUnitChange={onUnitChange} error={unitError} />
+          <TargetsCard profile={profile} unit={unit} onSave={onSaveTarget} />
+          <HeartRateCard profile={profile} onSave={onSaveTarget} />
+        </div>
+        <div data-testid={`${testId}-column-2-3`} className="flex flex-col gap-3 lg:contents">
+          <div data-testid={`${testId}-column-2`} className="flex flex-col gap-3">
+            <RestSoundCard
+              muted={profile.rest_sound_muted ?? false}
+              onMutedChange={onMutedChange}
+              error={soundError}
+            />
+            <Card data-testid="exercises-card">
+              <MicroLabel as="p">Exercises</MicroLabel>
+              <button
+                type="button"
+                onClick={() => {
+                  setManaging(true)
+                }}
+                className="text-text mt-1.5 flex min-h-11 w-full items-center justify-between gap-3 text-left text-[15px] font-bold"
+              >
+                Manage exercises
+                <span aria-hidden="true" className="text-muted text-lg">
+                  ›
+                </span>
+              </button>
+            </Card>
+            {showImport ? <DataCard onSheet={setImporting} /> : null}
+          </div>
+          <div data-testid={`${testId}-column-3`} className="flex flex-col gap-3">
+            <SyncCard
+              report={report}
+              busy={syncBusy}
+              onSyncNow={onSyncNow}
+              deadLetters={deadLetters}
+              onRetry={onRetryDeadLetter}
+              onDiscard={onDiscardDeadLetter}
+              deadLetterError={deadLetterError}
+            />
+            <ErrorLogCard source={errorLogSource} />
+            <div className="flex flex-col gap-2">
+              <SecondaryButton
+                tone="danger"
+                disabled={signingOut}
+                aria-describedby={cn(hintId, signOutError === null ? undefined : errorId)}
+                onClick={onSignOut}
+              >
+                {signingOut ? 'Signing out…' : 'Sign out'}
+              </SecondaryButton>
+              <p
+                id={hintId}
+                className={unsynced === 0 ? 'text-muted text-xs' : 'text-warn text-xs'}
+              >
+                {signOutHint(unsynced)}
+              </p>
+              {signOutError === null ? null : (
+                <p id={errorId} role="alert" className="text-danger text-xs">
+                  {signOutError}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <ManageExercisesSheet

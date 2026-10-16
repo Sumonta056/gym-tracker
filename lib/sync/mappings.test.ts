@@ -30,6 +30,54 @@ const ROW_D = '44444444-4444-4444-8444-444444444444'
 const LOCAL_AT = '2026-09-01T10:00:00.000Z'
 const SERVER_AT = '2026-09-01T11:00:00.000Z'
 
+const SERVER_PROFILE: Tables<'profiles'> = {
+  id: USER_ID,
+  display_name: null,
+  unit_system: 'metric',
+  height_cm: null,
+  target_weight_kg: null,
+  step_goal: 12000,
+  rest_sound_muted: false,
+  rest_seconds_by_exercise: {},
+  calorie_goal: null,
+  gym_goal_seconds: null,
+  walk_goal_seconds: null,
+  sessions_per_week_goal: null,
+  birth_year: null,
+  max_heart_rate: null,
+  stats_layout: null,
+  created_at: LOCAL_AT,
+  updated_at: SERVER_AT,
+}
+
+const SERVER_ENTRY: Tables<'daily_entries'> = {
+  id: ROW_A,
+  user_id: USER_ID,
+  entry_date: '2026-09-01',
+  walk_seconds: null,
+  gym_seconds: null,
+  swim_seconds: null,
+  avg_heart_rate: null,
+  max_heart_rate: null,
+  weight_kg: null,
+  calories_burnt: null,
+  steps: null,
+  note: null,
+  created_at: LOCAL_AT,
+  updated_at: SERVER_AT,
+  deleted_at: null,
+}
+
+const GOALS = {
+  calorie_goal: 2400,
+  gym_goal_seconds: 3600,
+  walk_goal_seconds: 1800,
+  sessions_per_week_goal: 4,
+  birth_year: 1990,
+  max_heart_rate: 188,
+  stats_layout: [{ id: 'weight', hidden: true }],
+}
+
 function exercise(overrides: Partial<Exercise> = {}): Exercise {
   return {
     ...exerciseSchema.parse({ name: 'Cable Fly', muscle_group: 'chest' }),
@@ -163,19 +211,7 @@ describe('toServerProfile and toLocalProfile', () => {
     }
 
     const sent = toServerProfile(local, USER_ID)
-    const back = toLocalProfile({
-      ...sent,
-      id: USER_ID,
-      display_name: sent.display_name ?? null,
-      unit_system: sent.unit_system ?? 'metric',
-      height_cm: sent.height_cm ?? null,
-      target_weight_kg: sent.target_weight_kg ?? null,
-      step_goal: sent.step_goal ?? 10000,
-      rest_sound_muted: sent.rest_sound_muted ?? false,
-      rest_seconds_by_exercise: sent.rest_seconds_by_exercise ?? {},
-      created_at: LOCAL_AT,
-      updated_at: SERVER_AT,
-    })
+    const back = toLocalProfile({ ...SERVER_PROFILE, ...sent, id: USER_ID })
 
     expect(sent.id).toBe(USER_ID)
     expect(back).toMatchObject({
@@ -183,6 +219,78 @@ describe('toServerProfile and toLocalProfile', () => {
       rest_sound_muted: true,
       rest_seconds_by_exercise: { [ROW_C]: 150 },
     })
+  })
+})
+
+describe('the new profile fields', () => {
+  it('round trips every goal through the server shape', () => {
+    const local: Profile = {
+      ...profileSchema.parse({}),
+      ...GOALS,
+      id: LOCAL_PROFILE_ID,
+      updated_at: LOCAL_AT,
+    }
+    const sent = toServerProfile(local, USER_ID)
+    const back = toLocalProfile({ ...SERVER_PROFILE, ...sent, id: USER_ID })
+
+    expect(back).toMatchObject(GOALS)
+  })
+
+  it('leaves out a goal the device row never had', () => {
+    const older: Profile = {
+      id: LOCAL_PROFILE_ID,
+      display_name: null,
+      unit_system: 'metric',
+      height_cm: null,
+      target_weight_kg: null,
+      step_goal: 12000,
+      updated_at: LOCAL_AT,
+    }
+
+    expect(toServerProfile(older, USER_ID).calorie_goal).toBeUndefined()
+  })
+
+  it('reads a card layout that is not a list as null', () => {
+    expect(
+      toLocalProfile({ ...SERVER_PROFILE, stats_layout: { weight: true } }).stats_layout,
+    ).toBeNull()
+  })
+})
+
+describe('swim_seconds', () => {
+  it('round trips the swim time through the server shape', () => {
+    const entry: DailyEntry = {
+      ...dailyEntrySchema.parse({ entry_date: '2026-09-01', swim_seconds: 1500 }),
+      id: ROW_A,
+      created_at: LOCAL_AT,
+      updated_at: LOCAL_AT,
+      deleted_at: null,
+    }
+    const sent = toServerEntry(entry, USER_ID)
+
+    expect(toLocalEntry({ ...SERVER_ENTRY, ...sent, updated_at: SERVER_AT }).swim_seconds).toBe(
+      1500,
+    )
+  })
+
+  it('leaves out the swim time when the device row never had it', () => {
+    const older: DailyEntry = {
+      id: ROW_A,
+      entry_date: '2026-09-01',
+      walk_seconds: null,
+      gym_seconds: null,
+      avg_heart_rate: null,
+      max_heart_rate: null,
+      weight_kg: null,
+      calories_burnt: null,
+      steps: null,
+      note: null,
+      created_at: LOCAL_AT,
+      updated_at: LOCAL_AT,
+      deleted_at: null,
+    }
+
+    expect(toServerEntry(older, USER_ID).swim_seconds).toBeUndefined()
   })
 })
 

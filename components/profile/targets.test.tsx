@@ -1,10 +1,28 @@
 import { describe, expect, it } from 'vitest'
 
+import { profileSchema } from '../../lib/schema/profile'
 import { PROFILE } from '../../tests/fixtures/dashboard'
 
-import { parseTarget, targetLabel, targetText } from './targets'
+import {
+  durationLabel,
+  GOAL_MIN_SECONDS,
+  GOAL_TOO_SHORT,
+  parseDurationTarget,
+  parseTarget,
+  targetLabel,
+  targetText,
+} from './targets'
 
 const SET = { ...PROFILE, target_weight_kg: 71, height_cm: 174, step_goal: 12000 }
+
+const GOALS = { ...PROFILE, calorie_goal: 800, sessions_per_week_goal: 4 }
+
+function schemaMessage(
+  field: 'calorie_goal' | 'sessions_per_week_goal' | 'gym_goal_seconds',
+  value: number,
+) {
+  return profileSchema.shape[field].safeParse(value).error?.issues[0]?.message
+}
 
 describe('targetLabel', () => {
   it('names the weight unit the profile shows', () => {
@@ -92,6 +110,105 @@ describe('parseTarget', () => {
     expect(parseTarget('height_cm', '400', 'metric')).toEqual({
       ok: false,
       message: 'A height cannot be above 260 cm.',
+    })
+  })
+})
+
+describe('targetLabel for the goals', () => {
+  it('names the calorie goal and the sessions per week goal', () => {
+    expect(targetLabel('calorie_goal', 'metric')).toBe('Daily calorie goal (kcal)')
+    expect(targetLabel('sessions_per_week_goal', 'metric')).toBe('Sessions per week goal')
+  })
+})
+
+describe('durationLabel', () => {
+  it('names the gym time goal and the walk time goal', () => {
+    expect(durationLabel('gym_goal_seconds')).toBe('Daily gym time goal')
+    expect(durationLabel('walk_goal_seconds')).toBe('Daily walk time goal')
+  })
+})
+
+describe('targetText for the goals', () => {
+  it('writes a stored calorie goal and sessions goal', () => {
+    expect(targetText(GOALS, 'calorie_goal', 'metric')).toBe('800')
+    expect(targetText(GOALS, 'sessions_per_week_goal', 'metric')).toBe('4')
+  })
+
+  it('leaves an unset goal blank', () => {
+    expect(targetText(PROFILE, 'calorie_goal', 'metric')).toBe('')
+  })
+})
+
+describe('parseTarget for the goals', () => {
+  it('stores a whole calorie goal', () => {
+    expect(parseTarget('calorie_goal', '800', 'metric')).toEqual({
+      ok: true,
+      patch: { calorie_goal: 800 },
+    })
+  })
+
+  it('clears the calorie goal when the field is blank', () => {
+    expect(parseTarget('calorie_goal', ' ', 'metric')).toEqual({
+      ok: true,
+      patch: { calorie_goal: null },
+    })
+  })
+
+  it('refuses a calorie goal of 0 with the schema message', () => {
+    expect(parseTarget('calorie_goal', '0', 'metric')).toEqual({
+      ok: false,
+      message: schemaMessage('calorie_goal', 0),
+    })
+  })
+
+  it('refuses 15 sessions a week with the schema message', () => {
+    expect(parseTarget('sessions_per_week_goal', '15', 'metric')).toEqual({
+      ok: false,
+      message: schemaMessage('sessions_per_week_goal', 15),
+    })
+  })
+})
+
+describe('parseDurationTarget', () => {
+  it('stores a gym time goal in seconds', () => {
+    expect(parseDurationTarget('gym_goal_seconds', 3600)).toEqual({
+      ok: true,
+      patch: { gym_goal_seconds: 3600 },
+    })
+  })
+
+  it('stores no goal as null', () => {
+    expect(parseDurationTarget('walk_goal_seconds', null)).toEqual({
+      ok: true,
+      patch: { walk_goal_seconds: null },
+    })
+  })
+
+  it('refuses a goal under 1 minute with the picker message', () => {
+    expect(parseDurationTarget('gym_goal_seconds', 30)).toEqual({
+      ok: false,
+      message: GOAL_TOO_SHORT,
+    })
+  })
+
+  it('refuses a goal under 5 minutes with the picker message', () => {
+    expect(parseDurationTarget('walk_goal_seconds', 240)).toEqual({
+      ok: false,
+      message: 'A time goal must be at least 5 minutes.',
+    })
+  })
+
+  it('stores a goal of exactly 5 minutes', () => {
+    expect(parseDurationTarget('gym_goal_seconds', GOAL_MIN_SECONDS)).toEqual({
+      ok: true,
+      patch: { gym_goal_seconds: 300 },
+    })
+  })
+
+  it('refuses a goal over 24 hours with the schema message', () => {
+    expect(parseDurationTarget('gym_goal_seconds', 86401)).toEqual({
+      ok: false,
+      message: schemaMessage('gym_goal_seconds', 86401),
     })
   })
 })

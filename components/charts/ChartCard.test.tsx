@@ -81,6 +81,38 @@ describe('ChartCard', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Steps' })).toBeInTheDocument()
   })
 
+  it('renders its action in the header beside the heading', () => {
+    render(
+      <ChartCard
+        title="Steps"
+        empty={false}
+        emptyText="Nothing yet."
+        label="Steps per day"
+        action={<button type="button">Info</button>}
+      >
+        <svg />
+      </ChartCard>,
+    )
+    const heading = screen.getByRole('heading', { level: 2, name: 'Steps' })
+    expect(heading.parentElement).toContainElement(screen.getByRole('button', { name: 'Info' }))
+  })
+
+  it('renders its action when empty', () => {
+    render(
+      <ChartCard
+        title="Steps"
+        empty
+        emptyText="Nothing yet."
+        label="Steps per day"
+        action={<button type="button">Info</button>}
+      >
+        <svg />
+      </ChartCard>,
+    )
+    const heading = screen.getByRole('heading', { level: 2, name: 'Steps' })
+    expect(heading.parentElement).toContainElement(screen.getByRole('button', { name: 'Info' }))
+  })
+
   it('shows the lead above the chart, the empty state and the sparse value', () => {
     const { rerender } = render(
       <ChartCard title="Volume" empty emptyText="Nothing yet." label="Volume" lead={<p>Lead</p>} />,

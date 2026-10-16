@@ -1,12 +1,14 @@
 import Dexie, { type EntityTable } from 'dexie'
 
 import type { DailyEntryInput } from '../schema/dailyEntry'
+import type { ErrorRecord } from '../schema/errorRecord'
 import type { ExerciseInput } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
 import type { WorkoutSessionInput } from '../schema/workoutSession'
 import type { WorkoutSetInput } from '../schema/workoutSet'
 
-export interface DailyEntry extends DailyEntryInput {
+export interface DailyEntry
+  extends Omit<DailyEntryInput, 'swim_seconds'>, Partial<Pick<DailyEntryInput, 'swim_seconds'>> {
   id: string
   created_at: string
   updated_at: string
@@ -15,8 +17,19 @@ export interface DailyEntry extends DailyEntryInput {
 
 type RestSettings = 'rest_sound_muted' | 'rest_seconds_by_exercise'
 
+type GoalSettings =
+  | 'calorie_goal'
+  | 'gym_goal_seconds'
+  | 'walk_goal_seconds'
+  | 'sessions_per_week_goal'
+  | 'birth_year'
+  | 'max_heart_rate'
+  | 'stats_layout'
+
+type LaterProfileFields = RestSettings | GoalSettings
+
 export interface Profile
-  extends Omit<ProfileInput, RestSettings>, Partial<Pick<ProfileInput, RestSettings>> {
+  extends Omit<ProfileInput, LaterProfileFields>, Partial<Pick<ProfileInput, LaterProfileFields>> {
   id: string
   updated_at: string
 }
@@ -82,6 +95,7 @@ export type GymDatabase = Dexie & {
   exercises: EntityTable<Exercise, 'id'>
   workoutSessions: EntityTable<WorkoutSession, 'id'>
   workoutSets: EntityTable<WorkoutSet, 'id'>
+  errorLog: EntityTable<ErrorRecord, 'id'>
 }
 
 export const OUTBOX_SEQUENCE_KEY = 'outbox_sequence'
@@ -108,7 +122,7 @@ export const NEVER_WRITTEN = new Date(0).toISOString()
 
 export const DATABASE_NAME = 'gym-tracker'
 
-export const DATABASE_VERSION = 3
+export const DATABASE_VERSION = 5
 
 export const STORES_V1 = {
   dailyEntries: '&id, entry_date, updated_at',
@@ -122,19 +136,95 @@ export const STORES_V2 = {
   deadLetters: '&id, sequence',
 } as const
 
-export const STORES = {
+export const STORES_V3 = {
   ...STORES_V2,
   exercises: '&id, muscle_group, updated_at',
   workoutSessions: '&id, entry_date, status, updated_at',
   workoutSets: '&id, session_id, updated_at',
 } as const
 
-export function createDatabase(name: string = DATABASE_NAME): GymDatabase {
+export const STORES_V4 = {
+  ...STORES_V3,
+  errorLog: '&id, at',
+} as const
+
+export const STORES = { ...STORES_V4 } as const
+
+export type VersionState = 'current' | 'stale' | 'blocked'
+
+export interface VersionWatch {
+  get: () => VersionState
+  subscribe: (listener: () => void) => () => void
+  set: (next: VersionState) => void
+}
+
+export function createVersionWatch(): VersionWatch {
+  let state: VersionState = 'current'
+  const listeners = new Set<() => void>()
+
+  return {
+    get: () => state,
+    subscribe: (listener) => {
+      listeners.add(listener)
+
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+    set: (next) => {
+      if (next === state) {
+        return
+      }
+
+      state = next
+
+      for (const listener of listeners) {
+        listener()
+      }
+    },
+  }
+}
+
+export const versionWatch = createVersionWatch()
+
+export function getVersionState(): VersionState {
+  return versionWatch.get()
+}
+
+export function subscribeVersionState(listener: () => void): () => void {
+  return versionWatch.subscribe(listener)
+}
+
+export function createDatabase(
+  name: string = DATABASE_NAME,
+  watch: VersionWatch = versionWatch,
+): GymDatabase {
   const instance = new Dexie(name) as GymDatabase
 
   instance.version(1).stores(STORES_V1)
   instance.version(2).stores(STORES_V2)
+  instance.version(3).stores(STORES_V3)
+  instance.version(4).stores(STORES_V4)
   instance.version(DATABASE_VERSION).stores(STORES)
+
+  instance.on('versionchange', () => {
+    instance.close({ disableAutoOpen: true })
+    watch.set('stale')
+
+    return false
+  })
+  instance.on('blocked', () => {
+    watch.set('blocked')
+  })
+  instance.on(
+    'ready',
+    () => {
+      if (watch.get() === 'blocked') {
+        watch.set('current')
+      }
+    },
+    true,
+  )
 
   return instance
 }

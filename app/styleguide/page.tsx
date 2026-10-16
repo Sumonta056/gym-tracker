@@ -6,8 +6,12 @@ import { useEffect, useState } from 'react'
 import { AnalyticsHeader, AnalyticsView, RangeTabs } from '../../components/charts/Analytics'
 import { LiftCharts } from '../../components/charts/LiftCharts'
 import { analyse } from '../../components/charts/rangeData'
+import { resolveLayout } from '../../components/charts/statsCards'
+import { StatsLayoutEditor } from '../../components/charts/StatsLayoutEditor'
 import { StepsChart } from '../../components/charts/StepsChart'
+import { WalkChart } from '../../components/charts/WalkChart'
 import { WeekCharts } from '../../components/charts/WeekCharts'
+import { ZoneSplitChart } from '../../components/charts/ZoneSplitChart'
 import { ImportConfirmSheet } from '../../components/csv/ImportConfirmSheet'
 import { ImportConflict } from '../../components/csv/ImportConflict'
 import { ImportReview } from '../../components/csv/ImportReview'
@@ -18,13 +22,17 @@ import { HeartRateZonesCard } from '../../components/dashboard/HeartRateZonesCar
 import { ImportNoticeView } from '../../components/dashboard/ImportNotice'
 import { TodayHero } from '../../components/dashboard/TodayHero'
 import { WeekTotalsCard } from '../../components/dashboard/WeekTotalsCard'
+import { ZoneInfoButton } from '../../components/dashboard/ZoneInfo'
+import { ErrorScreenView } from '../../components/errors/ErrorScreen'
+import { VersionBannerView } from '../../components/errors/VersionBanner'
 import { DataCard } from '../../components/profile/DataCard'
+import { HeartRateCard } from '../../components/profile/HeartRateCard'
 import { ProfileView } from '../../components/profile/ProfileView'
 import { SyncCard } from '../../components/profile/SyncCard'
 import { AppShell } from '../../components/ui/AppShell'
 import { BrandMark } from '../../components/ui/BrandMark'
 import { Card } from '../../components/ui/Card'
-import { DurationField } from '../../components/ui/DurationField'
+import { DurationPicker, REST_PRESETS, SESSION_PRESETS } from '../../components/ui/DurationPicker'
 import { EmailField } from '../../components/ui/EmailField'
 import { HeroCard } from '../../components/ui/HeroCard'
 import { MicroLabel } from '../../components/ui/MicroLabel'
@@ -36,26 +44,33 @@ import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
 import { StatusChip } from '../../components/ui/StatusChip'
+import { SAVED_MESSAGE, useToast } from '../../components/ui/Toast'
 import { EditSetSheet } from '../../components/workout/EditSetSheet'
 import { ExerciseCard } from '../../components/workout/ExerciseCard'
 import { ExercisePicker } from '../../components/workout/ExercisePicker'
-import { GymTimeOfferCard, GymTimeSheet } from '../../components/workout/GymTimeOffer'
 import { RestTimerCard } from '../../components/workout/RestTimerCard'
 import { RestTimeSheet } from '../../components/workout/RestTimeSheet'
+import { SessionSummary } from '../../components/workout/SessionSummary'
 import { SessionTimer } from '../../components/workout/SessionTimer'
 import { UndoToast } from '../../components/workout/UndoToast'
+import { SessionDetail } from '../../components/workouts/SessionDetail'
+import { SessionList } from '../../components/workouts/SessionList'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
-import { formatDuration, parseInput } from '../../lib/duration'
+import { formatDuration } from '../../lib/duration'
+import { sessionDays } from '../../lib/metrics/sessionDays'
+import { MAX_REST_SECONDS } from '../../lib/schema/profile'
 
-import type { RangeTab } from '../../components/charts/rangeData'
+import type { ChartGoals, RangeTab } from '../../components/charts/rangeData'
 import type { LiftSource } from '../../components/charts/useLiftData'
 import type { ImportSource } from '../../components/csv/ImportReview'
 import type { DashboardSummary } from '../../components/dashboard/summary'
+import type { ErrorLogSource } from '../../components/profile/ErrorLogCard'
 import type { ManageExerciseSource } from '../../components/profile/ManageExercisesSheet'
 import type { EditingSet } from '../../components/workout/EditSetSheet'
 import type { ExerciseSource } from '../../components/workout/ExercisePicker'
 import type { Toast } from '../../components/workout/UndoToast'
+import type { FoundSession, HistoryList } from '../../components/workouts/useWorkoutHistory'
 import type {
   DailyEntry,
   DeadLetter,
@@ -65,9 +80,10 @@ import type {
   WorkoutSet,
 } from '../../lib/db/dexie'
 import type { ImportChoice } from '../../lib/db/repository'
+import type { MaxHeartRate } from '../../lib/metrics/heartRateZones'
+import type { SessionStats } from '../../lib/metrics/sessionStats'
 import type { MuscleGroup } from '../../lib/schema/exercise'
 import type { UnitSystem } from '../../lib/schema/profile'
-import type { GymTimeOffer } from '../../lib/workout/gymTime'
 import type { ReactNode } from 'react'
 
 const NAV = [
@@ -116,6 +132,13 @@ const SAMPLE_IMPORT_SHEET = [
   'August 20,18.75,1:44:50,124,171,73.10,1012,"11,482"',
 ].join('\n')
 
+const SAMPLE_SWIM_SHEET = [
+  'Day,Walk Time,Gym Time,Swim Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
+  'August 12,15.54,1:03:13,30:00,117,174,73.65,963,5909',
+  'August 15,12:40,1:15:37,,121,168,73.40,880,7120',
+  'August 18,20:00,1:02:09,45.30,118,166,73.20,904,5909',
+].join('\n')
+
 function sampleImportSource(): ImportSource {
   return {
     firstPullDone: () => Promise.resolve(true),
@@ -134,6 +157,37 @@ function ignoreImport(): void {
   return undefined
 }
 
+function ignoreReload(): void {
+  return undefined
+}
+
+function ignoreDateChange(): void {
+  return undefined
+}
+
+const SAMPLE_ERROR_LOG: ErrorLogSource = {
+  listErrors: () =>
+    Promise.resolve([
+      {
+        id: '00000000-0000-4000-8000-000000000001',
+        at: '2026-10-05T07:42:00.000Z',
+        source: 'live-query',
+        message: 'sync pending count: DatabaseClosedError',
+        stack: null,
+        route: '/',
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000002',
+        at: '2026-10-04T21:10:00.000Z',
+        source: 'window',
+        message: 'Loading chunk 812 failed.',
+        stack: null,
+        route: '/analytics',
+      },
+    ]),
+  clearErrors: () => Promise.resolve(),
+}
+
 const SAMPLE_IMPORT_COUNTS = { created: 12, overwritten: 1, merged: 2, skipped: 1, leftOut: 1 }
 
 const SAMPLE_ZONES = {
@@ -142,6 +196,24 @@ const SAMPLE_ZONES = {
   cardioSeconds: 1260,
   peakSeconds: 300,
 }
+
+const SAMPLE_SHORT_ZONES = {
+  warmSeconds: 30,
+  fatBurnSeconds: 1500,
+  cardioSeconds: 900,
+  peakSeconds: 0,
+}
+
+const SAMPLE_MAX: MaxHeartRate = { bpm: 190, source: 'age' }
+
+const SAMPLE_SPLIT_ZONES = {
+  warmSeconds: 1200,
+  fatBurnSeconds: 1500,
+  cardioSeconds: 1080,
+  peakSeconds: 240,
+}
+
+const SAMPLE_NO_ZONES = { warmSeconds: 0, fatBurnSeconds: 0, cardioSeconds: 0, peakSeconds: 0 }
 
 const SAMPLE_STATS_TODAY = '2026-09-20'
 
@@ -217,6 +289,13 @@ const SAMPLE_STATS_ENTRIES: DailyEntry[] = SAMPLE_STATS_DAYS.map(([date, patch],
 
 const SAMPLE_STEP_GOAL = 12000
 
+const SAMPLE_GOALS: ChartGoals = {
+  calories: 800,
+  gymSeconds: 2700,
+  walkSeconds: 3600,
+  weightKg: 72,
+}
+
 const SAMPLE_ONE_DAY = SAMPLE_STATS_ENTRIES.filter((row) => row.entry_date === SAMPLE_STATS_TODAY)
 
 const SAMPLE_HEAVY_ENTRIES: DailyEntry[] = SAMPLE_STATS_ENTRIES.map((row, index) => ({
@@ -240,6 +319,7 @@ const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
   entry: SAMPLE_HEAVY_DAY,
   streak: 12,
   zones: { warmSeconds: 600, fatBurnSeconds: 2700, cardioSeconds: 1680, peakSeconds: 420 },
+  maxHeartRate: SAMPLE_MAX,
   week: { sessions: 6, gymSeconds: 25920, walkSeconds: 19440, calories: 7710, steps: 78600 },
   weekRange: { from: '2026-09-07', to: '2026-09-13' },
   stepGoal: 12000,
@@ -247,6 +327,85 @@ const SAMPLE_HEAVY_SUMMARY: DashboardSummary = {
   weightTrend: [104.6, 104.3, 104.1, 103.9, 103.4],
   displayName: 'Sumonta',
   unitSystem: 'metric',
+  sessionsGoal: null,
+  gym: { seconds: 5400, source: 'typed' },
+  workouts: [],
+  calorieGoal: null,
+  walkGoalSeconds: null,
+  targetWeightKg: null,
+  weightGapKg: null,
+}
+
+const SAMPLE_FULL_DAY: DailyEntry = {
+  ...SAMPLE_DAY,
+  gym_seconds: null,
+  swim_seconds: 1500,
+  note: 'Felt strong on the bench.\nLeft knee a little stiff.',
+}
+
+const SAMPLE_FULL_START = new Date(2026, 8, 13, 17, 30).toISOString()
+const SAMPLE_FULL_END = new Date(2026, 8, 13, 18, 30).toISOString()
+
+const SAMPLE_FULL_SESSION: WorkoutSession = {
+  id: '00000000-0000-4000-8000-000000000501',
+  entry_date: SAMPLE_FULL_DAY.entry_date,
+  started_at: SAMPLE_FULL_START,
+  ended_at: SAMPLE_FULL_END,
+  status: 'finished',
+  created_at: SAMPLE_FULL_START,
+  updated_at: SAMPLE_FULL_END,
+  deleted_at: null,
+}
+
+const SAMPLE_FULL_SUMMARY: DashboardSummary = {
+  ...SAMPLE_HEAVY_SUMMARY,
+  entry: SAMPLE_FULL_DAY,
+  today: SAMPLE_FULL_DAY.entry_date,
+  streak: 4,
+  week: { sessions: 3, gymSeconds: 9120, walkSeconds: 9960, calories: 2627, steps: 21480 },
+  stepGoal: 12000,
+  latestWeightKg: SAMPLE_FULL_DAY.weight_kg,
+  weightTrend: [74.1, 74.6, 74.7, 74.4, 73.9, 73.6, 73.65],
+  sessionsGoal: 4,
+  gym: { seconds: 3600, source: 'sessions' },
+  workouts: [
+    {
+      session: SAMPLE_FULL_SESSION,
+      stats: {
+        durationSeconds: 3600,
+        setCount: 12,
+        exerciseCount: 3,
+        volumeKg: 2410,
+        newRecords: [{ exerciseId: '00000000-0000-4000-8000-000000000301', weightKg: 65, reps: 5 }],
+      },
+    },
+  ],
+  calorieGoal: 800,
+  walkGoalSeconds: 3600,
+  targetWeightKg: 71.25,
+  weightGapKg: 2.4,
+}
+
+const SAMPLE_SPARSE_SUMMARY: DashboardSummary = {
+  ...SAMPLE_FULL_SUMMARY,
+  entry: {
+    ...SAMPLE_DAY,
+    gym_seconds: null,
+    avg_heart_rate: null,
+    max_heart_rate: null,
+    weight_kg: null,
+    calories_burnt: null,
+    walk_seconds: null,
+    swim_seconds: null,
+    note: null,
+  },
+  streak: 1,
+  zones: { warmSeconds: 0, fatBurnSeconds: 0, cardioSeconds: 0, peakSeconds: 0 },
+  latestWeightKg: null,
+  weightTrend: [],
+  gym: { seconds: 0, source: 'none' },
+  workouts: [],
+  weightGapKg: null,
 }
 
 const SAMPLE_LIFT_DATES = [
@@ -372,8 +531,31 @@ function sampleWeekDays(entries: DailyEntry[], tab: RangeTab) {
   return analyse(entries, entries, tab, SAMPLE_WEEK_TODAY, SAMPLE_WEEK_NOW, SAMPLE_STEP_GOAL).days
 }
 
-function sampleStats(entries: DailyEntry[], tab: RangeTab) {
-  return analyse(entries, entries, tab, SAMPLE_STATS_TODAY, SAMPLE_STATS_NOW, SAMPLE_STEP_GOAL)
+function sampleSessionDates(entries: DailyEntry[], source: LiftSource) {
+  return sessionDays(
+    entries,
+    source.sessions.filter((session) => session.entry_date <= SAMPLE_WEEK_TODAY),
+  )
+}
+
+function sampleStats(
+  entries: DailyEntry[],
+  tab: RangeTab,
+  goals?: ChartGoals,
+  maxHeartRate: MaxHeartRate | null = null,
+) {
+  return analyse(
+    entries,
+    entries,
+    tab,
+    SAMPLE_STATS_TODAY,
+    SAMPLE_STATS_NOW,
+    SAMPLE_STEP_GOAL,
+    'metric',
+    [],
+    goals,
+    maxHeartRate,
+  )
 }
 
 const SAMPLE_PROFILE: Profile = {
@@ -383,7 +565,21 @@ const SAMPLE_PROFILE: Profile = {
   height_cm: 174,
   target_weight_kg: 71,
   step_goal: 12000,
+  calorie_goal: 800,
+  sessions_per_week_goal: 4,
+  gym_goal_seconds: 3600,
+  walk_goal_seconds: 2700,
+  birth_year: 1996,
+  max_heart_rate: null,
   updated_at: '2026-09-20T10:00:00.000Z',
+}
+
+const SAMPLE_OVERRIDE_PROFILE: Profile = { ...SAMPLE_PROFILE, max_heart_rate: 185 }
+
+const SAMPLE_EMPTY_HEART_PROFILE: Profile = {
+  ...SAMPLE_PROFILE,
+  birth_year: null,
+  max_heart_rate: null,
 }
 
 const SAMPLE_WEEK = { sessions: 3, gymSeconds: 9120, walkSeconds: 0, calories: 2627, steps: 21480 }
@@ -506,11 +702,36 @@ function sampleExerciseSource(): ExerciseSource {
 
 const SAMPLE_SESSION_START = new Date(2026, 8, 20, 17, 30, 0).toISOString()
 
-const SAMPLE_GYM_OFFER: GymTimeOffer = {
-  sessionId: '00000000-0000-4000-8000-0000000000aa',
-  entryDate: '2026-09-20',
-  sessionSeconds: 4325,
-  loggedSeconds: 3900,
+const SAMPLE_LOG_DATE = '2026-09-13'
+
+function sampleLogSession(id: string, startedAt: string, endedAt: string): WorkoutSession {
+  return {
+    id,
+    entry_date: SAMPLE_LOG_DATE,
+    started_at: startedAt,
+    ended_at: endedAt,
+    status: 'finished',
+    created_at: startedAt,
+    updated_at: endedAt,
+    deleted_at: null,
+  }
+}
+
+const SAMPLE_LOG_SESSIONS: WorkoutSession[] = [
+  sampleLogSession(
+    '00000000-0000-4000-8000-0000000000b1',
+    '2026-09-13T07:00:00.000Z',
+    '2026-09-13T07:30:00.000Z',
+  ),
+  sampleLogSession(
+    '00000000-0000-4000-8000-0000000000b2',
+    '2026-09-13T17:00:00.000Z',
+    '2026-09-13T17:42:05.000Z',
+  ),
+]
+
+function readSampleLogSessions(): Promise<WorkoutSession[]> {
+  return Promise.resolve(SAMPLE_LOG_SESSIONS)
 }
 
 const SAMPLE_SESSION_NOW = new Date(2026, 8, 20, 18, 12, 17)
@@ -522,6 +743,100 @@ function sampleSessionNow(): Date {
 const SAMPLE_REST_COMPLETED_AT = new Date(SAMPLE_SESSION_NOW.getTime() - 6000).toISOString()
 
 const SAMPLE_REST_EXERCISE_ID = '33333333-3333-4333-8333-333333333333'
+
+const SAMPLE_SUMMARY: SessionStats = {
+  durationSeconds: 4325,
+  setCount: 18,
+  exerciseCount: 4,
+  volumeKg: 3420,
+  newRecords: [{ exerciseId: SAMPLE_REST_EXERCISE_ID, weightKg: 102.5, reps: 3 }],
+}
+
+const SAMPLE_HISTORY_SESSIONS: WorkoutSession[] = (
+  [
+    ['2026-09-20', '17:30', '18:42:05'],
+    ['2026-09-17', '07:05', '07:53:00'],
+  ] as const
+).map(([date, start, end], at) => ({
+  id: `80000000-0000-4000-8000-${String(at + 1).padStart(12, '0')}`,
+  entry_date: date,
+  started_at: `${date}T${start}:00.000Z`,
+  ended_at: `${date}T${end}.000Z`,
+  status: 'finished',
+  created_at: `${date}T${start}:00.000Z`,
+  updated_at: `${date}T${end}.000Z`,
+  deleted_at: null,
+}))
+
+const SAMPLE_HISTORY: HistoryList = {
+  rows: [
+    { session: SAMPLE_HISTORY_SESSIONS[0] as WorkoutSession, stats: SAMPLE_SUMMARY },
+    {
+      session: SAMPLE_HISTORY_SESSIONS[1] as WorkoutSession,
+      stats: {
+        durationSeconds: 2880,
+        setCount: 12,
+        exerciseCount: 3,
+        volumeKg: 2160,
+        newRecords: [],
+      },
+    },
+  ],
+  hasMore: true,
+  unit: 'metric',
+}
+
+const SAMPLE_DETAIL_SESSION = SAMPLE_HISTORY_SESSIONS[0] as WorkoutSession
+
+const SAMPLE_DETAIL_EXERCISES: Exercise[] = [
+  ['80000000-0000-4000-8000-0000000000e1', 'Bench press', 'chest'],
+  ['80000000-0000-4000-8000-0000000000e2', 'Pull-up', 'back'],
+].map(([id, name, group]) => ({
+  id: id ?? '',
+  user_id: null,
+  name: name ?? '',
+  muscle_group: group as MuscleGroup,
+  is_archived: false,
+  created_at: '2026-09-01T00:00:00.000Z',
+  updated_at: '2026-09-01T00:00:00.000Z',
+  deleted_at: null,
+}))
+
+const SAMPLE_DETAIL_SETS: WorkoutSet[] = (
+  [
+    [0, 10, 95],
+    [0, 3, 102.5],
+    [1, 12, null],
+    [1, 10, null],
+  ] as const
+).map(([exercise, reps, weight_kg], at) => ({
+  id: `80000000-0000-4000-8000-${String(at + 101).padStart(12, '0')}`,
+  session_id: SAMPLE_DETAIL_SESSION.id,
+  exercise_id: SAMPLE_DETAIL_EXERCISES[exercise]?.id ?? '',
+  set_index: at,
+  reps,
+  weight_kg,
+  rpe: null,
+  completed_at: SAMPLE_DETAIL_SESSION.started_at,
+  created_at: SAMPLE_DETAIL_SESSION.started_at,
+  updated_at: SAMPLE_DETAIL_SESSION.started_at,
+  deleted_at: null,
+}))
+
+const SAMPLE_DETAIL: FoundSession = {
+  status: 'found',
+  session: SAMPLE_DETAIL_SESSION,
+  sets: SAMPLE_DETAIL_SETS,
+  stats: {
+    durationSeconds: 4325,
+    setCount: 4,
+    exerciseCount: 2,
+    volumeKg: 1257.5,
+    newRecords: [{ exerciseId: SAMPLE_DETAIL_EXERCISES[0]?.id ?? '', weightKg: 102.5, reps: 3 }],
+  },
+  exercises: new Map(SAMPLE_DETAIL_EXERCISES.map((exercise) => [exercise.id, exercise])),
+  unit: 'metric',
+}
 
 const SAMPLE_LIVE_SETS: WorkoutSet[] = (
   [
@@ -605,7 +920,7 @@ export default function StyleguidePage() {
 function Styleguide() {
   const [range, setRange] = useState('week')
   const [statsTab, setStatsTab] = useState<RangeTab>('week')
-  const stats = sampleStats(SAMPLE_STATS_ENTRIES, statsTab)
+  const stats = sampleStats(SAMPLE_STATS_ENTRIES, statsTab, SAMPLE_GOALS, SAMPLE_MAX)
   const oneDay = sampleStats(SAMPLE_ONE_DAY, statsTab)
   const heavy = analyse(
     SAMPLE_HEAVY_ENTRIES,
@@ -616,8 +931,9 @@ function Styleguide() {
     SAMPLE_STEP_GOAL,
     'imperial',
   )
-  const [durationText, setDurationText] = useState(formatDuration(4325, 'clock'))
   const [nudgeWeight, setNudgeWeight] = useState(73.4)
+  const [pickerRest, setPickerRest] = useState(90)
+  const [pickerGym, setPickerGym] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
@@ -627,8 +943,7 @@ function Styleguide() {
   const [sampleRestSkipped, setSampleRestSkipped] = useState(false)
   const [sampleRestSeconds, setSampleRestSeconds] = useState(90)
   const [sampleChangingRest, setSampleChangingRest] = useState(false)
-  const [sampleOfferOpen, setSampleOfferOpen] = useState(false)
-  const [sampleOfferUsed, setSampleOfferUsed] = useState(false)
+  const [sampleSummaryOpen, setSampleSummaryOpen] = useState(false)
   const [pickerSource] = useState(sampleExerciseSource)
   const [manageSource] = useState(sampleManageSource)
   const [importSource] = useState(sampleImportSource)
@@ -642,11 +957,11 @@ function Styleguide() {
   const [showFieldError, setShowFieldError] = useState(false)
   const [showEmailError, setShowEmailError] = useState(false)
   const [sampleProfile, setSampleProfile] = useState<Profile>(SAMPLE_PROFILE)
+  const [sampleOverride, setSampleOverride] = useState<Profile>(SAMPLE_OVERRIDE_PROFILE)
+  const [sampleEmptyHeart, setSampleEmptyHeart] = useState<Profile>(SAMPLE_EMPTY_HEART_PROFILE)
   const [samplePending, setSamplePending] = useState(0)
   const [showSignOutError, setShowSignOutError] = useState(false)
   const [sampleLost, setSampleLost] = useState<number | null>(null)
-  const parsedDuration = parseInput(durationText.trim())
-  const storedSeconds = parsedDuration.ok ? parsedDuration.seconds : null
 
   return (
     <AppShell
@@ -742,14 +1057,38 @@ function Styleguide() {
           <DashboardHeader date="2026-09-13" displayName="Sumonta" />
         </Card>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <TodayHero entry={SAMPLE_DAY} streak={4} name="Today, logged" />
-          <TodayHero entry={undefined} streak={0} name="Today, empty state" />
-          <HeartRateZonesCard zones={SAMPLE_ZONES} />
-          <WeekTotalsCard totals={SAMPLE_WEEK} className="md:col-span-2 lg:col-span-3" />
+          <TodayHero
+            entry={SAMPLE_DAY}
+            gym={{ seconds: 4325, source: 'typed' }}
+            streak={4}
+            name="Today, logged"
+          />
+          <TodayHero
+            entry={undefined}
+            gym={{ seconds: 0, source: 'none' }}
+            streak={0}
+            name="Today, empty state"
+          />
+          <HeartRateZonesCard zones={SAMPLE_ZONES} maxHeartRate={SAMPLE_MAX} />
+          <HeartRateZonesCard zones={SAMPLE_SHORT_ZONES} maxHeartRate={null} />
+          <WeekTotalsCard
+            totals={SAMPLE_WEEK}
+            range={{ from: '2026-09-07', to: '2026-09-13' }}
+            sessionsGoal={4}
+            className="md:col-span-2 lg:col-span-3"
+          />
         </div>
         <h3 className="text-text mt-6 text-base font-bold">The full screen, a heavy day</h3>
         <div className="mt-4" data-testid="dashboard-sample">
           <DashboardView summary={SAMPLE_HEAVY_SUMMARY} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">Today, a full day</h3>
+        <div className="mt-4" data-testid="dashboard-full-sample">
+          <DashboardView summary={SAMPLE_FULL_SUMMARY} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">Today, a sparse day</h3>
+        <div className="mt-4" data-testid="dashboard-sparse-sample">
+          <DashboardView summary={SAMPLE_SPARSE_SUMMARY} />
         </div>
       </Section>
 
@@ -764,12 +1103,14 @@ function Styleguide() {
         <WeekCharts
           source={SAMPLE_LIFTS}
           days={sampleWeekDays(SAMPLE_WEEK_ENTRIES, statsTab)}
+          sessionDates={sampleSessionDates(SAMPLE_WEEK_ENTRIES, SAMPLE_LIFTS)}
           today={SAMPLE_WEEK_TODAY}
         />
         <h3 className="text-text mt-6 text-base font-bold">The week charts, one session</h3>
         <WeekCharts
           source={SAMPLE_WEEK_ONE_SESSION}
           days={sampleWeekDays(SAMPLE_WEEK_ONE_DAY, statsTab)}
+          sessionDates={sampleSessionDates(SAMPLE_WEEK_ONE_DAY, SAMPLE_WEEK_ONE_SESSION)}
           today={SAMPLE_WEEK_TODAY}
           testId="week-grid-one-session"
         />
@@ -793,6 +1134,7 @@ function Styleguide() {
         <h3 className="text-text mt-6 text-base font-bold">Nothing logged</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           <StepsChart days={[]} tab="week" stepGoal={SAMPLE_STEP_GOAL} />
+          <WalkChart days={[]} tab="week" />
         </div>
         <LiftCharts
           source={SAMPLE_NO_LIFTS}
@@ -803,14 +1145,52 @@ function Styleguide() {
         <WeekCharts
           source={SAMPLE_NO_LIFTS}
           days={sampleWeekDays([], statsTab)}
+          sessionDates={sampleSessionDates([], SAMPLE_NO_LIFTS)}
           today={SAMPLE_WEEK_TODAY}
           testId="week-grid-empty"
         />
+        <h3 className="text-text mt-6 text-base font-bold">
+          The zone split chart, a max of 190 and none
+        </h3>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <ZoneSplitChart
+            zones={SAMPLE_SPLIT_ZONES}
+            date={SAMPLE_STATS_TODAY}
+            maxHeartRate={SAMPLE_MAX}
+          />
+          <ZoneSplitChart
+            zones={SAMPLE_SPLIT_ZONES}
+            date={SAMPLE_STATS_TODAY}
+            maxHeartRate={null}
+          />
+          <ZoneSplitChart zones={SAMPLE_NO_ZONES} date={SAMPLE_STATS_TODAY} maxHeartRate={null} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">The zone info sheet</h3>
+        <div className="mt-4 flex flex-wrap items-center gap-3" data-testid="zone-info-sample">
+          <span className="flex items-center gap-2">
+            <ZoneInfoButton maxHeartRate={SAMPLE_MAX} />
+            <span className="text-muted text-sm">A max of 190, from the birth year</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <ZoneInfoButton maxHeartRate={null} />
+            <span className="text-muted text-sm">No max</span>
+          </span>
+        </div>
+      </Section>
+
+      <Section title="Stats layout">
+        <div data-testid="stats-layout-sample">
+          <StatsLayoutSample />
+        </div>
       </Section>
 
       <Section title="Daily log">
         <div data-testid="log-sample">
-          <DailyEntryForm date="2026-09-13" />
+          <DailyEntryForm
+            date={SAMPLE_LOG_DATE}
+            onDateChange={ignoreDateChange}
+            readSessions={readSampleLogSessions}
+          />
         </div>
       </Section>
 
@@ -846,6 +1226,7 @@ function Styleguide() {
           onCancelSignOut={() => {
             setSampleLost(null)
           }}
+          errorLogSource={SAMPLE_ERROR_LOG}
           exerciseSource={manageSource}
           testId="profile-grid-sample"
         />
@@ -864,6 +1245,30 @@ function Styleguide() {
           >
             {showSignOutError ? 'Hide the sign-out error' : 'Show the sign-out error'}
           </SecondaryButton>
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">
+          Heart rate card, an override and no max
+        </h3>
+        <div
+          data-testid="heart-rate-card-sample"
+          className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
+        >
+          <HeartRateCard
+            profile={sampleOverride}
+            today={SAMPLE_STATS_TODAY}
+            onSave={(patch) => {
+              setSampleOverride((current) => ({ ...current, ...patch }))
+              return Promise.resolve()
+            }}
+          />
+          <HeartRateCard
+            profile={sampleEmptyHeart}
+            today={SAMPLE_STATS_TODAY}
+            onSave={(patch) => {
+              setSampleEmptyHeart((current) => ({ ...current, ...patch }))
+              return Promise.resolve()
+            }}
+          />
         </div>
         <h3 className="text-text mt-6 text-base font-bold">Sync card, offline and syncing</h3>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -903,6 +1308,17 @@ function Styleguide() {
           <ImportReview
             fileName="gym-sheet.csv"
             text={SAMPLE_IMPORT_SHEET}
+            initialYear={2026}
+            status={<StatusChip status="synced" announce={false} />}
+            source={importSource}
+            onImported={ignoreImport}
+          />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">A sheet with a Swim Time column</h3>
+        <div className="mt-4" data-testid="import-review-swim-sample">
+          <ImportReview
+            fileName="swim-sheet.csv"
+            text={SAMPLE_SWIM_SHEET}
             initialYear={2026}
             status={<StatusChip status="synced" announce={false} />}
             source={importSource}
@@ -951,7 +1367,23 @@ function Styleguide() {
           <StatusChip status="syncing" />
           <StatusChip status="offline" />
           <StatusChip status="pending" />
+          <StatusChip status="unknown" />
         </Card>
+      </Section>
+
+      <Section title="Error screen">
+        <ErrorScreenView
+          error={new Error('Sample error')}
+          reload={() => undefined}
+          copy={() => Promise.resolve()}
+        />
+      </Section>
+
+      <Section title="Version banner">
+        <div data-testid="version-banner-sample" className="flex flex-col gap-3">
+          <VersionBannerView state="stale" onReload={ignoreReload} />
+          <VersionBannerView state="blocked" onReload={ignoreReload} />
+        </div>
       </Section>
 
       <Section title="Segmented tabs">
@@ -988,17 +1420,32 @@ function Styleguide() {
           </Card>
           <Card
             className="flex flex-col gap-4"
-            data-testid="duration-sample"
+            data-testid="duration-picker-sample"
             data-ready={hydrated ? 'true' : 'false'}
           >
-            <DurationField
-              label="Gym time"
-              value={durationText}
-              onChange={(event) => {
-                setDurationText(event.target.value)
+            <DurationPicker
+              id="sample-rest-picker"
+              label="Rest time"
+              value={pickerRest}
+              onChange={(next) => {
+                if (next !== null) {
+                  setPickerRest(next)
+                }
               }}
+              presets={REST_PRESETS}
+              max={MAX_REST_SECONDS}
             />
-            <p className="text-muted text-xs">{`Stored seconds: ${storedSeconds === null ? 'none' : String(storedSeconds)}`}</p>
+            <DurationPicker
+              id="sample-gym-picker"
+              label="Gym time"
+              value={pickerGym}
+              onChange={setPickerGym}
+              presets={SESSION_PRESETS}
+              allowClear
+            />
+            <p className="text-muted text-xs">
+              {`Rest seconds: ${String(pickerRest)} · Gym seconds: ${pickerGym === null ? 'none' : String(pickerGym)}`}
+            </p>
           </Card>
           <Card className="flex flex-col gap-2" data-testid="nudge-sample">
             <NumberField
@@ -1068,6 +1515,7 @@ function Styleguide() {
           >
             Open the sheet
           </PrimaryButton>
+          <ToastSample />
           <SecondaryButton>Secondary</SecondaryButton>
           <SecondaryButton tone="danger">Destructive</SecondaryButton>
         </Card>
@@ -1176,43 +1624,20 @@ function Styleguide() {
               }}
             />
           )}
-        </div>
-        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2" data-testid="gym-offer-sample">
-          {sampleOfferUsed ? (
-            <SecondaryButton
-              onClick={() => {
-                setSampleOfferUsed(false)
-              }}
-            >
-              Show the gym time offer sample
-            </SecondaryButton>
-          ) : (
-            <GymTimeOfferCard
-              offer={SAMPLE_GYM_OFFER}
-              dateLabel="Sun 20 Sep"
-              isToday
-              onUse={() => {
-                setSampleOfferUsed(true)
-              }}
-            />
-          )}
           <SecondaryButton
             onClick={() => {
-              setSampleOfferOpen(true)
+              setSampleSummaryOpen(true)
             }}
           >
-            Open the finish sheet
+            Open the session summary sample
           </SecondaryButton>
         </div>
-        <GymTimeSheet
-          offer={sampleOfferOpen ? SAMPLE_GYM_OFFER : null}
-          dateLabel="Sun 20 Sep"
-          summary="Sun 20 Sep · 17:30 to 18:42 · 11 sets · 4,820 kg"
-          onUse={() => {
-            setSampleOfferOpen(false)
-          }}
-          onKeep={() => {
-            setSampleOfferOpen(false)
+        <SessionSummary
+          stats={sampleSummaryOpen ? SAMPLE_SUMMARY : null}
+          unit="metric"
+          nameOf={() => 'Bench Press'}
+          onDone={() => {
+            setSampleSummaryOpen(false)
           }}
         />
         <RestTimeSheet
@@ -1262,6 +1687,33 @@ function Styleguide() {
           }}
         />
       </Section>
+
+      <Section title="Workouts history">
+        <SessionList list={SAMPLE_HISTORY} note={null} onMore={() => undefined} />
+        <div data-testid="session-detail-sample">
+          <SessionDetail view={SAMPLE_DETAIL} />
+        </div>
+      </Section>
     </AppShell>
+  )
+}
+
+function StatsLayoutSample() {
+  const [layout, setLayout] = useState(() => resolveLayout(null))
+
+  return <StatsLayoutEditor layout={layout} onChange={setLayout} />
+}
+
+function ToastSample() {
+  const toast = useToast()
+
+  return (
+    <SecondaryButton
+      onClick={() => {
+        toast.show(SAVED_MESSAGE)
+      }}
+    >
+      Show the Saved toast
+    </SecondaryButton>
   )
 }

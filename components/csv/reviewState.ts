@@ -9,6 +9,7 @@ import type {
   SheetField,
 } from '../../lib/csv/import'
 import type { ImportChoice, ImportDay } from '../../lib/db/repository'
+import type { DailyEntryDraft } from '../../lib/schema/dailyEntry'
 
 export type Picks = Readonly<Record<string, number>>
 
@@ -23,6 +24,7 @@ export const FIELD_LABEL: Record<SheetField, string> = {
   entry_date: 'Day',
   walk_seconds: 'Walk time',
   gym_seconds: 'Gym time',
+  swim_seconds: 'Swim time',
   avg_heart_rate: 'Avg heart rate',
   max_heart_rate: 'Highest rate',
   weight_kg: 'Weight',
@@ -34,6 +36,7 @@ export const SHEET_FIELDS: SheetField[] = [
   'entry_date',
   'walk_seconds',
   'gym_seconds',
+  'swim_seconds',
   'avg_heart_rate',
   'max_heart_rate',
   'weight_kg',
@@ -41,7 +44,7 @@ export const SHEET_FIELDS: SheetField[] = [
   'steps',
 ]
 
-const DURATION_FIELDS: SheetField[] = ['walk_seconds', 'gym_seconds']
+const DURATION_FIELDS: SheetField[] = ['walk_seconds', 'gym_seconds', 'swim_seconds']
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -317,6 +320,14 @@ const COUNTED: Record<ImportChoice, 'skipped' | 'overwritten' | 'merged'> = {
   merge: 'merged',
 }
 
+function withoutSwim(entry: DailyEntryDraft): DailyEntryDraft {
+  const rest = { ...entry }
+
+  delete rest.swim_seconds
+
+  return rest
+}
+
 export function importPlan(
   sheet: ParsedSheet,
   picks: Picks,
@@ -327,8 +338,11 @@ export function importPlan(
   const counts: ImportCounts = { created: 0, overwritten: 0, merged: 0, skipped: 0, leftOut: 0 }
   const days: ImportDay[] = []
 
+  const withSwim = sheet.columns.includes('swim_seconds')
+
   sheet.rows.forEach((row, rowIndex) => {
-    const entry = repeated.has(rowIndex) ? null : rowEntry(row, rowPicks(picks, rowIndex))
+    const found = repeated.has(rowIndex) ? null : rowEntry(row, rowPicks(picks, rowIndex))
+    const entry = found === null || withSwim ? found : withoutSwim(found)
 
     if (entry === null) {
       counts.leftOut += 1

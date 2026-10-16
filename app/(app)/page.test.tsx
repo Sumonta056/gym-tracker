@@ -6,6 +6,9 @@ import HomePage from './page'
 vi.mock('../../lib/db/repository', () => ({
   useSyncStatus: () => ({ status: 'synced', pending: 0, failed: 0 }),
   listRange: vi.fn(() => Promise.resolve([])),
+  listSessions: vi.fn(() => Promise.resolve([])),
+  listSetsInRange: vi.fn(() => Promise.resolve([])),
+  setsForExercises: vi.fn(() => Promise.resolve([])),
   getProfile: vi.fn(() =>
     Promise.resolve({
       id: '00000000-0000-4000-8000-000000000000',

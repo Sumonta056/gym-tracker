@@ -12,6 +12,7 @@ import {
   getProfile,
   haltSync,
   pendingWrites,
+  recordError,
   resumeSync,
   retryDeadLetter,
   syncNow,
@@ -322,6 +323,13 @@ describe('Profile', () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_CSV_IMPORT', '1')
     render(<Profile />)
     expect(await screen.findByTestId('data-card')).toBeInTheDocument()
+  })
+
+  it('lists an error recorded on this device in the Errors card', async () => {
+    await recordError({ source: 'sync', message: 'drain refused', stack: null, route: '/' })
+    render(<Profile />)
+
+    expect(await screen.findByText('drain refused')).toBeInTheDocument()
   })
 })
 

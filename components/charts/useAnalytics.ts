@@ -1,21 +1,35 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { getProfile, listRange } from '../../lib/db/repository'
+import { getProfile, listRange, listSessions } from '../../lib/db/repository'
+import { resolveMaxHeartRate } from '../../lib/metrics/heartRateZones'
 import { localDate } from '../../lib/schema/dailyEntry'
 import { HISTORY_START } from '../dashboard/summary'
 
-import { analyse, rangeFor, readWindow } from './rangeData'
+import { analyse, chartGoals, rangeFor, readWindow } from './rangeData'
+import { resolveLayout } from './statsCards'
+import { HISTORY_END } from './useLiftData'
 
 import type { AnalyticsData, RangeTab } from './rangeData'
+import type { StatsLayoutItem } from './statsCards'
+import type { DailyEntry, Profile, WorkoutSession } from '../../lib/db/dexie'
 
 export type AnalyticsState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; data: AnalyticsData }
+  | { status: 'ready'; data: AnalyticsData; layout: StatsLayoutItem[] }
 
-type Settled = { tab: RangeTab; state: Exclude<AnalyticsState, { status: 'loading' }> }
+type Source = {
+  history: DailyEntry[]
+  sessions: WorkoutSession[]
+  profile: Profile
+  today: string
+  now: Date
+}
+
+type Loaded =
+  { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; source: Source }
 
 export const READ_ERROR = 'The entries on this device could not be read.'
 
@@ -23,42 +37,37 @@ function systemClock(): Date {
   return new Date()
 }
 
+export function entriesIn(
+  history: readonly DailyEntry[],
+  tab: RangeTab,
+  today: string,
+): DailyEntry[] {
+  const span = readWindow(rangeFor(tab, today))
+
+  return history.filter((row) => row.entry_date >= span.from && row.entry_date <= span.to)
+}
+
 export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): AnalyticsState {
-  const [settled, setSettled] = useState<Settled | null>(null)
+  const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' })
 
   useEffect(() => {
     let cancelled = false
     const now = clock()
     const today = localDate(now)
-    const span = readWindow(rangeFor(tab, today))
 
     void Promise.all([
-      listRange(span.from, span.to),
-      listRange(HISTORY_START, today),
+      listRange(HISTORY_START, HISTORY_END),
+      listSessions(HISTORY_START, HISTORY_END),
       getProfile(),
     ]).then(
-      ([entries, history, profile]) => {
+      ([history, sessions, profile]) => {
         if (!cancelled) {
-          setSettled({
-            tab,
-            state: {
-              status: 'ready',
-              data: analyse(
-                entries,
-                history,
-                tab,
-                today,
-                now,
-                profile.step_goal,
-                profile.unit_system,
-              ),
-            },
-          })
+          setLoaded({ status: 'ready', source: { history, sessions, profile, today, now } })
         }
       },
       () => {
         if (!cancelled) {
-          setSettled({ tab, state: { status: 'error', message: READ_ERROR } })
+          setLoaded({ status: 'error', message: READ_ERROR })
         }
       },
     )
@@ -66,11 +75,36 @@ export function useAnalytics(tab: RangeTab, clock: () => Date = systemClock): An
     return () => {
       cancelled = true
     }
-  }, [tab, clock])
+  }, [clock])
 
-  if (settled === null || settled.tab !== tab) {
-    return { status: 'loading' }
-  }
+  return useMemo((): AnalyticsState => {
+    if (loaded.status !== 'ready') {
+      return loaded
+    }
 
-  return settled.state
+    const { history, sessions, profile, today, now } = loaded.source
+
+    return {
+      status: 'ready',
+      data: analyse(
+        entriesIn(history, tab, today),
+        history,
+        tab,
+        today,
+        now,
+        profile.step_goal,
+        profile.unit_system,
+        sessions,
+        chartGoals(profile),
+        resolveMaxHeartRate(
+          {
+            max_heart_rate: profile.max_heart_rate ?? null,
+            birth_year: profile.birth_year ?? null,
+          },
+          today,
+        ),
+      ),
+      layout: resolveLayout(profile.stats_layout ?? null),
+    }
+  }, [loaded, tab])
 }

@@ -109,6 +109,18 @@ export function gapRows(histogram: readonly GapBucket[]): GapRow[] {
   }))
 }
 
+export const GAP_LIST_CAP = 10
+
+export function gapFooter(gaps: readonly number[], span: string): string {
+  if (gaps.length <= GAP_LIST_CAP) {
+    return `Gaps ${gaps.map(String).join(', ')} from ${span}.`
+  }
+
+  const latest = gaps.slice(-GAP_LIST_CAP).map(String).join(', ')
+
+  return `${String(gaps.length)} gaps from ${span}. The last ${String(GAP_LIST_CAP)}: ${latest}.`
+}
+
 export function gapSummary(gaps: readonly number[]): string {
   const average = averageGap(gaps)
 
@@ -130,15 +142,11 @@ export function SessionGapChart({ dates, height = 112, className }: SessionGapCh
       empty={empty}
       emptyText={
         dates.length === 0
-          ? 'Log a day to start counting the days between sessions.'
-          : 'Log one more day to see the days between sessions.'
+          ? 'Finish a session or log gym time to count the days between sessions.'
+          : 'One more gym day shows the days between sessions.'
       }
       label={empty ? '' : gapLabel(histogram, gaps, span)}
-      footer={
-        empty ? undefined : (
-          <p className="text-muted text-xs">{`Gaps ${gaps.map(String).join(', ')} from ${span}.`}</p>
-        )
-      }
+      footer={empty ? undefined : <p className="text-muted text-xs">{gapFooter(gaps, span)}</p>}
       className={className}
     >
       <ResponsiveContainer width="100%" height={height}>

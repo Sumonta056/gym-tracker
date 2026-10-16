@@ -8,6 +8,7 @@ import { DEAD_DAY } from '../../tests/fixtures/sync'
 import { MANAGE_TITLE } from './ManageExercisesSheet'
 import { ProfileView, signOutHint } from './ProfileView'
 
+import type { ErrorLogSource } from './ErrorLogCard'
 import type { ManageExerciseSource } from './ManageExercisesSheet'
 import type { ProfileViewProps } from './ProfileView'
 import type { Exercise } from '../../lib/db/dexie'
@@ -32,6 +33,13 @@ function exerciseSource(): ManageExerciseSource {
   }
 }
 
+function errorLogSource(): ErrorLogSource {
+  return {
+    listErrors: vi.fn(() => Promise.resolve([])),
+    clearErrors: vi.fn(() => Promise.resolve()),
+  }
+}
+
 function renderView(overrides: Partial<ProfileViewProps> = {}) {
   const props: ProfileViewProps = {
     email: 'sam@example.com',
@@ -45,6 +53,7 @@ function renderView(overrides: Partial<ProfileViewProps> = {}) {
     onSaveTarget: vi.fn(() => Promise.resolve()),
     onSyncNow: vi.fn(),
     onSignOut: vi.fn(),
+    errorLogSource: errorLogSource(),
     ...overrides,
   }
   render(<ProfileView {...props} />)
@@ -61,10 +70,88 @@ describe('ProfileView', () => {
     )
   })
 
+  it('stacks Units and Goals in the first column', () => {
+    renderView()
+    const first = within(screen.getByTestId('profile-grid-column-1'))
+    expect(first.getByText('Units')).toBeInTheDocument()
+    expect(first.getByText('Goals')).toBeInTheDocument()
+  })
+
+  it('renders the Heart rate card right after the Goals card', () => {
+    renderView()
+    const first = screen.getByTestId('profile-grid-column-1')
+    const labels = [...first.children].map((card) => card.firstElementChild?.textContent)
+    expect(labels.indexOf('Heart rate')).toBe(labels.indexOf('Goals') + 1)
+  })
+
+  it('stacks the rest timer, the exercises and the data card in the second column', () => {
+    renderView({ showImport: true })
+    const second = within(screen.getByTestId('profile-grid-column-2'))
+    expect(second.getByText('Rest timer')).toBeInTheDocument()
+    expect(second.getByText('Exercises')).toBeInTheDocument()
+    expect(second.getByTestId('data-card')).toBeInTheDocument()
+  })
+
+  it('stacks sync, errors and sign out in the third column', () => {
+    renderView()
+    const third = within(screen.getByTestId('profile-grid-column-3'))
+    expect(third.getByText('Sync')).toBeInTheDocument()
+    expect(third.getByText('Errors')).toBeInTheDocument()
+    expect(third.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+  })
+
+  it('joins the second and third columns into one below the wide layout', () => {
+    renderView()
+    const joined = screen.getByTestId('profile-grid-column-2-3')
+    expect(joined).toHaveClass('flex', 'flex-col', 'gap-3', 'lg:contents')
+    expect(joined).toContainElement(screen.getByTestId('profile-grid-column-2'))
+    expect(joined).toContainElement(screen.getByTestId('profile-grid-column-3'))
+  })
+
+  it('keeps the phone reading order of the cards', () => {
+    renderView({ showImport: true })
+    const labels = Array.from(
+      screen.getByTestId('profile-grid').querySelectorAll('p, span, h2, button'),
+    )
+      .map((node) => node.textContent)
+      .filter((text) =>
+        [
+          'Units',
+          'Goals',
+          'Rest timer',
+          'Exercises',
+          'Data',
+          'Sync',
+          'Errors',
+          'Sign out',
+        ].includes(text),
+      )
+    expect([...new Set(labels)]).toEqual([
+      'Units',
+      'Goals',
+      'Rest timer',
+      'Exercises',
+      'Data',
+      'Sync',
+      'Errors',
+      'Sign out',
+    ])
+  })
+
+  it('lets no card span rows', () => {
+    renderView({ showImport: true })
+    expect(screen.getByTestId('profile-grid').querySelector('[class*="row-span"]')).toBeNull()
+  })
+
   it('leaves the Phase 2 import card out of the document while the flag is off', () => {
     renderView()
     expect(screen.queryByTestId('data-card')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Import the old sheet' })).not.toBeInTheDocument()
+  })
+
+  it('shows the Errors card', async () => {
+    renderView()
+    expect(await screen.findByTestId('error-log-card')).toHaveTextContent('Errors')
   })
 
   it('shows the import card while the flag is on', () => {

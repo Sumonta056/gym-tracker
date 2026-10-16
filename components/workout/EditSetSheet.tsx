@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 import { weightSymbol } from '../../lib/format/weight'
 import { NumberField } from '../ui/NumberField'
@@ -43,21 +43,34 @@ export function EditSetSheet({
   onDelete,
   onClose,
 }: EditSetSheetProps) {
+  const formId = useId()
+
   return (
     <SheetModal
       open={editing !== null}
       title={editing === null ? '' : editTitle(editing.position)}
       onClose={onClose}
+      footer={
+        editing === null ? undefined : (
+          <div className="flex flex-col gap-3">
+            <PrimaryButton type="submit" form={formId} disabled={busy}>
+              Save set
+            </PrimaryButton>
+            <SecondaryButton tone="danger" disabled={busy} onClick={onDelete}>
+              Delete set
+            </SecondaryButton>
+          </div>
+        )
+      }
     >
       {editing === null ? null : (
         <EditSetForm
           key={editing.set.id}
+          id={formId}
           editing={editing}
           unit={unit}
-          busy={busy}
           error={error}
           onSave={onSave}
-          onDelete={onDelete}
         />
       )}
     </SheetModal>
@@ -65,21 +78,21 @@ export function EditSetSheet({
 }
 
 type EditSetFormProps = {
+  id: string
   editing: EditingSet
   unit: UnitSystem
-  busy: boolean
   error: string | null
   onSave: (values: SetValues) => void
-  onDelete: () => void
 }
 
-function EditSetForm({ editing, unit, busy, error, onSave, onDelete }: EditSetFormProps) {
+function EditSetForm({ id, editing, unit, error, onSave }: EditSetFormProps) {
   const { set, exerciseName } = editing
   const [draft, setDraft] = useState(() => draftFrom(set, unit))
   const [errors, setErrors] = useState<{ reps?: string; load?: string }>({})
 
   return (
     <form
+      id={id}
       noValidate
       className="flex flex-col gap-3"
       onSubmit={(event) => {
@@ -124,12 +137,6 @@ function EditSetForm({ editing, unit, busy, error, onSave, onDelete }: EditSetFo
           {error}
         </p>
       )}
-      <PrimaryButton type="submit" disabled={busy}>
-        Save set
-      </PrimaryButton>
-      <SecondaryButton tone="danger" disabled={busy} onClick={onDelete}>
-        Delete set
-      </SecondaryButton>
     </form>
   )
 }

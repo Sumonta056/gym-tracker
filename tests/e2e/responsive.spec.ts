@@ -7,12 +7,13 @@ import {
   SIGNED_IN_ROUTES as LIVE_ROUTES,
   test as signedIn,
 } from './support/signedIn'
-import { openLiftCharts, openLiveSession, openPicker } from './support/workout'
+import { gotoStyleGuide, openStyleGuideSheet } from './support/styleguide'
+import { openLiftCharts, openLiveSession, openPicker, openWithLiftWeek } from './support/workout'
 
 import type { Page } from '@playwright/test'
 
 const PUBLIC_ROUTES = ['/sign-in', '/sign-up', '/styleguide', '/~offline']
-const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/profile']
+const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/profile']
 const SHELL_ROUTES = ['/styleguide']
 const STEP_WIDTHS = [320, 390, 430, 768, 1024, 1440, 2560]
 const SCROLL_WIDTHS = [...new Set([...STEP_WIDTHS, 360, 414, 640, 834, 1280, 1920])].sort(
@@ -128,6 +129,25 @@ function clippedText(page: Page): Promise<string[]> {
   })
 }
 
+function visibleScrollbars(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const out: string[] = []
+    const elements = [document.documentElement, ...document.body.querySelectorAll<HTMLElement>('*')]
+    for (const element of elements) {
+      const style = getComputedStyle(element)
+      const scrolls =
+        element === document.documentElement ||
+        ['auto', 'scroll'].includes(style.overflowX) ||
+        ['auto', 'scroll'].includes(style.overflowY)
+      const width = style.getPropertyValue('scrollbar-width')
+      if (scrolls && width !== 'none') {
+        out.push(`${element.tagName.toLowerCase()} scrollbar-width ${width}`)
+      }
+    }
+    return out
+  })
+}
+
 for (const route of PUBLIC_ROUTES) {
   test(`never scrolls sideways on ${route}, from 320 px to 2560 px`, async ({ page }) => {
     await page.goto(route)
@@ -150,11 +170,20 @@ for (const route of PUBLIC_ROUTES) {
   })
 }
 
+test('shows no scrollbar on /styleguide at 1440 px, with the sheet open', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await gotoStyleGuide(page)
+
+  expect(await visibleScrollbars(page)).toEqual([])
+  await openStyleGuideSheet(page)
+  expect(await visibleScrollbars(page)).toEqual([])
+})
+
 test('never scrolls sideways on the import review sample at 320 px, with the year form open', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 900 })
-  await page.goto('/styleguide')
+  await gotoStyleGuide(page)
   const sample = page.getByTestId('import-review-sample')
   await sample.getByRole('button', { name: 'Change year' }).click()
   await expect(sample.getByLabel('Year of the sheet')).toBeVisible()
@@ -206,9 +235,14 @@ test('fits the three import choices at 14 px inside their card at 320 px, each 4
 test('fits every import table heading inside its cell at 1024 px and 1440 px', async ({ page }) => {
   await page.goto('/styleguide')
 
-  for (const width of [1024, 1440]) {
+  for (const [sample, width] of [
+    ['import-review-sample', 1024],
+    ['import-review-sample', 1440],
+    ['import-review-swim-sample', 1024],
+    ['import-review-swim-sample', 1440],
+  ] as const) {
     await page.setViewportSize({ width, height: 900 })
-    const table = page.getByTestId('import-review-sample').getByRole('table')
+    const table = page.getByTestId(sample).getByRole('table')
     await table.scrollIntoViewIfNeeded()
     await expect(table).toBeVisible()
 
@@ -229,16 +263,15 @@ test('fits every import table heading inside its cell at 1024 px and 1440 px', a
       }),
     )
 
-    expect(spills, `${String(width)}px`).toEqual([])
+    expect(spills, `${sample} ${String(width)}px`).toEqual([])
   }
 })
 
 test('keeps every tap target 44 px or taller inside the open sheet, at all seven widths', async ({
   page,
 }) => {
-  await page.goto('/styleguide')
-  await page.getByRole('button', { name: 'Open the sheet' }).click()
-  await expect(page.getByRole('dialog', { name: 'Log a set' })).toBeVisible()
+  await gotoStyleGuide(page)
+  await openStyleGuideSheet(page)
 
   expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
   expect(await atEachWidth(page, STEP_WIDTHS, () => sideways(page))).toEqual([])
@@ -331,8 +364,12 @@ for (const route of SHELL_ROUTES) {
 
 for (const route of LIVE_ROUTES) {
   signedIn.describe(`signed in on ${route}`, () => {
-    signedIn.beforeEach(async ({ page, account, day }) => {
-      await openWithWeek(page, account, day)
+    signedIn.beforeEach(async ({ page, context, account, day }) => {
+      if (route === '/workouts') {
+        await openWithLiftWeek(page, context, account, day)
+      } else {
+        await openWithWeek(page, account, day)
+      }
       await openRoute(page, route)
     })
 
@@ -358,6 +395,12 @@ for (const route of LIVE_ROUTES) {
         expect(await navigationOutOfView(page)).toEqual([])
       },
     )
+
+    signedIn('shows no scrollbar at 1440 px', async ({ page }) => {
+      await resizeAndSettle(page, 1440)
+
+      expect(await visibleScrollbars(page)).toEqual([])
+    })
   })
 }
 
@@ -395,6 +438,24 @@ signedIn.describe('signed in on /workout with the exercise picker open', () => {
 
   signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
     expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('shows no scrollbar at 1440 px, the chip row included', async ({ page }) => {
+    await resizeAndSettle(page, 1440)
+
+    expect(await visibleScrollbars(page)).toEqual([])
+  })
+
+  signedIn('fades the chip row at the edge that can still scroll, at 320 px', async ({ page }) => {
+    await resizeAndSettle(page, 320)
+    const chips = page.getByRole('group', { name: 'Muscle group' })
+
+    await expect(chips).toHaveAttribute('data-fade', 'end')
+    await expect(chips).toHaveCSS('scroll-padding-left', '32px')
+    await chips.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth
+    })
+    await expect(chips).toHaveAttribute('data-fade', 'start')
   })
 })
 

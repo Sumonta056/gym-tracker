@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setReducedMotion } from '../../tests/fixtures/motion'
 
-import { LABEL_FADE_MS, LINE_DRAW_MS, useLineDraw } from './useLineDraw'
+import { LABEL_FADE_MS, LINE_DRAW_MS, LineDrawContext, useLineDraw } from './useLineDraw'
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -55,5 +55,13 @@ describe('useLineDraw', () => {
     const { unmount } = renderHook(() => useLineDraw())
     unmount()
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('does not draw at all when the screen has already switched a tab', () => {
+    setReducedMotion(false)
+    const { result } = renderHook(() => useLineDraw(), {
+      wrapper: ({ children }) => <LineDrawContext value={false}>{children}</LineDrawContext>,
+    })
+    expect(result.current).toBe(false)
   })
 })

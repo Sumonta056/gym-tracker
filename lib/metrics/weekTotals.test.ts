@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import { weekTotals } from './weekTotals'
 
+import type { SessionRow } from './sessionDays'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 
 function row(entry: Partial<DailyEntryInput> & { entry_date: string }): DailyEntryInput {
   return {
     walk_seconds: null,
     gym_seconds: null,
+    swim_seconds: null,
     avg_heart_rate: null,
     max_heart_rate: null,
     weight_kg: null,
@@ -15,6 +17,16 @@ function row(entry: Partial<DailyEntryInput> & { entry_date: string }): DailyEnt
     steps: null,
     note: null,
     ...entry,
+  }
+}
+
+function session(date: string, overrides: Partial<SessionRow> = {}): SessionRow {
+  return {
+    entry_date: date,
+    started_at: `${date}T07:00:00.000Z`,
+    ended_at: `${date}T08:00:00.000Z`,
+    deleted_at: null,
+    ...overrides,
   }
 }
 
@@ -131,5 +143,38 @@ describe('weekTotals', () => {
     ]
 
     expect(weekTotals(rows).gymSeconds).toBe(2000)
+  })
+})
+
+const WEEK = { from: '2026-09-21', to: '2026-09-27' }
+
+describe('weekTotals with sessions', () => {
+  it('counts a day with a finished session and no typed time as 1 session', () => {
+    expect(weekTotals([], WEEK, [session('2026-09-22')])).toMatchObject({
+      sessions: 1,
+      gymSeconds: 3600,
+    })
+  })
+
+  it('counts 2 sessions on 1 day as 1 session and adds both lengths', () => {
+    const evening = session('2026-09-22', {
+      started_at: '2026-09-22T18:00:00.000Z',
+      ended_at: '2026-09-22T18:30:00.000Z',
+    })
+
+    expect(weekTotals([], WEEK, [session('2026-09-22'), evening])).toMatchObject({
+      sessions: 1,
+      gymSeconds: 5400,
+    })
+  })
+
+  it('lets a typed gym time win over the sessions of that day', () => {
+    const rows = [row({ entry_date: '2026-09-22', gym_seconds: 2700 })]
+
+    expect(weekTotals(rows, WEEK, [session('2026-09-22')]).gymSeconds).toBe(2700)
+  })
+
+  it('ignores a session outside the range', () => {
+    expect(weekTotals([], WEEK, [session('2026-09-20')])).toEqual(EMPTY)
   })
 })

@@ -21,6 +21,7 @@ export type ChartCardProps = {
   label: string
   legend?: LegendItem[]
   lead?: ReactNode
+  action?: ReactNode
   footer?: ReactNode
   sparse?: ReactNode
   sparseHint?: string
@@ -71,6 +72,7 @@ export function ChartCard({
   label,
   legend,
   lead,
+  action,
   footer,
   sparse,
   sparseHint = SPARSE_HINT,
@@ -83,9 +85,12 @@ export function ChartCard({
         <h2>
           <MicroLabel>{title}</MicroLabel>
         </h2>
-        {empty || summary === undefined ? null : (
-          <p className="text-muted text-right text-[13px]">{summary}</p>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {empty || summary === undefined ? null : (
+            <p className="text-muted text-right text-[13px]">{summary}</p>
+          )}
+          {action}
+        </div>
       </div>
 
       {lead}

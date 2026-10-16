@@ -7,6 +7,7 @@ export type SheetField =
   | 'entry_date'
   | 'walk_seconds'
   | 'gym_seconds'
+  | 'swim_seconds'
   | 'avg_heart_rate'
   | 'max_heart_rate'
   | 'weight_kg'
@@ -30,14 +31,15 @@ export type SheetIssue = {
   message: string
 }
 
-export type ParsedSheet = { rows: ParsedRow[]; issues: SheetIssue[] }
+export type ParsedSheet = { rows: ParsedRow[]; issues: SheetIssue[]; columns: SheetField[] }
 
 type Kind = 'date' | 'duration' | 'number'
 
-const COLUMNS: { name: string; field: SheetField; kind: Kind }[] = [
+const COLUMNS: { name: string; field: SheetField; kind: Kind; optional?: boolean }[] = [
   { name: 'Day', field: 'entry_date', kind: 'date' },
   { name: 'Walk Time', field: 'walk_seconds', kind: 'duration' },
   { name: 'Gym Time', field: 'gym_seconds', kind: 'duration' },
+  { name: 'Swim Time', field: 'swim_seconds', kind: 'duration', optional: true },
   { name: 'Avg Heart Rate', field: 'avg_heart_rate', kind: 'number' },
   { name: 'Highest Rate', field: 'max_heart_rate', kind: 'number' },
   { name: 'Weight', field: 'weight_kg', kind: 'number' },
@@ -119,7 +121,9 @@ export function parseSheet(text: string, options: { year: number }): ParsedSheet
     rows.push({ line: record.line, cells: readRow(names, record.fields, options.year) })
   }
 
-  return { rows, issues }
+  const columns = COLUMNS.filter(({ name }) => names.includes(name)).map(({ field }) => field)
+
+  return { rows, issues, columns }
 }
 
 function shapeIssues(record: SheetRecord, width: number): SheetIssue[] {
@@ -162,7 +166,9 @@ function shapeIssues(record: SheetRecord, width: number): SheetIssue[] {
 }
 
 function columnIssues(names: string[]): SheetIssue[] {
-  const missing = COLUMNS.filter(({ name }) => !names.includes(name)).map(({ name }) => ({
+  const missing = COLUMNS.filter(
+    ({ name, optional }) => optional !== true && !names.includes(name),
+  ).map(({ name }) => ({
     kind: 'missing_column' as const,
     line: 1,
     column: name,

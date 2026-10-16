@@ -52,10 +52,10 @@ test('shows a second day recorded offline at once, with the chip reading OFFLINE
   await expect(logChip).toBeVisible()
   expect(await logChip.innerText()).toBe('OFFLINE')
 
-  await recordDay(page, { gym: '0:48:30', steps: '6543' })
+  await recordDay(page, { gym: '45m', steps: '6543' })
   await navLink(page, 'Today').click()
 
-  await expect(heroValue(page)).toHaveText('48:30')
+  await expect(heroValue(page)).toHaveText('45:00')
   await expect(stepsCard(page).getByText('6,543', { exact: true })).toBeVisible()
   await expect(chip(page, 'Offline')).toBeVisible()
   expect(await chip(page, 'Offline').innerText()).toBe('OFFLINE')
@@ -70,7 +70,7 @@ test('sends the offline day to Supabase when the network returns, and the chip t
 }) => {
   await readyForOffline(page)
   await context.setOffline(true)
-  await recordDay(page, { gym: '1:05:10', steps: '8120' })
+  await recordDay(page, { gym: '1h', steps: '8120' })
   await navLink(page, 'Today').click()
   await expect(chip(page, 'Offline')).toBeVisible()
 
@@ -95,7 +95,7 @@ test('sends the offline day to Supabase when the network returns, and the chip t
         id,
         user_id: account.userId,
         entry_date: day.date,
-        gym_seconds: 3910,
+        gym_seconds: 3600,
         steps: 8120,
         deleted_at: null,
       }),
@@ -162,7 +162,7 @@ test('keeps an unsynced write through a closed browser and a cold reopen', async
   await navLink(first.page, 'Log the day').first().click()
   await expect(first.page).toHaveURL(/\/log$/)
   await first.context.setOffline(true)
-  await recordDay(first.page, { gym: '0:55:00', steps: '4321' })
+  await recordDay(first.page, { gym: '45m', steps: '4321' })
   const id = (await localEntry(first.page, day.date))?.id ?? ''
   expect(id).not.toBe('')
   await first.context.close()
@@ -191,7 +191,7 @@ test('keeps an unsynced write through a closed browser and a cold reopen', async
     await expect(pending.locator('xpath=following-sibling::dd')).toHaveText('0')
     await expect
       .poll(() => account.rowsOn(day.date), { message: 'the kept write reaches Supabase' })
-      .toEqual([expect.objectContaining({ id, gym_seconds: 3300, steps: 4321 })])
+      .toEqual([expect.objectContaining({ id, gym_seconds: 2700, steps: 4321 })])
   } finally {
     await second.context.close()
   }

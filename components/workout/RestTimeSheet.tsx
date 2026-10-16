@@ -1,32 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
-import { formatDuration, parseInput } from '../../lib/duration'
-import { profileSchema } from '../../lib/schema/profile'
-import { Field } from '../ui/Field'
+import { MAX_REST_SECONDS } from '../../lib/schema/profile'
+import { DurationPicker, REST_PRESETS } from '../ui/DurationPicker'
 import { PrimaryButton } from '../ui/PrimaryButton'
 import { SheetModal } from '../ui/SheetModal'
-
-export const REST_HINT = 'Accepts 1:30, 90s or 2m.'
-
-export const restSecondsSchema = profileSchema.shape.rest_seconds_by_exercise.unwrap().valueType
-
-export type RestReading = { ok: true; seconds: number } | { ok: false; reason: string }
-
-export function readRestText(text: string): RestReading {
-  const parsed = parseInput(text)
-
-  if (!parsed.ok) {
-    return parsed
-  }
-
-  const checked = restSecondsSchema.safeParse(parsed.seconds)
-
-  return checked.success
-    ? { ok: true, seconds: checked.data }
-    : { ok: false, reason: checked.error.issues[0]?.message ?? 'Enter a rest time.' }
-}
 
 export function restSheetTitle(exerciseName: string): string {
   return `Rest for ${exerciseName}`
@@ -53,17 +32,26 @@ export function RestTimeSheet({
   onSave,
   onClose,
 }: RestTimeSheetProps) {
+  const formId = useId()
+
   return (
     <SheetModal
       open={changing !== null}
       title={changing === null ? '' : restSheetTitle(changing.exerciseName)}
       onClose={onClose}
+      footer={
+        changing === null ? undefined : (
+          <PrimaryButton type="submit" form={formId} disabled={busy}>
+            Save rest time
+          </PrimaryButton>
+        )
+      }
     >
       {changing === null ? null : (
         <RestTimeForm
           key={changing.exerciseId}
+          id={formId}
           changing={changing}
-          busy={busy}
           error={error}
           onSave={onSave}
         />
@@ -73,55 +61,43 @@ export function RestTimeSheet({
 }
 
 type RestTimeFormProps = {
+  id: string
   changing: ChangingRest
-  busy: boolean
   error: string | null
   onSave: (seconds: number) => void
 }
 
-function RestTimeForm({ changing, busy, error, onSave }: RestTimeFormProps) {
-  const [text, setText] = useState(() => formatDuration(changing.seconds, 'clock'))
-  const [reason, setReason] = useState<string | undefined>(undefined)
+function RestTimeForm({ id, changing, error, onSave }: RestTimeFormProps) {
+  const [seconds, setSeconds] = useState(changing.seconds)
 
   return (
     <form
+      id={id}
       noValidate
       className="flex flex-col gap-3"
       onSubmit={(event) => {
         event.preventDefault()
-        const reading = readRestText(text)
-
-        if (!reading.ok) {
-          setReason(reading.reason)
-          return
-        }
-
-        setReason(undefined)
-        onSave(reading.seconds)
+        onSave(seconds)
       }}
     >
       <p className="text-muted text-sm">The next rest after this exercise uses the new time.</p>
-      <Field
+      <DurationPicker
+        id="rest-seconds"
         label="Rest time"
-        type="text"
-        inputMode="text"
-        autoComplete="off"
-        hint={REST_HINT}
-        placeholder="1:30"
-        value={text}
-        error={reason}
-        onChange={(event) => {
-          setText(event.target.value)
+        value={seconds}
+        onChange={(next) => {
+          if (next !== null) {
+            setSeconds(next)
+          }
         }}
+        presets={REST_PRESETS}
+        max={MAX_REST_SECONDS}
       />
       {error === null ? null : (
         <p role="alert" className="text-danger text-sm">
           {error}
         </p>
       )}
-      <PrimaryButton type="submit" disabled={busy}>
-        Save rest time
-      </PrimaryButton>
     </form>
   )
 }

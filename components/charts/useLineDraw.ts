@@ -1,6 +1,6 @@
 'use client'
 
-import { useLayoutEffect, useState } from 'react'
+import { createContext, useContext, useLayoutEffect, useState } from 'react'
 
 import { prefersReducedMotion } from '../motion/reducedMotion'
 
@@ -10,11 +10,14 @@ export const LABEL_FADE_MS = 160
 
 export const DRAW_CLASS = 'chart-draw'
 
+export const LineDrawContext = createContext(true)
+
 export function useLineDraw(): boolean {
-  const [drawing, setDrawing] = useState(true)
+  const allowed = useContext(LineDrawContext)
+  const [drawing, setDrawing] = useState(allowed)
 
   useLayoutEffect(() => {
-    if (prefersReducedMotion()) {
+    if (!allowed || prefersReducedMotion()) {
       setDrawing(false)
       return
     }
@@ -24,7 +27,7 @@ export function useLineDraw(): boolean {
     return () => {
       clearTimeout(timer)
     }
-  }, [])
+  }, [allowed])
 
   return drawing
 }

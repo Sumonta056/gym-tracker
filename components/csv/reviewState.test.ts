@@ -164,6 +164,10 @@ describe('cellText', () => {
     expect(cellText('weight_kg', { status: 'ok', raw: '', value: 81.4 })).toBe('81.4 kg')
     expect(cellText('steps', { status: 'ok', raw: '', value: 11482 })).toBe('11,482')
   })
+
+  it('formats a swim time as a clock duration', () => {
+    expect(cellText('swim_seconds', { status: 'ok', raw: '', value: 1500 })).toBe('25:00')
+  })
 })
 
 describe('rowDetail', () => {
@@ -285,6 +289,23 @@ describe('importPlan', () => {
     'August 16,15.54,,,,,,',
   )
   const logged = new Set(['2026-08-12', '2026-08-13', '2026-08-14'])
+
+  it('sends no swim time for a sheet with no Swim Time column', () => {
+    const plan = importPlan(sheetOf('August 11,20,,,,,,'), {}, new Set(), {})
+    expect(plan.days[0]?.entry).not.toHaveProperty('swim_seconds')
+  })
+
+  it('sends a blank swim cell as no swim time when the sheet has the column', () => {
+    const swimSheet = parseSheet(
+      [
+        'Day,Walk Time,Gym Time,Swim Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
+        'August 11,20,,,,,,,',
+      ].join('\n'),
+      { year: 2026 },
+    )
+    const plan = importPlan(swimSheet, {}, new Set(), {})
+    expect(plan.days[0]?.entry).toHaveProperty('swim_seconds', null)
+  })
 
   it('counts new, overwritten, merged, skipped and left out rows', () => {
     const plan = importPlan(sheet, { [cellKey(6, 'walk_seconds')]: 0 }, logged, {

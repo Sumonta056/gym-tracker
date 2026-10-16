@@ -66,6 +66,9 @@ every synced table.
 - A stale offline edit can undo a change or a soft delete made on another device.
 - The pull keeps a local row that still has a queued write, and writes a newer server
   row over any other local row.
+- It covers `swim_seconds` too. A device that has not pulled can push an old swim time
+  back over a clear made on another device. An untouched swim picker sends no key, so
+  the repository keeps the stored value.
 - Kept on purpose. Each account has one person, who rarely edits one row on 2 devices at
   once. A server guard compares a device clock with a server clock, the same limit
   as the server id rule above.
@@ -110,11 +113,16 @@ still holds the lock.
   session has ended, still inside the lock. The 15 s limit only covers a tab that
   closes halfway through a sign-out.
 
-Two known limits:
+Three known limits:
 
 - **A save right after a new sign-in can be refused.** `signed_out` stays until the
   first drain after the new sign-in reads the user. If the device goes offline before
   that drain runs, saves are refused until it comes back online.
+- **The error log drops an error while `signed_out` is set.** `recordError` reads the
+  flag in its own transaction and writes nothing, so no error passes to the next
+  account. The console still shows it. This covers the sign-in screen, the time after a
+  failed sign-out until sync resumes, and the time after a new sign-in until the first
+  drain lifts the flag.
 - **Kept on purpose: no Web Locks and no `localStorage`.** In a browser with neither,
   for example Safari before 15.4 in a private window, another tab can drain during a
   sign-out and fill the device again, or lift `signed_out` early. That drain can also

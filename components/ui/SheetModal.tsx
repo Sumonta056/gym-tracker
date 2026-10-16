@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useId, useLayoutEffect, useRef } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 
 import { cn } from './cn'
 
@@ -14,6 +15,7 @@ export type SheetModalProps = {
   footer?: ReactNode
   className?: string
   closeDisabled?: boolean
+  describedBy?: string
 }
 
 const FOCUSABLE =
@@ -36,13 +38,111 @@ function trapTab(event: KeyboardEvent, dialog: HTMLElement): void {
   const at = items.findIndex((item) => item === document.activeElement)
 
   if (at === -1) {
-    ;(event.shiftKey ? last : first).focus()
+    ;(event.shiftKey ? last : first).focus({ preventScroll: true })
     return
   }
 
   const step = event.shiftKey ? -1 : 1
   const next = items[(at + step + items.length) % items.length] ?? first
-  next.focus()
+  next.focus({ preventScroll: true })
+}
+
+type HeldBodyStyle = {
+  position: string
+  top: string
+  left: string
+  right: string
+  width: string
+  overflow: string
+}
+
+let lockHolders = 0
+
+let releaseBody: (() => void) | null = null
+
+function fixBody(): () => void {
+  const { style } = document.body
+  const scrollY = window.scrollY
+  const held: HeldBodyStyle = {
+    position: style.position,
+    top: style.top,
+    left: style.left,
+    right: style.right,
+    width: style.width,
+    overflow: style.overflow,
+  }
+
+  style.position = 'fixed'
+  style.top = `-${String(scrollY)}px`
+  style.left = '0'
+  style.right = '0'
+  style.width = '100%'
+  style.overflow = 'hidden'
+
+  return () => {
+    Object.assign(style, held)
+    window.scrollTo(0, scrollY)
+  }
+}
+
+export function lockScroll(): () => void {
+  lockHolders += 1
+
+  if (lockHolders === 1) {
+    releaseBody = fixBody()
+  }
+
+  let released = false
+
+  return () => {
+    if (released) {
+      return
+    }
+
+    released = true
+    lockHolders -= 1
+
+    if (lockHolders === 0) {
+      releaseBody?.()
+      releaseBody = null
+    }
+  }
+}
+
+function visualViewport(): VisualViewport | null {
+  return 'visualViewport' in window ? window.visualViewport : null
+}
+
+function subscribeViewport(onChange: () => void): () => void {
+  const viewport = visualViewport()
+
+  if (viewport === null) {
+    return () => undefined
+  }
+
+  viewport.addEventListener('resize', onChange)
+  viewport.addEventListener('scroll', onChange)
+
+  return () => {
+    viewport.removeEventListener('resize', onChange)
+    viewport.removeEventListener('scroll', onChange)
+  }
+}
+
+function viewportHeight(): number | null {
+  return visualViewport()?.height ?? null
+}
+
+function viewportTop(): number {
+  return visualViewport()?.offsetTop ?? 0
+}
+
+function noHeight(): number | null {
+  return null
+}
+
+function noTop(): number {
+  return 0
 }
 
 export function SheetModal({
@@ -53,11 +153,14 @@ export function SheetModal({
   footer,
   className,
   closeDisabled = false,
+  describedBy,
 }: SheetModalProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
   const closeDisabledRef = useRef(closeDisabled)
+  const height = useSyncExternalStore(subscribeViewport, viewportHeight, noHeight)
+  const offsetTop = useSyncExternalStore(subscribeViewport, viewportTop, noTop)
 
   useEffect(() => {
     onCloseRef.current = onClose
@@ -71,11 +174,10 @@ export function SheetModal({
 
     const dialog = dialogRef.current
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
 
     if (dialog !== null) {
-      ;(focusables(dialog)[0] ?? dialog).focus()
+      ;(focusables(dialog)[0] ?? dialog).focus({ preventScroll: true })
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -93,17 +195,21 @@ export function SheetModal({
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = overflow
-      opener?.focus()
+      unlock()
+      opener?.focus({ preventScroll: true })
     }
   }, [open])
 
-  if (!open) {
+  if (!open || typeof document === 'undefined') {
     return null
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
+  return createPortal(
+    <div
+      data-testid="sheet-overlay"
+      className="fixed inset-0 z-50 flex items-end justify-center lg:items-center"
+      style={height === null ? undefined : { top: offsetTop, height, bottom: 'auto' }}
+    >
       <button
         type="button"
         aria-label="Close"
@@ -116,12 +222,13 @@ export function SheetModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={describedBy}
         tabIndex={-1}
         className={cn(
           'bg-surface border-border rounded-t-hero relative max-h-[78%] w-full border-t pt-2.5',
           'lg:rounded-hero lg:max-h-[80vh] lg:w-[520px] lg:border lg:pt-5',
           footer === undefined
-            ? 'overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] lg:pb-5'
+            ? 'overflow-y-auto overscroll-contain px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] lg:pb-5'
             : 'flex flex-col overflow-hidden',
           className,
         )}
@@ -166,6 +273,7 @@ export function SheetModal({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

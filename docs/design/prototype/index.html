@@ -71,7 +71,8 @@
         color: inherit;
       }
 
-      :focus-visible {
+      :focus-visible,
+      input[type='date']:focus {
         outline: 2px solid var(--color-accent);
         outline-offset: 2px;
       }
@@ -294,6 +295,102 @@
 
       .dot-warn {
         background: var(--color-warn);
+      }
+
+      .dot-ahead {
+        border: 1px solid var(--color-dim);
+      }
+
+      .heat {
+        display: grid;
+        grid-template-columns: auto repeat(12, minmax(0, 1fr));
+        align-items: center;
+        gap: 3px;
+        width: 100%;
+        max-width: 440px;
+      }
+
+      .heat-label {
+        padding-right: 6px;
+        font-size: 11px;
+        line-height: 1;
+        color: var(--color-muted);
+      }
+
+      .heat-cell {
+        aspect-ratio: 1;
+        border-radius: 4px;
+      }
+
+      .heat-logged {
+        background: var(--color-accent);
+      }
+
+      .heat-missed {
+        background: var(--color-dim);
+      }
+
+      .heat-future {
+        border: 1px dashed var(--color-dim);
+      }
+
+      .day-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) 44px;
+        align-items: end;
+        gap: 8px;
+      }
+
+      .btn.day-step {
+        width: 44px;
+        min-height: 52px;
+        padding: 0;
+        font-size: 20px;
+      }
+
+      .btn.day-step:disabled {
+        opacity: 0.5;
+      }
+
+      .open-days {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .open-day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 4px 0;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-input);
+        background: var(--color-surface-2);
+        color: var(--color-muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .open-day i {
+        width: 6px;
+        height: 6px;
+        margin-top: 2px;
+        border-radius: var(--radius-pill);
+      }
+
+      .open-day.logged {
+        border-color: var(--color-accent);
+        color: var(--color-text);
+      }
+
+      .open-day.logged i {
+        background: var(--color-accent);
       }
 
       .dot-cyan {
@@ -819,6 +916,54 @@
         color: var(--color-accent-ink);
       }
 
+      .dp {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .dp-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 4px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-input);
+        background: var(--color-surface);
+      }
+
+      .dp-step {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+        color: var(--color-text);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .dp-step:disabled {
+        opacity: 0.5;
+      }
+
+      .dp-value {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.4px;
+      }
+
+      .dp-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .dp-clear {
+        color: var(--color-text);
+      }
+
       .pickrow {
         display: flex;
         align-items: center;
@@ -867,6 +1012,60 @@
         color: var(--color-muted);
         font-size: 18px;
         cursor: pointer;
+      }
+
+      .zone-info {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .zone-head-end {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+      }
+
+      .zone-rows {
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .zone-rows li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--color-muted);
+      }
+
+      .zone-rows li > span:first-child {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .zone-sheet {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .zone-sheet dt {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .zone-sheet dd {
+        margin: 2px 0 0;
+        font-size: 14px;
+        color: var(--color-muted);
       }
 
       .pick-body {
@@ -1198,6 +1397,110 @@
 
       .imp-table .imp-pick td {
         padding: 0 12px 16px;
+      }
+      .edit-row {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .edit-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+        color: var(--color-text);
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .layout-list {
+        list-style: none;
+        margin: 8px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .layout-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+      }
+
+      .layout-name {
+        flex: 1;
+        min-width: 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .layout-row.is-hidden .layout-name {
+        color: var(--color-muted);
+      }
+
+      .layout-state {
+        color: var(--color-muted);
+        font-size: 12px;
+        font-weight: 400;
+      }
+
+      .layout-move:disabled {
+        opacity: 0.5;
+      }
+
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 44px;
+        flex: 0 0 56px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .switch .track {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 48px;
+        height: 28px;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--color-border);
+        background: var(--color-accent);
+      }
+
+      .switch .thumb {
+        position: absolute;
+        left: 4px;
+        width: 20px;
+        height: 20px;
+        border-radius: var(--radius-pill);
+        background: var(--color-accent-ink);
+        transform: translateX(20px);
+      }
+
+      .switch[aria-checked='false'] .track {
+        background: var(--color-surface-2);
+      }
+
+      .switch[aria-checked='false'] .thumb {
+        background: var(--color-dim);
+        transform: translateX(0);
+      }
+
+      .layout-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
     </style>
   </head>
@@ -1557,12 +1860,11 @@
                     4 day streak
                   </span>
                 </div>
-                <p class="hero-num">1:12:05</p>
+                <p class="hero-num">1:00:00</p>
+                <p class="hero-foot" style="margin: 0">From your sessions</p>
                 <div class="hero-inline">
                   <div><span class="micro">Avg HR</span><p>117</p></div>
                   <div><span class="micro">Peak</span><p>174</p></div>
-                  <div><span class="micro">Kcal</span><p>963</p></div>
-                  <div><span class="micro">Walk</span><p>55:24</p></div>
                 </div>
               </section>
 
@@ -1576,11 +1878,33 @@
                   </div>
                 </div>
                 <div class="card">
+                  <span class="micro">Calories</span>
+                  <p class="stat-num">
+                    963 <span class="muted" style="font-size: 12px; font-weight: 600">kcal</span>
+                  </p>
+                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">120% of 800 kcal</p>
+                  <div class="bar">
+                    <span style="width: 100%; background: var(--color-warn)"></span>
+                  </div>
+                </div>
+                <div class="card">
+                  <span class="micro">Walk</span>
+                  <p class="stat-num">55m</p>
+                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">92% of 1h</p>
+                  <div class="bar">
+                    <span style="width: 92%; background: var(--color-data-cyan)"></span>
+                  </div>
+                </div>
+                <div class="card">
+                  <span class="micro">Swim</span>
+                  <p class="stat-num">25m</p>
+                </div>
+                <div class="card">
                   <span class="micro">Weight</span>
                   <p class="stat-num">
                     73.65 <span class="muted" style="font-size: 12px; font-weight: 600">kg</span>
                   </p>
-                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">Latest entry</p>
+                  <p class="muted" style="margin: 6px 0 0; font-size: 12px">2.4 kg to go</p>
                   <svg
                     class="spark"
                     viewBox="0 0 100 32"
@@ -1605,9 +1929,30 @@
               </div>
 
               <div class="card">
-                <div class="row-tight">
+                <h3 class="micro" style="margin: 0">Workout today</h3>
+                <ul class="list" style="margin-top: 6px">
+                  <li>
+                    <a class="row" href="#" style="color: var(--color-text); text-decoration: none">
+                      <span class="muted" style="font-size: 14px">17:30</span>
+                      <strong style="font-size: 14px; text-align: right">1h · 12 sets · 2,410 kg · 1 new record</strong>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="card">
+                <h3 class="micro" style="margin: 0">Note</h3>
+                <p style="margin: 6px 0 0; font-size: 14px; white-space: pre-line">Felt strong on the bench.
+Left knee a little stiff.</p>
+              </div>
+
+              <div class="card">
+                <div class="row">
                   <h3 class="micro">Heart rate zones</h3>
-                  <span class="muted" style="font-size: 12px">21m in cardio</span>
+                  <span class="zone-head-end">
+                    <span class="muted" style="font-size: 12px">21m in cardio</span>
+                    <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
+                  </span>
                 </div>
                 <div
                   class="zonebar"
@@ -1619,21 +1964,27 @@
                   <span style="width: 29%; background: var(--color-warn)"></span>
                   <span style="width: 7%; background: var(--color-danger)"></span>
                 </div>
-                <div class="legend">
-                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 8m</span>
-                  <span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 38m</span>
-                  <span><i class="dot" style="background: var(--color-warn)"></i>Cardio 21m</span>
-                  <span><i class="dot" style="background: var(--color-danger)"></i>Peak 5m</span>
-                </div>
+                <ul class="zone-rows">
+                  <li><span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 8m</span><span>under 114 bpm</span></li>
+                  <li><span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 38m</span><span>114–132 bpm</span></li>
+                  <li><span><i class="dot" style="background: var(--color-warn)"></i>Cardio 21m</span><span>133–161 bpm</span></li>
+                  <li><span><i class="dot" style="background: var(--color-danger)"></i>Peak 5m</span><span>162+ bpm</span></li>
+                </ul>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Modelled from the session average and peak.
+                  Based on a max of 190 bpm, from your birth year.
                 </p>
               </div>
 
               <div class="card">
-                <h3 class="micro">This week</h3>
+                <div class="row" style="min-height: 0">
+                  <h3 class="micro">This week</h3>
+                  <span class="muted" style="font-size: 13px">7 – 13 Sep</span>
+                </div>
                 <dl class="week-grid">
-                  <div><dt>sessions</dt><dd>3</dd></div>
+                  <div>
+                    <dt>sessions</dt>
+                    <dd><span aria-hidden="true">3 / 4</span><span class="sr-only">3 of 4</span></dd>
+                  </div>
                   <div><dt>gym time</dt><dd>2h 32m</dd></div>
                   <div><dt>kcal</dt><dd>2,627</dd></div>
                   <div><dt>steps</dt><dd>21,480</dd></div>
@@ -1666,48 +2017,87 @@
             <div class="topbar">
               <div>
                 <h2>Log</h2>
-                <p class="sub">Sat 20 Sep · 8 fields</p>
+                <p class="sub">Sun 20 Sep · 9 fields</p>
               </div>
               <span class="chip"><span class="dot dot-warn" aria-hidden="true"></span>Offline</span>
             </div>
 
             <div class="body">
-              <div class="grid-2">
-                <label class="field" for="log-gym">
-                  <span class="micro">Gym time</span>
-                  <input class="input" id="log-gym" inputmode="text" value="1:05:00" />
+              <div class="day-row" role="group" aria-label="Choose the day">
+                <button class="btn btn-secondary day-step" type="button" aria-label="Previous day, Sat 19 Sep">
+                  <span aria-hidden="true">‹</span>
+                </button>
+                <label class="field" for="log-day">
+                  <span class="micro">Day</span>
+                  <input class="input" id="log-day" type="date" max="2026-09-20" value="2026-09-20" />
                 </label>
-                <label class="field" for="log-walk">
-                  <span class="micro">Walk time</span>
-                  <input class="input" id="log-walk" inputmode="text" value="42:18" />
-                </label>
+                <button class="btn btn-secondary day-step" type="button" aria-label="Next day, Mon 21 Sep" disabled>
+                  <span aria-hidden="true">›</span>
+                </button>
               </div>
 
-              <div class="card" style="display: flex; align-items: center; gap: 12px">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--color-accent)"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  aria-hidden="true"
-                  focusable="false"
-                  style="flex: 0 0 18px"
+              <div class="dp" role="group" aria-labelledby="log-gym-label">
+                <span class="micro" id="log-gym-label">Gym time</span>
+                <div
+                  class="dp-row"
+                  style="padding: 12px; gap: 12px"
                 >
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <path d="M12 8v5"></path>
-                  <path d="M12 16h.01"></path>
-                </svg>
-                <p class="muted" style="margin: 0; flex: 1 1 auto">
-                  Today's session was <strong style="color: var(--color-text)">1:12:05</strong>.
-                  Your log says <strong style="color: var(--color-text)">1:05:00</strong>. Use the
-                  session for gym time?
-                </p>
-                <button class="pill" type="button" style="color: var(--color-accent)">
-                  Use <span class="visually-hidden">1:12:05 for gym time</span>
-                </button>
+                  <div style="min-width: 0">
+                    <output class="dp-value" style="display: block">1:12:05</output>
+                    <p class="muted" style="margin: 0; font-size: 12px">From 2 sessions · 1h 12m</p>
+                  </div>
+                  <button class="pill" type="button" style="color: var(--color-text); flex: 0 0 auto">
+                    Set a value
+                  </button>
+                </div>
+              </div>
+
+              <div class="dp" role="group" aria-labelledby="log-walk-label">
+                <span class="micro" id="log-walk-label">Walk time</span>
+                <div class="dp-row">
+                  <button class="dp-step" type="button" aria-label="Decrease Walk time by 1 minute">
+                    <span aria-hidden="true">−</span>
+                  </button>
+                  <output class="dp-value">45:00</output>
+                  <button class="dp-step" type="button" aria-label="Increase Walk time by 1 minute">
+                    <span aria-hidden="true">+</span>
+                  </button>
+                </div>
+                <div class="dp-chips">
+                  <button class="pill" type="button" aria-pressed="false">15m</button>
+                  <button class="pill" type="button" aria-pressed="false">30m</button>
+                  <button class="pill" type="button" aria-pressed="true">45m</button>
+                  <button class="pill" type="button" aria-pressed="false">1h</button>
+                  <button class="pill dp-clear" type="button">
+                    Clear <span class="visually-hidden">Walk time</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="card stack" style="gap: 12px">
+                <h3 class="micro" style="margin: 0">Swimming</h3>
+                <div class="dp" role="group" aria-labelledby="log-swim-label">
+                  <span class="micro" id="log-swim-label">Swim time</span>
+                  <div class="dp-row">
+                    <button class="dp-step" type="button" aria-label="Decrease Swim time by 1 minute">
+                      <span aria-hidden="true">−</span>
+                    </button>
+                    <output class="dp-value">30:00</output>
+                    <button class="dp-step" type="button" aria-label="Increase Swim time by 1 minute">
+                      <span aria-hidden="true">+</span>
+                    </button>
+                  </div>
+                  <div class="dp-chips">
+                    <button class="pill" type="button" aria-pressed="false">15m</button>
+                    <button class="pill" type="button" aria-pressed="true">30m</button>
+                    <button class="pill" type="button" aria-pressed="false">45m</button>
+                    <button class="pill" type="button" aria-pressed="false">1h</button>
+                    <button class="pill dp-clear" type="button">
+                      Clear <span class="visually-hidden">Swim time</span>
+                    </button>
+                  </div>
+                </div>
+                <p class="muted" style="margin: 0; font-size: 12px">The time in the pool today. No distance.</p>
               </div>
 
               <div class="grid-2">
@@ -2066,6 +2456,10 @@
                 <button type="button" aria-pressed="false">Month</button>
               </div>
 
+              <div class="edit-row">
+                <button class="edit-pill" type="button">Edit</button>
+              </div>
+
               <div class="card">
                 <div class="row">
                   <span class="micro">Weight</span>
@@ -2075,10 +2469,10 @@
                   class="chart"
                   viewBox="0 0 320 120"
                   role="img"
-                  aria-label="Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling, 73.8 on the last day."
+                  aria-label="Weight per day: 74.1, 73.9, 74.2, 73.7, 73.6, 73.5, 73.4 kilograms. Seven day average falling, 73.8 on the last day. Target 72.0 kilograms."
                 >
                   <polyline
-                    points="34,36.3 75.7,50.3 117.3,29.4 159,64.2 200.7,71.1 242.3,78.1 284,85"
+                    points="34,46.9 75.7,58.5 117.3,41.1 159,70 200.7,75.8 242.3,81.6 284,87.4"
                     fill="none"
                     stroke="var(--color-data-violet)"
                     stroke-width="2.5"
@@ -2088,67 +2482,67 @@
                   />
                   <circle
                     cx="34"
-                    cy="36.3"
+                    cy="46.9"
                     r="2.5"
                     fill="var(--color-data-violet)"
                     opacity="0.5"
                   />
                   <circle
                     cx="75.7"
-                    cy="50.3"
+                    cy="58.5"
                     r="2.5"
                     fill="var(--color-data-violet)"
                     opacity="0.5"
                   />
                   <circle
                     cx="117.3"
-                    cy="29.4"
+                    cy="41.1"
                     r="2.5"
                     fill="var(--color-data-violet)"
                     opacity="0.5"
                   />
                   <circle
                     cx="159"
-                    cy="64.2"
+                    cy="70"
                     r="2.5"
                     fill="var(--color-data-violet)"
                     opacity="0.5"
                   />
                   <circle
                     cx="200.7"
-                    cy="71.1"
+                    cy="75.8"
                     r="2.5"
                     fill="var(--color-data-violet)"
                     opacity="0.5"
                   />
                   <circle
                     cx="242.3"
-                    cy="78.1"
+                    cy="81.6"
                     r="2.5"
                     fill="var(--color-data-violet)"
                     opacity="0.5"
                   />
                   <circle
                     cx="284"
-                    cy="85"
+                    cy="87.4"
                     r="2.5"
                     fill="var(--color-data-violet)"
                     opacity="0.5"
                   />
                   <polyline
-                    points="34,19 75.7,23.4 117.3,27.4 159,34.3 200.7,43.3 242.3,51.2 284,59.2"
+                    points="34,32.4 75.7,36.1 117.3,39.4 159,45.2 200.7,52.7 242.3,59.3 284,65.9"
                     fill="none"
                     stroke="var(--color-data-violet)"
                     stroke-width="3"
                     stroke-linejoin="round"
                     stroke-linecap="round"
                   />
-                  <text class="range-label" x="0" y="32.9">74.2</text>
-                  <text class="range-label" x="0" y="88.5">73.4</text>
+                  <text class="range-label" x="0" y="44.6">74.2</text>
+                  <text class="range-label" x="0" y="90.9">73.4</text>
                   <text
                     class="end-label"
                     x="292"
-                    y="89"
+                    y="91.4"
                     fill="var(--color-muted)"
                   >
                     73.4
@@ -2156,32 +2550,19 @@
                   <text
                     class="end-label"
                     x="292"
-                    y="63.2"
+                    y="69.9"
                     fill="var(--color-data-violet)"
                   >
                     73.8
                   </text>
-                  <text class="axis" x="34" y="110" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="75.7" y="110" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="117.3" y="110" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="159" y="110" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="200.7" y="110" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="242.3" y="110" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="284" y="110" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="ref-label" x="294" y="11" text-anchor="end">target 72.0</text>
+                  <text class="axis" x="34" y="110" text-anchor="middle">Mon</text>
+                  <text class="axis" x="75.7" y="110" text-anchor="middle">Tue</text>
+                  <text class="axis" x="117.3" y="110" text-anchor="middle">Wed</text>
+                  <text class="axis" x="159" y="110" text-anchor="middle">Thu</text>
+                  <text class="axis" x="200.7" y="110" text-anchor="middle">Fri</text>
+                  <text class="axis" x="242.3" y="110" text-anchor="middle">Sat</text>
+                  <text class="axis" x="284" y="110" text-anchor="middle">Sun</text>
                 </svg>
                 <div class="legend">
                   <span
@@ -2210,110 +2591,94 @@
                   class="chart"
                   viewBox="0 0 320 112"
                   role="img"
-                  aria-label="Calories per day, rising: 620, 780, 410, 985, 540, 900, 705 kcal. Total 4,940 kcal. Average 706 kcal a day."
+                  aria-label="Calories per day, rising: 620, 780, 410, 985, 540, 900, 705 kcal. Total 4,940 kcal. Goal 800 kcal a day."
                 >
                   <rect
                     x="8.8"
-                    y="43.4"
+                    y="52.2"
                     width="28"
-                    height="46.6"
+                    height="37.8"
                     rx="6"
                     fill="var(--color-warn)"
                   />
                   <rect
                     x="54.5"
-                    y="31.4"
+                    y="42.5"
                     width="28"
-                    height="58.6"
+                    height="47.5"
                     rx="6"
                     fill="var(--color-warn)"
                   />
                   <rect
                     x="100.3"
-                    y="59.2"
+                    y="65"
                     width="28"
-                    height="30.8"
+                    height="25"
                     rx="6"
                     fill="var(--color-warn)"
                   />
                   <rect
                     x="146"
-                    y="16"
+                    y="30"
                     width="28"
-                    height="74"
+                    height="60"
                     rx="6"
                     fill="var(--color-warn)"
                   />
                   <rect
                     x="191.7"
-                    y="49.4"
+                    y="57.1"
                     width="28"
-                    height="40.6"
+                    height="32.9"
                     rx="6"
                     fill="var(--color-warn)"
                   />
                   <rect
                     x="237.5"
-                    y="22.4"
+                    y="35.2"
                     width="28"
-                    height="67.6"
+                    height="54.8"
                     rx="6"
                     fill="var(--color-warn)"
                   />
                   <rect
                     x="283.2"
-                    y="37"
+                    y="47.1"
                     width="28"
-                    height="53"
+                    height="42.9"
                     rx="6"
                     fill="var(--color-warn)"
                   />
-                  <line class="ref-line" x1="0" x2="320" y1="37" y2="37" />
-                  <text class="ref-label" x="320" y="40" dy="0.8em" text-anchor="end">
-                    avg 706
-                  </text>
-                  <text class="val" x="22.8" y="39.4" text-anchor="middle">
+                  <line class="ref-line" x1="0" x2="320" y1="41.3" y2="41.3" />
+                  <text class="ref-label" x="320" y="11" text-anchor="end">goal 800</text>
+                  <text class="val" x="22.8" y="48.2" text-anchor="middle">
                     620
                   </text>
-                  <text class="val" x="68.5" y="27.4" text-anchor="middle">
+                  <text class="val" x="68.5" y="38.5" text-anchor="middle">
                     780
                   </text>
-                  <text class="val" x="114.3" y="55.2" text-anchor="middle">
+                  <text class="val" x="114.3" y="61" text-anchor="middle">
                     410
                   </text>
-                  <text class="val" x="160" y="12" text-anchor="middle">
+                  <text class="val" x="160" y="26" text-anchor="middle">
                     985
                   </text>
-                  <text class="val" x="205.7" y="45.4" text-anchor="middle">
+                  <text class="val" x="205.7" y="53.1" text-anchor="middle">
                     540
                   </text>
-                  <text class="val" x="251.5" y="18.4" text-anchor="middle">
+                  <text class="val" x="251.5" y="31.2" text-anchor="middle">
                     900
                   </text>
-                  <text class="val" x="297.2" y="33" text-anchor="middle">
+                  <text class="val" x="297.2" y="43.1" text-anchor="middle">
                     705
                   </text>
-                  <text class="axis" x="22.8" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="68.5" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="114.3" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="160" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="205.7" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="251.5" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="297.2" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
                 </svg>
               </div>
 
@@ -2409,27 +2774,99 @@
                   <text class="val" x="297.2" y="41" text-anchor="middle">
                     9.9k
                   </text>
-                  <text class="axis" x="22.8" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="68.5" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="114.3" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="160" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="205.7" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="251.5" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="297.2" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
+                </svg>
+              </div>
+
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Walk</span>
+                  <span class="muted">6h 27m total</span>
+                </div>
+                <svg
+                  class="chart"
+                  viewBox="0 0 320 112"
+                  role="img"
+                  aria-label="Walk time per day, steady: 55m, 55m, 55m, 55m, 55m, 55m, 55m. Total 6h 27m. Goal 60m a day."
+                >
+                  <rect
+                    x="8.8"
+                    y="34.6"
+                    width="28"
+                    height="55.4"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="54.5"
+                    y="34.6"
+                    width="28"
+                    height="55.4"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="100.3"
+                    y="34.6"
+                    width="28"
+                    height="55.4"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="146"
+                    y="34.6"
+                    width="28"
+                    height="55.4"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="191.7"
+                    y="34.6"
+                    width="28"
+                    height="55.4"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="237.5"
+                    y="34.6"
+                    width="28"
+                    height="55.4"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <rect
+                    x="283.2"
+                    y="34.6"
+                    width="28"
+                    height="55.4"
+                    rx="6"
+                    fill="var(--color-data-cyan)"
+                  />
+                  <line class="ref-line" x1="0" x2="320" y1="30" y2="30" />
+                  <text class="ref-label" x="320" y="11" text-anchor="end">goal 60m</text>
+                  <text class="val" x="22.8" y="30.6" text-anchor="middle">55m</text>
+                  <text class="val" x="68.5" y="30.6" text-anchor="middle">55m</text>
+                  <text class="val" x="114.3" y="30.6" text-anchor="middle">55m</text>
+                  <text class="val" x="160" y="30.6" text-anchor="middle">55m</text>
+                  <text class="val" x="205.7" y="30.6" text-anchor="middle">55m</text>
+                  <text class="val" x="251.5" y="30.6" text-anchor="middle">55m</text>
+                  <text class="val" x="297.2" y="30.6" text-anchor="middle">55m</text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
                 </svg>
               </div>
 
@@ -2560,25 +2997,13 @@
                   >
                     113
                   </text>
-                  <text class="axis" x="10" y="96" text-anchor="middle">M</text>
-                  <text class="axis" x="55.7" y="96" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="101.3" y="96" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="147" y="96" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="192.7" y="96" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="238.3" y="96" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="284" y="96" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="10" y="96" text-anchor="middle">Mon</text>
+                  <text class="axis" x="55.7" y="96" text-anchor="middle">Tue</text>
+                  <text class="axis" x="101.3" y="96" text-anchor="middle">Wed</text>
+                  <text class="axis" x="147" y="96" text-anchor="middle">Thu</text>
+                  <text class="axis" x="192.7" y="96" text-anchor="middle">Fri</text>
+                  <text class="axis" x="238.3" y="96" text-anchor="middle">Sat</text>
+                  <text class="axis" x="284" y="96" text-anchor="middle">Sun</text>
                 </svg>
                 <div class="legend">
                   <span
@@ -2598,7 +3023,10 @@
               <div class="card">
                 <div class="row">
                   <span class="micro">Heart rate zones</span>
-                  <span class="muted">20 September</span>
+                  <span class="zone-head-end">
+                    <span class="muted">20 September</span>
+                    <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
+                  </span>
                 </div>
                 <div
                   class="zonebar"
@@ -2619,28 +3047,13 @@
                   ></span>
                 </div>
                 <div class="legend">
-                  <span
-                    ><i
-                      class="dot"
-                      style="background: var(--color-data-cyan)"
-                    ></i
-                    >Warm 28m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-ok)"></i>Fat
-                    burn 11m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-warn)"></i
-                    >Cardio 16m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-danger)"></i
-                    >Peak 16m</span
-                  >
+                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 28m · under 114 bpm</span>
+                  <span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 11m · 114–132 bpm</span>
+                  <span><i class="dot" style="background: var(--color-warn)"></i>Cardio 16m · 133–161 bpm</span>
+                  <span><i class="dot" style="background: var(--color-danger)"></i>Peak 16m · 162+ bpm</span>
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Modelled from the session average and peak.
+                  Based on a max of 190 bpm, from your birth year.
                 </p>
               </div>
 
@@ -2649,685 +3062,103 @@
                   <span class="micro">Streak</span>
                   <span class="muted">12 days · longest 12 days</span>
                 </div>
-                <svg
-                  class="chart"
-                  viewBox="0 0 320 140"
+                <div
+                  class="heat"
                   role="img"
-                  aria-label="Streak over the last 12 weeks: logged 12 of 84 days. Current streak 12 days, longest 12 days."
+                  aria-label="Streak over the last 12 weeks: logged 12 of 81 days. Current streak 12 days, longest 12 days."
                 >
-                  <rect
-                    x="1.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                </svg>
+                  <span class="heat-label">Mon</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Tue</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Wed</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Thu</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Fri</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-future"></span>
+                  <span class="heat-label">Sat</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-future"></span>
+                  <span class="heat-label">Sun</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-cell heat-future"></span>
+                </div>
                 <div class="legend">
                   <span
                     ><i class="dot" style="background: var(--color-accent)"></i
@@ -3337,10 +3168,65 @@
                     ><i class="dot" style="background: var(--color-dim)"></i>Not
                     logged</span
                   >
+                  <span
+                    ><i class="dot dot-ahead"></i>Ahead</span
+                  >
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Each column is a week, Monday at the top.
+                  Each column is a week. Weeks start on Monday.
                 </p>
+                <p class="muted" id="p5-open-a-day" style="margin: 10px 0 0; font-size: 12px">Open a day</p>
+                <ul class="open-days" aria-labelledby="p5-open-a-day">
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">M</span><span aria-hidden="true">14</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Mon 14 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">T</span><span aria-hidden="true">15</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Tue 15 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">W</span><span aria-hidden="true">16</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Wed 16 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">T</span><span aria-hidden="true">17</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Thu 17 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">F</span><span aria-hidden="true">18</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Fri 18 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">S</span><span aria-hidden="true">19</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Sat 19 Sep, logged</span></a
+                    >
+                  </li>
+                  <li>
+                    <a class="open-day logged" href="#p2"
+                      ><span aria-hidden="true">S</span><span aria-hidden="true">20</span
+                      ><i aria-hidden="true"></i
+                      ><span class="visually-hidden">Sun 20 Sep, logged</span></a
+                    >
+                  </li>
+                </ul>
               </div>
 
               <div class="card">
@@ -3352,107 +3238,91 @@
                   class="chart"
                   viewBox="0 0 320 112"
                   role="img"
-                  aria-label="Time in the gym per day this week. Totals: 6 sessions, 7h 12m in the gym, 4,940 kcal, 71,204 steps. Average 62m a logged day."
+                  aria-label="Time in the gym per day this week. Totals: 6 sessions, 7h 12m in the gym, 4,940 kcal, 71,204 steps. Goal 45m a day."
                 >
                   <rect
                     class="ghost"
                     x="100.3"
-                    y="16"
+                    y="30"
                     width="28"
-                    height="74"
+                    height="60"
                     rx="6"
                   />
                   <rect
                     x="8.8"
-                    y="16"
+                    y="30"
                     width="28"
-                    height="74"
+                    height="60"
                     rx="6"
                     fill="var(--color-accent)"
                   />
                   <rect
                     x="54.5"
-                    y="16"
+                    y="30"
                     width="28"
-                    height="74"
+                    height="60"
                     rx="6"
                     fill="var(--color-accent)"
                   />
                   <rect
                     x="146"
-                    y="16"
+                    y="30"
                     width="28"
-                    height="74"
+                    height="60"
                     rx="6"
                     fill="var(--color-accent)"
                   />
                   <rect
                     x="191.7"
-                    y="16"
+                    y="30"
                     width="28"
-                    height="74"
+                    height="60"
                     rx="6"
                     fill="var(--color-accent)"
                   />
                   <rect
                     x="237.5"
-                    y="16"
+                    y="30"
                     width="28"
-                    height="74"
+                    height="60"
                     rx="6"
                     fill="var(--color-accent)"
                   />
                   <rect
                     x="283.2"
-                    y="16"
+                    y="30"
                     width="28"
-                    height="74"
+                    height="60"
                     rx="6"
                     fill="var(--color-accent)"
                   />
-                  <line class="ref-line" x1="0" x2="320" y1="26.6" y2="26.6" />
-                  <text class="ref-label" x="320" y="29.6" dy="0.8em" text-anchor="end">
-                    avg 62m
-                  </text>
-                  <text class="val" x="22.8" y="12" text-anchor="middle">
+                  <line class="ref-line" x1="0" x2="320" y1="52.5" y2="52.5" />
+                  <text class="ref-label" x="320" y="11" text-anchor="end">goal 45m</text>
+                  <text class="val" x="22.8" y="26" text-anchor="middle">
                     72m
                   </text>
-                  <text class="val" x="68.5" y="12" text-anchor="middle">
+                  <text class="val" x="68.5" y="26" text-anchor="middle">
                     72m
                   </text>
-                  <text class="val" x="160" y="12" text-anchor="middle">
+                  <text class="val" x="160" y="26" text-anchor="middle">
                     72m
                   </text>
-                  <text class="val" x="205.7" y="12" text-anchor="middle">
+                  <text class="val" x="205.7" y="26" text-anchor="middle">
                     72m
                   </text>
-                  <text class="val" x="251.5" y="12" text-anchor="middle">
+                  <text class="val" x="251.5" y="26" text-anchor="middle">
                     72m
                   </text>
-                  <text class="val" x="297.2" y="12" text-anchor="middle">
+                  <text class="val" x="297.2" y="26" text-anchor="middle">
                     72m
                   </text>
-                  <text class="axis" x="22.8" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="68.5" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="114.3" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="160" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="205.7" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="251.5" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="297.2" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
                 </svg>
                 <dl class="week-grid">
                   <div>
@@ -3774,6 +3644,85 @@
         </div>
       </section>
 
+      <!-- ============ H2 · heart rate zones explained ============
+           New classes: zone-info, zone-head-end, zone-rows, zone-sheet. -->
+      <section class="plate" aria-labelledby="p-zone-info">
+        <div class="plate-label">
+          <span class="n">H2</span>
+          <span class="name" id="p-zone-info">Heart rate zones explained</span>
+          <span class="route">/ · sheet</span>
+        </div>
+        <div class="frame">
+          <div class="screen" aria-hidden="true">
+            <div class="topbar">
+              <div>
+                <h2>Today</h2>
+                <p class="sub">Sunday 13 September</p>
+              </div>
+            </div>
+            <div class="body">
+              <div class="card">
+                <div class="row">
+                  <span class="micro">Heart rate zones</span>
+                  <span class="zone-head-end">
+                    <span class="muted" style="font-size: 12px">21m in cardio</span>
+                    <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scrim"></div>
+
+          <div class="bottomsheet" role="dialog" aria-modal="true" aria-labelledby="zone-info-title">
+            <div class="grabber" aria-hidden="true"></div>
+
+            <div class="sheet-top">
+              <h3 id="zone-info-title">Heart rate zones</h3>
+              <button class="sheet-close" type="button" aria-label="Close Heart rate zones">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+
+            <dl class="zone-sheet">
+              <div>
+                <dt>Warm, under 114 bpm</dt>
+                <dd>Easy movement below 60 % of your max, such as a warm-up or the rest between sets.</dd>
+              </div>
+              <div>
+                <dt>Fat burn, 114–132 bpm</dt>
+                <dd>A steady effort from 60 to 70 % of your max that you could keep up for a long time.</dd>
+              </div>
+              <div>
+                <dt>Cardio, 133–161 bpm</dt>
+                <dd>Hard work from 70 to 85 % of your max that builds your heart and lung fitness.</dd>
+              </div>
+              <div>
+                <dt>Peak, 162+ bpm</dt>
+                <dd>An all-out effort above 85 % of your max that you can hold only for short bursts.</dd>
+              </div>
+            </dl>
+
+            <p class="muted" style="margin: 0; font-size: 14px">
+              The app spreads your gym time between your average and your peak heart rate, so the
+              split is a model, not a measurement.
+            </p>
+            <p class="muted" style="margin: 0; font-size: 14px">
+              Your max heart rate is the value you set in Profile. Without one, it is 220 minus
+              your age, from your birth year.
+            </p>
+            <p style="margin: 0; font-size: 14px">Based on a max of 190 bpm, from your birth year.</p>
+          </div>
+        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          The round i button in the header of the zones card on Today and of the zone split chart
+          on Stats opens this sheet. With no max, the rows show the zone names only and the last
+          line reads "Add your birth year in Profile for real zones." Focus lands on × first, and
+          closing gives focus back to the i button.
+        </p>
+      </section>
+
       <!-- ============ 5b · analytics, one logged day ============ -->
       <section class="plate" aria-labelledby="p5-one-day">
         <div class="plate-label">
@@ -3879,27 +3828,13 @@
                   <text class="val" x="248.9" y="12" text-anchor="middle">
                     705
                   </text>
-                  <text class="axis" x="19.1" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="57.4" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="95.7" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="134" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="172.3" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="210.6" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="248.9" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="19.1" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="57.4" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="95.7" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="134" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="172.3" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="210.6" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="248.9" y="106" text-anchor="middle">Sun</text>
                 </svg>
               </div>
 
@@ -3977,27 +3912,13 @@
                   <text class="val" x="297.2" y="24.9" text-anchor="middle">
                     9.9k
                   </text>
-                  <text class="axis" x="22.8" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="68.5" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="114.3" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="160" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="205.7" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="251.5" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="297.2" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="22.8" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="68.5" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="114.3" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="160" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="205.7" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="251.5" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="297.2" y="106" text-anchor="middle">Sun</text>
                 </svg>
               </div>
 
@@ -4015,7 +3936,10 @@
               <div class="card">
                 <div class="row">
                   <span class="micro">Heart rate zones</span>
-                  <span class="muted">20 September</span>
+                  <span class="zone-head-end">
+                    <span class="muted">20 September</span>
+                    <button class="sheet-close zone-info" type="button" aria-label="What the zones mean"><span aria-hidden="true">i</span></button>
+                  </span>
                 </div>
                 <div
                   class="zonebar"
@@ -4036,28 +3960,13 @@
                   ></span>
                 </div>
                 <div class="legend">
-                  <span
-                    ><i
-                      class="dot"
-                      style="background: var(--color-data-cyan)"
-                    ></i
-                    >Warm 28m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-ok)"></i>Fat
-                    burn 11m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-warn)"></i
-                    >Cardio 16m</span
-                  >
-                  <span
-                    ><i class="dot" style="background: var(--color-danger)"></i
-                    >Peak 16m</span
-                  >
+                  <span><i class="dot" style="background: var(--color-data-cyan)"></i>Warm 28m · under 114 bpm</span>
+                  <span><i class="dot" style="background: var(--color-ok)"></i>Fat burn 11m · 114–132 bpm</span>
+                  <span><i class="dot" style="background: var(--color-warn)"></i>Cardio 16m · 133–161 bpm</span>
+                  <span><i class="dot" style="background: var(--color-danger)"></i>Peak 16m · 162+ bpm</span>
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Modelled from the session average and peak.
+                  Based on a max of 190 bpm, from your birth year.
                 </p>
               </div>
 
@@ -4066,685 +3975,103 @@
                   <span class="micro">Streak</span>
                   <span class="muted">1 day · longest 1 day</span>
                 </div>
-                <svg
-                  class="chart"
-                  viewBox="0 0 320 140"
+                <div
+                  class="heat"
                   role="img"
-                  aria-label="Streak over the last 12 weeks: logged 1 of 84 days. Current streak 1 day, longest 1 day."
+                  aria-label="Streak over the last 12 weeks: logged 1 of 81 days. Current streak 1 day, longest 1 day."
                 >
-                  <rect
-                    x="1.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="1.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="28.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="54.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="81.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="108.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="134.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="161.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="188.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="214.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="241.5"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="268.2"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="1.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="21.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="41.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="61.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="81.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="101.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-dim)"
-                  />
-                  <rect
-                    x="294.8"
-                    y="121.5"
-                    width="23.7"
-                    height="17"
-                    rx="3"
-                    fill="var(--color-accent)"
-                  />
-                </svg>
+                  <span class="heat-label">Mon</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-label">Tue</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-label">Wed</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-label">Thu</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-logged"></span>
+                  <span class="heat-label">Fri</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-future"></span>
+                  <span class="heat-label">Sat</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-future"></span>
+                  <span class="heat-label">Sun</span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-missed"></span>
+                  <span class="heat-cell heat-future"></span>
+                </div>
                 <div class="legend">
                   <span
                     ><i class="dot" style="background: var(--color-accent)"></i
@@ -4754,9 +4081,12 @@
                     ><i class="dot" style="background: var(--color-dim)"></i>Not
                     logged</span
                   >
+                  <span
+                    ><i class="dot dot-ahead"></i>Ahead</span
+                  >
                 </div>
                 <p class="muted" style="margin: 10px 0 0; font-size: 12px">
-                  Each column is a week, Monday at the top.
+                  Each column is a week. Weeks start on Monday.
                 </p>
               </div>
 
@@ -4830,27 +4160,13 @@
                   <text class="val" x="248.9" y="12" text-anchor="middle">
                     72m
                   </text>
-                  <text class="axis" x="19.1" y="106" text-anchor="middle">
-                    M
-                  </text>
-                  <text class="axis" x="57.4" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="95.7" y="106" text-anchor="middle">
-                    W
-                  </text>
-                  <text class="axis" x="134" y="106" text-anchor="middle">
-                    T
-                  </text>
-                  <text class="axis" x="172.3" y="106" text-anchor="middle">
-                    F
-                  </text>
-                  <text class="axis" x="210.6" y="106" text-anchor="middle">
-                    S
-                  </text>
-                  <text class="axis" x="248.9" y="106" text-anchor="middle">
-                    S
-                  </text>
+                  <text class="axis" x="19.1" y="106" text-anchor="middle">Mon</text>
+                  <text class="axis" x="57.4" y="106" text-anchor="middle">Tue</text>
+                  <text class="axis" x="95.7" y="106" text-anchor="middle">Wed</text>
+                  <text class="axis" x="134" y="106" text-anchor="middle">Thu</text>
+                  <text class="axis" x="172.3" y="106" text-anchor="middle">Fri</text>
+                  <text class="axis" x="210.6" y="106" text-anchor="middle">Sat</text>
+                  <text class="axis" x="248.9" y="106" text-anchor="middle">Sun</text>
                 </svg>
                 <dl class="week-grid">
                   <div>
@@ -4926,24 +4242,124 @@
                 <p class="muted" style="margin: 4px 0 0; font-size: 12px">
                   Display only. Weight is always stored in kilograms.
                 </p>
+                <p style="margin: 10px 0 0; font-size: 14px; font-weight: 600">
+                  Week starts on Monday.
+                </p>
+                <p class="muted" style="margin: 4px 0 0; font-size: 12px">
+                  Every week total and chart counts from Monday.
+                </p>
               </div>
 
               <div class="card">
-                <span class="micro">Targets</span>
+                <span class="micro">Goals</span>
                 <div style="display: grid; gap: 10px; margin-top: 10px">
-                  <label class="field" for="pr-weight">
-                    <span class="micro">Target weight (kg)</span>
-                    <input class="input" id="pr-weight" inputmode="decimal" value="71.0" />
-                  </label>
                   <label class="field" for="pr-steps">
                     <span class="micro">Daily step goal</span>
                     <input class="input" id="pr-steps" inputmode="numeric" value="12000" />
                   </label>
+                  <label class="field" for="pr-calories">
+                    <span class="micro">Daily calorie goal (kcal)</span>
+                    <input class="input" id="pr-calories" inputmode="numeric" value="800" />
+                  </label>
+                  <label class="field" for="pr-sessions">
+                    <span class="micro">Sessions per week goal</span>
+                    <input class="input" id="pr-sessions" inputmode="numeric" value="4" />
+                  </label>
+                  <label class="field" for="pr-weight">
+                    <span class="micro">Target weight (kg)</span>
+                    <input class="input" id="pr-weight" inputmode="decimal" value="71.0" />
+                  </label>
                   <label class="field" for="pr-height">
                     <span class="micro">Height (cm)</span>
-                    <input class="input" id="pr-height" inputmode="numeric" value="174" />
+                    <input class="input" id="pr-height" inputmode="decimal" value="174" />
                   </label>
+                  <div class="dp" role="group" aria-labelledby="pr-gym-goal-label">
+                    <span class="micro" id="pr-gym-goal-label">Daily gym time goal</span>
+                    <div class="dp-row">
+                      <button
+                        class="dp-step"
+                        type="button"
+                        aria-label="Decrease Daily gym time goal by 5 minutes"
+                      >
+                        <span aria-hidden="true">−</span>
+                      </button>
+                      <output class="dp-value">1:00:00</output>
+                      <button
+                        class="dp-step"
+                        type="button"
+                        aria-label="Increase Daily gym time goal by 5 minutes"
+                      >
+                        <span aria-hidden="true">+</span>
+                      </button>
+                    </div>
+                    <div class="dp-chips">
+                      <button class="pill" type="button" aria-pressed="false">45m</button>
+                      <button class="pill" type="button" aria-pressed="true">1h</button>
+                      <button class="pill" type="button" aria-pressed="false">1h 30m</button>
+                      <button class="pill" type="button" aria-pressed="false">2h</button>
+                      <button class="pill dp-clear" type="button">
+                        Clear <span class="visually-hidden">Daily gym time goal</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="dp" role="group" aria-labelledby="pr-walk-goal-label">
+                    <span class="micro" id="pr-walk-goal-label">Daily walk time goal</span>
+                    <div class="dp-row">
+                      <button
+                        class="dp-step"
+                        type="button"
+                        aria-label="Decrease Daily walk time goal by 5 minutes"
+                      >
+                        <span aria-hidden="true">−</span>
+                      </button>
+                      <output class="dp-value">45:00</output>
+                      <button
+                        class="dp-step"
+                        type="button"
+                        aria-label="Increase Daily walk time goal by 5 minutes"
+                      >
+                        <span aria-hidden="true">+</span>
+                      </button>
+                    </div>
+                    <div class="dp-chips">
+                      <button class="pill" type="button" aria-pressed="false">30m</button>
+                      <button class="pill" type="button" aria-pressed="true">45m</button>
+                      <button class="pill" type="button" aria-pressed="false">1h</button>
+                      <button class="pill" type="button" aria-pressed="false">1h 30m</button>
+                      <button class="pill dp-clear" type="button">
+                        Clear <span class="visually-hidden">Daily walk time goal</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              <div class="card">
+                <span class="micro">Heart rate</span>
+                <div style="display: grid; gap: 10px; margin-top: 10px">
+                  <label class="field" for="pr-birth-year">
+                    <span class="micro">Birth year</span>
+                    <input class="input" id="pr-birth-year" inputmode="numeric" value="1996" />
+                  </label>
+                  <div>
+                    <label class="field" for="pr-max-hr">
+                      <span class="micro">Max heart rate (bpm)</span>
+                      <input
+                        class="input"
+                        id="pr-max-hr"
+                        inputmode="numeric"
+                        value=""
+                        aria-describedby="pr-max-hr-hint"
+                      />
+                    </label>
+                    <p id="pr-max-hr-hint" class="muted" style="margin: 7px 0 0; font-size: 12px">
+                      Leave empty to use 220 minus your age.
+                    </p>
+                  </div>
+                </div>
+                <p class="muted" style="margin: 10px 0 0; font-size: 12px">
+                  The zones use 190 bpm, from your age.
+                </p>
               </div>
 
               <div class="card">
@@ -4970,6 +4386,29 @@
                 <button class="btn btn-secondary" type="button" style="margin-top: 12px">
                   Sync now
                 </button>
+              </div>
+              <div class="card">
+                <span class="micro">Errors</span>
+                <ol
+                  class="list"
+                  style="margin-top: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-input)"
+                  aria-label="2 errors on this device"
+                >
+                  <li style="padding: 8px 12px; border-bottom: 1px solid var(--color-border)">
+                    <strong style="display: block; font-size: 13px"
+                      >sync pending count: DatabaseClosedError</strong
+                    >
+                    <span class="muted" style="font-size: 12px">5 Oct, 07:42 · live-query · /</span>
+                  </li>
+                  <li style="padding: 8px 12px">
+                    <strong style="display: block; font-size: 13px">Loading chunk 812 failed.</strong>
+                    <span class="muted" style="font-size: 12px">4 Oct, 21:10 · window · /analytics</span>
+                  </li>
+                </ol>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px">
+                  <button class="btn btn-secondary" type="button">Copy all</button>
+                  <button class="btn btn-danger" type="button">Clear</button>
+                </div>
               </div>
 
               <div>
@@ -5004,6 +4443,10 @@
             >Pending</span
           >
           <span class="chip"><span class="dot dot-warn" aria-hidden="true"></span>Offline</span>
+          <span class="chip"
+            ><span class="dot" style="background: var(--color-dim)" aria-hidden="true"></span
+            >Unknown</span
+          >
         </div>
       </section>
 
@@ -5111,13 +4554,13 @@
         </div>
       </section>
 
-      <!-- ============ 8 · finish and the gym time offer ============
+      <!-- ============ 8 · finish summary ============
            New classes: none. -->
       <section class="plate" aria-labelledby="p8">
         <div class="plate-label">
           <span class="n">08</span>
-          <span class="name" id="p8">Finish and the gym time offer</span>
-          <span class="route">/workout · sheet</span>
+          <span class="name" id="p8">Finish summary</span>
+          <span class="route">/workout</span>
         </div>
         <div class="frame">
           <div class="screen" aria-hidden="true">
@@ -5131,8 +4574,8 @@
             <div class="body">
               <div class="hero">
                 <span class="micro">Elapsed</span>
-                <p class="hero-num">01:12:05</p>
-                <p class="hero-foot">Volume 4,820 kg · 11 sets</p>
+                <p class="hero-num">1:12:05</p>
+                <p class="hero-foot">Volume 3,420 kg · 18 sets · 4 exercises</p>
               </div>
               <div class="card"><span class="micro">Bench press</span></div>
             </div>
@@ -5140,74 +4583,56 @@
 
           <div class="scrim"></div>
 
-          <div
-            class="bottomsheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="finish-title"
-          >
+          <div class="bottomsheet" role="dialog" aria-modal="true" aria-labelledby="summary-title">
             <div class="grabber" aria-hidden="true"></div>
 
-            <div>
-              <span class="micro" id="finish-title">Session finished</span>
-              <p class="hero-num" style="margin: 8px 0 4px">1:12:05</p>
-              <p class="muted" style="margin: 0">
-                Sat 20 Sep · 17:30 to 18:42 · 11 sets · 4,820 kg
-              </p>
+            <div class="sheet-top">
+              <h3 id="summary-title">Session done</h3>
+              <button class="sheet-close" type="button" aria-label="Close Session done">
+                <span aria-hidden="true">×</span>
+              </button>
             </div>
+
+            <div>
+              <span class="micro">Duration</span>
+              <p class="hero-num" style="margin: 4px 0 0">1:12:05</p>
+            </div>
+
+            <dl style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); margin: 0">
+              <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                <dt class="muted" style="font-size: 12px">sets</dt>
+                <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">18</dd>
+              </div>
+              <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                <dt class="muted" style="font-size: 12px">exercises</dt>
+                <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">4</dd>
+              </div>
+              <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                <dt class="muted" style="font-size: 12px">volume (kg)</dt>
+                <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">3,420</dd>
+              </div>
+            </dl>
 
             <div class="card">
-              <h3 class="micro">Gym time for Sat 20 Sep</h3>
+              <h4 style="margin: 0"><span class="micro">New records</span></h4>
               <ul class="list" style="margin-top: 6px">
-                <li class="row"><span class="muted">In your log</span><strong>1:05:00</strong></li>
                 <li class="row">
-                  <span class="muted">This session</span
-                  ><strong style="color: var(--color-accent)">1:12:05</strong>
+                  <span class="muted" style="font-size: 14px">Bench press</span>
+                  <strong style="color: var(--color-accent); font-size: 14px">102.5 kg × 3</strong>
                 </li>
               </ul>
-              <p class="muted" style="margin: 6px 0 0; font-size: 12px">
-                Your log already holds a different gym time. Nothing changes until you pick.
-              </p>
             </div>
 
-            <button class="btn" type="button">Use 1:12:05 for gym time</button>
-            <button class="btn btn-secondary" type="button">Keep 1:05:00</button>
+            <button class="btn" type="button">Done</button>
           </div>
         </div>
-        <div role="group" aria-label="The same offer on the daily log" style="margin-top: 16px">
-          <span class="micro">The same offer on /log</span>
-          <div class="card" style="margin-top: 8px; display: flex; align-items: center; gap: 12px">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--color-accent)"
-              stroke-width="2"
-              stroke-linecap="round"
-              aria-hidden="true"
-              focusable="false"
-              style="flex: 0 0 18px"
-            >
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="M12 8v5"></path>
-              <path d="M12 16h.01"></path>
-            </svg>
-            <p class="muted" style="margin: 0; flex: 1 1 auto">
-              Today's session was <strong style="color: var(--color-text)">1:12:05</strong>.
-              Your log says <strong style="color: var(--color-text)">1:05:00</strong>. Use the
-              session for gym time?
-            </p>
-            <button class="pill" type="button" style="color: var(--color-accent)">
-              Use <span class="visually-hidden">1:12:05 for gym time</span>
-            </button>
-          </div>
-          <p class="dim" style="margin: 8px 0 0">
-            No log for the day yet: the sheet asks "Save 1:12:05 as gym time for Sat 20 Sep?"
-            and Use creates the day with gym time only. The same value already logged: no
-            offer. After Use, the /log card hides.
-          </p>
-        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          Every successful Finish opens this sheet. Done and × both go to /workouts. The volume
+          and the record weight show in the display unit, so an imperial profile reads lb. With
+          no record the card reads "No new record this time." A record is the heaviest set of an
+          exercise above its best weight from an earlier session; a first time gives none.
+          Focus lands on × first, as on every sheet: both controls do the same thing.
+        </p>
       </section>
 
       <!-- ============ 9 · manage exercises ============
@@ -5403,6 +4828,10 @@
                       >15.54 <span class="badge badge-warn">Check</span></span
                     >
                   </div>
+                  <div>
+                    <span class="muted">Swim time</span>
+                    <span class="cell" style="margin-top: 4px">—</span>
+                  </div>
                 </div>
                 <fieldset style="border: 0; margin: 12px 0 0; padding: 0">
                   <legend class="muted" style="padding: 0; margin-bottom: 8px">
@@ -5445,6 +4874,10 @@
                       >12.40 <span class="badge badge-warn">Check</span></span
                     >
                   </div>
+                  <div>
+                    <span class="muted">Swim time</span>
+                    <span class="cell" style="margin-top: 4px">—</span>
+                  </div>
                 </div>
                 <fieldset style="border: 0; margin: 12px 0 0; padding: 0">
                   <legend class="muted" style="padding: 0; margin-bottom: 8px">
@@ -5481,6 +4914,10 @@
                   <div>
                     <span class="muted">Walk time · 20.05</span>
                     <span class="cell" style="margin-top: 4px">20m 5s</span>
+                  </div>
+                  <div>
+                    <span class="muted">Swim time</span>
+                    <span class="cell" style="margin-top: 4px">30:00</span>
                   </div>
                 </div>
                 <!-- A picked cell keeps its two readings, so a wrong pick can be changed. -->
@@ -5534,6 +4971,10 @@
                   <div>
                     <span class="muted">Walk time</span>
                     <span class="cell" style="margin-top: 4px">53m 19s</span>
+                  </div>
+                  <div>
+                    <span class="muted">Swim time</span>
+                    <span class="cell" style="margin-top: 4px">45:00</span>
                   </div>
                 </div>
                 <p class="muted" style="margin: 8px 0 10px">
@@ -5959,6 +5400,428 @@
           </div>
         </div>
       </section>
+
+      <!-- ============ I1 · stats, edit the layout ============
+           New classes: edit-row, edit-pill, layout-list, layout-row, layout-name, layout-state,
+           layout-move, switch, layout-actions. -->
+      <section class="plate" aria-labelledby="p-stats-edit">
+        <div class="plate-label">
+          <span class="n">I1</span>
+          <span class="name" id="p-stats-edit">Stats, edit the layout</span>
+          <span class="route">/analytics · edit</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <h2>Stats</h2>
+                <p class="sub">14 – 20 September</p>
+              </div>
+              <span class="chip"><span class="dot dot-ok" aria-hidden="true"></span>Synced</span>
+            </div>
+
+            <div class="body">
+              <div class="seg" role="group" aria-label="Range">
+                <button type="button" aria-pressed="false">Day</button>
+                <button type="button" aria-pressed="true">Week</button>
+                <button type="button" aria-pressed="false">Month</button>
+              </div>
+
+              <div class="card">
+                <h3 class="micro" style="margin: 0">Stats cards</h3>
+                <ol class="layout-list" aria-label="Stats cards">
+                  <li class="layout-row" data-card-id="steps">
+                    <span class="layout-name">Steps</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Steps up" disabled><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Steps down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Steps"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row is-hidden" data-card-id="weight">
+                    <span class="layout-name">Weight<span class="layout-state"> · Hidden</span></span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Weight up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Weight down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="false" aria-label="Show Weight"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="calories">
+                    <span class="layout-name">Calories burnt</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Calories burnt up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Calories burnt down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Calories burnt"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="walk">
+                    <span class="layout-name">Walk</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Walk up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Walk down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Walk"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="heart-rate">
+                    <span class="layout-name">Heart rate</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Heart rate up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Heart rate down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Heart rate"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="zone-split">
+                    <span class="layout-name">Heart rate zones</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Heart rate zones up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Heart rate zones down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Heart rate zones"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="streak">
+                    <span class="layout-name">Streak</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Streak up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Streak down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Streak"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="totals">
+                    <span class="layout-name">Totals</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Totals up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Totals down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Totals"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="volume-load">
+                    <span class="layout-name">Volume load</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Volume load up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Volume load down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Volume load"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="one-rep-max">
+                    <span class="layout-name">One-rep max</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move One-rep max up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move One-rep max down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show One-rep max"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="records">
+                    <span class="layout-name">Personal records</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Personal records up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Personal records down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Personal records"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="muscle-balance">
+                    <span class="layout-name">Muscle group balance</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Muscle group balance up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Muscle group balance down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Muscle group balance"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="session-gaps">
+                    <span class="layout-name">Days between sessions</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Days between sessions up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Days between sessions down"><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Days between sessions"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                  <li class="layout-row" data-card-id="calories-per-minute">
+                    <span class="layout-name">Calories a gym minute</span>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Calories a gym minute up"><span aria-hidden="true">↑</span></button>
+                    <button class="sheet-close layout-move" type="button" aria-label="Move Calories a gym minute down" disabled><span aria-hidden="true">↓</span></button>
+                    <button class="switch" type="button" role="switch" aria-checked="true" aria-label="Show Calories a gym minute"><span class="track" aria-hidden="true"><span class="thumb"></span></span></button>
+                  </li>
+                </ol>
+              </div>
+
+              <div class="layout-actions">
+                <button class="btn btn-secondary" type="button">Reset</button>
+                <button class="btn" type="button">Done</button>
+              </div>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Start a live workout">
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#" aria-current="page"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          Edit under the range tabs opens this list in place of the charts. Up and Down move a
+          card one place and keep the focus on the pressed button. The switch hides a card, and the
+          row says Hidden in text. Reset puts back the default order with every card shown. Nothing
+          is saved until Done, which writes the layout to the profile, so it syncs to every device.
+        </p>
+      </section>
+      <section class="plate" aria-labelledby="p-error">
+        <div class="plate-label">
+          <span class="n">12</span>
+          <span class="name" id="p-error">Something went wrong</span>
+          <span class="route">any (app) route · error.tsx</span>
+        </div>
+        <div class="frame">
+          <div class="screen">
+            <div class="body">
+              <div class="card">
+                <span class="micro">Error</span>
+                <h1 style="margin: 8px 0 0; font-size: 23px; font-weight: 700; letter-spacing: -0.6px">
+                  Something went wrong.
+                </h1>
+                <p class="muted" style="margin: 12px 0 0; font-size: 14px">
+                  Your data is safe on this device.
+                </p>
+                <div style="display: grid; gap: 8px; margin-top: 24px">
+                  <button class="btn" type="button">Reload</button>
+                  <button class="btn btn-secondary" type="button">Copy error</button>
+                </div>
+              </div>
+            </div>
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Start a live workout">
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 13 · duration picker ============
+           New classes: dp, dp-row, dp-step, dp-value, dp-chips. -->
+      <section class="plate" aria-labelledby="p-duration-picker">
+        <div class="plate-label">
+          <span class="n">13</span>
+          <span class="name" id="p-duration-picker">Duration picker</span>
+          <span class="route">/workout · rest sheet</span>
+        </div>
+        <div class="frame">
+          <div class="screen" aria-hidden="true">
+            <div class="topbar">
+              <div>
+                <h2>Session</h2>
+                <p class="sub">Started 17:30</p>
+              </div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="bottomsheet" role="dialog" aria-modal="true" aria-labelledby="dp-title">
+            <div class="grabber" aria-hidden="true"></div>
+            <span class="micro" id="dp-title">Rest for Bench press</span>
+            <p class="muted" style="margin: 0">
+              The next rest after this exercise uses the new time.
+            </p>
+            <div class="dp" role="group" aria-labelledby="dp-label">
+              <span class="micro" id="dp-label">Rest time</span>
+              <div class="dp-row">
+                <button class="dp-step" type="button" aria-label="Decrease Rest time by 15 seconds">
+                  <span aria-hidden="true">−</span>
+                </button>
+                <output class="dp-value">1:30</output>
+                <button class="dp-step" type="button" aria-label="Increase Rest time by 15 seconds">
+                  <span aria-hidden="true">+</span>
+                </button>
+              </div>
+              <div class="dp-chips">
+                <button class="pill" type="button" aria-pressed="false">1m</button>
+                <button class="pill" type="button" aria-pressed="true">1:30</button>
+                <button class="pill" type="button" aria-pressed="false">2m</button>
+                <button class="pill" type="button" aria-pressed="false">3m</button>
+              </div>
+            </div>
+            <button class="btn" type="button">Save rest time</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="plate" aria-labelledby="p-version">
+        <div class="plate-label">
+          <span class="n">14</span>
+          <span class="name" id="p-version">A new version is ready</span>
+          <span class="route">any (app) route · old tab</span>
+        </div>
+        <div class="frame">
+          <div class="screen" style="position: relative">
+            <div style="position: absolute; inset: 0 0 auto; z-index: 5; padding: 8px 20px 0">
+              <div
+                class="card"
+                role="alert"
+                style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border-color: var(--color-accent)"
+              >
+                <p style="margin: 0; font-size: 14px; font-weight: 700">A new version is ready.</p>
+                <button
+                  type="button"
+                  style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--color-accent); color: var(--color-accent-ink); font-weight: 700"
+                >
+                  Reload
+                </button>
+              </div>
+            </div>
+            <div class="topbar">
+              <div>
+                <h2>Today</h2>
+                <p class="sub">Sunday 5 Oct</p>
+              </div>
+              <span class="chip"
+                ><span class="dot" style="background: var(--color-dim)" aria-hidden="true"></span
+                >Unknown</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 15 · workouts history ============
+           New classes: none. -->
+      <section class="plate" aria-labelledby="p15">
+        <div class="plate-label">
+          <span class="n">15</span>
+          <span class="name" id="p15">Workouts history</span>
+          <span class="route">/workouts</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <span class="micro">Gym Tracker</span>
+                <h2>Workouts</h2>
+              </div>
+            </div>
+            <div class="body">
+              <button class="btn" type="button">Start a session</button>
+
+              <section aria-labelledby="p15-history" style="display: grid; gap: var(--gap); margin-top: 32px">
+                <span class="micro" id="p15-history">History</span>
+                <ul class="list" style="display: grid; gap: var(--gap)">
+                  <li>
+                    <a class="card" href="#" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; color: var(--color-text); text-decoration: none">
+                      <strong style="font-size: 15px">Sun 20 Sep · 17:30</strong>
+                      <span class="muted" style="font-size: 14px">1h 12m · 18 sets · 3,420 kg</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a class="card" href="#" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; color: var(--color-text); text-decoration: none">
+                      <strong style="font-size: 15px">Thu 17 Sep · 07:05</strong>
+                      <span class="muted" style="font-size: 14px">48m · 12 sets · 2,160 kg</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a class="card" href="#" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; color: var(--color-text); text-decoration: none">
+                      <strong style="font-size: 15px">Tue 15 Sep · 18:10</strong>
+                      <span class="muted" style="font-size: 14px">55m · 14 sets · 2,890 kg</span>
+                    </a>
+                  </li>
+                </ul>
+                <button class="btn btn-secondary" type="button">Show more</button>
+              </section>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Start a live workout">
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          Finished sessions only, newest first. The running session is not a row: the button
+          above reads Resume while it runs. A row is a real link to /workouts?session=&lt;id&gt;;
+          a plain tap opens the detail in place, with no network. Show more appears only past 30
+          rows and adds the next 30. With no row the list reads "No finished session yet. Start
+          one above." The volume shows in the display unit. Two columns from 640 px, three from
+          1024 px.
+        </p>
+      </section>
+
+      <!-- ============ 15b · session detail ============
+           New classes: none. -->
+      <section class="plate" aria-labelledby="p15b">
+        <div class="plate-label">
+          <span class="n">15b</span>
+          <span class="name" id="p15b">Session detail</span>
+          <span class="route">/workouts?session=…</span>
+        </div>
+        <div class="frame frame-tall">
+          <div class="screen">
+            <div class="topbar">
+              <div>
+                <span class="micro">Gym Tracker</span>
+                <h2>Workouts</h2>
+              </div>
+            </div>
+            <div class="body">
+              <button class="btn" type="button">Start a session</button>
+
+              <a href="#" style="display: inline-flex; align-items: center; align-self: flex-start; min-height: 44px; margin-top: 24px; color: var(--color-accent); font-size: 15px; font-weight: 700; text-decoration: none">
+                <span aria-hidden="true">‹</span>&nbsp;All sessions
+              </a>
+              <h3 style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">
+                Sun 20 Sep · 17:30
+              </h3>
+
+              <div class="card">
+                <dl style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gap); margin: 0">
+                  <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                    <dt class="muted" style="font-size: 12px">duration</dt>
+                    <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">1h 12m</dd>
+                  </div>
+                  <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                    <dt class="muted" style="font-size: 12px">sets</dt>
+                    <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">18</dd>
+                  </div>
+                  <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                    <dt class="muted" style="font-size: 12px">exercises</dt>
+                    <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">4</dd>
+                  </div>
+                  <div style="display: flex; flex-direction: column-reverse; min-width: 0">
+                    <dt class="muted" style="font-size: 12px">volume (kg)</dt>
+                    <dd style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.6px">3,420</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="card">
+                <h4 style="margin: 0"><span class="micro">New records</span></h4>
+                <ul class="list" style="margin-top: 6px">
+                  <li class="row">
+                    <span class="muted" style="font-size: 14px">Bench press</span>
+                    <strong style="color: var(--color-accent); font-size: 14px">102.5 kg × 3</strong>
+                  </li>
+                </ul>
+              </div>
+
+              <section class="card" aria-label="Bench press">
+                <h4 style="margin: 0; font-size: 15px; font-weight: 700">Bench press</h4>
+                <ol class="list" style="margin-top: 6px">
+                  <li class="row"><span class="muted" style="font-size: 14px">Set 1</span><strong style="font-size: 14px">10 × 95 kg</strong></li>
+                  <li class="row"><span class="muted" style="font-size: 14px">Set 2</span><strong style="font-size: 14px">3 × 102.5 kg</strong></li>
+                </ol>
+              </section>
+
+              <section class="card" aria-label="Pull-up">
+                <h4 style="margin: 0; font-size: 15px; font-weight: 700">Pull-up</h4>
+                <ol class="list" style="margin-top: 6px">
+                  <li class="row"><span class="muted" style="font-size: 14px">Set 1</span><strong style="font-size: 14px">12 reps</strong></li>
+                  <li class="row"><span class="muted" style="font-size: 14px">Set 2</span><strong style="font-size: 14px">10 reps</strong></li>
+                </ol>
+              </section>
+            </div>
+
+            <nav class="tabbar" aria-label="Main">
+              <a href="#"><span class="glyph" aria-hidden="true">◧</span>Today</a>
+              <a href="#"><span class="glyph" aria-hidden="true">✎</span>Log</a>
+              <button class="center" type="button" aria-label="Start a live workout">
+                <span class="glyph" aria-hidden="true">▶</span>
+              </button>
+              <a href="#"><span class="glyph" aria-hidden="true">◔</span>Stats</a>
+              <a href="#"><span class="glyph" aria-hidden="true">☰</span>Profile</a>
+            </nav>
+          </div>
+        </div>
+        <p class="dim" style="margin: 12px 2px 0">
+          The detail sits on the same /workouts page; Start or Resume stays on top. All sessions
+          goes back in place. The stats card holds the duration and the three cells of the
+          finish summary. The New records card shows only when the session beat an earlier best.
+          One card per exercise, sets in the order they were logged; a body-weight set reads
+          "12 reps". Loads show in the display unit. An unknown id shows the list with "That
+          session is not on this device."; the running session's id shows "That session is
+          still running. Resume it above."
+        </p>
+      </section>
     </main>
 
     <!-- ============ laptop · /workout at 1440 px ============
@@ -6143,7 +6006,8 @@
         At 1024 px and up the rows are one table, inside a card. A row with a cell to check is
         followed by its picks. A date already logged is followed by its three choices, and its
         status reads Choose until one is picked. Under 1024 px the same rows are the cards of plate 10, one per
-        row under 640 px and two per row from 640 px.
+        row under 640 px and two per row from 640 px. The Swim column, and the Swim time cell on
+        the cards, show only when the sheet has a Swim Time column.
       </p>
       <div class="laptop-scroll">
         <div class="laptop-frame" style="height: auto; min-height: 900px">
@@ -6215,15 +6079,16 @@
                   <caption class="visually-hidden">Rows of the sheet</caption>
                   <thead>
                     <tr>
-                      <th scope="col" style="width: 15%"><span class="micro">Row</span></th>
+                      <th scope="col" style="width: 12%"><span class="micro">Row</span></th>
                       <th scope="col"><span class="micro">Walk</span></th>
                       <th scope="col"><span class="micro">Gym</span></th>
+                      <th scope="col"><span class="micro">Swim</span></th>
                       <th scope="col"><span class="micro">Avg HR</span></th>
                       <th scope="col"><span class="micro">Max HR</span></th>
                       <th scope="col"><span class="micro">Weight</span></th>
                       <th scope="col"><span class="micro">Kcal</span></th>
                       <th scope="col"><span class="micro">Steps</span></th>
-                      <th scope="col" style="width: 12%"><span class="micro">Status</span></th>
+                      <th scope="col" style="width: 11%"><span class="micro">Status</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -6231,6 +6096,7 @@
                       <th scope="row">Row 1 · 12 Aug</th>
                       <td><span style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center"><strong style="color: var(--color-warn)">15.54</strong> <span class="badge badge-warn">Check</span></span></td>
                       <td>1:03:13</td>
+                      <td>—</td>
                       <td>117</td>
                       <td>174</td>
                       <td>73.65 kg</td>
@@ -6239,7 +6105,7 @@
                       <td><strong style="color: var(--color-warn)">1 to check</strong></td>
                     </tr>
                     <tr class="imp-pick">
-                      <td colspan="9">
+                      <td colspan="10">
                         <div class="grid-2" style="gap: 16px">
                         <div class="stack" style="gap: 10px">
                           <fieldset style="border: 0; margin: 0; padding: 0">
@@ -6270,6 +6136,7 @@
                       <th scope="row">Row 7 · 20 Aug</th>
                       <td>20m 5s</td>
                       <td>1:44:50</td>
+                      <td>30:00</td>
                       <td>122</td>
                       <td>171</td>
                       <td>73.10 kg</td>
@@ -6278,7 +6145,7 @@
                       <td class="muted">Picked</td>
                     </tr>
                     <tr class="imp-pick">
-                      <td colspan="9">
+                      <td colspan="10">
                         <div class="grid-2" style="gap: 16px">
                         <div class="stack" style="gap: 10px">
                           <fieldset style="border: 0; margin: 0; padding: 0">
@@ -6309,6 +6176,7 @@
                       <th scope="row">Row 8 · 22 Aug</th>
                       <td>18:45</td>
                       <td>1:10:02</td>
+                      <td>30:00</td>
                       <td>119</td>
                       <td>165</td>
                       <td>73.00 kg</td>
@@ -6320,6 +6188,7 @@
                       <th scope="row">Row 9 · 18 Aug</th>
                       <td>20:00</td>
                       <td>1:02:09</td>
+                      <td>—</td>
                       <td>118</td>
                       <td>166</td>
                       <td>73.20 kg</td>
@@ -6328,7 +6197,7 @@
                       <td><strong style="color: var(--color-danger)">Error</strong></td>
                     </tr>
                     <tr class="imp-pick">
-                      <td colspan="9" class="muted">
+                      <td colspan="10" class="muted">
                         Steps "5.9k" could not be read. Enter a number. This row is left out of the
                         import.
                       </td>
@@ -6337,6 +6206,7 @@
                       <th scope="row">Row 16 · 13 Sep</th>
                       <td>53m 19s</td>
                       <td>1:11:52</td>
+                      <td>45:00</td>
                       <td>135</td>
                       <td>170</td>
                       <td>79.45 kg</td>
@@ -6345,7 +6215,7 @@
                       <td><strong style="color: var(--color-warn)">Choose</strong></td>
                     </tr>
                     <tr class="imp-pick">
-                      <td colspan="9">
+                      <td colspan="10">
                         <div class="stack" style="gap: 10px; max-width: 420px">
                           <p class="muted" style="margin: 0">
                             This date already has a day in the app. What should the import do?

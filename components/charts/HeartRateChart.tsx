@@ -141,7 +141,7 @@ export function HeartRateChart({ days, tab, className }: HeartRateChartProps) {
             axisLine={false}
             tickLine={false}
             height={22}
-            padding={{ left: 10, right: 10 }}
+            padding={{ left: 14, right: 10 }}
           />
           <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
           {drawPeak ? (

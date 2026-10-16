@@ -42,6 +42,11 @@ const MIXED = [
   'August 14,12.5,,,,,,',
 ].join('\n')
 
+const SWIM_SHEET = [
+  'Day,Walk Time,Gym Time,Swim Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
+  'August 12,15:00,1:00:00,30:00,,,,,',
+].join('\n')
+
 const RESULT: ImportResult = { created: 1, overwritten: 0, merged: 0, skipped: 0 }
 
 function fakeSource(logged: string[] = [], pulled = true) {
@@ -334,6 +339,78 @@ describe('ImportReview', () => {
     ])
   })
 
+  it('shows the swim time in each row card', () => {
+    renderReview(SWIM_SHEET)
+    const row = rowCard('Row 1 · 12 Aug')
+    expect(row.getByText('Swim time').nextElementSibling).toHaveTextContent('30:00')
+  })
+
+  it('leaves swim time out of the cards when the sheet has no swim column', () => {
+    renderReview(MIXED)
+    const row = rowCard('Row 2 · 13 Aug')
+    expect(row.getByText('Walk time')).toBeInTheDocument()
+    expect(row.queryByText('Swim time')).not.toBeInTheDocument()
+  })
+
+  it('shows a dash for a blank swim cell when the sheet has a swim column', () => {
+    renderReview(`${SWIM_SHEET}\nAugust 13,15:00,1:00:00,,,,,,`)
+    const row = rowCard('Row 2 · 13 Aug')
+    expect(row.getByText('Swim time').nextElementSibling).toHaveTextContent('—')
+  })
+
+  it('adds a Swim column after Gym when the sheet has a swim column', () => {
+    renderReview(SWIM_SHEET)
+    const table = within(screen.getByRole('table', { name: 'Rows of the sheet' }))
+    expect(table.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
+      'Row',
+      'Walk',
+      'Gym',
+      'Swim',
+      'Avg HR',
+      'Max HR',
+      'Weight',
+      'Kcal',
+      'Steps',
+      'Status',
+    ])
+  })
+
+  it('lists swim time after gym time and walk time in each row card', () => {
+    renderReview(SWIM_SHEET)
+    const row = rowCard('Row 1 · 12 Aug')
+    const walk = row.getByText('Walk time')
+    const swim = row.getByText('Swim time')
+    expect(row.getByText('Gym time').compareDocumentPosition(walk)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+    expect(walk.compareDocumentPosition(swim)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it('shows the swim time in the table', () => {
+    renderReview(SWIM_SHEET)
+    const table = within(screen.getByRole('table', { name: 'Rows of the sheet' }))
+    const line = table.getByRole('rowheader', { name: 'Row 1 · 12 Aug' }).closest('tr')
+    if (line === null) throw new Error('no table row')
+    const values = within(line).getAllByRole('cell')
+    expect(values[0]).toHaveTextContent('15:00')
+    expect(values[1]).toHaveTextContent('1:00:00')
+    expect(values[2]).toHaveTextContent('30:00')
+  })
+
+  it('marks a swim cell that reads two ways with Check in the table and the card', () => {
+    renderReview(
+      [
+        'Day,Walk Time,Gym Time,Swim Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
+        'August 12,15:00,1:00:00,30.45,,,,,',
+      ].join('\n'),
+    )
+    const table = within(screen.getByRole('table', { name: 'Rows of the sheet' }))
+    const line = table.getByRole('rowheader', { name: 'Row 1 · 12 Aug' }).closest('tr')
+    if (line === null) throw new Error('no table row')
+    expect(within(line).getAllByRole('cell')[2]).toHaveTextContent('30.45Check')
+    expect(rowCard('Row 1 · 12 Aug').getByText('Check')).toBeInTheDocument()
+  })
+
   it('keeps the table and the cards on the same picks', async () => {
     renderReview(MIXED)
     const table = within(screen.getByRole('table', { name: 'Rows of the sheet' }))
@@ -581,6 +658,23 @@ describe('ImportReview, applying the import', () => {
       expect(applyButton()).toHaveAccessibleDescription(LOGGED_READ_FAILED)
     })
     expect(applyButton()).toBeDisabled()
+  })
+
+  it('keeps Apply disabled with a reason when the first sync state cannot be read', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    renderReview([HEADER, 'August 12,20,,,,,,'].join('\n'), {
+      source: {
+        firstPullDone: () => Promise.reject(new Error('closed')),
+        loggedDates: () => Promise.resolve(new Set<string>()),
+        importDays: vi.fn(),
+      },
+    })
+
+    await waitFor(() => {
+      expect(applyButton()).toHaveAccessibleDescription(LOGGED_READ_FAILED)
+    })
+    expect(applyButton()).toBeDisabled()
+    quiet.mockRestore()
   })
 
   it('leaves out a later row that repeats a date of the sheet', async () => {

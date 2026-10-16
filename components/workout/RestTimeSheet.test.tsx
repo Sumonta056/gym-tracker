@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-import { readRestText, REST_HINT, RestTimeSheet, restSheetTitle } from './RestTimeSheet'
+import { MAX_REST_SECONDS } from '../../lib/schema/profile'
+
+import { RestTimeSheet, restSheetTitle } from './RestTimeSheet'
 
 import type { ChangingRest } from './RestTimeSheet'
 
@@ -19,49 +21,36 @@ function renderSheet(props: Partial<Parameters<typeof RestTimeSheet>[0]> = {}) {
   return { onSave, onClose }
 }
 
-function field() {
-  return screen.getByLabelText('Rest time')
+function picker() {
+  return screen.getByRole('group', { name: 'Rest time' })
 }
 
-describe('readRestText', () => {
-  it('reads a clock time as seconds', () => {
-    expect(readRestText('1:30')).toEqual({ ok: true, seconds: 90 })
-  })
-
-  it('reads seconds and minutes with a unit', () => {
-    expect(readRestText('45s')).toEqual({ ok: true, seconds: 45 })
-    expect(readRestText('2m')).toEqual({ ok: true, seconds: 120 })
-  })
-
-  it('accepts a rest of 0 seconds', () => {
-    expect(readRestText('0:00')).toEqual({ ok: true, seconds: 0 })
-  })
-
-  it('refuses a rest above the profile limit with the schema message', () => {
-    expect(readRestText('1:00:01')).toEqual({
-      ok: false,
-      reason: 'A rest cannot be longer than 3600 seconds.',
-    })
-  })
-
-  it('refuses text that is not a duration', () => {
-    expect(readRestText('soon').ok).toBe(false)
-  })
-})
-
 describe('RestTimeSheet', () => {
-  it('opens with the exercise in the title and its rest in the field', () => {
+  it('keeps Save rest time in the sheet footer, so it stays above the keyboard', () => {
+    renderSheet()
+
+    const save = within(screen.getByTestId('sheet-footer')).getByRole('button', {
+      name: 'Save rest time',
+    })
+    expect(save).toHaveAttribute('type', 'submit')
+    expect(document.getElementById(save.getAttribute('form') ?? '')).toBeInstanceOf(HTMLFormElement)
+  })
+
+  it('opens with the exercise in the title and its rest in the picker', () => {
     renderSheet()
 
     expect(screen.getByRole('dialog', { name: restSheetTitle('Bench Press') })).toBeInTheDocument()
-    expect(field()).toHaveValue('1:30')
-    expect(screen.getByText(REST_HINT)).toBeInTheDocument()
+    expect(within(picker()).getByRole('status')).toHaveTextContent('1:30')
+    expect(within(picker()).getByRole('button', { name: '1:30' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 
-  it('shows no minute rounded preview under the field', () => {
+  it('holds no text field, so no keyboard opens', () => {
     renderSheet()
 
-    expect(screen.queryByText(/1m$/)).not.toBeInTheDocument()
+    expect(within(screen.getByRole('dialog')).queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('renders nothing while closed', () => {
@@ -70,26 +59,28 @@ describe('RestTimeSheet', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('hands the new rest to its owner in seconds', async () => {
+  it('hands a preset rest to its owner in seconds', async () => {
     const { onSave } = renderSheet()
 
-    await userEvent.clear(field())
-    await userEvent.type(field(), '2:15')
+    await userEvent.click(within(picker()).getByRole('button', { name: '2m' }))
     await userEvent.click(screen.getByRole('button', { name: 'Save rest time' }))
 
-    expect(onSave).toHaveBeenCalledWith(135)
+    expect(onSave).toHaveBeenCalledWith(120)
   })
 
-  it('ties the reason to the field and saves nothing on a bad rest', async () => {
+  it('adds 15 seconds from the plus button', async () => {
     const { onSave } = renderSheet()
 
-    await userEvent.clear(field())
-    await userEvent.type(field(), '2:00:00')
+    await userEvent.click(screen.getByRole('button', { name: 'Increase Rest time by 15 seconds' }))
     await userEvent.click(screen.getByRole('button', { name: 'Save rest time' }))
 
-    expect(onSave).not.toHaveBeenCalled()
-    expect(field()).toHaveAttribute('aria-invalid', 'true')
-    expect(field()).toHaveAccessibleDescription(/A rest cannot be longer than 3600 seconds\./)
+    expect(onSave).toHaveBeenCalledWith(105)
+  })
+
+  it('stops at the profile limit for a rest', () => {
+    renderSheet({ changing: { ...BENCH, seconds: MAX_REST_SECONDS } })
+
+    expect(screen.getByRole('button', { name: 'Increase Rest time by 15 seconds' })).toBeDisabled()
   })
 
   it('shows an error its owner reports', () => {

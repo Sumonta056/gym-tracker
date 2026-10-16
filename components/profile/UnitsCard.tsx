@@ -12,6 +12,8 @@ export const UNIT_OPTIONS: { value: UnitSystem; label: string }[] = [
   { value: 'imperial', label: 'Imperial' },
 ]
 
+export const WEEK_START = 'Week starts on Monday.'
+
 export type UnitsCardProps = {
   unit: UnitSystem
   onUnitChange: (unit: UnitSystem) => void
@@ -38,6 +40,8 @@ export function UnitsCard({ unit, onUnitChange, error = null, className }: Units
         {unitStatement(unit)}
       </p>
       <p className="text-muted mt-1 text-xs">Display only. Weight is always stored in kilograms.</p>
+      <p className="text-text mt-2.5 text-sm font-semibold">{WEEK_START}</p>
+      <p className="text-muted mt-1 text-xs">Every week total and chart counts from Monday.</p>
       {error === null ? null : (
         <p role="alert" className="text-danger mt-2 text-xs">
           {error}

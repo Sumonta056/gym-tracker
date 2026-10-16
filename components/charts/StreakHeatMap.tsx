@@ -1,15 +1,17 @@
 'use client'
 
-import { Bar, BarChart, Rectangle, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import Link from 'next/link'
+import { Fragment } from 'react'
 
-import { colorTokens } from '../../lib/design/tokens'
+import { logPath } from '../../lib/format/logDate'
+import { prettyDate } from '../DailyEntryForm'
+import { cn } from '../ui/cn'
 
 import { ChartCard } from './ChartCard'
 import { HEAT_MAP_WEEKS } from './rangeData'
 
 import type { HeatCell, HeatWeek } from './rangeData'
 import type { Streak } from '../../lib/metrics/streak'
-import type { BarShapeProps } from 'recharts'
 
 export type StreakHeatMapProps = {
   weeks: HeatWeek[]
@@ -17,16 +19,95 @@ export type StreakHeatMapProps = {
   className?: string
 }
 
-export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const
+export const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 
-const CELL_FILL: Record<HeatCell['state'], string> = {
-  logged: colorTokens.accent,
-  missed: colorTokens.dim,
-  future: colorTokens.surface,
+const CELL_CLASS: Record<HeatCell['state'], string> = {
+  logged: 'bg-accent',
+  missed: 'bg-dim',
+  future: 'border border-dashed border-dim',
 }
 
-export function cellFill(weeks: readonly HeatWeek[], week: number, weekday: number): string {
-  return CELL_FILL[weeks[week]?.days[weekday]?.state ?? 'future']
+export function cellClass(state: HeatCell['state']): string {
+  return CELL_CLASS[state]
+}
+
+const GRID_COLUMNS = {
+  gridTemplateColumns: `auto repeat(${String(HEAT_MAP_WEEKS)}, minmax(0, 1fr))`,
+}
+
+function HeatGrid({ weeks }: { weeks: readonly HeatWeek[] }) {
+  return (
+    <div className="grid w-full max-w-[440px] items-center gap-[3px]" style={GRID_COLUMNS}>
+      {WEEKDAY_LABELS.map((label, weekday) => (
+        <Fragment key={label}>
+          <span data-weekday-label className="text-muted pr-1.5 text-[11px] leading-none">
+            {label}
+          </span>
+          {weeks.map((week) => {
+            const state = week.days[weekday]?.state ?? 'future'
+
+            return (
+              <span
+                key={week.start}
+                data-state={state}
+                className={cn('aspect-square rounded-sm', cellClass(state))}
+              />
+            )
+          })}
+        </Fragment>
+      ))}
+    </div>
+  )
+}
+
+export const OPEN_DAY_COUNT = 7
+
+const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const
+
+export function recentDays(weeks: readonly HeatWeek[], count = OPEN_DAY_COUNT): HeatCell[] {
+  return weeks
+    .flatMap((week) => week.days)
+    .filter((cell) => cell.state !== 'future')
+    .slice(-count)
+}
+
+export function OpenDayLinks({ weeks }: { weeks: readonly HeatWeek[] }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p id="open-a-day" className="text-muted text-xs">
+        Open a day
+      </p>
+      <ul aria-labelledby="open-a-day" className="grid grid-cols-7 gap-1.5">
+        {recentDays(weeks).map((cell) => {
+          const at = new Date(`${cell.date}T00:00:00Z`)
+          const logged = cell.state === 'logged'
+
+          return (
+            <li key={cell.date}>
+              <Link
+                href={logPath(cell.date)}
+                className={cn(
+                  'bg-surface-2 rounded-input flex min-h-11 flex-col items-center justify-center border py-1 text-xs font-bold',
+                  logged ? 'border-accent text-text' : 'border-border text-muted',
+                )}
+              >
+                <span aria-hidden="true">{WEEKDAY_LETTERS[at.getUTCDay()]}</span>
+                <span aria-hidden="true">{at.getUTCDate()}</span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-0.5 size-1.5 rounded-full',
+                    logged ? 'bg-accent' : 'bg-transparent',
+                  )}
+                />
+                <span className="sr-only">{`${prettyDate(cell.date)}, ${logged ? 'logged' : 'not logged'}`}</span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }
 
 export function days(count: number): string {
@@ -42,16 +123,6 @@ export function heatMapLabel(weeks: readonly HeatWeek[], streak: Streak): string
 
 export function StreakHeatMap({ weeks, streak, className }: StreakHeatMapProps) {
   const logged = weeks.some((week) => week.days.some((cell) => cell.state === 'logged'))
-  const rows = weeks.map((week) => ({
-    start: week.start,
-    d0: 1,
-    d1: 1,
-    d2: 1,
-    d3: 1,
-    d4: 1,
-    d5: 1,
-    d6: 1,
-  }))
 
   return (
     <ChartCard
@@ -63,35 +134,17 @@ export function StreakHeatMap({ weeks, streak, className }: StreakHeatMapProps) 
       legend={[
         { name: 'Logged', dot: 'bg-accent' },
         { name: 'Not logged', dot: 'bg-dim' },
+        { name: 'Ahead', dot: 'border border-dim' },
       ]}
-      footer={<p className="text-muted text-xs">Each column is a week, Monday at the top.</p>}
+      footer={
+        <>
+          <p className="text-muted text-xs">Each column is a week. Weeks start on Monday.</p>
+          <OpenDayLinks weeks={weeks} />
+        </>
+      }
       className={className}
     >
-      <ResponsiveContainer width="100%" height={140}>
-        <BarChart
-          data={rows}
-          accessibilityLayer={false}
-          barCategoryGap={2}
-          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-        >
-          <XAxis dataKey="start" hide />
-          <YAxis hide reversed domain={[0, WEEKDAYS.length]} />
-          {WEEKDAYS.map((weekday) => (
-            <Bar
-              key={weekday}
-              dataKey={`d${String(weekday)}`}
-              stackId="week"
-              stroke={colorTokens.surface}
-              strokeWidth={2}
-              radius={3}
-              isAnimationActive={false}
-              shape={(props: BarShapeProps) => (
-                <Rectangle {...props} fill={cellFill(weeks, props.index, weekday)} />
-              )}
-            />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
+      <HeatGrid weeks={weeks} />
     </ChartCard>
   )
 }

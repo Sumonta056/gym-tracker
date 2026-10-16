@@ -200,7 +200,7 @@ export function consoleErrors(page: Page): string[] {
   return errors
 }
 
-export const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/profile'] as const
+export const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/profile'] as const
 
 export type SignedInRoute = (typeof SIGNED_IN_ROUTES)[number]
 
@@ -211,9 +211,13 @@ export async function openRoute(page: Page, route: SignedInRoute): Promise<void>
   if (route === '/') {
     await expect(page.getByTestId('dashboard-grid')).toBeVisible()
   } else if (route === '/log') {
-    await expect(page.getByLabel('Gym time')).not.toHaveValue('')
+    await expect(page.getByRole('group', { name: 'Gym time' }).getByRole('status')).not.toHaveText(
+      'Not set',
+    )
   } else if (route === '/analytics') {
-    await expect(page.getByTestId('analytics-grid').getByRole('img').first()).toBeVisible()
+    await expect(page.getByTestId('stats-grid').getByRole('img').first()).toBeVisible()
+  } else if (route === '/workouts') {
+    await expect(page.getByRole('region', { name: 'History' })).toBeVisible()
   } else {
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   }
@@ -227,8 +231,20 @@ export function chip(page: Page, label: 'Offline' | 'Synced' | 'Pending' | 'Sync
   return page.getByRole('status').filter({ hasText: new RegExp(`^${label}$`) })
 }
 
+export async function pickPreset(page: Page, group: string, preset: string): Promise<void> {
+  const chip = page.getByRole('group', { name: group }).getByRole('button', {
+    name: preset,
+    exact: true,
+  })
+
+  await expect(async () => {
+    await chip.click()
+    await expect(chip).toHaveAttribute('aria-pressed', 'true', { timeout: 1000 })
+  }).toPass()
+}
+
 export async function recordDay(page: Page, values: { gym: string; steps: string }): Promise<void> {
-  await page.getByLabel('Gym time').fill(values.gym)
+  await pickPreset(page, 'Gym time', values.gym)
   await page.getByLabel('Steps').fill(values.steps)
   await page.getByRole('button', { name: 'Save entry' }).click()
   await expect(page.getByText('Saved on this device.')).toBeVisible()

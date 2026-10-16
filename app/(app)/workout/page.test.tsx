@@ -6,6 +6,10 @@ import { startSession } from '../../../lib/db/repository'
 
 import WorkoutPage from './page'
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
+
 vi.mock('../../../components/sync/SyncChip', () => ({
   SyncChip: () => <span>Synced</span>,
 }))

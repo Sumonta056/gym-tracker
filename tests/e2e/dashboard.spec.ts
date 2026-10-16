@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { heroValue, test as signedIn } from './support/signedIn'
+import { heroValue, pickPreset, test as signedIn } from './support/signedIn'
 
 test('reads the heart rate zones outside the bar, on the style guide sample', async ({ page }) => {
   await page.goto('/styleguide')
@@ -26,10 +26,10 @@ test('points the empty hero at the daily log, on the style guide sample', async 
 
 signedIn('shows on the dashboard the value saved on /log', async ({ page }) => {
   await page.goto('/log')
-  await page.getByLabel('Gym time').fill('1:12:05')
+  await pickPreset(page, 'Gym time', '1h')
   await page.getByRole('button', { name: 'Save entry' }).click()
   await expect(page.getByText('Saved on this device.')).toBeVisible()
   await page.goto('/')
 
-  await expect(heroValue(page)).toHaveText('1:12:05')
+  await expect(heroValue(page)).toHaveText('1:00:00')
 })

@@ -13,6 +13,7 @@ import {
 
 import {
   bucketTick,
+  gapFooter,
   gapLabel,
   gapRows,
   gapSpan,
@@ -37,13 +38,15 @@ const SEPTEMBER = [
 describe('SessionGapChart', () => {
   it('shows its empty state before any session exists', () => {
     render(<SessionGapChart dates={[]} />)
-    expect(screen.getByText('Log a day to start counting the days between sessions.')).toBeVisible()
+    expect(
+      screen.getByText('Finish a session or log gym time to count the days between sessions.'),
+    ).toBeVisible()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 
   it('asks for one more day with one session, and draws no bar', () => {
     render(<SessionGapChart dates={['2026-09-13']} />)
-    expect(screen.getByText('Log one more day to see the days between sessions.')).toBeVisible()
+    expect(screen.getByText('One more gym day shows the days between sessions.')).toBeVisible()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 
@@ -156,5 +159,18 @@ describe('the gap helpers', () => {
   it('writes avg only for two or more gaps', () => {
     expect(gapSummary([3])).toBe('3.0 days')
     expect(gapSummary([1, 3])).toBe('avg 2.0 days')
+  })
+})
+
+describe('gapFooter', () => {
+  it('lists every gap up to 10', () => {
+    expect(gapFooter([1, 3], '2 to 5 September')).toBe('Gaps 1, 3 from 2 to 5 September.')
+  })
+
+  it('lists only the last 10 gaps of a long history', () => {
+    const gaps = [7, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
+    expect(gapFooter(gaps, '1 January to 5 October')).toBe(
+      '11 gaps from 1 January to 5 October. The last 10: 1, 2, 3, 1, 2, 3, 1, 2, 3, 4.',
+    )
   })
 })

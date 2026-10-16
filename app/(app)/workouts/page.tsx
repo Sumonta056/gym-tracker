@@ -1,10 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 
 import { MicroLabel } from '../../../components/ui/MicroLabel'
 import { PrimaryButton } from '../../../components/ui/PrimaryButton'
+import { WorkoutHistory } from '../../../components/workouts/WorkoutHistory'
 import {
   getActiveSession,
   SessionAlreadyActive,
@@ -19,11 +21,8 @@ const START_FAILED = 'The session could not be started on this device.'
 
 type Launch = 'reading' | 'idle' | 'active'
 
-function goToWorkout(): void {
-  window.location.assign(WORKOUT_PATH)
-}
-
 function SessionLauncher() {
+  const router = useRouter()
   const [launch, setLaunch] = useState<Launch>('reading')
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -52,11 +51,11 @@ function SessionLauncher() {
     setError(null)
     startSession(localDate()).then(
       () => {
-        goToWorkout()
+        router.push(WORKOUT_PATH)
       },
       (cause: unknown) => {
         if (cause instanceof SessionAlreadyActive) {
-          goToWorkout()
+          router.push(WORKOUT_PATH)
           return
         }
 
@@ -98,10 +97,10 @@ export default function WorkoutsPage() {
     <>
       <MicroLabel as="p">Gym Tracker</MicroLabel>
       <h1 className="mt-2 text-[23px] leading-tight font-bold tracking-[-0.6px]">Workouts</h1>
-      <p className="text-muted mt-3 max-w-prose text-sm leading-relaxed">
-        The live workout log arrives in Phase 2. The daily tracker is on the Today screen.
-      </p>
       <SessionLauncher />
+      <Suspense fallback={null}>
+        <WorkoutHistory />
+      </Suspense>
     </>
   )
 }

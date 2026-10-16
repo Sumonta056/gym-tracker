@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+
 import { MUSCLE_GROUPS } from '../../lib/schema/exercise'
 import { cn } from '../ui/cn'
 
@@ -34,6 +36,20 @@ const GROUP_OPTIONS: ChipOption[] = MUSCLE_GROUPS.map((group) => ({
   label: MUSCLE_GROUP_LABEL[group],
 }))
 
+export type FadeEdge = 'none' | 'start' | 'end' | 'both'
+
+export type RowBox = { scrollLeft: number; scrollWidth: number; clientWidth: number }
+
+export function fadeEdge({ scrollLeft, scrollWidth, clientWidth }: RowBox): FadeEdge {
+  const before = scrollLeft > 1
+  const after = scrollLeft + clientWidth < scrollWidth - 1
+
+  if (before && after) return 'both'
+  if (before) return 'start'
+  if (after) return 'end'
+  return 'none'
+}
+
 export function MuscleGroupChips({
   value,
   onValueChange,
@@ -43,14 +59,41 @@ export function MuscleGroupChips({
   describedBy,
   className,
 }: MuscleGroupChipsProps) {
+  const rowRef = useRef<HTMLDivElement>(null)
+  const [fade, setFade] = useState<FadeEdge>('none')
+
+  useEffect(() => {
+    const row = rowRef.current
+
+    if (row === null) {
+      return
+    }
+
+    const measure = () => {
+      setFade(fadeEdge(row))
+    }
+
+    measure()
+    row.addEventListener('scroll', measure, { passive: true })
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    observer?.observe(row)
+
+    return () => {
+      row.removeEventListener('scroll', measure)
+      observer?.disconnect()
+    }
+  }, [])
+
   const options = includeAll ? [{ value: null, label: ALL_LABEL }, ...GROUP_OPTIONS] : GROUP_OPTIONS
 
   return (
     <div
+      ref={rowRef}
       role="group"
       aria-label={label}
       aria-labelledby={labelledBy}
-      className={cn('-mx-1 flex gap-2 overflow-x-auto p-1', className)}
+      data-fade={fade}
+      className={cn('-mx-1 flex scroll-px-8 gap-2 overflow-x-auto p-1', className)}
     >
       {options.map((option) => {
         const pressed = option.value === value

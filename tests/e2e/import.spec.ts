@@ -76,6 +76,13 @@ test('imports the sheet, merges a logged date and fills the dashboard', async ({
       })
       .toEqual(dates)
 
+    await expect
+      .poll(async () => (await account.rowsOn(day.date))[0], {
+        message: 'the merged day reaches Supabase with its merged values',
+        timeout: 20000,
+      })
+      .toMatchObject({ steps: 500, gym_seconds: 4312, weight_kg: 79.45 })
+
     const merged = await account.rowsOn(day.date)
     expect(merged).toHaveLength(1)
     expect(merged[0]).toMatchObject({ steps: 500, gym_seconds: 4312, weight_kg: 79.45 })

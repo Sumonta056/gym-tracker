@@ -13,6 +13,7 @@ import {
   loggedDates,
   SignedOutOnThisDevice,
 } from '../../lib/db/repository'
+import { safeQuery } from '../../lib/db/safeQuery'
 import { Card } from '../ui/Card'
 import { MicroLabel } from '../ui/MicroLabel'
 import { NumberField } from '../ui/NumberField'
@@ -90,11 +91,12 @@ function sheetDates(sheet: ParsedSheet): string[] {
 
 export const LEFT_OUT = 'This row is left out of the import.'
 
-const CARD_FIELDS: SheetField[] = ['gym_seconds', 'walk_seconds']
+const CARD_FIELDS: SheetField[] = ['gym_seconds', 'walk_seconds', 'swim_seconds']
 
 const TABLE_FIELDS: { field: SheetField; heading: string }[] = [
   { field: 'walk_seconds', heading: 'Walk' },
   { field: 'gym_seconds', heading: 'Gym' },
+  { field: 'swim_seconds', heading: 'Swim' },
   { field: 'avg_heart_rate', heading: 'Avg HR' },
   { field: 'max_heart_rate', heading: 'Max HR' },
   { field: 'weight_kg', heading: 'Weight' },
@@ -102,7 +104,9 @@ const TABLE_FIELDS: { field: SheetField; heading: string }[] = [
   { field: 'steps', heading: 'Steps' },
 ]
 
-const TABLE_COLUMNS = TABLE_FIELDS.length + 2
+function showsField(sheet: ParsedSheet, field: SheetField): boolean {
+  return field !== 'swim_seconds' || sheet.columns.includes(field)
+}
 
 export function plural(count: number, one: string, many: string): string {
   return `${String(count)} ${count === 1 ? one : many}`
@@ -181,11 +185,13 @@ function rowBadge(state: RowState) {
 
 function RowCard({
   state,
+  fields,
   picks,
   picker,
   conflict,
 }: {
   state: RowState
+  fields: SheetField[]
   picks: Picks
   picker: CellPicker
   conflict: ConflictPicker
@@ -208,7 +214,7 @@ function RowCard({
         ) : (
           <>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-              {CARD_FIELDS.map((field) => {
+              {fields.map((field) => {
                 const cell = row.cells[field]
                 const pick = picks[cellKey(rowIndex, field)]
                 const picked = cell.status === 'review' && pick !== undefined
@@ -266,11 +272,13 @@ function statusWord(state: RowState): ReactNode {
 
 function TableRows({
   state,
+  fields,
   picks,
   picker,
   conflict,
 }: {
   state: RowState
+  fields: { field: SheetField; heading: string }[]
   picks: Picks
   picker: CellPicker
   conflict: ConflictPicker
@@ -283,7 +291,7 @@ function TableRows({
         <th scope="row" className="px-3 py-3 text-left font-bold">
           {state.title}
         </th>
-        {TABLE_FIELDS.map(({ field }) => {
+        {fields.map(({ field }) => {
           const cell = row.cells[field]
           const pick = picks[cellKey(rowIndex, field)]
 
@@ -306,21 +314,21 @@ function TableRows({
       </tr>
       {state.error ? (
         <tr>
-          <td colSpan={TABLE_COLUMNS} className="text-muted px-3 pb-4 text-[13px]">
+          <td colSpan={fields.length + 2} className="text-muted px-3 pb-4 text-[13px]">
             {[...state.errors, LEFT_OUT].join(' ')}
           </td>
         </tr>
       ) : null}
       {!state.error && state.duplicate ? (
         <tr>
-          <td colSpan={TABLE_COLUMNS} className="px-3 pb-4">
+          <td colSpan={fields.length + 2} className="px-3 pb-4">
             <div className="max-w-[420px]">{conflict(state)}</div>
           </td>
         </tr>
       ) : null}
       {!state.error && state.targets.length > 0 ? (
         <tr>
-          <td colSpan={TABLE_COLUMNS} className="px-3 pb-4">
+          <td colSpan={fields.length + 2} className="px-3 pb-4">
             <div className="grid grid-cols-2 gap-4">{state.targets.map(picker)}</div>
           </td>
         </tr>
@@ -377,6 +385,8 @@ export function ImportReview({
 
   const sheet = useMemo(() => parseSheet(text, { year }), [text, year])
   const targets = useMemo(() => reviewTargets(sheet), [sheet])
+  const cardFields = CARD_FIELDS.filter((field) => showsField(sheet, field))
+  const tableFields = TABLE_FIELDS.filter(({ field }) => showsField(sheet, field))
   const repeated = useMemo(() => repeatedRows(sheet), [sheet])
   const cellsLeft = remaining(targets, picks)
 
@@ -444,11 +454,14 @@ export function ImportReview({
     )
   }
 
-  const pulled = useLiveQuery(() => source.firstPullDone(), [source], null)
+  const pulled = useLiveQuery(
+    safeQuery(() => source.firstPullDone(), 'import first pull'),
+    [source],
+  )
   const ready = pulled === true && logged !== null && left === 0 && plan.writes > 0
 
   function hint(): string {
-    if (loggedFailed) {
+    if (loggedFailed || pulled === null) {
       return LOGGED_READ_FAILED
     }
 
@@ -456,7 +469,7 @@ export function ImportReview({
       return WAITING_FOR_FIRST_SYNC
     }
 
-    if (logged === null || pulled === null) {
+    if (logged === null || pulled === undefined) {
       return 'Reading the days on this device…'
     }
 
@@ -672,6 +685,7 @@ export function ImportReview({
           <RowCard
             key={state.row.line}
             state={state}
+            fields={cardFields}
             picks={picks}
             picker={picker}
             conflict={conflict}
@@ -684,15 +698,15 @@ export function ImportReview({
           <caption className="sr-only">Rows of the sheet</caption>
           <thead>
             <tr>
-              <th scope="col" className="w-[15%] px-3 py-3 text-left">
+              <th scope="col" className="w-[12%] px-3 py-3 text-left">
                 <MicroLabel>Row</MicroLabel>
               </th>
-              {TABLE_FIELDS.map(({ field, heading }) => (
+              {tableFields.map(({ field, heading }) => (
                 <th key={field} scope="col" className="px-2 py-3 text-left">
                   <MicroLabel>{heading}</MicroLabel>
                 </th>
               ))}
-              <th scope="col" className="w-[12%] px-2 py-3 text-left">
+              <th scope="col" className="w-[11%] px-2 py-3 text-left">
                 <MicroLabel>Status</MicroLabel>
               </th>
             </tr>
@@ -702,6 +716,7 @@ export function ImportReview({
               <TableRows
                 key={state.row.line}
                 state={state}
+                fields={tableFields}
                 picks={picks}
                 picker={picker}
                 conflict={conflict}

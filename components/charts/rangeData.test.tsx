@@ -3,15 +3,18 @@ import { describe, expect, it } from 'vitest'
 import { movingAverage } from '../../lib/metrics/movingAverage'
 import { streak } from '../../lib/metrics/streak'
 import { entryOn, NOW, TODAY } from '../../tests/fixtures/dashboard'
+import { sessionOn } from '../../tests/fixtures/lifts'
 
 import {
   analyse,
   averagePerLoggedDay,
+  chartGoals,
   countList,
   dayTick,
   highestIndex,
   lastIndex,
   loggedDays,
+  NO_GOALS,
   tickDates,
   datesIn,
   formatKg,
@@ -140,6 +143,7 @@ describe('analyse', () => {
       avgHeartRate: null,
       maxHeartRate: null,
       gymSeconds: null,
+      walkSeconds: null,
     })
   })
 
@@ -185,6 +189,21 @@ describe('analyse', () => {
 
   it('splits the heart rate zones of today', () => {
     expect(data.zones.warmSeconds + data.zones.peakSeconds).toBeGreaterThan(0)
+  })
+
+  it('puts a session day from before the range into the session dates', () => {
+    const data = analyse([], [], 'week', TODAY, NOW, 12000, 'metric', [sessionOn('2026-08-30')])
+    expect(data.sessionDates).toEqual(['2026-08-30'])
+  })
+
+  it('gives a day with only a finished session its length as gym time', () => {
+    const data = analyse([], [], 'week', TODAY, NOW, 12000, 'metric', [sessionOn('2026-09-22')])
+    expect(data.days.find((day) => day.date === '2026-09-22')?.gymSeconds).toBe(3600)
+  })
+
+  it('leaves out a session dated after today from the session dates', () => {
+    const data = analyse([], [], 'week', TODAY, NOW, 12000, 'metric', [sessionOn('2026-09-25')])
+    expect(data.sessionDates).toEqual([])
   })
 
   it('returns zero zones when today has no entry', () => {
@@ -251,9 +270,9 @@ describe('the number helpers', () => {
 })
 
 describe('dayTick', () => {
-  it('writes the weekday initial on the week', () => {
-    expect(dayTick('2026-09-21', 'week')).toBe('M')
-    expect(dayTick('2026-09-27', 'week')).toBe('S')
+  it('writes the short weekday on the week', () => {
+    expect(dayTick('2026-09-21', 'week')).toBe('Mon')
+    expect(dayTick('2026-09-27', 'week')).toBe('Sun')
   })
 
   it('writes the weekday and the date on the day tab', () => {
@@ -319,5 +338,62 @@ describe('lastIndex', () => {
 
   it('returns -1 when every value is null', () => {
     expect(lastIndex([null])).toBe(-1)
+  })
+})
+
+describe('analyse heart rate zones', () => {
+  it('returns no max when none is passed', () => {
+    expect(analyse([], [], 'day', TODAY, NOW, 12000).maxHeartRate).toBeNull()
+  })
+
+  it('models the zones of today against the max it is given', () => {
+    const entry = entryOn(TODAY, { gym_seconds: 3600, avg_heart_rate: 150, max_heart_rate: 160 })
+    const data = analyse([entry], [entry], 'day', TODAY, NOW, 12000, 'metric', [], NO_GOALS, {
+      bpm: 190,
+      source: 'age',
+    })
+    expect(data.maxHeartRate).toEqual({ bpm: 190, source: 'age' })
+    expect(data.zones.peakSeconds).toBe(0)
+    expect(data.zones.cardioSeconds).toBe(3600)
+  })
+
+  it('models the zones of today from its session when no gym time is typed', () => {
+    const entry = entryOn(TODAY, { gym_seconds: null, avg_heart_rate: 150, max_heart_rate: 160 })
+    const data = analyse([entry], [entry], 'day', TODAY, NOW, 12000, 'metric', [sessionOn(TODAY)])
+    expect(data.zones.peakSeconds).toBe(3600)
+  })
+})
+
+describe('analyse goals', () => {
+  const goals = { calories: 800, gymSeconds: 2700, walkSeconds: 3600, weightKg: 72 }
+
+  it('returns the goals it is given', () => {
+    expect(analyse([], [], 'week', TODAY, NOW, 12000, 'metric', [], goals).goals).toEqual(goals)
+  })
+
+  it('returns no goal by default', () => {
+    expect(analyse([], [], 'week', TODAY, NOW, 12000).goals).toEqual(NO_GOALS)
+  })
+
+  it('fills the walk seconds of each day', () => {
+    const data = analyse([entryOn(TODAY, { walk_seconds: 1500 })], [], 'week', TODAY, NOW, 12000)
+    expect(data.days.find((day) => day.date === TODAY)?.walkSeconds).toBe(1500)
+  })
+})
+
+describe('chartGoals', () => {
+  it('maps the 4 profile columns', () => {
+    expect(
+      chartGoals({
+        calorie_goal: 800,
+        gym_goal_seconds: 2700,
+        walk_goal_seconds: 3600,
+        target_weight_kg: 72,
+      }),
+    ).toEqual({ calories: 800, gymSeconds: 2700, walkSeconds: 3600, weightKg: 72 })
+  })
+
+  it('gives no goal for a profile from before Dexie v5', () => {
+    expect(chartGoals({ target_weight_kg: null })).toEqual(NO_GOALS)
   })
 })

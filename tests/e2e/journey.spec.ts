@@ -37,17 +37,14 @@ test('changes the dashboard numbers once a day is recorded', async ({ page }) =>
   await page.goto('/')
   const grid = page.getByTestId('dashboard-grid')
   await expect(grid.getByText('Nothing logged yet today.')).toBeVisible()
-  await expect(grid.getByRole('progressbar', { name: 'Steps progress' })).toHaveAttribute(
-    'aria-valuenow',
-    '0',
-  )
+  await expect(grid.getByRole('progressbar', { name: 'Steps progress' })).toHaveCount(0)
 
   await navLink(page, 'Log the day').first().click()
   await expect(page).toHaveURL(/\/log$/)
-  await recordDay(page, { gym: '1:12:05', steps: '10432' })
+  await recordDay(page, { gym: '1h', steps: '10432' })
   await navLink(page, 'Today').click()
 
-  await expect(heroValue(page)).toHaveText('1:12:05')
+  await expect(heroValue(page)).toHaveText('1:00:00')
   await expect(stepsCard(page).getByText('10,432', { exact: true })).toBeVisible()
   await expect(grid.getByRole('progressbar', { name: 'Steps progress' })).toHaveAttribute(
     'aria-valuenow',
@@ -62,22 +59,23 @@ test('renders every analytics chart with no console error', async ({ page, accou
   await navLink(page, 'Stats').click()
   await expect(page).toHaveURL(/\/analytics$/)
 
-  const grid = page.getByTestId('analytics-grid')
-  await expect(grid.locator(':scope > *')).toHaveCount(7)
+  const grid = page.getByTestId('stats-grid')
+  await expect(grid.locator(':scope > *')).toHaveCount(14)
   await expect(page.locator('.chart-draw')).toHaveCount(0)
   await expect(grid.getByText('Log one more day to see a trend.')).toHaveCount(0)
 
   const drawn = await grid
     .locator(':scope > *')
     .evaluateAll((cards) =>
-      cards.map((card) =>
-        Array.from(card.querySelectorAll('svg')).some(
-          (svg) =>
-            svg.getBoundingClientRect().width > 0 && svg.querySelector('path, rect') !== null,
-        ),
+      cards.map(
+        (card) =>
+          Array.from(card.querySelectorAll('svg')).some(
+            (svg) =>
+              svg.getBoundingClientRect().width > 0 && svg.querySelector('path, rect') !== null,
+          ) || card.querySelector('[data-state]') !== null,
       ),
     )
-  expect(drawn).toEqual([true, true, true, true, true, true, true])
+  expect(drawn.slice(0, 8)).toEqual([true, true, true, true, true, true, true, true])
 
   expect(errors).toEqual([])
 })

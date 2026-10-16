@@ -13,6 +13,9 @@ declare const self: ServiceWorkerGlobalScope
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
+  precacheOptions: {
+    ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^date$/, /^session$/],
+  },
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,

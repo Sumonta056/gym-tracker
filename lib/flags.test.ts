@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { csvImportEnabled } from './flags'
+import { crashTestEnabled, csvImportEnabled } from './flags'
 
 describe('csvImportEnabled', () => {
   afterEach(() => {
@@ -15,5 +15,21 @@ describe('csvImportEnabled', () => {
   it('is on when the flag is 1', () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_CSV_IMPORT', '1')
     expect(csvImportEnabled()).toBe(true)
+  })
+})
+
+describe('crashTestEnabled', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('is off when the flag is absent', () => {
+    vi.stubEnv('NEXT_PUBLIC_ENABLE_CRASH_TEST', '')
+    expect(crashTestEnabled()).toBe(false)
+  })
+
+  it('is on when the flag is 1', () => {
+    vi.stubEnv('NEXT_PUBLIC_ENABLE_CRASH_TEST', '1')
+    expect(crashTestEnabled()).toBe(true)
   })
 })

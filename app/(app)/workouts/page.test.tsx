@@ -9,6 +9,13 @@ import WorkoutsPage from './page'
 
 const push = vi.fn()
 
+const router = vi.hoisted(() => ({ push: vi.fn() }))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => router,
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 vi.mock('../../../lib/supabase/client', () => ({
   createClient: () => {
     throw new Error('no network in a page test')
@@ -17,6 +24,7 @@ vi.mock('../../../lib/supabase/client', () => ({
 
 beforeEach(async () => {
   push.mockClear()
+  router.push.mockClear()
   vi.restoreAllMocks()
   vi.stubGlobal('location', { assign: push })
   await db.open()
@@ -45,9 +53,11 @@ describe('WorkoutsPage', () => {
     expect(title).not.toHaveClass('text-3xl')
   })
 
-  it('keeps the rest of the placeholder', () => {
+  it('shows the history under the launcher', async () => {
     render(<WorkoutsPage />)
-    expect(screen.getByText(/Phase 2/)).toBeInTheDocument()
+    const history = await screen.findByRole('region', { name: 'History' })
+    const start = await screen.findByRole('button', { name: 'Start a session' })
+    expect(start.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('builds no frame of its own, because the route group layout owns it', () => {
@@ -61,9 +71,20 @@ describe('WorkoutsPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Start a session' }))
 
     await waitFor(() => {
-      expect(push).toHaveBeenCalledWith('/workout')
+      expect(router.push).toHaveBeenCalledWith('/workout')
     })
     expect((await getActiveSession())?.status).toBe('active')
+  })
+
+  it('opens the live session inside the app, with no document load', async () => {
+    render(<WorkoutsPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Start a session' }))
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenCalledWith('/workout')
+    })
+    expect(push).not.toHaveBeenCalled()
   })
 
   it('shows Resume in place of Start while a session is active', async () => {
@@ -82,7 +103,7 @@ describe('WorkoutsPage', () => {
     await userEvent.click(start)
 
     await waitFor(() => {
-      expect(push).toHaveBeenCalledWith('/workout')
+      expect(router.push).toHaveBeenCalledWith('/workout')
     })
   })
 
@@ -94,7 +115,7 @@ describe('WorkoutsPage', () => {
     await userEvent.click(start)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(new SignedOutOnThisDevice().message)
-    expect(push).not.toHaveBeenCalled()
+    expect(router.push).not.toHaveBeenCalled()
     expect(start).toBeEnabled()
   })
 
@@ -108,7 +129,7 @@ describe('WorkoutsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The session could not be started on this device.',
     )
-    expect(push).not.toHaveBeenCalled()
+    expect(router.push).not.toHaveBeenCalled()
   })
 
   it('offers Start when the device cannot be read', async () => {

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { profileSchema, unitSystemSchema } from './profile'
+import { maxBirthYear, profileSchema, unitSystemSchema } from './profile'
 
 import type { ProfileInput } from './profile'
 import type { Tables } from '../supabase/database.types'
@@ -33,6 +33,10 @@ function firstIssue(result: ReturnType<typeof parse>) {
   return issue
 }
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 describe('unitSystemSchema', () => {
   it('accepts metric', () => {
     expect(unitSystemSchema.safeParse('metric').success).toBe(true)
@@ -60,6 +64,13 @@ describe('profileSchema', () => {
       step_goal: 12000,
       rest_sound_muted: false,
       rest_seconds_by_exercise: {},
+      calorie_goal: null,
+      gym_goal_seconds: null,
+      walk_goal_seconds: null,
+      sessions_per_week_goal: null,
+      birth_year: null,
+      max_heart_rate: null,
+      stats_layout: null,
     })
   })
 
@@ -204,5 +215,64 @@ describe('profileSchema', () => {
 
   it('infers a type assignable to the generated profiles row', () => {
     expect(inputAssignableToRow).toBe(true)
+  })
+})
+
+describe('the goal fields', () => {
+  it('defaults every new field to null', () => {
+    expect(profileSchema.parse({})).toMatchObject({
+      calorie_goal: null,
+      gym_goal_seconds: null,
+      walk_goal_seconds: null,
+      sessions_per_week_goal: null,
+      birth_year: null,
+      max_heart_rate: null,
+      stats_layout: null,
+    })
+  })
+
+  it.each([
+    ['calorie_goal', 1, 10000, 0, 10001],
+    ['gym_goal_seconds', 60, 86400, 59, 86401],
+    ['walk_goal_seconds', 60, 86400, 59, 86401],
+    ['sessions_per_week_goal', 1, 14, 0, 15],
+    ['max_heart_rate', 30, 230, 29, 231],
+  ])('keeps %s inside its range', (field, low, high, below, above) => {
+    expect(parse({ [field]: low }).success).toBe(true)
+    expect(parse({ [field]: high }).success).toBe(true)
+    expect(parse({ [field]: below }).success).toBe(false)
+    expect(parse({ [field]: above }).success).toBe(false)
+  })
+
+  it('accepts a birth year from 1900 to 10 years ago', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 9, 5))
+    expect(parse({ birth_year: 1900 }).success).toBe(true)
+    expect(parse({ birth_year: 2016 }).success).toBe(true)
+  })
+
+  it('refuses a birth year before 1900 or less than 10 years ago', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 9, 5))
+    expect(parse({ birth_year: 1899 }).success).toBe(false)
+    expect(firstIssue(parse({ birth_year: 2017 })).message).toBe(
+      'A birth year must be at least 10 years ago.',
+    )
+  })
+
+  it('accepts a card layout as a list of ids and hidden flags', () => {
+    expect(parse({ stats_layout: [{ id: 'weight', hidden: true }] }).success).toBe(true)
+  })
+
+  it('refuses a card layout that is not a list, or an item with no hidden flag or id', () => {
+    expect(parse({ stats_layout: { weight: true } }).success).toBe(false)
+    expect(parse({ stats_layout: [{ id: 'weight' }] }).success).toBe(false)
+    expect(parse({ stats_layout: [{ id: '', hidden: false }] }).success).toBe(false)
+  })
+})
+
+describe('maxBirthYear', () => {
+  it('is the year of the date minus 10', () => {
+    expect(maxBirthYear(new Date(2026, 0, 1))).toBe(2016)
   })
 })

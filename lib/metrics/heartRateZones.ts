@@ -1,4 +1,5 @@
 import type { DailyEntryInput } from '../schema/dailyEntry'
+import type { ProfileInput } from '../schema/profile'
 
 export type HeartRateSession = Pick<
   DailyEntryInput,
@@ -18,6 +19,48 @@ export const ZONE_FLOORS = {
   peak: 0.85,
 } as const
 
+export type MaxHeartRate = { bpm: number; source: 'override' | 'age' }
+
+export type ZoneName = 'warm' | 'fatBurn' | 'cardio' | 'peak'
+
+export type ZoneBand = { zone: ZoneName; fromBpm: number; toBpm: number | null }
+
+function floorBeat(floor: number, maxHeartRate: number): number {
+  return Math.round(Number((floor * maxHeartRate).toFixed(6)))
+}
+
+export function zoneBands(maxHeartRate: number): ZoneBand[] {
+  const fatBurn = floorBeat(ZONE_FLOORS.fatBurn, maxHeartRate)
+  const cardio = floorBeat(ZONE_FLOORS.cardio, maxHeartRate)
+  const peak = floorBeat(ZONE_FLOORS.peak, maxHeartRate)
+
+  return [
+    { zone: 'warm', fromBpm: 0, toBpm: fatBurn - 1 },
+    { zone: 'fatBurn', fromBpm: fatBurn, toBpm: cardio - 1 },
+    { zone: 'cardio', fromBpm: cardio, toBpm: peak - 1 },
+    { zone: 'peak', fromBpm: peak, toBpm: null },
+  ]
+}
+
+export const AGE_FORMULA_BASE = 220
+
+export function resolveMaxHeartRate(
+  profile: Pick<ProfileInput, 'max_heart_rate' | 'birth_year'>,
+  today: string,
+): MaxHeartRate | null {
+  if (profile.max_heart_rate !== null) {
+    return { bpm: profile.max_heart_rate, source: 'override' }
+  }
+
+  if (profile.birth_year !== null) {
+    const age = Number(today.slice(0, 4)) - profile.birth_year
+
+    return { bpm: AGE_FORMULA_BASE - age, source: 'age' }
+  }
+
+  return null
+}
+
 const NO_ZONES: HeartRateZones = {
   warmSeconds: 0,
   fatBurnSeconds: 0,
@@ -27,13 +70,16 @@ const NO_ZONES: HeartRateZones = {
 
 function shareBelow(beat: number, low: number, high: number): number {
   if (high <= low) {
-    return 0
+    return beat > high ? 1 : 0
   }
 
-  return Math.max(0, (beat - low) / (high - low))
+  return Math.min(1, Math.max(0, (beat - low) / (high - low)))
 }
 
-export function heartRateZones(session: HeartRateSession): HeartRateZones {
+export function heartRateZones(
+  session: HeartRateSession,
+  maxHeartRate: number | null,
+): HeartRateZones {
   const seconds = Math.max(0, Math.trunc(session.gym_seconds ?? 0))
   const average = session.avg_heart_rate
   const peak = session.max_heart_rate
@@ -44,10 +90,11 @@ export function heartRateZones(session: HeartRateSession): HeartRateZones {
 
   const high = Math.max(average, peak)
   const low = Math.max(0, 2 * average - high)
+  const reference = maxHeartRate ?? high
 
-  const belowFatBurn = Math.round(seconds * shareBelow(ZONE_FLOORS.fatBurn * high, low, high))
-  const belowCardio = Math.round(seconds * shareBelow(ZONE_FLOORS.cardio * high, low, high))
-  const belowPeak = Math.round(seconds * shareBelow(ZONE_FLOORS.peak * high, low, high))
+  const belowFatBurn = Math.round(seconds * shareBelow(ZONE_FLOORS.fatBurn * reference, low, high))
+  const belowCardio = Math.round(seconds * shareBelow(ZONE_FLOORS.cardio * reference, low, high))
+  const belowPeak = Math.round(seconds * shareBelow(ZONE_FLOORS.peak * reference, low, high))
 
   return {
     warmSeconds: belowFatBurn,

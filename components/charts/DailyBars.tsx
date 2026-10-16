@@ -24,7 +24,7 @@ export type Reference = {
 
 export type DailyBarsProps = {
   days: DayPoint[]
-  dataKey: 'calories' | 'steps' | 'gymSeconds'
+  dataKey: 'calories' | 'steps' | 'gymSeconds' | 'walkSeconds'
   color: string
   tab: RangeTab
   formatValue: (value: number) => string
@@ -40,6 +40,20 @@ export type BarRow = {
 }
 
 export const MAX_BAR_WIDTH = 28
+
+export function goalOrAverage(
+  goal: number | null,
+  average: number | null,
+  format: (value: number) => string,
+): Reference | null {
+  if (goal !== null) {
+    return { value: goal, label: `goal ${format(goal)}` }
+  }
+
+  return average === null || average === 0
+    ? null
+    : { value: average, label: `avg ${format(average)}` }
+}
 
 export function barRadius(count: number): number {
   return count > 7 ? 3 : 6
@@ -61,11 +75,15 @@ export const PLOT_TOP = 18
 
 export const AXIS_HEIGHT = 22
 
-const LABEL_BOX = 13
-
 const LABEL_PAD = 3
 
-const VALUE_LABEL_OFFSET = 5
+export const VALUE_LABEL_TOP = 15.5
+
+export const VALUE_LABEL_BOTTOM = 2
+
+const ABOVE_TOP = 13.5
+
+const ABOVE_BOTTOM = 0
 
 const LABEL_SPAN = 0.22
 
@@ -97,7 +115,15 @@ export function ReferenceLabel({ viewBox, text, placement = 'above' }: Reference
   )
 }
 
-type Box = { top: number; bottom: number }
+export type Box = { top: number; bottom: number }
+
+export function valueLabelBox(barTop: number): Box {
+  return { top: barTop - VALUE_LABEL_TOP, bottom: barTop - VALUE_LABEL_BOTTOM }
+}
+
+export function aboveLabelBox(line: number): Box {
+  return { top: line - ABOVE_TOP, bottom: line - ABOVE_BOTTOM }
+}
 
 function overlaps(one: Box, other: Box): boolean {
   return one.top < other.bottom && other.top < one.bottom
@@ -111,24 +137,19 @@ export function referencePlacement(
 ): ReferencePlacement {
   const plot = height - PLOT_TOP - AXIS_HEIGHT
   const at = (value: number): number => PLOT_TOP + plot * (1 - value / top)
-  const line = at(reference)
-  const above = { top: line - LABEL_PAD - LABEL_BOX, bottom: line - LABEL_PAD }
-  const below = { top: line + LABEL_PAD, bottom: line + LABEL_PAD + LABEL_BOX }
+  const above = aboveLabelBox(at(reference))
   const under = rows.slice(rows.length - Math.ceil(rows.length * LABEL_SPAN))
-  const values = under.flatMap((row) =>
-    row.value === null || row.label === null ? [] : [row.value],
-  )
-  const boxes = values.map((value) => {
-    const bottom = at(value) - VALUE_LABEL_OFFSET
-    return { top: bottom - LABEL_BOX, bottom }
+  const blockers = under.flatMap((row): Box[] => {
+    if (row.value === null) {
+      return []
+    }
+
+    const fill = { top: at(row.value), bottom: PLOT_TOP + plot }
+
+    return row.label === null ? [fill] : [fill, valueLabelBox(at(row.value))]
   })
 
-  if (!boxes.some((box) => overlaps(box, above))) return 'above'
-
-  const fitsBelow = below.bottom <= PLOT_TOP + plot
-  const clearBelow = !boxes.some((box) => overlaps(box, below))
-
-  return fitsBelow && clearBelow ? 'below' : 'band'
+  return blockers.some((box) => overlaps(box, above)) ? 'band' : 'above'
 }
 
 export function barRows(

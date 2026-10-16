@@ -97,6 +97,10 @@ export function formatDuration(seconds: number, style: DurationStyle): string {
   const minutes = Math.floor((safe % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE)
 
   if (style === 'short') {
+    if (safe > 0 && safe < SECONDS_PER_MINUTE) {
+      return '<1m'
+    }
+
     if (hours === 0) {
       return `${String(minutes)}m`
     }

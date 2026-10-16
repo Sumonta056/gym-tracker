@@ -16,6 +16,7 @@ const DAILY_ENTRY_COLUMNS: Record<keyof DailyEntryRow, true> = {
   entry_date: true,
   walk_seconds: true,
   gym_seconds: true,
+  swim_seconds: true,
   avg_heart_rate: true,
   max_heart_rate: true,
   weight_kg: true,
@@ -36,6 +37,13 @@ const PROFILE_COLUMNS: Record<keyof ProfileRow, true> = {
   step_goal: true,
   rest_sound_muted: true,
   rest_seconds_by_exercise: true,
+  calorie_goal: true,
+  gym_goal_seconds: true,
+  walk_goal_seconds: true,
+  sessions_per_week_goal: true,
+  birth_year: true,
+  max_heart_rate: true,
+  stats_layout: true,
   created_at: true,
   updated_at: true,
 }
@@ -78,7 +86,7 @@ const WORKOUT_SET_COLUMNS: Record<keyof WorkoutSetRow, true> = {
 }
 
 describe('database.types', () => {
-  it('gives daily_entries every column from migration 0001', () => {
+  it('gives daily_entries every column from migration 0001 and the swim column', () => {
     expect(Object.keys(DAILY_ENTRY_COLUMNS).sort()).toEqual(
       [
         'avg_heart_rate',
@@ -91,6 +99,7 @@ describe('database.types', () => {
         'max_heart_rate',
         'note',
         'steps',
+        'swim_seconds',
         'updated_at',
         'user_id',
         'walk_seconds',
@@ -99,19 +108,26 @@ describe('database.types', () => {
     )
   })
 
-  it('gives profiles every column from migration 0001 and the two rest columns', () => {
+  it('gives profiles every column from migration 0001, the two rest columns and the seven goal columns', () => {
     expect(Object.keys(PROFILE_COLUMNS).sort()).toEqual(
       [
+        'birth_year',
+        'calorie_goal',
         'created_at',
         'display_name',
+        'gym_goal_seconds',
         'height_cm',
         'id',
+        'max_heart_rate',
         'rest_seconds_by_exercise',
         'rest_sound_muted',
+        'sessions_per_week_goal',
+        'stats_layout',
         'step_goal',
         'target_weight_kg',
         'unit_system',
         'updated_at',
+        'walk_goal_seconds',
       ].sort(),
     )
   })

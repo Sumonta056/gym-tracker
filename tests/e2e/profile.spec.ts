@@ -2,11 +2,12 @@ import { expect, test } from '@playwright/test'
 
 import { signIn } from './support/account'
 import { readStore, test as signedIn, waitForLocalDays } from './support/signedIn'
+import { gotoStyleGuide } from './support/styleguide'
 
 test('switches the target weight to pounds from the unit toggle, on the style guide sample', async ({
   page,
 }) => {
-  await page.goto('/styleguide')
+  await gotoStyleGuide(page)
 
   const profile = page.getByTestId('profile-grid-sample')
 

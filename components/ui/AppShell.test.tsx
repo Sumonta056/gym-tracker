@@ -197,4 +197,16 @@ describe('AppShell', () => {
     setup()
     expect(screen.queryByTestId('page-transition')).not.toBeInTheDocument()
   })
+
+  it('holds the Saved toast region outside the page transition', () => {
+    render(
+      <AppShell items={ITEMS} transitionKey="/">
+        <p>Page body</p>
+      </AppShell>,
+    )
+
+    expect(screen.getByTestId('page-transition')).not.toContainElement(
+      screen.getByTestId('toast-region'),
+    )
+  })
 })

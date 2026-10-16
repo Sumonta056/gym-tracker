@@ -3,12 +3,12 @@
 **Start of every session:** read `CLAUDE.md`, then the step file named below, then do
 that one step only. Stop and report when the step is done.
 
-**Current phase:** 3 — Coach plans · `docs/plan/03-phase-3.md`
+**Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
-**Next step:** 3.1, the prototype plates and the docs → `docs/plan/phase-3/S3.1-design-contract.md`
-**Branch:** a new branch cut from `main` after the Phase 2 merge, for example `feat/phase-3-coach-plans`.
-**Last commit:** `docs(docs)`, `f0f4eed`. Phase 2 and the auth track phase A are merged.
-The owner approved Phase 2 Checkpoint D on 2026-10-04.
+**Next step:** 3.1, the prototype plates and the docs · `docs/plan/phase-3/S3.1-design-contract.md`. Do items 6 and 7 are already done: `CLAUDE.md` and this file name Phase 3. Cut `feat/phase-3-coach-plans` from `main` only after the owner merges `fix/feedback-fixes` into `main` and pushes it.
+**Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/plan/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
+**Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
+**Last commit:** the fix track close, after `3d9e6a7` (I1). The fix track steps: `docs/plan/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
 
 ## Resume here
 
@@ -16,7 +16,7 @@ The owner approved Phase 2 Checkpoint D on 2026-10-04.
   decisions are in `docs/plan/archive/PROGRESS-phase-0-2.md`. They still hold.
 - The auth track has its own file: `docs/plan/auth/PROGRESS.md`. Phase B waits for a domain.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
-  `20260928084529_phase2_set_policy_reps` are applied to the live project. Never apply them again.
+  `20260928084529_phase2_set_policy_reps` and `20261008014222_feedback_goals_and_swim` are applied to the live project. Never apply them again.
 - `apply_migration` records its own version. Rename the local file to the version that
   `list_migrations` shows.
 - Run each step in a fresh subagent. PATH: `export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"`.
@@ -98,8 +98,6 @@ The owner approved Phase 2 Checkpoint D on 2026-10-04.
   Also flaky under load, each passed alone: `LiveSession.test.tsx` "rings the alert it is handed with the muted setting", and
   `app/styleguide/page.test.tsx` "shows the pending warning on the profile sample" (15 s timeout). From 2.9b.
   Also `motion.spec.ts:198` on WebKit: the fade took 783 ms against 600; it passed 3 of 3 alone. From 2.9c.
-- **New step** — `referencePlacement` in `DailyBars.tsx` puts the value-label box 3 px too high, so a "below" label can overlap a
-  value by about 4 px. Fix all 3 boxes against measured browser geometry. From 2.8a.
 - **Owner** — the analytics plate reads 56.3 for 45 × 8 (Epley gives 57.0) and writes its badge in upper case. Correct the plate. From 2.8a.
 - **Owner** — more e2e tests seen flaky in full runs, each passed alone: `analytics.spec.ts:381` and `workout.spec.ts:401`
   (`waitForServiceWorker`) on desktop, `dashboard.spec.ts:27` and `a11y.spec.ts:155` (`JWT issued at future`) on WebKit. From 2.8b.
@@ -117,12 +115,16 @@ The owner approved Phase 2 Checkpoint D on 2026-10-04.
 - **Later step** — the new screens in `responsive.spec.ts` skip "clips no text" and "keeps the navigation in view at the foot of
   the page", which the older routes run. The picker sheet skips the one-navigation check, as the style guide sheet does. From 2.11.
 - **Later step** — `lib/csv/export.ts` branches are 92.85 %; lines 114 and 150 are not taken. The folder is 95 %. From 2.11.
+- **Owner** — the live Stats page puts 16 px (`mt-4`) above the cards; plates p5 and p11 show 12 px. Older than I1. The owner left it. From I1.
+- **Owner** — `journey.spec.ts` and `openRoute` expect the default Stats layout on the shared e2e account. Never save a layout on it by hand. If those tests break, set its `profiles.stats_layout` back to `null`. From I1.
+- **Owner** — the e2e suite has no browser check of the focus move after Edit and Done on `/analytics`; unit tests cover it. From I1.
 - **Later step** — `/styleguide` has no `ResumePrompt` sample, and its live workout sample is a 2-column grid with no header,
   "Done so far" or laptop list, unlike `LiveSession`. The style guide is the bug. From 2.11.
 - **Owner** — plate p3 shows the rest card with no Skip, +30 s or Change. "Last time" is `dim`, not `muted`, on p3 and the laptop
   plate, and sits after Add set there. Plate p8 says "Sat 20 Sep"; it is a Sunday. Correct the plates. From 2.11.
 - **Later step** — `ImportConfirmSheet.tsx:103` puts its error at the end of the scrolling body, not above the buttons as p10b
   shows. `ResumePrompt.tsx:154` copies the `PrimaryButton` classes by hand. From 2.11.
+- **Later step** — leaving `/log` through the tab bar drops unsaved edits with no question. A day change asks first (E4). A guard needs in-app navigation interception. From E4.
 
 ## Phases
 

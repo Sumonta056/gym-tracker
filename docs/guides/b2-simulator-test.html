@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>B2 Simulator Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    />
+    <style>
+      /* Layout: one reading column, a phone diagram beside the result matrix; Gym Tracker tokens on a light twin */
+      :root {
+        --ground: #f6f7f2;
+        --surface: #ffffff;
+        --surface-2: #eef0e8;
+        --border: #dcdfd3;
+        --text: #15161a;
+        --muted: #5a5c66;
+        --accent: #5e7d00;
+        --accent-fill: #c6f135;
+        --accent-ink: #10160a;
+        --warn: #b4540c;
+        --danger: #b42318;
+        --ok: #187a3c;
+        --code-bg: #eef0e8;
+        --display: 'Figtree', system-ui, sans-serif;
+        --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --ground: #0b0b0d;
+          --surface: #15151a;
+          --surface-2: #1e1e25;
+          --border: #24242c;
+          --text: #f4f4f7;
+          --muted: #8c8c99;
+          --accent: #c6f135;
+          --accent-fill: #c6f135;
+          --accent-ink: #10160a;
+          --warn: #fb923c;
+          --danger: #f87171;
+          --ok: #4ade80;
+          --code-bg: #1e1e25;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --ground: #0b0b0d;
+        --surface: #15151a;
+        --surface-2: #1e1e25;
+        --border: #24242c;
+        --text: #f4f4f7;
+        --muted: #8c8c99;
+        --accent: #c6f135;
+        --accent-fill: #c6f135;
+        --accent-ink: #10160a;
+        --warn: #fb923c;
+        --danger: #f87171;
+        --ok: #4ade80;
+        --code-bg: #1e1e25;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--ground);
+        color: var(--text);
+        font: 16px/1.6 var(--display);
+        font-variant-numeric: tabular-nums;
+        padding-inline: 20px;
+        padding-block: 32px 64px;
+      }
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+      }
+      h1,
+      h2,
+      h3 {
+        text-wrap: balance;
+        line-height: 1.2;
+        margin: 0;
+      }
+      h1 {
+        font-size: clamp(30px, 5vw, 44px);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      h2 {
+        font-size: 24px;
+        font-weight: 800;
+      }
+      h3 {
+        font-size: 17px;
+        font-weight: 700;
+      }
+      p {
+        margin: 0;
+        max-width: 68ch;
+      }
+      .eyebrow {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .lede {
+        font-size: 18px;
+        color: var(--muted);
+      }
+      .facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        border: 1px solid var(--border);
+        background: var(--surface);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .chip b {
+        color: var(--accent);
+      }
+      section {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      code,
+      pre {
+        font-family: var(--mono);
+        font-size: 13.5px;
+      }
+      p code,
+      li code,
+      td code {
+        background: var(--code-bg);
+        padding: 1px 6px;
+        border-radius: 6px;
+      }
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        counter-reset: s;
+      }
+      .step {
+        counter-increment: s;
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        gap: 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 18px;
+      }
+      .step::before {
+        content: counter(s);
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        background: var(--accent-fill);
+        color: var(--accent-ink);
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+      }
+      .step-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+      }
+      .step ul {
+        margin: 0;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .cmd {
+        position: relative;
+        background: var(--code-bg);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .cmd pre {
+        margin: 0;
+        padding: 14px 92px 14px 16px;
+        overflow-x: auto;
+        white-space: pre;
+      }
+      .copy {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+        font: 600 12px var(--display);
+        cursor: pointer;
+      }
+      .copy:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .key {
+        border-left: 4px solid var(--accent-fill);
+        background: var(--surface);
+        border-radius: 0 16px 16px 0;
+        padding: 16px 18px;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
+      .phone svg {
+        width: 100%;
+        max-width: 220px;
+        height: auto;
+      }
+      .tbl {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14.5px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      th {
+        font-size: 12px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .pill {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 12.5px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .pill.ok {
+        color: var(--ok);
+        border: 1px solid var(--ok);
+      }
+      .pill.warn {
+        color: var(--warn);
+        border: 1px solid var(--warn);
+      }
+      .pill.no {
+        color: var(--danger);
+        border: 1px solid var(--danger);
+      }
+      .limits {
+        margin: 0;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      footer {
+        color: var(--muted);
+        font-size: 13px;
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+      @media (max-width: 640px) {
+        .split {
+          grid-template-columns: 1fr;
+        }
+        .phone svg {
+          max-width: 180px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="eyebrow">Gym Tracker · fix track · wave 2 · step B2</span>
+        <h1>Test the /workout bottom bar in the iOS Simulator</h1>
+        <p class="lede">
+          On the owner's iPhone, in the home-screen app, the bottom bar sat about 58 px above the
+          screen edge right after "Start a session". B2 applied fix F5. This plan proves, before and
+          after, whether F5 removes the gap.
+        </p>
+        <div class="facts">
+          <span class="chip">Bug gap <b>≈ 58 px</b></span>
+          <span class="chip">Top safe area, 393 × 852 phone <b>59 px</b></span>
+          <span class="chip">Before <b>3f04ce2</b></span>
+          <span class="chip">After <b>5be42a8</b></span>
+        </div>
+      </header>
+
+      <section>
+        <h2>Why the Simulator can help</h2>
+        <p>
+          Playwright cannot run the iOS <strong>standalone</strong> mode, so B1 found no failure in
+          e2e. The Simulator runs real iOS Safari, and "Add to Home Screen" starts the app in
+          standalone mode, with the <code>black-translucent</code> status bar and
+          <code>viewport-fit=cover</code>. Those are the 2 settings that B1 suspects.
+        </p>
+        <div class="key">
+          <p>
+            <strong>The rule of this test:</strong> the old code must show the gap first. If the
+            Simulator does not show the bug on the old code, a pass on the new code proves nothing.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Before you start</h2>
+        <ul class="limits">
+          <li>Install Xcode from the Mac App Store, open it 1 time, and accept the license.</li>
+          <li>Point the tools at it: <code>sudo xcode-select -s /Applications/Xcode.app</code></li>
+          <li>Keep the Mac on AC power with the lid open.</li>
+          <li>No e2e run may use the shared test account during this test.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>The flow</h2>
+        <ol class="steps">
+          <li class="step">
+            <div class="step-body">
+              <h3>Check the install and pick a phone</h3>
+              <p>Pick an iPhone with a 393 × 852 screen, the same as the owner's phone.</p>
+              <div class="cmd">
+                <pre>
+xcrun simctl list devices available | grep -E "iPhone 1[56]"
+orca emulator attach "iPhone 16" --json</pre>
+                <button type="button" class="copy">Copy</button>
+              </div>
+              <p>The device boots and shows live in the Orca emulator pane.</p>
+            </div>
+          </li>
+
+          <li class="step">
+            <div class="step-body">
+              <h3>Serve the old code as a production build</h3>
+              <p>
+                The dev server has no service worker and loads pages in a different way, so use
+                <code>pnpm build</code> and <code>pnpm start</code>. Build in a temporary worktree
+                so the main folder stays on <code>fix/feedback-fixes</code>.
+              </p>
+              <div class="cmd">
+                <pre>
+git worktree add /Users/cefalo_1/Documents/Projects/gym-tracker-sim 3f04ce2
+cd /Users/cefalo_1/Documents/Projects/gym-tracker-sim
+cp ../gym-tracker/.env.local .
+export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"
+pnpm install --frozen-lockfile &amp;&amp; pnpm build &amp;&amp; pnpm start</pre>
+                <button type="button" class="copy">Copy</button>
+              </div>
+              <p>
+                The Simulator uses the Mac's network, so <code>http://localhost:3000</code> opens in
+                it. <code>localhost</code> is a secure context, so the PWA rules apply as they do on
+                HTTPS.
+              </p>
+            </div>
+          </li>
+
+          <li class="step">
+            <div class="step-body">
+              <h3>Sign in and add the app to the home screen</h3>
+              <div class="cmd">
+                <pre>
+xcrun simctl openurl booted http://localhost:3000
+orca emulator ax --json          # find the email and password fields
+orca emulator tap 0.5 0.42 --json
+orca emulator type "&lt;test account email&gt;" --json</pre>
+                <button type="button" class="copy">Copy</button>
+              </div>
+              <ul>
+                <li>Sign in with the e2e test account from <code>.env.test.local</code>.</li>
+                <li>Tap Share, then "Add to Home Screen", then Add.</li>
+                <li>
+                  Press Home: <code>orca emulator button home --json</code>. Then tap the new Gym
+                  Tracker icon. The app now runs in standalone mode.
+                </li>
+              </ul>
+            </div>
+          </li>
+
+          <li class="step">
+            <div class="step-body">
+              <h3>Run the scenario and take the "before" screenshots</h3>
+              <p>
+                Tap Workouts, then "Start a session". On the old code, Start does a full document
+                load: <code>window.location.assign('/workout')</code>.
+              </p>
+              <div class="cmd">
+                <pre>
+xcrun simctl io booted screenshot before-start.png
+orca emulator ax --json &gt; before-start-ax.json</pre>
+                <button type="button" class="copy">Copy</button>
+              </div>
+              <p>
+                Repeat for each B1 scenario: no session, Start, a set logged, the Resume link, and a
+                reload of a running session.
+              </p>
+            </div>
+          </li>
+
+          <li class="step">
+            <div class="step-body">
+              <h3>Swap to the new code and repeat</h3>
+              <p>
+                Check out <code>5be42a8</code> in the same worktree, then build and start again.
+                Delete the home-screen icon and add it again, so the old service worker cache cannot
+                serve the old build. Then take the "after" screenshots.
+              </p>
+              <div class="cmd">
+                <pre>
+git checkout --detach 5be42a8
+pnpm build &amp;&amp; pnpm start
+xcrun simctl io booted screenshot after-start.png</pre>
+                <button type="button" class="copy">Copy</button>
+              </div>
+            </div>
+          </li>
+
+          <li class="step">
+            <div class="step-body">
+              <h3>Measure the gap</h3>
+              <ul>
+                <li>
+                  <strong>Pixels:</strong> a small script scans each screenshot from the bottom up,
+                  finds the lowest row of the tab bar by its surface colour, and divides by the
+                  device scale (3 on an iPhone 16). The result is the gap in CSS px.
+                </li>
+                <li>
+                  <strong>Accessibility tree:</strong> the <code>nav</code> frame from
+                  <code>orca emulator ax</code> gives <code>y + height</code> as a fraction of the
+                  screen. 1.0 means the bar touches the edge.
+                </li>
+              </ul>
+              <p>The 2 measures must agree within 2 px.</p>
+            </div>
+          </li>
+
+          <li class="step">
+            <div class="step-body">
+              <h3>Clean up</h3>
+              <div class="cmd">
+                <pre>
+orca emulator kill --json
+git -C /Users/cefalo_1/Documents/Projects/gym-tracker worktree remove ../gym-tracker-sim</pre>
+                <button type="button" class="copy">Copy</button>
+              </div>
+              <p>Stop the server first. The screenshots go into the report as proof.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Read the result</h2>
+        <div class="split">
+          <div class="phone" aria-hidden="true">
+            <svg viewBox="0 0 220 420" role="img">
+              <rect
+                x="10"
+                y="4"
+                width="200"
+                height="412"
+                rx="34"
+                fill="var(--surface)"
+                stroke="var(--border)"
+                stroke-width="3"
+              />
+              <rect x="80" y="14" width="60" height="16" rx="8" fill="var(--surface-2)" />
+              <rect x="26" y="50" width="168" height="54" rx="12" fill="var(--surface-2)" />
+              <rect x="26" y="114" width="168" height="80" rx="12" fill="var(--surface-2)" />
+              <rect x="10" y="318" width="200" height="44" fill="var(--accent-fill)" />
+              <text
+                x="110"
+                y="345"
+                text-anchor="middle"
+                font-size="12"
+                font-weight="700"
+                fill="var(--accent-ink)"
+                font-family="Figtree, sans-serif"
+              >
+                bottom bar
+              </text>
+              <rect x="10" y="362" width="200" height="40" fill="var(--danger)" opacity="0.18" />
+              <line x1="196" y1="364" x2="196" y2="400" stroke="var(--danger)" stroke-width="2" />
+              <text
+                x="186"
+                y="387"
+                text-anchor="end"
+                font-size="12"
+                font-weight="700"
+                fill="var(--danger)"
+                font-family="Figtree, sans-serif"
+              >
+                ≈ 58 px gap
+              </text>
+            </svg>
+          </div>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th>Old code</th>
+                  <th>New code</th>
+                  <th>What it means</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="pill warn">≈ 58 px gap</span></td>
+                  <td><span class="pill ok">0 px</span></td>
+                  <td>F5 fixes it. The owner's iPhone check is only a final confirmation.</td>
+                </tr>
+                <tr>
+                  <td><span class="pill warn">≈ 58 px gap</span></td>
+                  <td><span class="pill warn">≈ 58 px gap</span></td>
+                  <td>
+                    F5 is not enough. Apply F6, <code>overscroll-behavior-y: none</code> on
+                    <code>html</code> and <code>body</code>, and test again.
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="pill no">0 px</span></td>
+                  <td><span class="pill no">0 px</span></td>
+                  <td>The Simulator does not show the bug. Only the real iPhone can test it.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Limits</h2>
+        <ul class="limits">
+          <li>
+            The Simulator is not a real phone. It runs on the Mac, and the status bar and safe area
+            can differ from the iPhone. The owner's real iPhone check stays the final proof.
+          </li>
+          <li>
+            The Orca emulator drives private simulator APIs. A new Xcode version can break it.
+          </li>
+          <li><code>orca emulator type</code> sends US-ASCII only.</li>
+          <li>
+            Coordinates for <code>tap</code> are fractions from 0 to 1, from the top left, never
+            pixels.
+          </li>
+        </ul>
+      </section>
+
+      <footer>
+        Prepared on 7 October 2026 for the wave 2 merge, <code>5be42a8</code> on
+        <code>fix/feedback-fixes</code>.
+      </footer>
+    </main>
+
+    <script>
+      document.querySelectorAll('.copy').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var text = btn.previousElementSibling.textContent
+          var done = function () {
+            btn.textContent = 'Copied'
+            setTimeout(function () {
+              btn.textContent = 'Copy'
+            }, 1500)
+          }
+          var fallback = function () {
+            var r = document.createRange()
+            r.selectNodeContents(btn.previousElementSibling)
+            var s = getSelection()
+            s.removeAllRanges()
+            s.addRange(r)
+            btn.textContent = 'Press ⌘C'
+          }
+          try {
+            navigator.clipboard.writeText(text).then(done, fallback)
+          } catch (e) {
+            fallback()
+          }
+        })
+      })
+    </script>
+  </body>
+</html>

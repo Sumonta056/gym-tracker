@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db } from '../db/dexie'
 import { dailyEntrySchema } from '../schema/dailyEntry'
@@ -12,12 +12,19 @@ import { toStatus, useDeadLetters, useSyncStatus } from './useSyncStatus'
 
 import type { SyncState } from './worker'
 import type { DailyEntry } from '../db/dexie'
+import type * as Report from '../errors/report'
 
 const ROW_A = '11111111-1111-4111-8111-111111111111'
 
 const mocks = vi.hoisted(() => ({
   getSyncState: vi.fn(),
   subscribeSyncState: vi.fn(),
+  reportError: vi.fn(),
+}))
+
+vi.mock('../errors/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof Report>()),
+  reportError: mocks.reportError,
 }))
 
 vi.mock('./worker', () => ({
@@ -197,5 +204,55 @@ describe('useDeadLetters', () => {
     await waitFor(() => {
       expect(result.current.map((letter) => letter.id)).toEqual([queued.id])
     })
+  })
+})
+
+describe('useSyncStatus when a read fails', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('reports unknown when the outbox count cannot be read', async () => {
+    vi.spyOn(db.outbox, 'count').mockRejectedValue(new Error('DatabaseClosedError'))
+    const { result } = renderHook(() => useSyncStatus())
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('unknown')
+    })
+    expect(result.current.pending).toBe(0)
+  })
+
+  it('reports unknown when the failed write count cannot be read', async () => {
+    vi.spyOn(db.deadLetters, 'count').mockRejectedValue(new Error('DatabaseClosedError'))
+    const { result } = renderHook(() => useSyncStatus())
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('unknown')
+    })
+    expect(result.current.failed).toBe(0)
+  })
+
+  it('reports the failed read as a live-query error', async () => {
+    vi.spyOn(db.outbox, 'count').mockRejectedValue(new Error('DatabaseClosedError'))
+    renderHook(() => useSyncStatus())
+
+    await waitFor(() => {
+      expect(mocks.reportError).toHaveBeenCalledWith(expect.any(Error), {
+        route: '/',
+        source: 'live-query',
+      })
+    })
+  })
+
+  it('lists no failed writes when the list cannot be read', async () => {
+    vi.spyOn(db.deadLetters, 'orderBy').mockImplementation(() => {
+      throw new Error('DatabaseClosedError')
+    })
+    const { result } = renderHook(() => useDeadLetters())
+
+    await waitFor(() => {
+      expect(mocks.reportError).toHaveBeenCalled()
+    })
+    expect(result.current).toEqual([])
   })
 })

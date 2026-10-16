@@ -8,27 +8,23 @@ import {
   archiveExercise,
   createExercise,
   getActiveSession,
-  getDay,
   getProfile,
   listSets,
   SignedOutOnThisDevice,
   startSession,
   updateProfile,
-  upsertDay,
 } from '../../lib/db/repository'
-import { dailyEntrySchema } from '../../lib/schema/dailyEntry'
+import { SAVED_MESSAGE, ToastProvider } from '../ui/Toast'
+import { WORKOUTS_PATH } from '../workouts/historyText'
 
 import { READING_LAST_SET } from './ExerciseCard'
 import { PICK_TITLE } from './ExercisePicker'
-import { GYM_TIME_SAVE_FAILED } from './GymTimeOffer'
 import {
   DELETE_FAILED,
   EDIT_FAILED,
   exerciseOrder,
   exerciseSummary,
   FINISH_FAILED,
-  finishSummary,
-  goToWorkouts,
   heroFooter,
   lastOf,
   lastTimeSet,
@@ -40,7 +36,6 @@ import {
   SAVE_FAILED,
   UNDO_FAILED,
   volumeText,
-  WORKOUTS_PATH,
 } from './LiveSession'
 import { REST_OVER } from './RestTimerCard'
 import { startedText } from './SessionTimer'
@@ -48,6 +43,12 @@ import { SWIPE_PX } from './SetRow'
 
 import type { LiveSessionSource } from './LiveSession'
 import type { Exercise, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
+
+const router = vi.hoisted(() => ({ push: vi.fn() }))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => router,
+}))
 
 vi.mock('../sync/SyncChip', () => ({
   SyncChip: () => <span>Synced</span>,
@@ -132,6 +133,7 @@ async function renderLive(props: Parameters<typeof LiveSession>[0] = {}) {
   const onFinished = vi.fn()
   const view = render(<LiveSession onFinished={onFinished} {...props} />)
   await screen.findByRole('heading', { level: 1, name: 'Session' })
+  await act(async () => {})
   return { ...view, onFinished }
 }
 
@@ -352,6 +354,11 @@ describe('LiveSession', () => {
     const { onFinished } = await renderLive()
 
     await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Session done' })).getByRole('button', {
+        name: 'Done',
+      }),
+    )
 
     await waitFor(() => {
       expect(onFinished).toHaveBeenCalledTimes(1)
@@ -359,17 +366,22 @@ describe('LiveSession', () => {
     expect((await db.workoutSessions.get(session.id))?.status).toBe('finished')
   })
 
-  it('returns to the workouts screen after Finish by default', async () => {
+  it('moves to the workouts screen inside the app after Finish, with no page load', async () => {
     const assign = vi.fn()
     vi.stubGlobal('location', { assign })
+    router.push.mockClear()
     await startSession('2026-09-01')
     render(<LiveSession />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Finish session' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(router.push).not.toHaveBeenCalled()
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Done' }))
 
     await waitFor(() => {
-      expect(assign).toHaveBeenCalledWith(WORKOUTS_PATH)
+      expect(router.push).toHaveBeenCalledWith(WORKOUTS_PATH)
     })
+    expect(assign).not.toHaveBeenCalled()
   })
 
   it('still names a set of an archived exercise', async () => {
@@ -560,6 +572,7 @@ describe('LiveSession', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(FINISH_FAILED)
     expect(onFinished).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Finish session' })).toBeEnabled()
+    expect(screen.queryByRole('dialog', { name: 'Session done' })).toBeNull()
   })
 
   it('asks for an exercise before the first set', async () => {
@@ -652,17 +665,6 @@ describe('volumeText and heroFooter', () => {
   })
 })
 
-describe('goToWorkouts', () => {
-  it('loads the workouts screen as a document, so it opens offline from the cache', () => {
-    const assign = vi.fn()
-    vi.stubGlobal('location', { assign })
-
-    goToWorkouts()
-
-    expect(assign).toHaveBeenCalledWith('/workouts')
-  })
-})
-
 describe('the repository source', () => {
   it('reads the active session through the repository', async () => {
     const session: WorkoutSession = await startSession('2026-09-01')
@@ -699,6 +701,25 @@ function failing(overrides: Partial<LiveSessionSource>): LiveSessionSource {
 }
 
 describe('editing a set', () => {
+  it('shows the Saved toast after a set is edited', async () => {
+    await sessionWithBench()
+    render(
+      <ToastProvider>
+        <LiveSession onFinished={vi.fn()} />
+      </ToastProvider>,
+    )
+    await screen.findByRole('heading', { level: 1, name: 'Session' })
+
+    const dialog = await openEdit(1)
+    await userEvent.clear(within(dialog).getByLabelText('Reps'))
+    await userEvent.type(within(dialog).getByLabelText('Reps'), '10')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save set' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toast-region')).toHaveTextContent(SAVED_MESSAGE)
+    })
+  })
+
   it('changes the volume total when a set is edited', async () => {
     await sessionWithBench()
     await renderLive()
@@ -915,7 +936,7 @@ describe('deleting a set and the undo', () => {
     const dialog = await openEdit(1)
     const save = within(dialog).getByRole('button', { name: 'Save set' })
     await userEvent.click(save)
-    fireEvent.submit(save.closest('form') as HTMLFormElement)
+    fireEvent.submit(document.getElementById(save.getAttribute('form') ?? '') as HTMLFormElement)
 
     expect(updateSet).toHaveBeenCalledTimes(1)
   })
@@ -1267,23 +1288,41 @@ describe('the rest timer', () => {
 })
 
 describe('changing the rest time', () => {
-  async function changeRestTo(text: string) {
+  async function changeRestTo(preset: string) {
     await userEvent.click(
       within(restCard()).getByRole('button', { name: 'Change the rest time for Bench Press' }),
     )
     const dialog = await screen.findByRole('dialog', { name: 'Rest for Bench Press' })
-    const field = within(dialog).getByLabelText('Rest time')
-    await userEvent.clear(field)
-    await userEvent.type(field, text)
+    await userEvent.click(
+      within(within(dialog).getByRole('group', { name: 'Rest time' })).getByRole('button', {
+        name: preset,
+      }),
+    )
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save rest time' }))
     return dialog
   }
+
+  it('shows the Saved toast after the rest time saves', async () => {
+    await sessionResting()
+    render(
+      <ToastProvider>
+        <LiveSession onFinished={vi.fn()} now={restClock(6).now} />
+      </ToastProvider>,
+    )
+    await screen.findByRole('heading', { level: 1, name: 'Session' })
+
+    await changeRestTo('2m')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toast-region')).toHaveTextContent(SAVED_MESSAGE)
+    })
+  })
 
   it('saves the new rest to the profile with updateProfile, so it syncs', async () => {
     await sessionResting()
     await renderLive({ now: restClock(6).now })
 
-    await changeRestTo('2:00')
+    await changeRestTo('2m')
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Rest for Bench Press' })).toBeNull()
@@ -1297,7 +1336,7 @@ describe('changing the rest time', () => {
     const time = restClock(6)
     await renderLive({ now: time.now })
 
-    await changeRestTo('2:00')
+    await changeRestTo('2m')
 
     await waitFor(() => {
       expect(within(restCard()).getByText('Bench Press rests 2:00')).toBeInTheDocument()
@@ -1319,7 +1358,7 @@ describe('changing the rest time', () => {
     const time = restClock(6)
     await renderLive({ now: time.now })
 
-    await changeRestTo('2:00')
+    await changeRestTo('2m')
     await waitFor(() => {
       expect(within(restCard()).getByText('Bench Press rests 2:00')).toBeInTheDocument()
     })
@@ -1342,7 +1381,7 @@ describe('changing the rest time', () => {
       source: failing({ saveRestSeconds: () => Promise.reject(new Error('broken')) }),
     })
 
-    const dialog = await changeRestTo('2:00')
+    const dialog = await changeRestTo('2m')
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(REST_SAVE_FAILED)
   })
@@ -1409,181 +1448,127 @@ describe('the rest timer with a deleted set', () => {
   })
 })
 
-describe('the gym time offer after Finish', () => {
+describe('Finish', () => {
   const START = '2026-09-01T17:30:00.000Z'
   const END = '2026-09-01T18:42:05.000Z'
 
-  async function finishAnHourLater(props: Parameters<typeof LiveSession>[0] = {}) {
+  async function finishAnHourLater() {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(START))
+    await startSession('2026-09-01')
+    vi.setSystemTime(new Date(END))
+    const view = await renderLive()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
+
+    return view
+  }
+
+  it('hands back to its owner after Done, with no other sheet', async () => {
+    const { onFinished } = await finishAnHourLater()
+
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Done' }))
+
+    await waitFor(() => {
+      expect(onFinished).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('writes no daily entry and queues no daily write', async () => {
+    const { onFinished } = await finishAnHourLater()
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Session done' })).getByRole('button', {
+        name: 'Done',
+      }),
+    )
+    await waitFor(() => {
+      expect(onFinished).toHaveBeenCalledTimes(1)
+    })
+
+    expect(await db.dailyEntries.count()).toBe(0)
+    expect(
+      (await db.outbox.toArray()).filter((item) => item.table_name === 'daily_entries'),
+    ).toEqual([])
+  })
+})
+
+describe('the summary after Finish', () => {
+  const START = '2026-09-01T17:30:00.000Z'
+  const END = '2026-09-01T18:42:05.000Z'
+
+  async function finishWithOneSet(props: Parameters<typeof LiveSession>[0] = {}) {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(START))
     const session = await startSession('2026-09-01')
     vi.setSystemTime(new Date(END))
+    await addSet({
+      session_id: session.id,
+      exercise_id: BENCH_ID,
+      reps: 3,
+      weight_kg: 102.5,
+      completed_at: END,
+    })
     const view = await renderLive(props)
-
     await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
-
-    return { ...view, session }
+    return view
   }
 
-  async function dailyQueued() {
-    return (await db.outbox.toArray()).filter((item) => item.table_name === 'daily_entries')
-  }
-
-  it('asks before it saves the length for a day with no log', async () => {
-    const { onFinished } = await finishAnHourLater()
-
-    const sheet = await screen.findByRole('dialog', { name: 'Session finished' })
-
+  it('opens the summary with the duration, the sets and the volume', async () => {
+    await finishWithOneSet()
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
     expect(sheet).toHaveTextContent('1:12:05')
-    expect(sheet).toHaveTextContent('Save 1:12:05 as gym time for Tue 1 Sep?')
-    expect(sheet).toHaveTextContent(
-      `Tue 1 Sep · ${startedText(START)} to ${startedText(END)} · 0 sets · 0 kg`,
-    )
+    expect(sheet).toHaveTextContent('sets1')
+    expect(sheet).toHaveTextContent('exercises1')
+    expect(sheet).toHaveTextContent('volume (kg)308')
+  })
+
+  it('names a set heavier than every earlier session as a new record', async () => {
+    await db.workoutSets.put(pastSet({ exercise_id: BENCH_ID, weight_kg: 100, reps: 5 }))
+    await finishWithOneSet()
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(sheet).toHaveTextContent('Bench Press102.5 kg × 3')
+  })
+
+  it('shows the volume in pounds for an imperial profile', async () => {
+    await updateProfile({ unit_system: 'imperial' })
+    await finishWithOneSet()
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    expect(sheet).toHaveTextContent('volume (lb)678')
+  })
+
+  it('waits for Done before it hands back to the caller', async () => {
+    const { onFinished } = await finishWithOneSet()
+    await screen.findByRole('dialog', { name: 'Session done' })
     expect(onFinished).not.toHaveBeenCalled()
-    expect(await db.dailyEntries.count()).toBe(0)
-  })
-
-  it('creates the day with only the gym time on Use', async () => {
-    const { onFinished } = await finishAnHourLater()
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Use 1:12:05 for gym time' }))
-
-    await waitFor(() => {
-      expect(onFinished).toHaveBeenCalledTimes(1)
-    })
-    expect(await getDay('2026-09-01')).toMatchObject({
-      gym_seconds: 4325,
-      walk_seconds: null,
-      steps: null,
-    })
-  })
-
-  it('shows both values and keeps the log on Keep, with no outbox entry', async () => {
-    const before = await upsertDay(
-      dailyEntrySchema.parse({ entry_date: '2026-09-01', gym_seconds: 3900 }),
-    )
-    const queued = await dailyQueued()
-    const { onFinished } = await finishAnHourLater()
-
-    const sheet = await screen.findByRole('dialog', { name: 'Session finished' })
-    expect(within(sheet).getByText('In your log').nextSibling).toHaveTextContent('1:05:00')
-    expect(within(sheet).getByText('This session').nextSibling).toHaveTextContent('1:12:05')
-
-    await userEvent.click(within(sheet).getByRole('button', { name: 'Keep 1:05:00' }))
-
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }))
     expect(onFinished).toHaveBeenCalledTimes(1)
-    expect(await getDay('2026-09-01')).toEqual(before)
-    expect(await dailyQueued()).toEqual(queued)
   })
 
-  it('treats a close of the sheet as a decline', async () => {
-    await upsertDay(dailyEntrySchema.parse({ entry_date: '2026-09-01', gym_seconds: 3900 }))
-    const { onFinished } = await finishAnHourLater()
-    await screen.findByRole('dialog', { name: 'Session finished' })
-
-    await userEvent.click(screen.getByRole('button', { name: 'Close Session finished' }))
-
+  it('hands back once when Done is pressed twice', async () => {
+    const { onFinished } = await finishWithOneSet()
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    const done = within(sheet).getByRole('button', { name: 'Done' })
+    await userEvent.click(done)
+    await userEvent.click(done)
     expect(onFinished).toHaveBeenCalledTimes(1)
-    expect(await getDay('2026-09-01')).toMatchObject({ gym_seconds: 3900 })
   })
 
-  it('hands straight back when the log already holds the length', async () => {
-    await upsertDay(dailyEntrySchema.parse({ entry_date: '2026-09-01', gym_seconds: 4325 }))
-    const { onFinished } = await finishAnHourLater()
-
-    await waitFor(() => {
-      expect(onFinished).toHaveBeenCalledTimes(1)
-    })
-    expect(screen.queryByRole('dialog', { name: 'Session finished' })).toBeNull()
+  it('pushes /workouts once when Done and then the close button are pressed', async () => {
+    router.push.mockClear()
+    await finishWithOneSet({ onFinished: undefined })
+    const sheet = await screen.findByRole('dialog', { name: 'Session done' })
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Done' }))
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Close Session done' }))
+    expect(router.push).toHaveBeenCalledTimes(1)
+    expect(router.push).toHaveBeenCalledWith(WORKOUTS_PATH)
   })
 
-  it('hands straight back when the offer cannot be read', async () => {
-    const { onFinished } = await finishAnHourLater({
-      source: failing({ gymTimeOfferFor: () => Promise.reject(new Error('no')) }),
-    })
-
-    await waitFor(() => {
-      expect(onFinished).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  it('stays on the sheet and says so when Use cannot be saved', async () => {
-    const { onFinished } = await finishAnHourLater({
-      source: failing({ acceptGymTimeOffer: () => Promise.reject(new Error('disk full')) }),
-    })
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Use 1:12:05 for gym time' }))
-
-    const sheet = screen.getByRole('dialog', { name: 'Session finished' })
-    expect(await within(sheet).findByRole('alert')).toHaveTextContent(GYM_TIME_SAVE_FAILED)
-    expect(onFinished).not.toHaveBeenCalled()
-    expect(within(sheet).getByRole('button', { name: 'Use 1:12:05 for gym time' })).toBeEnabled()
-  })
-
-  it('ignores Keep and a second Use while Use is saving', async () => {
-    const acceptGymTimeOffer = vi.fn(() => new Promise<unknown>(() => undefined))
-    const { onFinished } = await finishAnHourLater({ source: failing({ acceptGymTimeOffer }) })
-    const use = await screen.findByRole('button', { name: 'Use 1:12:05 for gym time' })
-
-    await userEvent.click(use)
-    fireEvent.click(use)
-    fireEvent.keyDown(document, { key: 'Escape' })
-
-    expect(acceptGymTimeOffer).toHaveBeenCalledTimes(1)
-    expect(onFinished).not.toHaveBeenCalled()
-  })
-
-  it('writes the session length into its own entry_date past midnight', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 8, 19, 23, 30))
-    await startSession('2026-09-19')
-    vi.setSystemTime(new Date(2026, 8, 20, 0, 30))
-    const { onFinished } = await renderLive()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
-    const sheet = await screen.findByRole('dialog', { name: 'Session finished' })
-    expect(sheet).toHaveTextContent('Gym time for Sat 19 Sep')
-    await userEvent.click(within(sheet).getByRole('button', { name: 'Use 1:00:00 for gym time' }))
-
-    await waitFor(() => {
-      expect(onFinished).toHaveBeenCalledTimes(1)
-    })
-    expect(await getDay('2026-09-19')).toMatchObject({ gym_seconds: 3600 })
-    expect(await getDay('2026-09-20')).toBeUndefined()
-  })
-})
-
-describe('finishSummary', () => {
-  it('names the date, the times, the sets and the volume', () => {
-    const session: WorkoutSession = {
-      id: 'a',
-      entry_date: '2026-09-20',
-      started_at: '2026-09-20T17:30:00.000Z',
-      ended_at: '2026-09-20T18:42:00.000Z',
-      status: 'finished',
-      created_at: '2026-09-20T17:30:00.000Z',
-      updated_at: '2026-09-20T18:42:00.000Z',
-      deleted_at: null,
-    }
-
-    expect(finishSummary(session, [pastSet({}), pastSet({})], 'metric')).toBe(
-      `Sun 20 Sep · ${startedText(session.started_at)} to ${startedText('2026-09-20T18:42:00.000Z')} · 2 sets · 1,000 kg`,
-    )
-  })
-
-  it('reads the start as the end for a session with no end', () => {
-    const session: WorkoutSession = {
-      id: 'a',
-      entry_date: '2026-09-20',
-      started_at: '2026-09-20T17:30:00.000Z',
-      ended_at: null,
-      status: 'active',
-      created_at: '2026-09-20T17:30:00.000Z',
-      updated_at: '2026-09-20T17:30:00.000Z',
-      deleted_at: null,
-    }
-    const at = startedText(session.started_at)
-
-    expect(finishSummary(session, [], 'metric')).toBe(`Sun 20 Sep · ${at} to ${at} · 0 sets · 0 kg`)
+  it('hands back once when the sheet is closed', async () => {
+    const { onFinished } = await finishWithOneSet()
+    await screen.findByRole('dialog', { name: 'Session done' })
+    await userEvent.click(screen.getByRole('button', { name: 'Close Session done' }))
+    expect(onFinished).toHaveBeenCalledTimes(1)
   })
 })

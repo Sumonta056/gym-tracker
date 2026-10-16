@@ -1,7 +1,9 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  css: { postcss: { plugins: [] } },
   test: {
+    maxWorkers: process.env.CI ? undefined : '50%',
     projects: [
       {
         test: {

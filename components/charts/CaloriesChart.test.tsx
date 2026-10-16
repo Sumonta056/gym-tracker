@@ -58,6 +58,25 @@ describe('CaloriesChart', () => {
     expect(svgTexts(container, VALUE_LABELS)).toEqual(['705'])
     expect(svgTexts(container, REFERENCE_LABELS)).toEqual([])
   })
+
+  it('draws the goal line instead of the average when a goal is set', () => {
+    const { container } = render(<CaloriesChart days={full.days} tab="week" goal={800} />)
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual(['goal 800'])
+  })
+
+  it('names the goal in its label', () => {
+    render(<CaloriesChart days={full.days} tab="week" goal={800} />)
+    expect(
+      screen.getByRole('img', {
+        name: 'Calories per day, falling: 620, 780, 410 kcal. Total 1,810 kcal. Goal 800 kcal a day.',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the goal line for one logged day', () => {
+    const { container } = render(<CaloriesChart days={one.days} tab="week" goal={800} />)
+    expect(svgTexts(container, REFERENCE_LABELS)).toEqual(['goal 800'])
+  })
 })
 
 describe('caloriesLabel', () => {

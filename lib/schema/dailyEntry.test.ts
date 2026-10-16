@@ -98,6 +98,7 @@ describe('dailyEntrySchema', () => {
       entry_date: TODAY,
       walk_seconds: null,
       gym_seconds: null,
+      swim_seconds: null,
       avg_heart_rate: null,
       max_heart_rate: null,
       weight_kg: null,
@@ -287,5 +288,28 @@ describe('dailyEntrySchema', () => {
 
   it('infers a type assignable to the generated daily_entries row', () => {
     expect(inputAssignableToRow).toBe(true)
+  })
+})
+
+describe('swim_seconds', () => {
+  it('defaults to null', () => {
+    expect(dailyEntrySchema.parse({ entry_date: '2026-09-01' }).swim_seconds).toBeNull()
+  })
+
+  it('accepts 0 and 24 hours', () => {
+    expect(dailyEntrySchema.safeParse({ entry_date: '2026-09-01', swim_seconds: 0 }).success).toBe(
+      true,
+    )
+    expect(
+      dailyEntrySchema.safeParse({ entry_date: '2026-09-01', swim_seconds: 86400 }).success,
+    ).toBe(true)
+  })
+
+  it('refuses a negative, more than 24 hours and a part second', () => {
+    for (const swim of [-1, 86401, 1.5]) {
+      expect(
+        dailyEntrySchema.safeParse({ entry_date: '2026-09-01', swim_seconds: swim }).success,
+      ).toBe(false)
+    }
   })
 })

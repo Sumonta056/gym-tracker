@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-import { unitStatement, UnitsCard } from './UnitsCard'
+import { unitStatement, UnitsCard, WEEK_START } from './UnitsCard'
 
 describe('UnitsCard', () => {
   it('groups the two units under a label and presses the current one', () => {
@@ -37,6 +37,12 @@ describe('UnitsCard', () => {
   it('shows an error the owner reports', () => {
     render(<UnitsCard unit="metric" onUnitChange={vi.fn()} error="Not saved." />)
     expect(screen.getByRole('alert')).toHaveTextContent('Not saved.')
+  })
+
+  it('states that the week starts on Monday, with no control for it', () => {
+    render(<UnitsCard unit="metric" onUnitChange={vi.fn()} />)
+    expect(screen.getByText(WEEK_START)).toBeVisible()
+    expect(screen.getAllByRole('button')).toHaveLength(2)
   })
 })
 

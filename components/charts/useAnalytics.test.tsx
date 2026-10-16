@@ -1,15 +1,17 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getProfile, listRange } from '../../lib/db/repository'
-import { entryOn, NOW, PROFILE } from '../../tests/fixtures/dashboard'
+import { getProfile, listRange, listSessions } from '../../lib/db/repository'
+import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 
-import { READ_ERROR, useAnalytics } from './useAnalytics'
+import { resolveLayout, STATS_CARD_IDS } from './statsCards'
+import { entriesIn, READ_ERROR, useAnalytics } from './useAnalytics'
 
 vi.mock('../../lib/db/repository', async () => {
   const { PROFILE } = await import('../../tests/fixtures/dashboard')
   return {
     listRange: vi.fn(),
+    listSessions: vi.fn(() => Promise.resolve([])),
     getProfile: vi.fn(() => Promise.resolve({ ...PROFILE, step_goal: 10000 })),
   }
 })
@@ -19,6 +21,8 @@ const clock = () => NOW
 beforeEach(() => {
   vi.mocked(listRange).mockReset()
   vi.mocked(listRange).mockResolvedValue([])
+  vi.mocked(getProfile).mockClear()
+  vi.mocked(listSessions).mockClear()
 })
 
 describe('useAnalytics', () => {
@@ -27,12 +31,37 @@ describe('useAnalytics', () => {
     expect(result.current.status).toBe('loading')
   })
 
-  it('reads the week, with six days before it, and the whole history', async () => {
+  it('reads the whole history once, with no range read', async () => {
     renderHook(() => useAnalytics('week', clock))
     await waitFor(() => {
-      expect(listRange).toHaveBeenCalledWith('2026-09-15', '2026-09-27')
+      expect(listRange).toHaveBeenCalledTimes(1)
     })
-    expect(listRange).toHaveBeenCalledWith('0000-01-01', '2026-09-23')
+    expect(listRange).toHaveBeenCalledWith('0000-01-01', '9999-12-31')
+  })
+
+  it('reads the sessions of the whole history once', async () => {
+    const { rerender } = renderHook(({ tab }) => useAnalytics(tab, clock), {
+      initialProps: { tab: 'week' as 'week' | 'month' },
+    })
+    await waitFor(() => {
+      expect(listSessions).toHaveBeenCalledWith('0000-01-01', '9999-12-31')
+    })
+    rerender({ tab: 'month' })
+    expect(listSessions).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the data ready through a tab switch, with no second read', async () => {
+    vi.mocked(listRange).mockResolvedValue([entryOn('2026-09-21'), entryOn(TODAY)])
+    const { result, rerender } = renderHook(({ tab }) => useAnalytics(tab, clock), {
+      initialProps: { tab: 'week' as 'week' | 'month' },
+    })
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    rerender({ tab: 'month' })
+    expect(result.current.status === 'ready' && result.current.data.tab).toBe('month')
+    expect(listRange).toHaveBeenCalledTimes(1)
+    expect(getProfile).toHaveBeenCalledTimes(1)
   })
 
   it('settles with the analysed data', async () => {
@@ -59,24 +88,75 @@ describe('useAnalytics', () => {
     })
   })
 
+  it('hands the profile goals to the data', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({
+      ...PROFILE,
+      calorie_goal: 800,
+      target_weight_kg: 72,
+    })
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.data.goals).toEqual({
+      calories: 800,
+      gymSeconds: null,
+      walkSeconds: null,
+      weightKg: 72,
+    })
+  })
+
+  it('hands the max heart rate of the profile to the data', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({ ...PROFILE, birth_year: 1996 })
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.data.maxHeartRate).toEqual({
+      bpm: 190,
+      source: 'age',
+    })
+  })
+
+  it('hands no max heart rate for a profile with neither field', async () => {
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.data.maxHeartRate).toBeNull()
+  })
+
+  it('hands the default layout when the profile stores none', async () => {
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.layout).toEqual(resolveLayout(null))
+  })
+
+  it('hands the stored layout, with the cards it lacks added', async () => {
+    vi.mocked(getProfile).mockResolvedValueOnce({
+      ...PROFILE,
+      stats_layout: [
+        { id: 'steps', hidden: true },
+        { id: 'sleep', hidden: false },
+      ],
+    })
+    const { result } = renderHook(() => useAnalytics('week', clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    const layout = result.current.status === 'ready' ? result.current.layout : []
+    expect(layout.find((item) => item.id === 'steps')).toEqual({ id: 'steps', hidden: true })
+    expect(layout).toHaveLength(STATS_CARD_IDS.length)
+  })
+
   it('reports a read that fails', async () => {
     vi.mocked(listRange).mockRejectedValue(new Error('locked'))
     const { result } = renderHook(() => useAnalytics('week', clock))
     await waitFor(() => {
       expect(result.current).toEqual({ status: 'error', message: READ_ERROR })
     })
-  })
-
-  it('goes back to loading while a new range is read', async () => {
-    const { result, rerender } = renderHook(({ tab }) => useAnalytics(tab, clock), {
-      initialProps: { tab: 'week' as 'week' | 'month' },
-    })
-    await waitFor(() => {
-      expect(result.current.status).toBe('ready')
-    })
-    vi.mocked(listRange).mockReturnValue(new Promise(() => undefined))
-    rerender({ tab: 'month' })
-    expect(result.current.status).toBe('loading')
   })
 
   it('ignores a read that settles after unmount', async () => {
@@ -110,7 +190,24 @@ describe('useAnalytics', () => {
   it('uses the system clock when none is given', async () => {
     renderHook(() => useAnalytics('day'))
     await waitFor(() => {
-      expect(listRange).toHaveBeenCalledTimes(2)
+      expect(listRange).toHaveBeenCalledTimes(1)
     })
+  })
+})
+
+describe('entriesIn', () => {
+  it('keeps the rows from six days before the week to its Sunday', () => {
+    const history = ['2026-09-14', '2026-09-15', TODAY, '2026-09-27', '2026-09-28'].map((date) =>
+      entryOn(date),
+    )
+    expect(entriesIn(history, 'week', TODAY).map((row) => row.entry_date)).toEqual([
+      '2026-09-15',
+      TODAY,
+      '2026-09-27',
+    ])
+  })
+
+  it('returns no row for an empty history', () => {
+    expect(entriesIn([], 'month', TODAY)).toEqual([])
   })
 })

@@ -1,5 +1,11 @@
 import { newId } from '../id'
 import { dailyEntrySchema } from '../schema/dailyEntry'
+import {
+  errorRecordSchema,
+  MAX_ERROR_RECORDS,
+  MAX_MESSAGE_LENGTH,
+  MAX_STACK_LENGTH,
+} from '../schema/errorRecord'
 import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
 import { storedWorkoutSessionSchema, workoutSessionSchema } from '../schema/workoutSession'
@@ -14,7 +20,6 @@ import {
   resumeSync,
   withDrainLock,
 } from '../sync/worker'
-import { gymTimeOffer, newestFinished, sessionLengthSeconds } from '../workout/gymTime'
 
 import {
   DAILY_CURSOR_KEY,
@@ -28,12 +33,16 @@ import {
 
 import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from './dexie'
 import type { DailyEntryDraft, DailyEntryInput } from '../schema/dailyEntry'
+import type { ErrorRecord } from '../schema/errorRecord'
 import type { ExerciseInput, MuscleGroup } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
 import type { WorkoutSetDraft, WorkoutSetInput } from '../schema/workoutSet'
-import type { GymTimeOffer } from '../workout/gymTime'
 
 export { LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY } from './dexie'
+
+export { getVersionState, subscribeVersionState } from './dexie'
+
+export type { VersionState } from './dexie'
 
 export { useDeadLetters, useSyncStatus } from '../sync/useSyncStatus'
 
@@ -59,8 +68,6 @@ export {
 
 export type { SyncOutcome } from '../sync/worker'
 
-export type { GymTimeOffer } from '../workout/gymTime'
-
 const PROFILE_FIELDS = [
   'display_name',
   'unit_system',
@@ -69,6 +76,13 @@ const PROFILE_FIELDS = [
   'step_goal',
   'rest_sound_muted',
   'rest_seconds_by_exercise',
+  'calorie_goal',
+  'gym_goal_seconds',
+  'walk_goal_seconds',
+  'sessions_per_week_goal',
+  'birth_year',
+  'max_heart_rate',
+  'stats_layout',
 ] as const
 
 export class SignedOutOnThisDevice extends Error {
@@ -103,13 +117,6 @@ export class SessionNotFound extends Error {
   constructor() {
     super('This session is not on this device.')
     this.name = 'SessionNotFound'
-  }
-}
-
-export class NoGymTimeOffer extends Error {
-  constructor() {
-    super('This session has no length to offer as gym time.')
-    this.name = 'NoGymTimeOffer'
   }
 }
 
@@ -228,11 +235,20 @@ export async function listRange(from: string, to: string): Promise<DailyEntry[]>
   )
 }
 
-async function writeDay(parsed: DailyEntryInput, timestamp: string): Promise<DailyEntry> {
+export type DayWrite = Omit<DailyEntryInput, 'swim_seconds'> &
+  Partial<Pick<DailyEntryInput, 'swim_seconds'>>
+
+async function writeDay(
+  parsed: DailyEntryInput,
+  timestamp: string,
+  keepSwim = false,
+): Promise<DailyEntry> {
   const existing = await keepOneLiveRow(parsed.entry_date, timestamp)
+  const storedSwim = existing?.deleted_at === null ? (existing.swim_seconds ?? null) : null
 
   const row: DailyEntry = {
     ...parsed,
+    swim_seconds: keepSwim ? storedSwim : parsed.swim_seconds,
     id: existing?.id ?? newId(),
     created_at: existing?.created_at ?? timestamp,
     updated_at: timestamp,
@@ -245,14 +261,15 @@ async function writeDay(parsed: DailyEntryInput, timestamp: string): Promise<Dai
   return row
 }
 
-export async function upsertDay(input: DailyEntryInput): Promise<DailyEntry> {
+export async function upsertDay(input: DayWrite): Promise<DailyEntry> {
   const parsed = dailyEntrySchema.parse(input)
+  const keepSwim = input.swim_seconds === undefined
   const timestamp = nowIso()
 
   return db.transaction('rw', db.dailyEntries, db.outbox, db.syncMeta, async () => {
     await refuseWhenSignedOut()
 
-    return writeDay(parsed, timestamp)
+    return writeDay(parsed, timestamp, keepSwim)
   })
 }
 
@@ -335,7 +352,11 @@ const COUNTED_CHOICE: Record<'overwrite' | 'merge', 'overwritten' | 'merged'> = 
 }
 
 export async function importDays(days: ImportDay[]): Promise<ImportResult> {
-  const parsed = days.map((day) => ({ ...day, entry: dailyEntrySchema.parse(day.entry) }))
+  const parsed = days.map((day) => ({
+    ...day,
+    entry: dailyEntrySchema.parse(day.entry),
+    keepSwim: day.entry.swim_seconds === undefined,
+  }))
   const seen = new Set<string>()
 
   for (const { entry } of parsed) {
@@ -357,7 +378,7 @@ export async function importDays(days: ImportDay[]): Promise<ImportResult> {
 
     const result: ImportResult = { created: 0, overwritten: 0, merged: 0, skipped: 0 }
 
-    for (const { entry, choice } of parsed) {
+    for (const { entry, choice, keepSwim } of parsed) {
       const existing = await getDay(entry.entry_date)
 
       if (choice === 'skip') {
@@ -368,7 +389,7 @@ export async function importDays(days: ImportDay[]): Promise<ImportResult> {
       } else if (choice === undefined) {
         throw new ImportNeedsAChoice(entry.entry_date)
       } else if (choice === 'overwrite') {
-        await writeDay({ ...entry, note: existing.note }, timestamp)
+        await writeDay({ ...entry, note: existing.note }, timestamp, keepSwim)
         result.overwritten += 1
       } else {
         const merged = mergeDay(existing, entry)
@@ -650,28 +671,12 @@ export async function finishSession(id: string): Promise<WorkoutSession> {
   })
 }
 
-export async function gymTimeOfferFor(sessionId: string): Promise<GymTimeOffer | null> {
-  return db.transaction('r', db.workoutSessions, db.dailyEntries, async () => {
-    const session = await liveSession(sessionId)
-
-    return gymTimeOffer(session, await getDay(session.entry_date))
-  })
-}
-
-export async function gymTimeOfferOn(date: string): Promise<GymTimeOffer | null> {
-  return db.transaction('r', db.workoutSessions, db.dailyEntries, async () => {
-    const sessions = await db.workoutSessions.where('entry_date').equals(date).toArray()
-    const session = newestFinished(sessions)
-
-    return session === undefined ? null : gymTimeOffer(session, await getDay(date))
-  })
-}
-
 function dayFields(row: DailyEntry): DailyEntryInput {
   return {
     entry_date: row.entry_date,
     walk_seconds: row.walk_seconds,
     gym_seconds: row.gym_seconds,
+    swim_seconds: row.swim_seconds ?? null,
     avg_heart_rate: row.avg_heart_rate,
     max_heart_rate: row.max_heart_rate,
     weight_kg: row.weight_kg,
@@ -679,34 +684,6 @@ function dayFields(row: DailyEntry): DailyEntryInput {
     steps: row.steps,
     note: row.note,
   }
-}
-
-export async function acceptGymTimeOffer(sessionId: string): Promise<DailyEntry> {
-  return db.transaction(
-    'rw',
-    [db.workoutSessions, db.dailyEntries, db.outbox, db.syncMeta],
-    async () => {
-      await refuseWhenSignedOut()
-
-      const session = await liveSession(sessionId)
-      const day = await getDay(session.entry_date)
-      const seconds = sessionLengthSeconds(session)
-      const offer = gymTimeOffer(session, day)
-
-      if (offer === null && day !== undefined && day.gym_seconds === seconds) {
-        return day
-      }
-
-      if (offer === null) {
-        throw new NoGymTimeOffer()
-      }
-
-      const base = day === undefined ? { entry_date: offer.entryDate } : dayFields(day)
-      const parsed = dailyEntrySchema.parse({ ...base, gym_seconds: offer.sessionSeconds })
-
-      return writeDay(parsed, nowIso())
-    },
-  )
 }
 
 export async function discardSession(id: string): Promise<void> {
@@ -858,6 +835,38 @@ export async function listSessions(from: string, to: string): Promise<WorkoutSes
   return rows.filter((row) => row.deleted_at === null).sort(byStart)
 }
 
+export async function recordError(input: Omit<ErrorRecord, 'id' | 'at'>): Promise<void> {
+  const record = errorRecordSchema.parse({
+    ...input,
+    id: newId(),
+    at: nowIso(),
+    message: input.message.slice(0, MAX_MESSAGE_LENGTH),
+    stack: input.stack === null ? null : input.stack.slice(0, MAX_STACK_LENGTH),
+  })
+
+  await db.transaction('rw', db.errorLog, db.syncMeta, async () => {
+    if ((await db.syncMeta.get(SIGNED_OUT_KEY)) !== undefined) {
+      return
+    }
+
+    await db.errorLog.put(record)
+
+    const extra = (await db.errorLog.count()) - MAX_ERROR_RECORDS
+
+    if (extra > 0) {
+      await db.errorLog.bulkDelete(await db.errorLog.orderBy('at').limit(extra).primaryKeys())
+    }
+  })
+}
+
+export async function listErrors(): Promise<ErrorRecord[]> {
+  return db.errorLog.orderBy('at').reverse().toArray()
+}
+
+export async function clearErrors(): Promise<void> {
+  await db.errorLog.clear()
+}
+
 export async function listSetsInRange(from: string, to: string): Promise<WorkoutSet[]> {
   return db.transaction('r', db.workoutSessions, db.workoutSets, async () => {
     const sessions = await listSessions(from, to)
@@ -873,6 +882,33 @@ export async function listSetsInRange(from: string, to: string): Promise<Workout
 
     return rows.filter((row) => row.deleted_at === null).sort(inDoneOrder)
   })
+}
+
+export type FinishedSessionsPage = { sessions: WorkoutSession[]; hasMore: boolean }
+
+export async function listFinishedSessions(limit: number): Promise<FinishedSessionsPage> {
+  const rows = await db.workoutSessions.where('status').equals('finished').toArray()
+  const live = rows
+    .filter((row) => row.deleted_at === null && row.ended_at !== null)
+    .sort((left, right) => byStart(right, left))
+
+  return { sessions: live.slice(0, limit), hasMore: live.length > limit }
+}
+
+export async function getSession(id: string): Promise<WorkoutSession | undefined> {
+  const row = await db.workoutSessions.get(id)
+
+  return row === undefined || row.deleted_at !== null ? undefined : row
+}
+
+export async function listSetsForSessions(sessionIds: string[]): Promise<WorkoutSet[]> {
+  if (sessionIds.length === 0) {
+    return []
+  }
+
+  const rows = await db.workoutSets.where('session_id').anyOf(sessionIds).toArray()
+
+  return rows.filter((row) => row.deleted_at === null).sort(inDoneOrder)
 }
 
 function doneAt(set: WorkoutSet): number {
@@ -979,6 +1015,7 @@ export async function clearAll<T>(
           db.exercises,
           db.workoutSessions,
           db.workoutSets,
+          db.errorLog,
         ],
         async () => {
           const count = (await db.outbox.count()) + (await db.deadLetters.count())
@@ -997,6 +1034,7 @@ export async function clearAll<T>(
             db.exercises.clear(),
             db.workoutSessions.clear(),
             db.workoutSets.clear(),
+            db.errorLog.clear(),
           ])
           await db.syncMeta.bulkPut([
             { key: OUTBOX_SEQUENCE_KEY, value: String(sequence) },
@@ -1009,6 +1047,7 @@ export async function clearAll<T>(
 
       const ended = await endSession()
 
+      await db.errorLog.clear().catch(() => undefined)
       endSigningOut()
 
       return ended

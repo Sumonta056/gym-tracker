@@ -100,14 +100,31 @@ test('keeps every set of a session logged offline through a finish and a reload'
 
   await page.clock.setSystemTime(new Date(day.noon().getTime() + 3_600_000))
   await page.getByRole('button', { name: 'Finish session' }).click()
-  const finished = page.getByRole('dialog', { name: 'Session finished' })
-  await expect(finished).toContainText('as gym time for')
-  await finished.getByRole('button', { name: 'Not now' }).click()
+  const done = page.getByRole('dialog', { name: 'Session done' })
+  await expect(done).toContainText('sets3')
+  await expect(done).toContainText('1,440')
+  await done.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(page).toHaveURL(/\/workouts$/)
   await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible()
 
+  await navLink(page, 'Log the day').first().click()
+  await expect(page.getByRole('group', { name: 'Gym time' })).toContainText(/From 1 session · /)
+  await page.goto('/workouts')
+
   await page.reload()
   await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()
+
+  const row = page.getByRole('link', { name: /3 sets · 1,440 kg/ })
+  await expect(row).toBeVisible()
+  await row.click()
+  await expect(page).toHaveURL(/\/workouts\?session=/)
+  const bench = page.getByRole('region', { name: 'Bench Press' })
+  await expect(bench).toContainText('8 × 60 kg')
+
+  if (trulyOffline) {
+    await page.reload()
+    await expect(page.getByRole('region', { name: 'Bench Press' })).toContainText('8 × 60 kg')
+  }
 
   const sessions = await readStore<LocalSession>(page, 'workoutSessions')
   expect(sessions).toHaveLength(1)
@@ -201,6 +218,9 @@ test('finishes a pulled session whose start is ahead of this device clock', asyn
   await expect(page.getByRole('heading', { level: 1, name: 'Session' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Finish session' }).click()
+  const done = page.getByRole('dialog', { name: 'Session done' })
+  await expect(done).toContainText('0:00')
+  await done.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(page).toHaveURL(/\/workouts$/)
   await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible()
 
