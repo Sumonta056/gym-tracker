@@ -3,14 +3,12 @@
 **Start of every session:** read `CLAUDE.md`, then the step file named below, then do
 that one step only. Stop and report when the step is done.
 
-**Current phase:** the fix track — the owner feedback · `docs/plan/04-feedback-fixes.md`
-**Step index:** `docs/plan/feedback/index.md`
-**Next step:** the wave 12 owner checkpoint, the last of the fix track: sub-plan I, then the whole checklist in `docs/plan/04-feedback-fixes.md`, on the iPhone and the laptop (`docs/plan/feedback/index.md`, "Checkpoints"). The owner passed the wave 11 checkpoint on 2026-10-15. The coordinator ran the full verify after I1 on 2026-10-15: pass. For I1, on the iPhone: Edit, move a card, hide a card, Done, with touch at 390 px; Reset and Done stay clear of the tab bar at the end of the page; after a sync the laptop shows the same order and hidden cards; VoiceOver reads each switch ("Show Weight, switch") and the "· Hidden" text, and lands on the "Stats cards" heading after Edit. The deferred wave 8 device checks of A to F stay open for this checkpoint. When every checklist line passes, the track closes and Phase 3 resumes at step 3.1.
-**Open from wave 2:** the owner checks the B2 bar in the home-screen app at the wave 4 checkpoint. If the bar is still about 58 px high after Start, apply F6 (`overscroll-behavior-y: none` on `html` and `body`).
-**Open from wave 3:** an error at the same moment as a navigation can miss the log (deferred write, A3). The Errors card loop guard matches a text prefix. No plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
-**Branch:** `fix/feedback-fixes`, cut from `main`. From wave 4, each step commits on it directly, in the main folder.
-**Last commit:** I1 (reorder and hide the Stats cards), after `df172a9` (H2), `3eb97d9` (G3b), `8a0a46f` (H1), `70825b2` (G3a), `25d3edd` (fix(test): the style guide hydration wait), `584c182` (chore(test): `pnpm check:step`), `d2c76ba` (F2), `7e9cd9d` (E5), `c69f67e` (F1), `af84ee7` (E4), `553f840` (G2), `e1753e6` (E3), `c5c496e` (G1), `85bf1fa` (E2) and `25454f6` (D1, migration `20261008014222`). Wave 3 merge: `d70d01c`. Wave 3 reports: `reports/wave-3/`.
-**Phase 3 waits.** It returns to step 3.1 (`docs/plan/phase-3/S3.1-design-contract.md`) when the fix track closes.
+**Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
+**Step index:** `docs/plan/phase-3/index.md`
+**Next step:** 3.1, the prototype plates and the docs · `docs/plan/phase-3/S3.1-design-contract.md`. Do items 6 and 7 are already done: `CLAUDE.md` and this file name Phase 3. Cut `feat/phase-3-coach-plans` from `main` only after the owner merges `fix/feedback-fixes` into `main` and pushes it.
+**Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/plan/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
+**Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
+**Last commit:** the fix track close, after `3d9e6a7` (I1). The fix track steps: `docs/plan/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
 
 ## Resume here
 

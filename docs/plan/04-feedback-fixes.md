@@ -52,59 +52,59 @@ Step W0 runs first, alone. It adds the e2e lock and the worktree commit gate.
 
 ### A — Crash safety
 
-- [ ] A forced render error on any `(app)` route shows the Reload screen, never a blank page.
-- [ ] A failed Dexie read in the sync chip shows an unknown state and does not throw.
-- [ ] A schema change in another tab shows "A new version is ready. Reload."
-- [ ] A stale chunk reloads 1 time, with no reload loop.
-- [ ] Profile lists the last 50 errors, with a Copy button and a Clear button.
+- [x] A forced render error on any `(app)` route shows the Reload screen, never a blank page.
+- [x] A failed Dexie read in the sync chip shows an unknown state and does not throw.
+- [x] A schema change in another tab shows "A new version is ready. Reload."
+- [x] A stale chunk reloads 1 time, with no reload loop.
+- [x] Profile lists the last 50 errors, with a Copy button and a Clear button.
 
 ### B — Mobile layout
 
-- [ ] `/workout` at 320, 375, 390 and 430 px has no sideways overflow, and the bottom bar stays fixed.
-- [ ] Every sheet renders in a portal. The page behind it does not scroll on iOS.
-- [ ] The Save button of a sheet stays above the iOS keyboard.
-- [ ] Every save shows a "Saved" toast. Finish still opens `/workouts` offline.
-- [ ] No scrollbar shows at any width from 320 to 2560 px. The chip row has a fade edge.
+- [x] `/workout` at 320, 375, 390 and 430 px has no sideways overflow, and the bottom bar stays fixed.
+- [x] Every sheet renders in a portal. The page behind it does not scroll on iOS.
+- [x] The Save button of a sheet stays above the iOS keyboard.
+- [x] Every save shows a "Saved" toast. Finish still opens `/workouts` offline.
+- [x] No scrollbar shows at any width from 320 to 2560 px. The chip row has a fade edge.
 
 ### C — Stats fixes
 
-- [ ] A Day, Week or Month switch keeps the cards on screen. No height jump. No replayed animation.
-- [ ] `effectiveGymSeconds` is the one source of gym time for every reader.
-- [ ] Session gaps use all history. Totals and the gap chart agree on what a session is.
-- [ ] The heat map has weekday labels, square cells and a visible future style.
-- [ ] The week ticks read "Mon Tue Wed". "This week" shows its date range.
+- [x] A Day, Week or Month switch keeps the cards on screen. No height jump. No replayed animation.
+- [x] `effectiveGymSeconds` is the one source of gym time for every reader.
+- [x] Session gaps use all history. Totals and the gap chart agree on what a session is.
+- [x] The heat map has weekday labels, square cells and a visible future style.
+- [x] The week ticks read "Mon Tue Wed". "This week" shows its date range.
 
 ### D — Schema
 
-- [ ] The migration applies, and every new column has its check and keeps the RLS policy.
-- [ ] Dexie v5 opens over a v4 database with no data loss.
-- [ ] A round trip through the sync worker keeps every new field.
+- [x] The migration applies, and every new column has its check and keeps the RLS policy.
+- [x] Dexie v5 opens over a v4 database with no data loss.
+- [x] A round trip through the sync worker keeps every new field.
 
 ### E — Log inputs
 
-- [ ] Rest, gym, walk and swim time are set with the picker and no keyboard.
-- [ ] A day with no typed gym time shows the sum of its sessions, and `/log` says so.
-- [ ] `/log?date=YYYY-MM-DD` opens that day. Previous, next and a date picker work.
-- [ ] The "Open a day" row under the heat map opens each of the last 7 days.
-- [ ] A swim time saves, syncs, exports to CSV and imports from CSV.
+- [x] Rest, gym, walk and swim time are set with the picker and no keyboard.
+- [x] A day with no typed gym time shows the sum of its sessions, and `/log` says so.
+- [x] `/log?date=YYYY-MM-DD` opens that day. Previous, next and a date picker work.
+- [x] The "Open a day" row under the heat map opens each of the last 7 days.
+- [x] A swim time saves, syncs, exports to CSV and imports from CSV.
 
 ### F — Workout stats
 
-- [ ] Finish always shows the summary: duration, sets, volume, exercises, new records.
-- [ ] `/workouts` lists past sessions, newest first. A session opens to its detail offline.
+- [x] Finish always shows the summary: duration, sets, volume, exercises, new records.
+- [x] `/workouts` lists past sessions, newest first. A session opens to its detail offline.
 
 ### G — Goals and Today
 
-- [ ] Profile edits 6 goals and shows "Week starts on Monday".
-- [ ] Each goal draws a goal line on its chart.
-- [ ] Today shows the workout, the note, calories against the goal, weight against the target and swim time. An empty field is hidden.
+- [x] Profile edits 6 goals and shows "Week starts on Monday".
+- [x] Each goal draws a goal line on its chart.
+- [x] Today shows the workout, the note, calories against the goal, weight against the target and swim time. An empty field is hidden.
 
 ### H — Heart rate
 
-- [ ] With a birth year, avg 150 and peak 160 do not put 100 % in Peak.
-- [ ] Each zone shows its bpm range. The info sheet explains the 4 zones.
+- [x] With a birth year, avg 150 and peak 160 do not put 100 % in Peak.
+- [x] Each zone shows its bpm range. The info sheet explains the 4 zones.
 
 ### I — Stats layout
 
-- [ ] Edit mode moves a card up and down, and hides and shows it, by touch and by keyboard.
-- [ ] The layout syncs to the laptop. Reset restores the default.
+- [x] Edit mode moves a card up and down, and hides and shows it, by touch and by keyboard.
+- [x] The layout syncs to the laptop. Reset restores the default.

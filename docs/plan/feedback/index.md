@@ -182,7 +182,7 @@ Every step follows these. They are not repeated in each step file.
 | G3b  | `G3b-today-cards.md`       | Today: the cards                              | 8      | M    | G3a, F2, H1         | done `3eb97d9` |
 | H1   | `H1-max-heart-rate.md`     | Zones from a true maximum heart rate          | 10     | M    | C3, D1, G1, G2, G3a | done `8a0a46f` |
 | H2   | `H2-zone-explained.md`     | Zone bpm ranges and the info sheet            | 15     | S    | H1, B3              | done `df172a9` |
-| I1   | `I1-stats-layout.md`       | Reorder and hide the Stats cards              | 11     | M    | C3, D1, G2, H2      | done           |
+| I1   | `I1-stats-layout.md`       | Reorder and hide the Stats cards              | 11     | M    | C3, D1, G2, H2      | done `3d9e6a7` |
 
 28 steps: W0 and 27 fix steps. G3 is split in 2 because it does not fit 1 session.
 The "Depends on" column lists only what a step needs. The waves above also keep apart
