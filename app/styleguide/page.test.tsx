@@ -750,10 +750,33 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(screen.queryByRole('dialog', { name: 'Session done' })).not.toBeInTheDocument()
   })
 
-  it('shows a session list sample with 2 rows and Show more', () => {
+  it('shows a session list sample with 4 rows in 3 day cards and Show more', () => {
     const history = within(screen.getByRole('region', { name: 'History' }))
-    expect(history.getAllByRole('link')).toHaveLength(2)
+    expect(history.getAllByRole('link')).toHaveLength(4)
+    expect(history.getAllByTestId('day-card')).toHaveLength(3)
     expect(history.getByRole('button', { name: 'Show more' })).toBeInTheDocument()
+  })
+
+  it('marks the today day card and shows the empty session row', () => {
+    const history = screen.getByRole('region', { name: 'History' })
+    expect(history.querySelectorAll('[data-today="true"]')).toHaveLength(1)
+    expect(within(history).getByText('Empty session · no sets logged')).toBeInTheDocument()
+  })
+
+  it('shows 3 volume bar samples', () => {
+    expect(within(screen.getByTestId('volume-bar-sample')).getAllByRole('img')).toHaveLength(3)
+  })
+
+  it('opens the delete session sheet from a trash button in the history sample', async () => {
+    const history = within(screen.getByRole('region', { name: 'History' }))
+    await userEvent.click(
+      history.getAllByRole('button', { name: /^Delete the session of/ })[0] as HTMLElement,
+    )
+    const sheet = await screen.findByRole('dialog', { name: 'Delete this session?' })
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Delete session' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Delete this session?' })).toBeNull()
+    })
   })
 
   it('shows a session detail sample with its back link and 2 exercises', () => {

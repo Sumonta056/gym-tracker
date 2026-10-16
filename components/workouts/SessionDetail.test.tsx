@@ -1,11 +1,13 @@
-import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 
 import { formatDuration } from '../../lib/duration'
 import { BENCH, EXERCISES, LAT, liftSet, sessionOn } from '../../tests/fixtures/lifts'
 
-import { rowTitle } from './historyText'
-import { SessionDetail } from './SessionDetail'
+import { DELETE_TITLE } from './DeleteSessionSheet'
+import { DELETE_HINT, rowTitle } from './historyText'
+import { backToList, SessionDetail } from './SessionDetail'
 
 import type { FoundSession } from './useWorkoutHistory'
 import type { SessionStats } from '../../lib/metrics/sessionStats'
@@ -137,5 +139,50 @@ describe('SessionDetail', () => {
     renderDetail({ ...VIEW, unit: 'imperial' })
     expect(screen.getByRole('region', { name: 'Bench press' })).toHaveTextContent(/ lb/)
     expect(screen.getByRole('region', { name: 'Bench press' })).not.toHaveTextContent(/ kg/)
+  })
+
+  it('ends with a Delete session button and its hint', () => {
+    renderDetail()
+    const button = screen.getByRole('button', { name: 'Delete session' })
+    expect(button).toHaveClass('bg-danger/15', 'text-danger')
+    expect(screen.getByText(DELETE_HINT)).toHaveClass('text-muted')
+  })
+
+  it('opens the delete sheet for this session', async () => {
+    renderDetail()
+    await userEvent.click(screen.getByRole('button', { name: 'Delete session' }))
+    const sheet = screen.getByRole('dialog', { name: DELETE_TITLE })
+    expect(sheet).toHaveTextContent(rowTitle(SESSION))
+  })
+
+  it('closes the sheet on Keep it', async () => {
+    renderDetail()
+    await userEvent.click(screen.getByRole('button', { name: 'Delete session' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('goes back to all sessions after the delete', async () => {
+    const pushState = vi.spyOn(window.history, 'pushState')
+    const discard = vi.fn(() => Promise.resolve())
+    render(<SessionDetail view={VIEW} discard={discard} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Delete session' }))
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete session' }),
+    )
+    expect(discard).toHaveBeenCalledWith(SESSION.id)
+    await waitFor(() => {
+      expect(pushState).toHaveBeenCalledWith(null, '', '/workouts')
+    })
+    pushState.mockRestore()
+  })
+})
+
+describe('backToList', () => {
+  it('pushes the list path with no page load', () => {
+    const pushState = vi.spyOn(window.history, 'pushState')
+    backToList()
+    expect(pushState).toHaveBeenCalledWith(null, '', '/workouts')
+    pushState.mockRestore()
   })
 })

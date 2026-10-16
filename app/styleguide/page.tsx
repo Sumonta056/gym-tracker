@@ -65,6 +65,7 @@ import { SessionTimer } from '../../components/workout/SessionTimer'
 import { UndoToast } from '../../components/workout/UndoToast'
 import { SessionDetail } from '../../components/workouts/SessionDetail'
 import { SessionList } from '../../components/workouts/SessionList'
+import { VolumeBar } from '../../components/workouts/VolumeBar'
 import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration } from '../../lib/duration'
@@ -788,9 +789,25 @@ const SAMPLE_HISTORY_SESSIONS: WorkoutSession[] = (
   deleted_at: null,
 }))
 
+const SAMPLE_HISTORY_TODAY = '2026-09-20'
+
 const SAMPLE_HISTORY: HistoryList = {
   rows: [
-    { session: SAMPLE_HISTORY_SESSIONS[0] as WorkoutSession, stats: SAMPLE_SUMMARY },
+    {
+      session: SAMPLE_HISTORY_SESSIONS[0] as WorkoutSession,
+      stats: SAMPLE_SUMMARY,
+      groups: ['chest', 'arms', 'shoulders'],
+    },
+    {
+      session: {
+        ...(SAMPLE_HISTORY_SESSIONS[0] as WorkoutSession),
+        id: '80000000-0000-4000-8000-000000000003',
+        started_at: '2026-09-20T07:10:00.000Z',
+        ended_at: '2026-09-20T07:10:40.000Z',
+      },
+      stats: { durationSeconds: 40, setCount: 0, exerciseCount: 0, volumeKg: 0, newRecords: [] },
+      groups: [],
+    },
     {
       session: SAMPLE_HISTORY_SESSIONS[1] as WorkoutSession,
       stats: {
@@ -800,6 +817,24 @@ const SAMPLE_HISTORY: HistoryList = {
         volumeKg: 2160,
         newRecords: [],
       },
+      groups: ['back', 'arms'],
+    },
+    {
+      session: {
+        ...(SAMPLE_HISTORY_SESSIONS[1] as WorkoutSession),
+        id: '80000000-0000-4000-8000-000000000004',
+        entry_date: '2026-08-29',
+        started_at: '2026-08-29T18:10:00.000Z',
+        ended_at: '2026-08-29T19:05:00.000Z',
+      },
+      stats: {
+        durationSeconds: 3300,
+        setCount: 14,
+        exerciseCount: 4,
+        volumeKg: 2890,
+        newRecords: [],
+      },
+      groups: ['legs', 'core'],
     },
   ],
   hasMore: true,
@@ -1775,9 +1810,21 @@ function Styleguide() {
       </Section>
 
       <Section title="Workouts history">
-        <SessionList list={SAMPLE_HISTORY} note={null} onMore={() => undefined} />
+        <SessionList
+          list={SAMPLE_HISTORY}
+          note={null}
+          onMore={() => undefined}
+          today={SAMPLE_HISTORY_TODAY}
+          discard={() => Promise.resolve()}
+        />
+        <div data-testid="volume-bar-sample" className="mt-6 flex max-w-sm flex-col gap-3">
+          <MicroLabel as="p">Volume bar · 100 %, 50 %, the 4 % floor</MicroLabel>
+          <VolumeBar volumeKg={3420} maxKg={3420} />
+          <VolumeBar volumeKg={1710} maxKg={3420} />
+          <VolumeBar volumeKg={20} maxKg={3420} />
+        </div>
         <div data-testid="session-detail-sample">
-          <SessionDetail view={SAMPLE_DETAIL} />
+          <SessionDetail view={SAMPLE_DETAIL} discard={() => Promise.resolve()} />
         </div>
       </Section>
     </AppShell>

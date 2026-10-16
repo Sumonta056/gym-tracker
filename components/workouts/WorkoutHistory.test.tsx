@@ -68,7 +68,8 @@ describe('WorkoutHistory', () => {
     const history = await screen.findByRole('region', { name: 'History' })
     const rows = within(history).getAllByRole('link')
     expect(rows[0]).toHaveTextContent('Tue 8 Sep')
-    expect(rows[0]).toHaveTextContent('1h · 2 sets · 1,120 kg')
+    expect(rows[0]).toHaveTextContent('1,120 kg')
+    expect(rows[0]).toHaveTextContent('1h · 2 sets · Chest')
     expect(rows[1]).toHaveTextContent('Tue 1 Sep')
   })
 
