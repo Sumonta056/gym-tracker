@@ -26,7 +26,7 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 | Step | File                        | Title                                  | Size | Depends on          | E2E spec                 | State |
 | ---- | --------------------------- | -------------------------------------- | ---- | ------------------- | ------------------------ | ----- |
 | 3.0  | `S3.0-test-loop.md`         | The step test loop                     | S    | Fix track           | `smoke.spec.ts`          | done  |
-| 3.1  | `S3.1-design-contract.md`   | The prototype plates and the docs      | M    | 3.0                 | none                     | —     |
+| 3.1  | `S3.1-design-contract.md`   | The prototype plates and the docs      | M    | 3.0                 | none                     | done  |
 | 3.2  | `S3.2-plan-schema.md`       | The plan schema and the coach data     | M    | 3.1                 | none                     | —     |
 | 3.3  | `S3.3-exercise-seed.md`     | The coach exercises, `plan_ids`        | M    | 3.2                 | none                     | —     |
 | 3.4  | `S3.4-exercise-images.md`   | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | —     |
@@ -59,7 +59,7 @@ not continue without approval.
 
 ### Checkpoint A — after 3.4b
 
-- [ ] The owner accepted the 5 prototype plates.
+- [x] The owner accepted the 5 prototype plates.
 - [ ] The owner confirmed the image licence.
 - [ ] The migration is applied on the live project, and every coach exercise exists.
 - [ ] A step image loads with the network down, on a cold cache.
