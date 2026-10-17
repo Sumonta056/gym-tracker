@@ -28,6 +28,10 @@ nothing you do not mean to ship.
 pnpm verify
 ```
 
+For a Phase 3 step, run `pnpm check:step` and `pnpm e2e:step <spec>` for the spec its
+step file names, and paste their tails into the Evidence section. The full
+`pnpm verify` runs at each checkpoint and before the merge to `main`.
+
 Until step 0.11 ships `verify`, run them one by one: `pnpm format:check`,
 `pnpm lint --max-warnings=0`, `pnpm typecheck`, `pnpm test:cov`, `pnpm build`.
 

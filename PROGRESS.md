@@ -5,10 +5,10 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
-**Next step:** 3.0, the step test loop · `docs/plan/phase-3/S3.0-test-loop.md`. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`. Cut `feat/phase-3-coach-plans` from `main` first.
+**Next step:** 3.1, the prototype plates and the docs · `docs/plan/phase-3/S3.1-design-contract.md`. Step 3.0 is staged for the owner to commit. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`. Cut `feat/phase-3-coach-plans` from `main` first.
 **Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/archive/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
-**Last commit:** the fix track close, after `3d9e6a7` (I1). The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
+**Last commit:** `7fcfd4b`, the phase 3 plan revision, then step 3.0 after the owner commits it. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
 
 ## Resume here
 

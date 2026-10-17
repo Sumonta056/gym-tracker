@@ -25,7 +25,7 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 
 | Step | File                        | Title                                  | Size | Depends on          | E2E spec                 | State |
 | ---- | --------------------------- | -------------------------------------- | ---- | ------------------- | ------------------------ | ----- |
-| 3.0  | `S3.0-test-loop.md`         | The step test loop                     | S    | Fix track           | `smoke.spec.ts`          | —     |
+| 3.0  | `S3.0-test-loop.md`         | The step test loop                     | S    | Fix track           | `smoke.spec.ts`          | done  |
 | 3.1  | `S3.1-design-contract.md`   | The prototype plates and the docs      | M    | 3.0                 | none                     | —     |
 | 3.2  | `S3.2-plan-schema.md`       | The plan schema and the coach data     | M    | 3.1                 | none                     | —     |
 | 3.3  | `S3.3-exercise-seed.md`     | The coach exercises, `plan_ids`        | M    | 3.2                 | none                     | —     |

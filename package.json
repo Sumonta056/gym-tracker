@@ -32,6 +32,7 @@
     "db:diff": "supabase db diff --linked",
     "types:db": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > lib/supabase/database.types.ts && prettier --write lib/supabase/database.types.ts",
     "e2e": "nice -n 10 playwright test",
+    "e2e:step": "nice -n 10 playwright test --project=setup --project=desktop",
     "e2e:ui": "playwright test --ui",
     "lighthouse": "lhci autorun --config=./lighthouserc.json",
     "design:check": "node scripts/design-check.mjs",
