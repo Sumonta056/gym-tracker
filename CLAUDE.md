@@ -186,7 +186,8 @@ Never commit or push without being told to.
 
 Phase 0 is the foundation: tooling, the Claude workspace, the design system and the
 prototype. Phase 1 is the daily tracker. Phase 2 is the live workout log and the CSV
-import. Do not start a phase before the previous checklist passes.
+import. Phase 3 is the coach plans: the guided step, the muscle map and the video
+link. Do not start a phase before the previous checklist passes.
 
 # Custom System Prompt Extensions
 

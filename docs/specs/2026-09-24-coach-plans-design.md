@@ -203,4 +203,72 @@ both titles, `Shoulders + Legs`. The Phase 3 data has no shared exercise between
 - A per-exercise target from the coach.
 - A weekly calendar or reminders.
 - Tap to zoom on an image.
-- Video.
+- A video player in the app. A link out is in scope since 2026-10-17, section 13.
+
+## 11. Revision of 2026-10-17
+
+Agreed with the owner on 2026-10-17, after the fix track. The accepted mockup:
+https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7. It replaces the September mockup,
+which is gone. The source data for everything below is saved in `docs/data/`, with its
+licences, before any Phase 3 code. See `docs/data/README.md`.
+
+### What changed since section 8
+
+| Was                                            | Is now                                                                                               |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `/workouts` is a placeholder that 3.7 replaces | `/workouts` has the free session launcher and the day-card history. The plan picker goes above them. |
+| The step shows 2 small images side by side     | On the phone, 1 large frame with Start, End, Play and Muscles. Side by side on the laptop only.      |
+| No muscle information                          | A muscle map and muscle chips on every step, from real data.                                         |
+| Video out of scope                             | A watch pill with a link out. No player.                                                             |
+| Every step ends with `pnpm verify`             | A step runs its own checks. The full gate runs at the checkpoints and before the merge.              |
+
+### The step, on the phone
+
+The card width frame, 3 : 2, with a segmented control of 4 buttons under it.
+
+| View    | Shows                                                                      |
+| ------- | -------------------------------------------------------------------------- |
+| Start   | `images.start`, label `1 · Start`                                          |
+| End     | `images.end`, label `2 · End` on the accent                                |
+| Play    | Start fades to End and back, 2.4 s per cycle. A tap pauses. The default.   |
+| Muscles | The muscle map, front and back, with the main or helper key in the corner. |
+
+Under `prefers-reduced-motion`, Play shows End still. Under the frame: the name as
+`h1`, the how-to text, the muscle chips, then the pills Target, Last time and Watch.
+
+## 12. The muscle map
+
+- **The body.** 19 regions as SVG polygons, front and back, `viewBox 0 0 100 200`,
+  from react-body-highlighter 2.0.5 under the MIT licence. Saved in
+  `docs/data/body-polygons.json` with the licence beside it. About 10 KB. No image.
+- **The muscles per step.** From Free Exercise DB, a public domain set of 876
+  exercises with a primary and a secondary list each. Each coach exercise was matched
+  by hand to 1 entry. The match is recorded in `docs/data/coach-exercises.json`, so
+  the owner can check it.
+- **The colour.** The primary muscles fill solid in the group colour of the muscle
+  balance chart: chest accent, back cyan, legs violet, arms pink, shoulders blue, core
+  yellow. The secondary fill at 55 percent. Every other region is `--color-surface-2`
+  with a `--color-border` stroke.
+- **The words.** The map is never the only signal. The chips under the name repeat
+  the muscles as text, and the map carries an `aria-label` that reads them.
+- **3 sizes.** `frame` for the Muscles view, `card` for the laptop image row, `chip`
+  for a plan card. A plan card shows the union of its steps' muscles.
+- **Later.** The same component can show the week on Stats, as the gym apps do. Not
+  in Phase 3.
+
+## 13. The video link
+
+- A step may carry `video: { url, kind, length? }`. `kind` is `search` for a YouTube
+  search link, or `video` for a specific one. Every step starts with a search link,
+  because no per-exercise video set with a licence to bundle was found.
+- The step card and the preview row show a watch pill, an `<a>` to a new tab, 44 px
+  tall. Offline it still shows. The browser handles the failure. Nothing is cached.
+- The `coach-plan` skill sets a specific video on a step from a link.
+
+## 14. The test loop
+
+A step runs `pnpm check:step`, then `pnpm e2e:step <spec>` for the spec its step file
+names. A step that names none runs no browser test. The full `pnpm verify` runs at
+each checkpoint and before the merge to `main`. CI runs the full gate on every push.
+The risk, a step that breaks a screen it did not touch, is caught by CI the same day
+and by the next checkpoint.

@@ -5,7 +5,7 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
-**Next step:** 3.1, the prototype plates and the docs · `docs/plan/phase-3/S3.1-design-contract.md`. Do items 6 and 7 are already done: `CLAUDE.md` and this file name Phase 3. Cut `feat/phase-3-coach-plans` from `main` only after the owner merges `fix/feedback-fixes` into `main` and pushes it.
+**Next step:** 3.0, the step test loop · `docs/plan/phase-3/S3.0-test-loop.md`. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`. Cut `feat/phase-3-coach-plans` from `main` first.
 **Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/archive/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
 **Last commit:** the fix track close, after `3d9e6a7` (I1). The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
@@ -132,14 +132,14 @@ that one step only. Stop and report when the step is done.
 - [x] Phase 1 — Daily tracker (19 steps) · `docs/archive/phase-1/index.md`
 - [x] Phase 2 — Workout log and import (23 steps) · `docs/archive/phase-2/index.md`
 - [x] Auth track, phase A and M1 · `docs/archive/auth/`
-- [ ] Phase 3 — Coach plans (12 steps) · `docs/plan/phase-3/index.md`
+- [ ] Phase 3 — Coach plans (14 steps) · `docs/plan/phase-3/index.md`
 - [ ] Auth track, phase B · `docs/plan/auth/index.md`
 
 ## Rules that block you
 
 1. One step at a time. Finish it, prove it, then update this file.
 2. Never work on `main`. A hook blocks it. Use the branch named above.
-3. `pnpm verify` must pass before a step is done.
+3. In Phase 3 a step runs `pnpm check:step`, then `pnpm e2e:step <spec>` for the spec its step file names. The full `pnpm verify` runs at each checkpoint and before the merge.
 4. Load the `design-system` skill before touching `app/` or `components/`.
 5. Write the tests first for `lib/duration.ts`, `lib/sync/**` and `lib/metrics/**`.
 6. No commit without a report. Run the `commit-report` skill. A hook blocks you.

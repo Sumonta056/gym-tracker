@@ -13,3 +13,4 @@ public/swe-worker-*.js
 .claude/commands/
 docs/My Gym Plan.html
 .agents/
+.superpowers/
