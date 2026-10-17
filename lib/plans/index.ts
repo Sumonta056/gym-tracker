@@ -1,0 +1,38 @@
+import { COACH_PLANS } from './coach'
+
+import type { Plan, PlanId, PlanStep } from '../schema/plan'
+
+const MINUTES_PER_STEP = 5
+const MINUTES_PER_PLAN = 10
+
+export function listPlans(): Plan[] {
+  return COACH_PLANS.filter((plan) => !plan.retired)
+}
+
+export function getPlan(id: PlanId): Plan | undefined {
+  return COACH_PLANS.find((plan) => plan.id === id)
+}
+
+export function planSteps(plan: Plan): PlanStep[] {
+  return plan.groups.flatMap((group) => group.steps)
+}
+
+export function planMinutes(plans: Plan[]): number {
+  return plans.reduce(
+    (minutes, plan) => minutes + MINUTES_PER_PLAN + planSteps(plan).length * MINUTES_PER_STEP,
+    0,
+  )
+}
+
+export function combinePlans(ids: string[]): { title: string; steps: PlanStep[] } {
+  const plans = [...new Set(ids)]
+    .map((id) => COACH_PLANS.find((plan) => plan.id === id))
+    .filter((plan) => plan !== undefined)
+  const seen = new Set<string>()
+  const steps = plans.flatMap(planSteps).filter((step) => {
+    if (seen.has(step.exerciseId)) return false
+    seen.add(step.exerciseId)
+    return true
+  })
+  return { title: plans.map((plan) => plan.title).join(' + '), steps }
+}

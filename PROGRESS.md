@@ -5,10 +5,10 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
-**Next step:** 3.2, the plan schema and the coach data · `docs/plan/phase-3/S3.2-plan-schema.md`. The owner accepted plates 16 to 19 and the laptop guided step on 2026-10-17. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`. Cut `feat/phase-3-coach-plans` from `main` first.
+**Next step:** 3.3, the coach exercises and `plan_ids` · `docs/plan/phase-3/S3.3-exercise-seed.md`. A seed UUID goes into the `uuids` map of `docs/data/coach-exercises.json`, then the script runs. 3.3 needs a map from the 16 muscle names to the 7 Phase 2 groups: `docs/data/README.md` has the table. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`. Cut `feat/phase-3-coach-plans` from `main` first.
 **Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/archive/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
-**Last commit:** `b7e8809`, step 3.0, then step 3.1 after the owner commits it. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
+**Last commit:** `1b6df57`, step 3.1, then step 3.2 after the owner commits it. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
 
 ## Resume here
 
