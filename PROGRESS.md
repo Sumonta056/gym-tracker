@@ -6,14 +6,14 @@ that one step only. Stop and report when the step is done.
 **Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
 **Next step:** 3.1, the prototype plates and the docs · `docs/plan/phase-3/S3.1-design-contract.md`. Do items 6 and 7 are already done: `CLAUDE.md` and this file name Phase 3. Cut `feat/phase-3-coach-plans` from `main` only after the owner merges `fix/feedback-fixes` into `main` and pushes it.
-**Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/plan/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
+**Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/archive/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
-**Last commit:** the fix track close, after `3d9e6a7` (I1). The fix track steps: `docs/plan/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
+**Last commit:** the fix track close, after `3d9e6a7` (I1). The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
 
 ## Resume here
 
-- Phase 0 to Phase 2 are closed. Their plans are in `docs/plan/archive/`. Their settled
-  decisions are in `docs/plan/archive/PROGRESS-phase-0-2.md`. They still hold.
+- Phase 0 to Phase 2 are closed. Their plans are in `docs/archive/`. Their settled
+  decisions are in `docs/archive/PROGRESS-phase-0-2.md`. They still hold.
 - The auth track has its own file: `docs/plan/auth/PROGRESS.md`. Phase B waits for a domain.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
   `20260928084529_phase2_set_policy_reps` and `20261008014222_feedback_goals_and_swim` are applied to the live project. Never apply them again.
@@ -27,7 +27,7 @@ that one step only. Stop and report when the step is done.
 
 ## Settled, do not reopen
 
-- **Phase 0 to Phase 2:** every line is in `docs/plan/archive/PROGRESS-phase-0-2.md`.
+- **Phase 0 to Phase 2:** every line is in `docs/archive/PROGRESS-phase-0-2.md`.
 - **Email and password, open registration.** `/sign-up` makes an account. The magic link,
   `/auth/callback` and `SITE_URL` are gone. Every decision: `docs/plan/auth/PROGRESS.md`.
 - **Signed-in e2e tests use the test account** `E2E_EMAIL` in `.env.test.local` and CI secrets.
@@ -128,10 +128,10 @@ that one step only. Stop and report when the step is done.
 
 ## Phases
 
-- [x] Phase 0 — Foundation (11 steps) · `docs/plan/archive/00-phase-0.md`
-- [x] Phase 1 — Daily tracker (19 steps) · `docs/plan/archive/phase-1/index.md`
-- [x] Phase 2 — Workout log and import (23 steps) · `docs/plan/archive/phase-2/index.md`
-- [x] Auth track, phase A and M1 · `docs/plan/archive/auth/`
+- [x] Phase 0 — Foundation (11 steps) · `docs/archive/00-phase-0.md`
+- [x] Phase 1 — Daily tracker (19 steps) · `docs/archive/phase-1/index.md`
+- [x] Phase 2 — Workout log and import (23 steps) · `docs/archive/phase-2/index.md`
+- [x] Auth track, phase A and M1 · `docs/archive/auth/`
 - [ ] Phase 3 — Coach plans (12 steps) · `docs/plan/phase-3/index.md`
 - [ ] Auth track, phase B · `docs/plan/auth/index.md`
 
