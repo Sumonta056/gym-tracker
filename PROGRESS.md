@@ -5,12 +5,13 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
-**Next step:** 3.4, the images offline · `docs/plan/phase-3/S3.4-exercise-images.md`. It stops until the owner confirms the image licence. 3.5 is also open. Checkpoint A comes once 3.4 and 3.4b are both done.
+**Next step:** 3.4, the images offline · `docs/plan/phase-3/S3.4-exercise-images.md`. It stops until the owner confirms the image licence. Checkpoint A comes once 3.4 is done.
+**Step 3.5 done** on 2026-10-19. `lib/metrics/planSuggestion.ts` (`lastDoneByPlan`, `suggestPlan`) and `lib/metrics/planProgress.ts` (`stepStatuses`, `sessionSummary`). Owner decisions: a never-done plan is suggested first, then the plan done least recently; `cursor.skipped` holds step slugs; the cursor step is `now` even when skipped; the set count and the volume take every live set of the session.
 **Step 3.4b done** on 2026-10-19. `components/plans/MuscleMap.tsx` (sizes `chip`, `card`, `frame`) and `MuscleTags.tsx`, drawn from `lib/design/body.ts`, which `scripts/coach-data.mjs` generates. Owner decisions: a helper chip has a dashed `border-dim` border, in the app and the prototype; the map label reads "Main: Chest. Helpers: Shoulders, Triceps."; frame figures cap at 88 px and the key is stacked; the JSON draws 22 regions, not 19. The spec `docs/specs/2026-09-24-coach-plans-design.md:241` still says 19. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`.
 **Step 3.3 done** on 2026-10-19. 12 coach steps reuse a Phase 2 seed row: 8 exact names, and 4 aliases the owner chose (Flat Dumbbell Fly → Dumbbell Fly, Side Lateral Raise → Lateral Raise, One-Arm Dumbbell Row → Dumbbell Row, Shoulder Press → Dumbbell Shoulder Press). 14 new global rows. `workout_sessions.plan_ids text[]` refuses an empty list and an unknown id; null means no plan. Dexie version 6 adds `planCursors`. The rerun and bad-insert checks did not run on live: the auto mode check blocks a write through `execute_sql`.
 **Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/archive/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
-**Last commit:** `b962ff8`, step 3.3, then step 3.4b after the owner commits it. The branch does not hold the day view merge `db58d5d` from `main` yet. Merge `main` in before the Phase 3 merge. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
+**Last commit:** `3a44475`, step 3.4b, then step 3.5 after the owner commits it. The branch does not hold the day view merge `db58d5d` from `main` yet. Merge `main` in before the Phase 3 merge. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
 
 ## Resume here
 
@@ -39,6 +40,10 @@ that one step only. Stop and report when the step is done.
 - **The recipe wins over the prototype**, unless the recipe is wrong for real use. From 1.15.
 
 ## Open, with the step that closes each one
+
+- **Step 3.7** — the plan picker plate at `docs/design/prototype/index.html:7280-7325` suggests Chest + Triceps
+  while Legs is never done. `suggestPlan` returns Legs. Fix the plate's demo data so it suggests Legs. From 3.5.
+- **Step 3.8** — write step slugs into `planCursors.skipped`, not exercise ids. `stepStatuses` matches on the slug. From 3.5.
 
 - **Step 3.6** — the sync-auditor notes from 3.3. `finishSession` in `lib/db/repository.ts` must pass
   `plan_ids: session.plan_ids ?? null` into its parse, or it clears the plan ids. `toLocalSession` must
