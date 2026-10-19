@@ -237,6 +237,10 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       'href',
       '/log',
     )
+    expect(screen.getByText('Nothing logged on 10 Sep.')).toBeInTheDocument()
+    expect(screen.getAllByRole('group', { name: 'Choose the day' }).length).toBeGreaterThanOrEqual(
+      2,
+    )
     expect(screen.getByRole('img', { name: /^Heart rate zones: Warm 8m/ })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 2, name: 'This week' }).length).toBeGreaterThan(
       0,
@@ -752,7 +756,12 @@ describe('the styleguide page', { timeout: 15000 }, () => {
 
   it('shows a session list sample with 4 rows in 3 day cards and Show more', () => {
     const history = within(screen.getByRole('region', { name: 'History' }))
-    expect(history.getAllByRole('link')).toHaveLength(4)
+    expect(
+      history
+        .getAllByRole('link')
+        .filter((link) => !/^Open /.test(link.getAttribute('aria-label') ?? '')),
+    ).toHaveLength(4)
+    expect(history.getAllByRole('link', { name: /^Open / })).toHaveLength(3)
     expect(history.getAllByTestId('day-card')).toHaveLength(3)
     expect(history.getByRole('button', { name: 'Show more' })).toBeInTheDocument()
   })

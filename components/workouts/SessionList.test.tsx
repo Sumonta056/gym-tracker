@@ -69,6 +69,12 @@ function trash(index: number): HTMLElement {
   return screen.getAllByRole('button', { name: /^Delete the session of/ })[index] as HTMLElement
 }
 
+function sessionLinks(scope: HTMLElement): HTMLElement[] {
+  return within(scope)
+    .getAllByRole('link')
+    .filter((link) => !/^Open /.test(link.getAttribute('aria-label') ?? ''))
+}
+
 describe('EMPTY_HISTORY', () => {
   it('asks for a first session', () => {
     expect(EMPTY_HISTORY).toBe('No finished session yet. Start one above.')
@@ -95,17 +101,22 @@ describe('SessionList', () => {
     renderList()
     const cards = within(history()).getAllByTestId('day-card')
     expect(cards).toHaveLength(2)
-    expect(within(cards[0] as HTMLElement).getAllByRole('link')).toHaveLength(2)
-    expect(within(cards[1] as HTMLElement).getAllByRole('link')).toHaveLength(1)
+    expect(sessionLinks(cards[0] as HTMLElement)).toHaveLength(2)
+    expect(sessionLinks(cards[1] as HTMLElement)).toHaveLength(1)
+  })
+
+  it('links each day card to its day on the Today screen', () => {
+    renderList()
+    const days = within(history())
+      .getAllByRole('link', { name: /^Open / })
+      .map((link) => link.getAttribute('href'))
+    expect(days).toHaveLength(2)
+    expect(days[0]).toMatch(/^\/(\?date=\d{4}-\d{2}-\d{2})?$/)
   })
 
   it('links each row to its session detail', () => {
     renderList()
-    expect(
-      within(history())
-        .getAllByRole('link')
-        .map((row) => row.getAttribute('href')),
-    ).toEqual([
+    expect(sessionLinks(history()).map((row) => row.getAttribute('href'))).toEqual([
       `/workouts?session=${RECENT.id}`,
       `/workouts?session=${SAME_DAY.id}`,
       `/workouts?session=${OLD.id}`,
@@ -142,7 +153,7 @@ describe('SessionList', () => {
 
   it('writes the volume in pounds for imperial', () => {
     renderList({ ...LIST, unit: 'imperial' })
-    expect(within(history()).getAllByRole('link')[0]).toHaveTextContent('7,540 lb')
+    expect(sessionLinks(history())[0]).toHaveTextContent('7,540 lb')
   })
 
   it('says so when no session is finished', () => {

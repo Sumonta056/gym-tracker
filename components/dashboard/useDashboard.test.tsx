@@ -34,26 +34,26 @@ beforeEach(() => {
 
 describe('useDashboard', () => {
   it('starts in the loading state', () => {
-    const { result } = renderHook(() => useDashboard(clock))
+    const { result } = renderHook(() => useDashboard(TODAY, clock))
     expect(result.current.status).toBe('loading')
   })
 
   it('reads every entry up to today through the repository', async () => {
-    renderHook(() => useDashboard(clock))
+    renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(listRange).toHaveBeenCalledWith(HISTORY_START, TODAY)
     })
   })
 
   it('reads the sessions of the current week up to today', async () => {
-    renderHook(() => useDashboard(clock))
+    renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(listSessions).toHaveBeenCalledWith('2026-09-21', TODAY)
     })
   })
 
   it('reads the sets of today only', async () => {
-    renderHook(() => useDashboard(clock))
+    renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(listSetsInRange).toHaveBeenCalledWith(TODAY, TODAY)
     })
@@ -66,7 +66,7 @@ describe('useDashboard', () => {
       liftSet(session, BENCH, 10, 60),
       liftSet(session, BENCH, 8, 65),
     ])
-    renderHook(() => useDashboard(clock))
+    renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(setsForExercises).toHaveBeenCalledWith([BENCH])
     })
@@ -75,7 +75,7 @@ describe('useDashboard', () => {
   it('builds the summary with the workouts of today', async () => {
     const session = sessionOn(TODAY)
     vi.mocked(listSessions).mockResolvedValue([session])
-    const { result } = renderHook(() => useDashboard(clock))
+    const { result } = renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(result.current.status).toBe('ready')
     })
@@ -87,14 +87,14 @@ describe('useDashboard', () => {
 
   it('reports a failed session read in words', async () => {
     vi.mocked(listSessions).mockRejectedValue(new Error('blocked'))
-    const { result } = renderHook(() => useDashboard(clock))
+    const { result } = renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(result.current).toEqual({ status: 'error', message: READ_ERROR })
     })
   })
 
   it('becomes ready with the summary for today', async () => {
-    const { result } = renderHook(() => useDashboard(clock))
+    const { result } = renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(result.current.status).toBe('ready')
     })
@@ -103,7 +103,7 @@ describe('useDashboard', () => {
 
   it('reports a read failure in words', async () => {
     vi.mocked(listRange).mockRejectedValue(new Error('blocked'))
-    const { result } = renderHook(() => useDashboard(clock))
+    const { result } = renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(result.current).toEqual({ status: 'error', message: READ_ERROR })
     })
@@ -116,7 +116,7 @@ describe('useDashboard', () => {
         finish = resolve
       }),
     )
-    const { result, unmount } = renderHook(() => useDashboard(clock))
+    const { result, unmount } = renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(listRange).toHaveBeenCalled()
     })
@@ -133,7 +133,7 @@ describe('useDashboard', () => {
         fail = reject
       }),
     )
-    const { result, unmount } = renderHook(() => useDashboard(clock))
+    const { result, unmount } = renderHook(() => useDashboard(TODAY, clock))
     await waitFor(() => {
       expect(listRange).toHaveBeenCalled()
     })
@@ -144,9 +144,58 @@ describe('useDashboard', () => {
   })
 
   it('uses the system clock when none is given', async () => {
-    const { result } = renderHook(() => useDashboard())
+    const { result } = renderHook(() => useDashboard(TODAY))
     await waitFor(() => {
       expect(result.current.status).toBe('ready')
+    })
+  })
+})
+
+describe('useDashboard on a past day', () => {
+  const PAST = '2026-09-19'
+
+  it('reads the entries up to that day, its week of sessions and its sets', async () => {
+    renderHook(() => useDashboard(PAST, clock))
+    await waitFor(() => {
+      expect(listSetsInRange).toHaveBeenCalledWith(PAST, PAST)
+    })
+    expect(listRange).toHaveBeenCalledWith(HISTORY_START, PAST)
+    expect(listSessions).toHaveBeenCalledWith('2026-09-14', PAST)
+  })
+
+  it('summarises that day with its entry and its workouts', async () => {
+    const session = sessionOn(PAST)
+    vi.mocked(listRange).mockResolvedValue([entryOn(PAST, { steps: 4321 }), entryOn(TODAY)])
+    vi.mocked(listSessions).mockResolvedValue([session])
+    const { result } = renderHook(() => useDashboard(PAST, clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    const summary = result.current.status === 'ready' ? result.current.summary : null
+    expect(summary?.today).toBe(PAST)
+    expect(summary?.entry?.steps).toBe(4321)
+    expect(summary?.workouts.map((row) => row.session.id)).toEqual([session.id])
+  })
+
+  it('counts the streak as of that day', async () => {
+    vi.mocked(listRange).mockResolvedValue([entryOn('2026-09-18'), entryOn(PAST), entryOn(TODAY)])
+    const { result } = renderHook(() => useDashboard(PAST, clock))
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.status === 'ready' && result.current.summary.streak).toBe(2)
+  })
+
+  it('re-reads when the day changes', async () => {
+    const { rerender } = renderHook(({ date }) => useDashboard(date, clock), {
+      initialProps: { date: TODAY },
+    })
+    await waitFor(() => {
+      expect(listSetsInRange).toHaveBeenCalledWith(TODAY, TODAY)
+    })
+    rerender({ date: PAST })
+    await waitFor(() => {
+      expect(listSetsInRange).toHaveBeenCalledWith(PAST, PAST)
     })
   })
 })

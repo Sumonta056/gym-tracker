@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Fragment } from 'react'
 
-import { logPath } from '../../lib/format/logDate'
+import { dayPath } from '../../lib/format/logDate'
 import { prettyDate } from '../DailyEntryForm'
 import { cn } from '../ui/cn'
 
@@ -16,6 +16,7 @@ import type { Streak } from '../../lib/metrics/streak'
 export type StreakHeatMapProps = {
   weeks: HeatWeek[]
   streak: Streak
+  today: string
   className?: string
 }
 
@@ -71,7 +72,7 @@ export function recentDays(weeks: readonly HeatWeek[], count = OPEN_DAY_COUNT): 
     .slice(-count)
 }
 
-export function OpenDayLinks({ weeks }: { weeks: readonly HeatWeek[] }) {
+export function OpenDayLinks({ weeks, today }: { weeks: readonly HeatWeek[]; today: string }) {
   return (
     <div className="flex flex-col gap-2">
       <p id="open-a-day" className="text-muted text-xs">
@@ -85,7 +86,7 @@ export function OpenDayLinks({ weeks }: { weeks: readonly HeatWeek[] }) {
           return (
             <li key={cell.date}>
               <Link
-                href={logPath(cell.date)}
+                href={dayPath(cell.date, today)}
                 className={cn(
                   'bg-surface-2 rounded-input flex min-h-11 flex-col items-center justify-center border py-1 text-xs font-bold',
                   logged ? 'border-accent text-text' : 'border-border text-muted',
@@ -121,7 +122,7 @@ export function heatMapLabel(weeks: readonly HeatWeek[], streak: Streak): string
   return `Streak over the last ${String(HEAT_MAP_WEEKS)} weeks: logged ${String(logged)} of ${String(cells.length)} days. Current streak ${days(streak.current)}, longest ${days(streak.longest)}.`
 }
 
-export function StreakHeatMap({ weeks, streak, className }: StreakHeatMapProps) {
+export function StreakHeatMap({ weeks, streak, today, className }: StreakHeatMapProps) {
   const logged = weeks.some((week) => week.days.some((cell) => cell.state === 'logged'))
 
   return (
@@ -139,7 +140,7 @@ export function StreakHeatMap({ weeks, streak, className }: StreakHeatMapProps) 
       footer={
         <>
           <p className="text-muted text-xs">Each column is a week. Weeks start on Monday.</p>
-          <OpenDayLinks weeks={weeks} />
+          <OpenDayLinks weeks={weeks} today={today} />
         </>
       }
       className={className}

@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import HomePage from './page'
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(''),
+}))
+
 vi.mock('../../lib/db/repository', () => ({
   useSyncStatus: () => ({ status: 'synced', pending: 0, failed: 0 }),
   listRange: vi.fn(() => Promise.resolve([])),

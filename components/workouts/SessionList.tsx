@@ -56,7 +56,7 @@ export function SessionList({ list, note, onMore, today, discard }: SessionListP
                     rows={day.rows}
                     unit={list.unit}
                     maxKg={maxKg}
-                    today={day.date === currentDay}
+                    today={currentDay}
                     onDelete={(row) => {
                       setTarget({ session: row.session, stats: row.stats })
                     }}

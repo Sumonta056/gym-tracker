@@ -1,5 +1,8 @@
 'use client'
 
+import Link from 'next/link'
+
+import { dayPath } from '../../lib/format/logDate'
 import { cn } from '../ui/cn'
 import { MicroLabel } from '../ui/MicroLabel'
 import { startedText } from '../workout/SessionTimer'
@@ -26,7 +29,7 @@ export type DayCardProps = {
   rows: readonly HistoryRow[]
   unit: UnitSystem
   maxKg: number
-  today: boolean
+  today: string
   onDelete: (row: HistoryRow) => void
 }
 
@@ -89,24 +92,32 @@ function SessionRow({
 }
 
 export function DayCard({ date, rows, unit, maxKg, today, onDelete }: DayCardProps) {
+  const isToday = date === today
+
   return (
     <div
       data-testid="day-card"
       className="bg-surface border-border rounded-card flex overflow-hidden border"
     >
-      <div
-        aria-hidden="true"
-        data-today={today ? 'true' : undefined}
+      <Link
+        href={dayPath(date, today)}
+        aria-label={`Open ${dayTitle(date)}`}
+        data-today={isToday ? 'true' : undefined}
         className={cn(
-          'flex w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 py-2.5',
-          today ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-text',
+          'flex w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 py-2.5 focus-visible:-outline-offset-2',
+          isToday ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-text hover:bg-border',
         )}
       >
-        <span className="text-[22px] leading-none font-extrabold tracking-[-0.5px]">
+        <span
+          aria-hidden="true"
+          className="text-[22px] leading-none font-extrabold tracking-[-0.5px]"
+        >
           {dayNumber(date)}
         </span>
-        <MicroLabel tone={today ? 'inherit' : 'muted'}>{weekday(date)}</MicroLabel>
-      </div>
+        <MicroLabel aria-hidden="true" tone={isToday ? 'inherit' : 'muted'}>
+          {weekday(date)}
+        </MicroLabel>
+      </Link>
       <ul className="min-w-0 flex-1">
         {rows.map((row) => (
           <SessionRow

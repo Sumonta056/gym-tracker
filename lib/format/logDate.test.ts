@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { logPath, parseLogDate, shiftLogDate } from './logDate'
+import { dayPath, localNoon, logPath, parseLogDate, shiftLogDate } from './logDate'
 
 const TODAY = '2026-10-05'
 
@@ -32,5 +32,29 @@ describe('shiftLogDate', () => {
 describe('logPath', () => {
   it('builds the log address for a day', () => {
     expect(logPath('2026-09-19')).toBe('/log?date=2026-09-19')
+  })
+})
+
+describe('dayPath', () => {
+  it('returns the root for today', () => {
+    expect(dayPath(TODAY, TODAY)).toBe('/')
+  })
+
+  it('carries the date for any other day', () => {
+    expect(dayPath('2026-09-19', TODAY)).toBe('/?date=2026-09-19')
+  })
+})
+
+describe('localNoon', () => {
+  it('builds a local time in the middle of the day', () => {
+    const at = localNoon('2026-09-19')
+    expect([at.getFullYear(), at.getMonth(), at.getDate(), at.getHours()]).toEqual([
+      2026, 8, 19, 12,
+    ])
+  })
+
+  it('falls back to the epoch day for an invalid date', () => {
+    const at = localNoon('soon')
+    expect([at.getFullYear(), at.getMonth(), at.getDate()]).toEqual([1970, 0, 1])
   })
 })

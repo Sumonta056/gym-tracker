@@ -562,6 +562,23 @@ describe('DailyEntryForm', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Log' })).not.toHaveClass('mt-2')
   })
 
+  it('links a past day to the Today screen from the header', async () => {
+    await renderForm()
+    const link = screen.getByRole('link', { name: 'View this day' })
+    expect(link).toHaveAttribute('href', `/?date=${DATE}`)
+    expect(link).toHaveClass('min-h-11')
+    expect(screen.getByRole('banner')).toContainElement(link)
+  })
+
+  it('hides the view link on today', async () => {
+    const today = localDate()
+    render(<DailyEntryForm date={today} onDateChange={vi.fn()} />)
+    await waitFor(() => {
+      expect(getDay).toHaveBeenCalledWith(today)
+    })
+    expect(screen.queryByRole('link', { name: 'View this day' })).toBeNull()
+  })
+
   it('sets gym and walk time with no text field', async () => {
     await renderForm()
     expect(pickerOf('Gym time').queryByRole('textbox')).not.toBeInTheDocument()

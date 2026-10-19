@@ -62,7 +62,7 @@ test('opens a past day with no network, from a cold load', async ({
   await context.setOffline(false)
 })
 
-test('opens a day from the heat map', async ({ page, account, day }) => {
+test('opens a day on the Today screen from the heat map', async ({ page, account, day }) => {
   await openWithWeek(page, account, day)
   await navLink(page, 'Stats').first().click()
   const links = page.getByRole('list', { name: 'Open a day' }).getByRole('link')
@@ -70,8 +70,12 @@ test('opens a day from the heat map', async ({ page, account, day }) => {
 
   await links.first().click()
 
-  await expect(page).toHaveURL(new RegExp(`/log\\?date=${day.plus(-6)}$`))
+  await expect(page).toHaveURL(new RegExp(`/\\?date=${day.plus(-6)}$`))
   await expect(page.getByLabel('Day', { exact: true })).toHaveValue(day.plus(-6))
+  await expect(page.getByRole('link', { name: 'Edit this day' })).toHaveAttribute(
+    'href',
+    `/log?date=${day.plus(-6)}`,
+  )
 })
 
 test('asks before a day change drops an unsaved edit', async ({ page, day }) => {

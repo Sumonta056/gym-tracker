@@ -163,7 +163,11 @@ describe('summarise', () => {
 
 describe('headerDate', () => {
   it('names the weekday and the day of the month', () => {
-    expect(headerDate('2026-09-13')).toEqual({ weekday: 'Sunday', dayMonth: '13 September' })
+    expect(headerDate('2026-09-13')).toEqual({
+      weekday: 'Sunday',
+      dayMonth: '13 September',
+      short: '13 Sep',
+    })
   })
 })
 

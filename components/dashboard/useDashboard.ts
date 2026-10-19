@@ -9,6 +9,7 @@ import {
   listSetsInRange,
   setsForExercises,
 } from '../../lib/db/repository'
+import { localNoon } from '../../lib/format/logDate'
 import { localDate } from '../../lib/schema/dailyEntry'
 
 import { HISTORY_START, summarise, weekOf } from './summary'
@@ -28,29 +29,36 @@ function systemClock(): Date {
   return new Date()
 }
 
-async function readDashboard(clock: () => Date): Promise<DashboardState> {
+export function momentOf(date: string, now: Date): Date {
+  return date === localDate(now) ? now : localNoon(date)
+}
+
+async function readDashboard(date: string, clock: () => Date): Promise<DashboardState> {
   const now = clock()
-  const today = localDate(now)
 
   try {
-    const week = weekOf(today)
+    const week = weekOf(date)
     const [entries, profile, sessions, sets] = await Promise.all([
-      listRange(HISTORY_START, today),
+      listRange(HISTORY_START, date),
       getProfile(),
-      listSessions(week.from, today),
-      listSetsInRange(today, today),
+      listSessions(week.from, date),
+      listSetsInRange(date, date),
     ])
     const earlierSets = await setsForExercises([...new Set(sets.map((set) => set.exercise_id))])
 
     return {
       status: 'ready',
-      summary: summarise(entries, profile, today, now, { sessions, sets, earlierSets }),
+      summary: summarise(entries, profile, date, momentOf(date, now), {
+        sessions,
+        sets,
+        earlierSets,
+      }),
     }
   } catch {
     return { status: 'error', message: READ_ERROR }
   }
 }
 
-export function useDashboard(clock: () => Date = systemClock): DashboardState {
-  return useLiveQuery(() => readDashboard(clock), [clock], LOADING)
+export function useDashboard(date: string, clock: () => Date = systemClock): DashboardState {
+  return useLiveQuery(() => readDashboard(date, clock), [date, clock], LOADING)
 }
