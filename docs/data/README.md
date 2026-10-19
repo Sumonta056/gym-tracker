@@ -9,7 +9,7 @@ copy what the app needs into `lib/` and `public/`.
 | `coach-exercises.json`  | The 4 plans, 26 steps, in the coach's order. Each step: slug, name, how, muscles, video, images. | The coach's text. Private use.      |
 | `coach-images/`         | 52 JPEG files, 420 × 280, `<slug>-start.jpg` and `<slug>-end.jpg`, from `docs/My Gym Plan.html`. | Unknown source. The owner confirms. |
 | `fedb-images/`          | 52 JPEG photos, `<slug>-0.jpg` and `<slug>-1.jpg`, the 2 frames of each Free Exercise DB entry.  | Unlicense, public domain.           |
-| `body-polygons.json`    | 19 muscle regions as SVG polygons, front and back, `viewBox 0 0 100 200`.                        | MIT, `body-polygons.LICENSE`.       |
+| `body-polygons.json`    | 22 body regions as SVG polygons, front and back, `viewBox 0 0 100 200`.                          | MIT, `body-polygons.LICENSE`.       |
 | `body-polygons.LICENSE` | The MIT notice of react-body-highlighter 2.0.5.                                                  |                                     |
 
 ## Where each field comes from

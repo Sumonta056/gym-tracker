@@ -2,7 +2,9 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { muscleLabel } from '../../components/plans/MuscleMap'
 import { colorTokens } from '../../lib/design/tokens'
+import { COACH_PLANS } from '../../lib/plans/coach'
 
 import StyleguidePage from './page'
 
@@ -852,6 +854,35 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(
       await within(screen.getByTestId('error-log-card')).findByText('Loading chunk 812 failed.'),
     ).toBeInTheDocument()
+  })
+
+  it('offers every coach step in the muscle map sample', () => {
+    const sample = within(screen.getByTestId('muscle-map-sample'))
+    const steps = COACH_PLANS.flatMap((plan) => plan.groups.flatMap((group) => group.steps))
+    expect(steps).toHaveLength(26)
+    expect(
+      within(sample.getByRole('combobox', { name: 'Coach step' })).getAllByRole('option'),
+    ).toHaveLength(26)
+  })
+
+  it('shows the frame, the card and the chip map for the chosen step', () => {
+    const sample = within(screen.getByTestId('muscle-map-sample'))
+    const [first] = COACH_PLANS.flatMap((plan) => plan.groups.flatMap((group) => group.steps))
+    const label = muscleLabel(first?.muscles.primary ?? [], first?.muscles.secondary ?? [])
+    expect(sample.getAllByRole('img', { name: label })).toHaveLength(3)
+    expect(sample.getByRole('list', { name: 'Muscles' })).toBeInTheDocument()
+  })
+
+  it('redraws the muscle map sample for every step it is given', async () => {
+    const sample = within(screen.getByTestId('muscle-map-sample'))
+    const select = sample.getByRole('combobox', { name: 'Coach step' })
+    const steps = COACH_PLANS.flatMap((plan) => plan.groups.flatMap((group) => group.steps))
+    for (const step of steps) {
+      await userEvent.selectOptions(select, step.slug)
+      const label = muscleLabel(step.muscles.primary, step.muscles.secondary)
+      expect(sample.getAllByRole('img', { name: label })).toHaveLength(3)
+      expect(sample.getAllByText(step.name).length).toBeGreaterThan(0)
+    }
   })
 
   it('shows the Saved toast from its sample button', async () => {

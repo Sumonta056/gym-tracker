@@ -30,7 +30,7 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 | 3.2  | `S3.2-plan-schema.md`       | The plan schema and the coach data     | M    | 3.1                 | none                     | done  |
 | 3.3  | `S3.3-exercise-seed.md`     | The coach exercises, `plan_ids`        | M    | 3.2                 | none                     | done  |
 | 3.4  | `S3.4-exercise-images.md`   | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | —     |
-| 3.4b | `S3.4b-muscle-map.md`       | The muscle map                         | S    | 3.2                 | none                     | —     |
+| 3.4b | `S3.4b-muscle-map.md`       | The muscle map                         | S    | 3.2                 | none                     | done  |
 | 3.5  | `S3.5-plan-metrics.md`      | `lib/metrics` for plans                | S    | 3.2                 | none                     | —     |
 | 3.6  | `S3.6-plan-repository.md`   | The repository for plans               | M    | 3.3                 | none                     | —     |
 | 3.7  | `S3.7-choose-plan.md`       | `/workouts` and the plan preview       | M    | 3.4, 3.4b, 3.5, 3.6 | `workouts.spec.ts`       | —     |
