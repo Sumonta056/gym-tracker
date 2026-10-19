@@ -3,7 +3,8 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { MUSCLES, planSchema } from '../schema/plan'
+import { MUSCLE_GROUPS } from '../schema/exercise'
+import { MUSCLES, PLAN_IDS, planSchema } from '../schema/plan'
 
 import { COACH_PLANS } from './coach'
 
@@ -122,6 +123,156 @@ describe('COACH_PLANS', () => {
 
   it('retires no coach plan', () => {
     expect(COACH_PLANS.every((plan) => !plan.retired)).toBe(true)
+  })
+})
+
+const MIGRATIONS = resolve(process.cwd(), 'supabase/migrations')
+
+function seedRows(file: string) {
+  const text = readFileSync(resolve(MIGRATIONS, file), 'utf8')
+  const pattern = /\('([0-9a-f-]{36})', null, '([^']+)', '([a-z]+)'\)/g
+
+  return [...text.matchAll(pattern)].map(([, id = '', name = '', group = '']) => ({
+    id,
+    name,
+    group,
+  }))
+}
+
+function migrationFile(suffix: string) {
+  const file = readdirSync(MIGRATIONS).find((name) => name.endsWith(suffix))
+
+  if (file === undefined) {
+    throw new Error(`no migration ends with ${suffix}`)
+  }
+
+  return file
+}
+
+const GROUP_OF_MUSCLE: Record<string, string> = {
+  chest: 'chest',
+  shoulders: 'shoulders',
+  neck: 'shoulders',
+  triceps: 'arms',
+  biceps: 'arms',
+  forearms: 'arms',
+  abdominals: 'core',
+  obliques: 'core',
+  lats: 'back',
+  'middle back': 'back',
+  'lower back': 'back',
+  traps: 'back',
+  quadriceps: 'legs',
+  hamstrings: 'legs',
+  glutes: 'legs',
+  calves: 'legs',
+}
+
+describe('the coach exercise rows', () => {
+  const phase2 = seedRows(migrationFile('_phase2_exercise_seed.sql'))
+  const phase3 = seedRows(migrationFile('_phase3_coach_plans.sql'))
+
+  it('reads the 40 Phase 2 seed rows and the 14 Phase 3 coach rows', () => {
+    expect(phase2).toHaveLength(40)
+    expect(phase3).toHaveLength(14)
+  })
+
+  it('finds every coach exercise id in the Phase 2 seed or the Phase 3 migration', () => {
+    const ids = new Set([...phase2, ...phase3].map((row) => row.id))
+
+    for (const step of steps) {
+      expect(ids).toContain(step.exerciseId)
+    }
+  })
+
+  it('reuses the seed row for the 8 exact names and the 4 named aliases, 12 in all', () => {
+    const seedByName = new Map(phase2.map((row) => [row.name.toLowerCase(), row.id]))
+    const seedName: Record<string, string> = {
+      'incline-dumbbell-press': 'Incline Dumbbell Press',
+      'flat-dumbbell-fly': 'Dumbbell Fly',
+      'lat-pulldown': 'Lat Pulldown',
+      'seated-cable-row': 'Seated Cable Row',
+      'one-arm-dumbbell-row': 'Dumbbell Row',
+      'dumbbell-curl': 'Dumbbell Curl',
+      'hammer-curl': 'Hammer Curl',
+      'shoulder-press': 'Dumbbell Shoulder Press',
+      'side-lateral-raise': 'Lateral Raise',
+      'face-pull': 'Face Pull',
+      'leg-curl': 'Leg Curl',
+      'leg-press': 'Leg Press',
+    }
+    const seedIds = new Set(phase2.map((row) => row.id))
+    const reused = steps.filter((step) => seedIds.has(step.exerciseId))
+
+    expect(reused.map((step) => step.slug).sort()).toEqual(Object.keys(seedName).sort())
+    expect(reused.map((step) => step.exerciseId)).toEqual(
+      reused.map((step) => seedByName.get((seedName[step.slug] ?? '').toLowerCase())),
+    )
+  })
+
+  it('reuses the seed row for every coach name that equals a seed name', () => {
+    const seedByName = new Map(phase2.map((row) => [row.name.toLowerCase(), row.id]))
+    const exact = steps.filter((step) => seedByName.has(step.name.toLowerCase()))
+
+    expect(exact).toHaveLength(8)
+    expect(exact.map((step) => step.exerciseId)).toEqual(
+      exact.map((step) => seedByName.get(step.name.toLowerCase())),
+    )
+  })
+
+  it('adds no coach row with the name of a seed row', () => {
+    const seedNames = new Set(phase2.map((row) => row.name.toLowerCase()))
+
+    for (const row of phase3) {
+      expect(seedNames).not.toContain(row.name.toLowerCase())
+    }
+  })
+
+  it('adds no coach row with the id of a seed row', () => {
+    const seedIds = new Set(phase2.map((row) => row.id))
+
+    for (const row of phase3) {
+      expect(seedIds).not.toContain(row.id)
+    }
+  })
+
+  it('names each new row as its coach step and files it under its main muscle group', () => {
+    const groups: readonly string[] = MUSCLE_GROUPS
+
+    for (const row of phase3) {
+      const step = steps.find((candidate) => candidate.exerciseId === row.id)
+      const primary = step?.muscles.primary[0] ?? ''
+
+      expect(step?.name).toBe(row.name)
+      expect(groups).toContain(row.group)
+      expect(row.group).toBe(GROUP_OF_MUSCLE[primary])
+    }
+  })
+
+  it('makes the Phase 3 insert safe to run twice', () => {
+    const text = readFileSync(resolve(MIGRATIONS, migrationFile('_phase3_coach_plans.sql')), 'utf8')
+
+    expect(text).toMatch(/on conflict \(id\) do nothing;/)
+    expect(text).toMatch(/add column if not exists plan_ids text\[\]/)
+  })
+
+  it('checks every plan id of a session against the 4 plan ids', () => {
+    const text = readFileSync(resolve(MIGRATIONS, migrationFile('_phase3_coach_plans.sql')), 'utf8')
+    const allowed = /plan_ids <@ array\[([^\]]+)\]::text\[\]/.exec(text)?.[1] ?? ''
+
+    expect([...allowed.matchAll(/'([^']+)'/g)].map(([, id]) => id)).toEqual([...PLAN_IDS])
+  })
+
+  it('refuses an empty plan list in the check', () => {
+    const text = readFileSync(resolve(MIGRATIONS, migrationFile('_phase3_coach_plans.sql')), 'utf8')
+
+    expect(text).toMatch(/cardinality\(plan_ids\) > 0\s+and plan_ids <@/)
+  })
+
+  it('writes no comment in the Phase 3 migration', () => {
+    const text = readFileSync(resolve(MIGRATIONS, migrationFile('_phase3_coach_plans.sql')), 'utf8')
+
+    expect(text).not.toMatch(/--|\/\*/)
   })
 })
 

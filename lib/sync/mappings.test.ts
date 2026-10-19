@@ -144,6 +144,7 @@ function serverSession(
     started_at: LOCAL_AT,
     ended_at: null,
     status: 'active',
+    plan_ids: null,
     created_at: LOCAL_AT,
     updated_at: SERVER_AT,
     deleted_at: null,

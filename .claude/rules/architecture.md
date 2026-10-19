@@ -87,6 +87,17 @@ format. No component parses `mm:ss` by hand.
 
 Weight is metric in storage. The imperial toggle is display only.
 
+## Local device state
+
+2 Dexie tables hold state for this device only. Neither is an entity. Neither has a
+server table or an outbox entry, and the sync worker never pushes or pulls them.
+
+- `syncMeta`: the sync bookkeeping, keyed on `key`. The outbox sequence, the pull
+  cursors, `dead_letter_streak` and `signed_out`.
+- `planCursors`: the place in a running coach plan, keyed on `sessionId`. The step the
+  user is on and the steps they skipped. A write to it takes no outbox entry. A device
+  with no cursor for a session resumes at the first step with no sets.
+
 ## The sign-out
 
 Sign-out drains, clears the device under `DRAIN_LOCK`, then ends the session while it

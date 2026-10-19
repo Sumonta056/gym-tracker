@@ -10,7 +10,7 @@ export const COACH_PLANS: Plan[] = [
         name: 'Chest',
         steps: [
           {
-            exerciseId: '901f3470-1ab2-4abe-9e0d-8f7fc9d20117',
+            exerciseId: '36339683-c2c6-4aae-afed-00014862cd7a',
             slug: 'incline-dumbbell-press',
             name: 'Incline Dumbbell Press',
             how: 'Bench tilted up, press dumbbells from your chest.',
@@ -79,7 +79,7 @@ export const COACH_PLANS: Plan[] = [
             },
           },
           {
-            exerciseId: '27229db8-26f8-4396-a65f-007d65a660cc',
+            exerciseId: 'd38fd0fa-86cc-40be-90b9-19387afbc6a5',
             slug: 'flat-dumbbell-fly',
             name: 'Flat Dumbbell Fly',
             how: 'Same fly on a flat bench.',
@@ -234,7 +234,7 @@ export const COACH_PLANS: Plan[] = [
         name: 'Back',
         steps: [
           {
-            exerciseId: '2da2851e-f0b6-4d71-b251-52fdb43357f4',
+            exerciseId: '8e7bfa97-3837-4259-bd85-c93f7d5db288',
             slug: 'lat-pulldown',
             name: 'Lat Pulldown',
             how: 'Pull the bar down to your upper chest.',
@@ -257,7 +257,7 @@ export const COACH_PLANS: Plan[] = [
             },
           },
           {
-            exerciseId: 'bc6d3a2f-e94b-439b-bf08-e36461f5b045',
+            exerciseId: '54bdc384-6c7a-4d7a-ba48-66cee7f1c47e',
             slug: 'seated-cable-row',
             name: 'Seated Cable Row',
             how: 'Sit, pull the handle to your stomach.',
@@ -303,7 +303,7 @@ export const COACH_PLANS: Plan[] = [
             },
           },
           {
-            exerciseId: '66ea9602-c266-4b6b-aa44-a99aa383d906',
+            exerciseId: '3be1f0ce-8dad-4081-ac95-cb4fef4885fc',
             slug: 'one-arm-dumbbell-row',
             name: 'One-Arm Dumbbell Row',
             how: 'One knee and hand on the bench, pull the dumbbell to your hip.',
@@ -354,7 +354,7 @@ export const COACH_PLANS: Plan[] = [
         name: 'Biceps',
         steps: [
           {
-            exerciseId: '26c87fdc-7900-4c42-8220-5439999eaf90',
+            exerciseId: '10ce88f1-283f-40d3-be29-c144323217a1',
             slug: 'dumbbell-curl',
             name: 'Dumbbell Curl',
             how: 'Curl dumbbells up, palms facing up.',
@@ -377,7 +377,7 @@ export const COACH_PLANS: Plan[] = [
             },
           },
           {
-            exerciseId: '09181dbc-b15a-42b7-b934-b2550531523d',
+            exerciseId: 'afaa7d25-0e36-440e-a6ce-a312f593e67f',
             slug: 'hammer-curl',
             name: 'Hammer Curl',
             how: 'Curl with palms facing each other.',
@@ -458,7 +458,7 @@ export const COACH_PLANS: Plan[] = [
         name: 'Shoulders',
         steps: [
           {
-            exerciseId: '1118d3e3-b0a9-495c-ab80-380e0d1064bc',
+            exerciseId: 'babbaff3-105b-4570-9d24-c4ee05b5b58b',
             slug: 'shoulder-press',
             name: 'Shoulder Press',
             how: 'Press dumbbells or a bar straight overhead.',
@@ -481,7 +481,7 @@ export const COACH_PLANS: Plan[] = [
             },
           },
           {
-            exerciseId: 'f237146c-0996-4d12-9bec-ce96487e5217',
+            exerciseId: '5e51dd59-aa9c-4be7-87f6-4f38bb668b9f',
             slug: 'side-lateral-raise',
             name: 'Side Lateral Raise',
             how: 'Raise dumbbells out to the sides, up to shoulder height.',
@@ -527,7 +527,7 @@ export const COACH_PLANS: Plan[] = [
             },
           },
           {
-            exerciseId: '866334ee-5843-43ac-a148-cfeb222606c0',
+            exerciseId: 'a46b0c86-8132-4878-be74-6ae3cd5ad53b',
             slug: 'face-pull',
             name: 'Face Pull',
             how: 'Cable rope at face height, pull to your face with elbows high.',
@@ -608,7 +608,7 @@ export const COACH_PLANS: Plan[] = [
             },
           },
           {
-            exerciseId: '377e419a-2f49-4863-8e55-a723420bf6c6',
+            exerciseId: 'c3d68d1a-8605-4d5a-8be5-9a75f9ab4e64',
             slug: 'leg-curl',
             name: 'Leg Curl',
             how: 'On the machine, curl your heels toward your hips.',
@@ -631,7 +631,7 @@ export const COACH_PLANS: Plan[] = [
             },
           },
           {
-            exerciseId: 'b8cd3a12-4085-4712-9590-1a263b2d6eb0',
+            exerciseId: 'afeec7be-9e32-4329-85e3-88b70d6d1069',
             slug: 'leg-press',
             name: 'Leg Press',
             how: 'Sit in the machine, push the platform away with your feet.',

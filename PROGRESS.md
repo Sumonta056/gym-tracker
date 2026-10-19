@@ -5,10 +5,11 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
-**Next step:** 3.3, the coach exercises and `plan_ids` · `docs/plan/phase-3/S3.3-exercise-seed.md`. A seed UUID goes into the `uuids` map of `docs/data/coach-exercises.json`, then the script runs. 3.3 needs a map from the 16 muscle names to the 7 Phase 2 groups: `docs/data/README.md` has the table. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`. Cut `feat/phase-3-coach-plans` from `main` first.
+**Next step:** 3.4, the images offline · `docs/plan/phase-3/S3.4-exercise-images.md`. It stops until the owner confirms the image licence. 3.4b and 3.5 are also open, in any order. Checkpoint A comes after 3.4b. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`.
+**Step 3.3 done** on 2026-10-19. 12 coach steps reuse a Phase 2 seed row: 8 exact names, and 4 aliases the owner chose (Flat Dumbbell Fly → Dumbbell Fly, Side Lateral Raise → Lateral Raise, One-Arm Dumbbell Row → Dumbbell Row, Shoulder Press → Dumbbell Shoulder Press). 14 new global rows. `workout_sessions.plan_ids text[]` refuses an empty list and an unknown id; null means no plan. Dexie version 6 adds `planCursors`. The rerun and bad-insert checks did not run on live: the auto mode check blocks a write through `execute_sql`.
 **Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/archive/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
-**Last commit:** `1b6df57`, step 3.1, then step 3.2 after the owner commits it. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
+**Last commit:** `503ef05`, step 3.2, then step 3.3 after the owner commits it. The branch does not hold the day view merge `db58d5d` from `main` yet. Merge `main` in before the Phase 3 merge. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
 
 ## Resume here
 
@@ -16,7 +17,9 @@ that one step only. Stop and report when the step is done.
   decisions are in `docs/archive/PROGRESS-phase-0-2.md`. They still hold.
 - The auth track has its own file: `docs/plan/auth/PROGRESS.md`. Phase B waits for a domain.
 - Migrations `20260927142258_phase2_workouts`, `20260927151153_phase2_exercise_seed` and
-  `20260928084529_phase2_set_policy_reps` and `20261008014222_feedback_goals_and_swim` are applied to the live project. Never apply them again.
+  `20260928084529_phase2_set_policy_reps`, `20261008014222_feedback_goals_and_swim` and `20261019125214_phase3_coach_plans` are applied to the live project. Never apply them again.
+- `pnpm types:db` needs `SUPABASE_PROJECT_ID` exported in the shell. Without it the script empties
+  `lib/supabase/database.types.ts`. The MCP `generate_typescript_types` gives the same output.
 - `apply_migration` records its own version. Rename the local file to the version that
   `list_migrations` shows.
 - Run each step in a fresh subagent. PATH: `export PATH="$HOME/.nvm/versions/node/v$(cat .nvmrc)/bin:$PATH"`.
@@ -35,6 +38,11 @@ that one step only. Stop and report when the step is done.
 - **The recipe wins over the prototype**, unless the recipe is wrong for real use. From 1.15.
 
 ## Open, with the step that closes each one
+
+- **Step 3.6** — the sync-auditor notes from 3.3. `finishSession` in `lib/db/repository.ts` must pass
+  `plan_ids: session.plan_ids ?? null` into its parse, or it clears the plan ids. `toLocalSession` must
+  map `plan_ids`. `toServerSession` must leave the key out when the payload has none, as `swim_seconds`
+  does. `clearAll` must add `db.planCursors` to its transaction and its clear.
 
 - **Owner** — add four CI secrets: `E2E_EMAIL`, `E2E_PASSWORD`,
   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. From 1.16.

@@ -82,7 +82,37 @@ describe('workoutSessionSchema', () => {
       started_at: STARTED,
       ended_at: null,
       status: 'active',
+      plan_ids: null,
     })
+  })
+
+  it('accepts a session with plan_ids null, as every Phase 2 session has', () => {
+    const result = parse({ plan_ids: null })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.plan_ids).toBeNull()
+  })
+
+  it('accepts a session that runs 1 plan', () => {
+    expect(parse({ plan_ids: ['chest-triceps'] }).data?.plan_ids).toEqual(['chest-triceps'])
+  })
+
+  it('accepts a session that runs 2 plans', () => {
+    expect(parse({ plan_ids: ['shoulders', 'legs'] }).data?.plan_ids).toEqual(['shoulders', 'legs'])
+  })
+
+  it('rejects a session with an empty plan list', () => {
+    const issue = firstIssue(parse({ plan_ids: [] }))
+
+    expect(issue.message).toBe('Pick 1 or more coach plans.')
+    expect(issue.path).toEqual(['plan_ids'])
+  })
+
+  it('rejects a session with an unknown plan id', () => {
+    const issue = firstIssue(parse({ plan_ids: ['chest-triceps', 'foo'] }))
+
+    expect(issue.message).toBe('Pick a coach plan.')
+    expect(issue.path).toEqual(['plan_ids', 1])
   })
 
   it('accepts a finished session with an end time', () => {
@@ -179,6 +209,24 @@ describe('storedWorkoutSessionSchema', () => {
       ...overrides,
     })
   }
+
+  it('accepts a stored Phase 2 session with no plan_ids and reads it as null', () => {
+    const result = parseStored({ status: 'finished', ended_at: ENDED })
+
+    expect(result.data?.plan_ids).toBeNull()
+  })
+
+  it('rejects a stored session with an empty plan list', () => {
+    const issue = firstIssue(parseStored({ plan_ids: [] }))
+
+    expect(issue.path).toEqual(['plan_ids'])
+  })
+
+  it('rejects a stored session with an unknown plan id', () => {
+    const issue = firstIssue(parseStored({ plan_ids: ['foo'] }))
+
+    expect(issue.path).toEqual(['plan_ids', 0])
+  })
 
   it('accepts an entry date ahead of this device date', () => {
     expect(parseStored({ status: 'finished', ended_at: ENDED }).success).toBe(true)

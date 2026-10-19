@@ -162,6 +162,7 @@ export type Database = {
           ended_at: string | null
           entry_date: string
           id: string
+          plan_ids: string[] | null
           started_at: string
           status: string
           updated_at: string
@@ -173,6 +174,7 @@ export type Database = {
           ended_at?: string | null
           entry_date: string
           id: string
+          plan_ids?: string[] | null
           started_at: string
           status: string
           updated_at?: string
@@ -184,6 +186,7 @@ export type Database = {
           ended_at?: string | null
           entry_date?: string
           id?: string
+          plan_ids?: string[] | null
           started_at?: string
           status?: string
           updated_at?: string
