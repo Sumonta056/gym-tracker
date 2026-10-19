@@ -29,7 +29,7 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 | 3.1  | `S3.1-design-contract.md`   | The prototype plates and the docs      | M    | 3.0                 | none                     | done  |
 | 3.2  | `S3.2-plan-schema.md`       | The plan schema and the coach data     | M    | 3.1                 | none                     | done  |
 | 3.3  | `S3.3-exercise-seed.md`     | The coach exercises, `plan_ids`        | M    | 3.2                 | none                     | done  |
-| 3.4  | `S3.4-exercise-images.md`   | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | —     |
+| 3.4  | `S3.4-exercise-images.md`   | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | done  |
 | 3.4b | `S3.4b-muscle-map.md`       | The muscle map                         | S    | 3.2                 | none                     | done  |
 | 3.5  | `S3.5-plan-metrics.md`      | `lib/metrics` for plans                | S    | 3.2                 | none                     | done  |
 | 3.6  | `S3.6-plan-repository.md`   | The repository for plans               | M    | 3.3                 | none                     | —     |
@@ -60,7 +60,7 @@ not continue without approval.
 ### Checkpoint A — after 3.4b
 
 - [x] The owner accepted the 5 prototype plates.
-- [ ] The owner confirmed the image licence.
+- [x] The owner confirmed the image licence.
 - [x] The migration is applied on the live project, and every coach exercise exists.
 - [ ] A step image loads with the network down, on a cold cache.
 - [ ] `MuscleMap` shows the right regions for all 26 steps on `/styleguide`.

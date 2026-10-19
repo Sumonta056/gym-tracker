@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -123,6 +123,33 @@ describe('COACH_PLANS', () => {
 
   it('retires no coach plan', () => {
     expect(COACH_PLANS.every((plan) => !plan.retired)).toBe(true)
+  })
+})
+
+describe('the step images', () => {
+  const publicDir = resolve(process.cwd(), 'public')
+
+  it('finds a start file and an end file in public/ for every step', () => {
+    const missing = steps
+      .flatMap((step) => [step.images.start, step.images.end])
+      .filter((path) => !existsSync(resolve(publicDir, `.${path}`)))
+
+    expect(missing).toEqual([])
+  })
+
+  it('names a webp file under /exercises/ for every step image', () => {
+    for (const step of steps) {
+      expect(step.images.start).toBe(`/exercises/${step.slug}-start.webp`)
+      expect(step.images.end).toBe(`/exercises/${step.slug}-end.webp`)
+    }
+  })
+
+  it('keeps exactly the 52 step files in public/exercises/', () => {
+    const files = readdirSync(resolve(publicDir, 'exercises')).map((file) => `/exercises/${file}`)
+    const named = steps.flatMap((step) => [step.images.start, step.images.end])
+
+    expect(files).toHaveLength(52)
+    expect(files.sort()).toEqual(named.sort())
   })
 })
 
