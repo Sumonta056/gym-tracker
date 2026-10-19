@@ -21,3 +21,13 @@ export function shiftLogDate(date: string, days: number): string {
 export function logPath(date: string): string {
   return `${LOG_PATH}?date=${date}`
 }
+
+export function dayPath(date: string, today: string): string {
+  return date === today ? '/' : `/?date=${date}`
+}
+
+export function localNoon(date: string): Date {
+  const at = new Date((toDayNumber(date) ?? 0) * MS_PER_DAY)
+
+  return new Date(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate(), 12)
+}

@@ -16,12 +16,18 @@ import { entryOn, NOW, PROFILE, TODAY } from '../../tests/fixtures/dashboard'
 import { BENCH, liftSet, sessionOn } from '../../tests/fixtures/lifts'
 import { setReducedMotion } from '../../tests/fixtures/motion'
 
-import { Dashboard, DashboardView, stepsHint } from './Dashboard'
+import { burntHint, Dashboard, DashboardView, stepsHint } from './Dashboard'
 import { NO_LIFTS, summarise } from './summary'
 
 import type { TodayLifts } from './summary'
 import type { Profile } from '../../lib/db/dexie'
 import type * as Repository from '../../lib/db/repository'
+
+const mocks = vi.hoisted(() => ({ search: '' }))
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(mocks.search),
+}))
 
 vi.mock('../../lib/db/repository', async () => {
   const { syncedStatus } = await import('../../tests/fixtures/sync')
@@ -45,6 +51,7 @@ const clock = () => NOW
 const STREAK_DATES = ['2026-09-19', '2026-09-20', '2026-09-21', '2026-09-22', TODAY]
 
 beforeEach(() => {
+  mocks.search = ''
   vi.mocked(listRange).mockResolvedValue([])
   vi.mocked(getProfile).mockResolvedValue(PROFILE)
   vi.mocked(listSessions).mockResolvedValue([])
@@ -113,6 +120,12 @@ describe('Dashboard', () => {
     render(<Dashboard clock={clock} />)
     expect(await screen.findByText('Nothing logged yet today.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Log the day' })).toHaveAttribute('href', '/log')
+  })
+
+  it('shows no edit button on today', async () => {
+    render(<Dashboard clock={clock} />)
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByRole('link', { name: 'Edit this day' })).toBeNull()
   })
 
   it('shows the streak number from lib/metrics/streak', async () => {
@@ -237,9 +250,66 @@ describe('DashboardView', () => {
   })
 })
 
+describe('Dashboard on a past day', () => {
+  const PAST = '2026-09-19'
+
+  beforeEach(() => {
+    mocks.search = `date=${PAST}`
+    vi.mocked(listRange).mockResolvedValue([
+      entryOn(PAST, { steps: 4321, note: 'Legs.' }),
+      entryOn(TODAY, { steps: 9999 }),
+    ])
+  })
+
+  it('reads the day from the address and shows its entry', async () => {
+    render(<Dashboard clock={clock} />)
+    expect((await screen.findAllByText('4,321')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('9,999')).toBeNull()
+    expect(screen.getByText('Legs.')).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: '19 September' })).toBeInTheDocument()
+    expect(screen.getByText('Saturday')).toBeInTheDocument()
+  })
+
+  it('names the day on the hero and the week card', async () => {
+    const session = sessionOn(PAST)
+    vi.mocked(listSessions).mockResolvedValue([session])
+    render(<Dashboard clock={clock} />)
+    expect(await screen.findByText('Gym time · 19 Sep')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Workout · 19 Sep' })).toBeInTheDocument()
+    expect(screen.getByText('14 – 20 Sep')).toBeVisible()
+  })
+
+  it('offers to edit the day in the log', async () => {
+    render(<Dashboard clock={clock} />)
+    expect(await screen.findByRole('link', { name: 'Edit this day' })).toHaveAttribute(
+      'href',
+      `/log?date=${PAST}`,
+    )
+  })
+
+  it('enables next and counts the week from the real today', async () => {
+    render(<Dashboard clock={clock} />)
+    expect(await screen.findByRole('button', { name: 'Next day, Sun 20 Sep' })).toBeEnabled()
+  })
+
+  it.each(['2999-01-01', '2026-02-30', 'soon'])('shows today for %s', async (asked) => {
+    mocks.search = `date=${asked}`
+    render(<Dashboard clock={clock} />)
+    expect((await screen.findAllByText('9,999')).length).toBeGreaterThan(0)
+    expect(screen.getByText('Today · Wednesday')).toBeInTheDocument()
+  })
+})
+
 describe('stepsHint', () => {
   it('rounds the share of the goal', () => {
     expect(stepsHint(12480, 12000)).toBe('104% of 12,000')
+  })
+})
+
+describe('burntHint', () => {
+  it('says today on today and names any other day', () => {
+    expect(burntHint(TODAY, TODAY)).toBe('Burnt today')
+    expect(burntHint('2026-09-19', TODAY)).toBe('Burnt on 19 Sep')
   })
 })
 

@@ -1123,20 +1123,35 @@ function Styleguide() {
 
       <Section title="Dashboard">
         <Card className="mb-3">
-          <DashboardHeader date="2026-09-13" displayName="Sumonta" />
+          <DashboardHeader date="2026-09-13" today="2026-09-13" displayName="Sumonta" />
+        </Card>
+        <Card className="mb-3">
+          <DashboardHeader date="2026-09-10" today="2026-09-13" displayName="Sumonta" />
         </Card>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <TodayHero
             entry={SAMPLE_DAY}
             gym={{ seconds: 4325, source: 'typed' }}
             streak={4}
+            date="2026-09-13"
+            today="2026-09-13"
             name="Today, logged"
           />
           <TodayHero
             entry={undefined}
             gym={{ seconds: 0, source: 'none' }}
             streak={0}
+            date="2026-09-13"
+            today="2026-09-13"
             name="Today, empty state"
+          />
+          <TodayHero
+            entry={undefined}
+            gym={{ seconds: 0, source: 'none' }}
+            streak={4}
+            date="2026-09-10"
+            today="2026-09-13"
+            name="A past day, empty state"
           />
           <HeartRateZonesCard
             zones={SAMPLE_ZONES}
@@ -1165,6 +1180,10 @@ function Styleguide() {
         <h3 className="text-text mt-6 text-base font-bold">Today, a sparse day</h3>
         <div className="mt-4" data-testid="dashboard-sparse-sample">
           <DashboardView summary={SAMPLE_SPARSE_SUMMARY} />
+        </div>
+        <h3 className="text-text mt-6 text-base font-bold">A past day, read back</h3>
+        <div className="mt-4" data-testid="dashboard-past-sample">
+          <DashboardView summary={SAMPLE_FULL_SUMMARY} today="2026-09-20" />
         </div>
       </Section>
 
