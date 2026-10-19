@@ -72,6 +72,7 @@ export type SessionAxisTickProps = {
   x?: number
   y?: number
   width?: number
+  gutter?: number
   payload?: { value?: unknown }
   className?: string
   orientation?: string
@@ -82,13 +83,14 @@ export function SessionAxisTick({
   x = 0,
   y = 0,
   width = 0,
+  gutter = 0,
   payload,
   className,
   orientation,
 }: SessionAxisTickProps) {
   const id = typeof payload?.value === 'string' ? payload.value : ''
   const text = sessionTick(dates.get(id) ?? '')
-  const place = tickPlace(x, width, text)
+  const place = tickPlace(x, width + gutter, text)
 
   return (
     <text

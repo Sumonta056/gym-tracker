@@ -296,7 +296,7 @@ function TableRows({
           const pick = picks[cellKey(rowIndex, field)]
 
           return (
-            <td key={field} className="px-2 py-3 break-words">
+            <td key={field} className="px-1.5 py-3 break-words">
               {cell.status === 'review' && pick === undefined && !state.error ? (
                 <span className="flex flex-wrap items-center gap-1">
                   <span className="text-warn font-bold">{cell.raw}</span>
@@ -702,7 +702,7 @@ export function ImportReview({
                 <MicroLabel>Row</MicroLabel>
               </th>
               {tableFields.map(({ field, heading }) => (
-                <th key={field} scope="col" className="px-2 py-3 text-left">
+                <th key={field} scope="col" className="px-1.5 py-3 text-left">
                   <MicroLabel>{heading}</MicroLabel>
                 </th>
               ))}
