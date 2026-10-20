@@ -50,3 +50,18 @@ export function combinePlans(ids: string[]): { title: string; steps: PlanStep[] 
   })
   return { title: plans.map((plan) => plan.title).join(' + '), steps }
 }
+
+export function stepGroups(ids: string[]): Map<string, string> {
+  const groups = new Map<string, string>()
+  const plans = [...new Set(ids)]
+    .map((id) => COACH_PLANS.find((plan) => plan.id === id))
+    .filter((plan) => plan !== undefined)
+
+  for (const group of plans.flatMap((plan) => plan.groups)) {
+    for (const step of group.steps) {
+      if (!groups.has(step.exerciseId)) groups.set(step.exerciseId, group.name)
+    }
+  }
+
+  return groups
+}

@@ -13,6 +13,7 @@ const BODY_TARGET = resolve(ROOT, 'lib/design/body.ts')
 const REGION_ROW = /^\|\s*([a-z ]+?)\s*\|\s*`([a-z]+)`\s*\|\s*([a-z, -]+?)\s*\|$/
 const IMAGE_SOURCE = /^docs\/data\/coach-images\/([a-z0-9-]+-(?:start|end))\.jpg$/
 const TARGET_REPS = { sets: 3, repsMin: 10, repsMax: 12 }
+const EQUIPMENT = new Set(['dumbbell', 'barbell', 'cable', 'machine', 'body only'])
 
 function fail(message) {
   console.error(`coach-data: ${message}`)
@@ -28,6 +29,7 @@ function imagePath(source) {
 function toStep(step, uuids) {
   const exerciseId = uuids[step.slug]
   if (exerciseId === undefined) fail(`${step.slug} has no entry in the uuids map`)
+  if (!EQUIPMENT.has(step.equipment)) fail(`${step.slug} names unknown equipment ${step.equipment}`)
   return {
     exerciseId,
     slug: step.slug,
@@ -37,6 +39,7 @@ function toStep(step, uuids) {
     muscles: { primary: step.muscles.primary, secondary: step.muscles.secondary },
     ...(step.video === undefined ? {} : { video: step.video }),
     target: TARGET_REPS,
+    bodyweight: step.equipment === 'body only',
   }
 }
 

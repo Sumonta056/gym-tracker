@@ -62,7 +62,7 @@ function stepLine(step: PlanStep, last: LastSets | undefined): string {
 
   if (last === undefined) return target
 
-  return `${target} · ${lastSetText(last.sets.get(step.exerciseId), last.unit)}`
+  return `${target} · ${lastSetText(last.sets.get(step.exerciseId), last.unit, step.bodyweight)}`
 }
 
 export type PlanStepListProps = {

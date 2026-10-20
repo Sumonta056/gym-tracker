@@ -2304,8 +2304,14 @@ describe('setsForExercises', () => {
 })
 
 describe('lastSetsFor', () => {
+  async function doneId(): Promise<string> {
+    return (
+      await finishedSession('2026-09-01', '2026-09-01T09:00:00.000Z', '2026-09-01T11:00:00.000Z')
+    ).id
+  }
+
   it('returns an empty map for no exercise ids', async () => {
-    await db.workoutSets.put(storedSet({}))
+    await db.workoutSets.put(storedSet({ session_id: await doneId() }))
 
     expect(await lastSetsFor([])).toEqual(new Map())
   })
@@ -2315,12 +2321,17 @@ describe('lastSetsFor', () => {
   })
 
   it('returns the newest set per exercise in one read', async () => {
-    const bench = storedSet({ created_at: '2026-09-03T10:00:00.000Z', reps: 3 })
-    const squat = storedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-02T10:00:00.000Z' })
+    const id = await doneId()
+    const bench = storedSet({ session_id: id, created_at: '2026-09-03T10:00:00.000Z', reps: 3 })
+    const squat = storedSet({
+      session_id: id,
+      exercise_id: SQUAT_ID,
+      created_at: '2026-09-02T10:00:00.000Z',
+    })
     await db.workoutSets.bulkPut([
-      storedSet({ created_at: '2026-09-01T10:00:00.000Z' }),
+      storedSet({ session_id: id, created_at: '2026-09-01T10:00:00.000Z' }),
       bench,
-      storedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-01T10:00:00.000Z' }),
+      storedSet({ session_id: id, exercise_id: SQUAT_ID, created_at: '2026-09-01T10:00:00.000Z' }),
       squat,
     ])
 
@@ -2333,14 +2344,15 @@ describe('lastSetsFor', () => {
   })
 
   it('ignores a set of an exercise it was not asked about', async () => {
-    await db.workoutSets.put(storedSet({ exercise_id: SQUAT_ID }))
+    await db.workoutSets.put(storedSet({ session_id: await doneId(), exercise_id: SQUAT_ID }))
 
     expect(await lastSetsFor([BENCH_ID])).toEqual(new Map())
   })
 
   it('takes the higher set_index when two sets share a timestamp', async () => {
-    const later = storedSet({ set_index: 1 })
-    await db.workoutSets.bulkPut([later, storedSet({ set_index: 0 })])
+    const id = await doneId()
+    const later = storedSet({ session_id: id, set_index: 1 })
+    await db.workoutSets.bulkPut([later, storedSet({ session_id: id, set_index: 0 })])
 
     expect((await lastSetsFor([BENCH_ID])).get(BENCH_ID)).toEqual(later)
   })
@@ -2350,8 +2362,31 @@ describe('lastSetsFor', () => {
     const kept = await addSet(aSet(session.id, { reps: 5 }))
     const removed = await addSet(aSet(session.id, { reps: 6 }))
     await deleteSet(removed.id)
+    await finishSession(session.id)
 
     expect((await lastSetsFor([BENCH_ID])).get(BENCH_ID)).toEqual(kept)
+  })
+
+  it('leaves out a set of the active session, the same as lastSetFor', async () => {
+    const id = await doneId()
+    const before = storedSet({ session_id: id, reps: 4 })
+    await db.workoutSets.put(before)
+    const session = await startSession('2026-09-02')
+    await addSet(aSet(session.id, { reps: 9 }))
+
+    expect((await lastSetsFor([BENCH_ID])).get(BENCH_ID)).toEqual(before)
+    expect(await lastSetFor(BENCH_ID)).toEqual(before)
+  })
+
+  it('leaves out a set of a deleted session or of a session this device does not hold', async () => {
+    const id = await doneId()
+    await db.workoutSessions.update(id, { deleted_at: '2026-09-02T00:00:00.000Z' })
+    await db.workoutSets.bulkPut([
+      storedSet({ session_id: id }),
+      storedSet({ exercise_id: SQUAT_ID }),
+    ])
+
+    expect(await lastSetsFor([BENCH_ID, SQUAT_ID])).toEqual(new Map())
   })
 
   it('agrees with lastSetFor for every exercise of a finished session', async () => {

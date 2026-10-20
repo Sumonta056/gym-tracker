@@ -161,3 +161,22 @@ export async function openLiftCharts(
     ).toBeVisible()
   }
 }
+
+export const PLAN_FIRST_STEP = 'Incline Dumbbell Press'
+
+export async function openPlanSession(page: Page, context: BrowserContext): Promise<void> {
+  await page.goto('/workouts')
+  await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()
+  await context.route(SUPABASE, (route) => route.abort('internetdisconnected'))
+
+  await page.getByRole('button', { name: /^Start Chest \+ Triceps/ }).click()
+  await expect(page).toHaveURL(/\/workout$/)
+  await expect(page.getByRole('heading', { level: 1, name: PLAN_FIRST_STEP })).toBeVisible()
+  await expect
+    .poll(() =>
+      page
+        .getByTestId('page-transition')
+        .evaluate((element) => getComputedStyle(element).transform),
+    )
+    .toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/)
+}

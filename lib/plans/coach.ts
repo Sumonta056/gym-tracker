@@ -31,6 +31,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '789b03e2-a4ab-4d83-ba28-6f454542d731',
@@ -54,6 +55,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '78115c1f-f854-4245-9db7-f984342aa949',
@@ -77,6 +79,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'd38fd0fa-86cc-40be-90b9-19387afbc6a5',
@@ -100,6 +103,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '63409567-d074-45dc-a58b-486116691d07',
@@ -123,6 +127,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
         ],
       },
@@ -151,6 +156,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '14beb627-006b-4fc2-ace3-de71e09dbbf7',
@@ -174,6 +180,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'f19a18fa-a5b2-4db6-8402-ecea41d206fb',
@@ -197,6 +204,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '40c8ec57-5817-4709-afec-0e03d67a6d24',
@@ -220,6 +228,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: true,
           },
         ],
       },
@@ -255,6 +264,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '54bdc384-6c7a-4d7a-ba48-66cee7f1c47e',
@@ -278,6 +288,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'c778aa8a-5d2c-4d0a-8d34-1b9ec95a4544',
@@ -301,6 +312,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '3be1f0ce-8dad-4081-ac95-cb4fef4885fc',
@@ -324,6 +336,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'a564989e-6aa8-442c-8959-a2eb6b43a875',
@@ -347,6 +360,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
         ],
       },
@@ -375,6 +389,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'afaa7d25-0e36-440e-a6ce-a312f593e67f',
@@ -398,6 +413,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '3792015a-703b-4892-ad08-d9d0699525bd',
@@ -421,6 +437,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'dbfbd9d4-c01e-436c-ad3c-0ba46e881cab',
@@ -444,6 +461,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
         ],
       },
@@ -479,6 +497,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '5e51dd59-aa9c-4be7-87f6-4f38bb668b9f',
@@ -502,6 +521,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: '35e0e977-7287-492e-b8a2-6c13546a2140',
@@ -525,6 +545,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'a46b0c86-8132-4878-be74-6ae3cd5ad53b',
@@ -548,6 +569,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'f2abc3fd-9957-477c-b772-594a483bbd6d',
@@ -571,6 +593,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
         ],
       },
@@ -606,6 +629,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'c3d68d1a-8605-4d5a-8be5-9a75f9ab4e64',
@@ -629,6 +653,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
           {
             exerciseId: 'afeec7be-9e32-4329-85e3-88b70d6d1069',
@@ -652,6 +677,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            bodyweight: false,
           },
         ],
       },

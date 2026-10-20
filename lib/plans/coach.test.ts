@@ -15,6 +15,7 @@ interface SourceStep {
   images: { start: string; end: string }
   muscles: { primary: string[]; secondary: string[] }
   video: { url: string; kind: string }
+  equipment: string
 }
 
 interface Source {
@@ -100,8 +101,21 @@ describe('COACH_PLANS', () => {
         muscles: sourceStep.muscles,
         video: sourceStep.video,
         target: { sets: 3, repsMin: 10, repsMax: 12 },
+        bodyweight: sourceStep.equipment === 'body only',
       })
     })
+  })
+
+  it('marks only Bench Dips as a body-weight step', () => {
+    expect(steps.filter((step) => step.bodyweight).map((step) => step.slug)).toEqual(['bench-dips'])
+  })
+
+  it('names the equipment of every step in the JSON', () => {
+    for (const sourceStep of sourceSteps) {
+      expect(['dumbbell', 'barbell', 'cable', 'machine', 'body only']).toContain(
+        sourceStep.equipment,
+      )
+    }
   })
 
   it('gives every step 1 or more primary muscles, all from the 16 names', () => {

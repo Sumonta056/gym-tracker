@@ -133,6 +133,18 @@ describe('planSchema', () => {
 })
 
 describe('planStepSchema', () => {
+  it('defaults bodyweight to false', () => {
+    expect(planStepSchema.parse(step).bodyweight).toBe(false)
+  })
+
+  it('keeps a bodyweight flag it is given', () => {
+    expect(planStepSchema.parse({ ...step, bodyweight: true }).bodyweight).toBe(true)
+  })
+
+  it('fails on a bodyweight flag that is not a boolean', () => {
+    expect(planStepSchema.safeParse({ ...step, bodyweight: 'yes' }).success).toBe(false)
+  })
+
   it('accepts zero secondary muscles', () => {
     expect(
       planStepSchema.safeParse({ ...step, muscles: { primary: ['chest'], secondary: [] } }).success,

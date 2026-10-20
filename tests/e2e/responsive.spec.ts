@@ -8,7 +8,13 @@ import {
   test as signedIn,
 } from './support/signedIn'
 import { gotoStyleGuide, openStyleGuideSheet } from './support/styleguide'
-import { openLiftCharts, openLiveSession, openPicker, openWithLiftWeek } from './support/workout'
+import {
+  openLiftCharts,
+  openLiveSession,
+  openPicker,
+  openPlanSession,
+  openWithLiftWeek,
+} from './support/workout'
 
 import type { Page } from '@playwright/test'
 
@@ -20,6 +26,8 @@ const SCROLL_WIDTHS = [...new Set([...STEP_WIDTHS, 360, 414, 640, 834, 1280, 192
   (a, b) => a - b,
 )
 const MINIMUM_TAP_TARGET = 44
+const SEGMENT_TAP_TARGET = 40
+const SEGMENT_GROUP = '[role="group"][aria-label="Image view"]'
 const SIDEBAR_BREAKPOINT = 1024
 
 const CONTROL_SELECTOR = 'a, button, input, select, textarea, [role="button"], [role="tab"]'
@@ -90,21 +98,27 @@ function sideways(page: Page): Promise<string[]> {
   })
 }
 
-function smallTargets(page: Page): Promise<string[]> {
+function smallTargets(page: Page, segment = MINIMUM_TAP_TARGET): Promise<string[]> {
   return page.evaluate(
-    ({ selector, minimum }) => {
+    ({ selector, minimum, segmentGroup, segmentMinimum }) => {
       const out: string[] = []
       for (const element of document.querySelectorAll(selector)) {
         const box = element.getBoundingClientRect()
         if (box.width === 0 && box.height === 0) continue
-        if (box.height < minimum) {
+        const floor = element.closest(segmentGroup) === null ? minimum : segmentMinimum
+        if (box.height < floor) {
           const label = element.textContent.trim().slice(0, 30)
           out.push(`${element.tagName} "${label}" ${String(Math.round(box.height))}px`)
         }
       }
       return out
     },
-    { selector: CONTROL_SELECTOR, minimum: MINIMUM_TAP_TARGET },
+    {
+      selector: CONTROL_SELECTOR,
+      minimum: MINIMUM_TAP_TARGET,
+      segmentGroup: SEGMENT_GROUP,
+      segmentMinimum: segment,
+    },
   )
 }
 
@@ -513,4 +527,81 @@ signedIn.describe('signed in on /analytics with lift and week charts', () => {
   signedIn('shows exactly one navigation at every width', async ({ page }) => {
     expect(await navigationProblems(page)).toEqual([])
   })
+})
+
+const FOCUS_MODE_EXCEPTION = {
+  route: '/workout in plan mode',
+  below: SIDEBAR_BREAKPOINT,
+  reason: 'focus mode, agreed on 2026-09-24, the header carries the leave link',
+}
+
+async function focusNavigationProblems(page: Page): Promise<string[]> {
+  const sidebar = page.getByRole('navigation', { name: 'Sidebar' })
+  const bottomBar = page.getByRole('navigation', { name: 'Bottom navigation' })
+  const corner = page
+    .getByRole('link', { name: 'Leave to Workouts' })
+    .or(page.getByRole('button', { name: 'Previous step' }))
+  const found: string[] = []
+
+  for (const width of SCROLL_WIDTHS) {
+    await resizeAndSettle(page, width)
+    const sidebarVisible = await sidebar.isVisible()
+
+    if (sidebarVisible !== width >= SIDEBAR_BREAKPOINT) {
+      found.push(`${String(width)}px: sidebar ${sidebarVisible ? 'shown' : 'hidden'}`)
+    }
+    if (await bottomBar.isVisible()) {
+      found.push(`${String(width)}px: bottom bar shown in ${FOCUS_MODE_EXCEPTION.route}`)
+    }
+    if (width < FOCUS_MODE_EXCEPTION.below && !(await corner.isVisible())) {
+      found.push(`${String(width)}px: no leave link or back button`)
+    }
+  }
+
+  return found
+}
+
+signedIn.describe('signed in on /workout in plan mode', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openPlanSession(page, context)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('never scrolls sideways at 320 px on Dumbbell Overhead Extension', async ({ page }) => {
+    await page.getByRole('button', { name: 'Skip' }).click()
+    for (let step = 2; step <= 6; step += 1) {
+      await expect(page.getByText(new RegExp(`^Step ${String(step)} of 9`))).toBeVisible()
+      if (step < 6) await page.getByRole('button', { name: /^Next step/ }).click()
+    }
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Dumbbell Overhead Extension' }),
+    ).toBeVisible()
+
+    expect(await atEachWidth(page, [320], () => sideways(page))).toEqual([])
+  })
+
+  signedIn(
+    'keeps every tap target 44 px or taller, the 4 view buttons 40 px, at all seven widths',
+    async ({ page }) => {
+      expect(
+        await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page, SEGMENT_TAP_TARGET)),
+      ).toEqual([])
+    },
+  )
+
+  signedIn('clips no text, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => clippedText(page))).toEqual([])
+  })
+
+  signedIn(
+    `hides the bottom bar under ${String(FOCUS_MODE_EXCEPTION.below)} px: ${FOCUS_MODE_EXCEPTION.reason}`,
+    async ({ page }) => {
+      expect(await focusNavigationProblems(page)).toEqual([])
+    },
+  )
 })

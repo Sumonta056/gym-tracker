@@ -1005,36 +1005,42 @@ export async function setsForExercises(exerciseIds: string[]): Promise<WorkoutSe
   return (await liveSetsOf(exerciseIds)).sort(inDoneOrder)
 }
 
-export async function lastSetFor(exerciseId: string): Promise<WorkoutSet | undefined> {
-  return db.transaction('r', db.workoutSessions, db.workoutSets, async () => {
-    const sets = await liveSetsOf([exerciseId])
-    const sessions = await db.workoutSessions.bulkGet([
-      ...new Set(sets.map((set) => set.session_id)),
-    ])
-    const finished = new Set(
-      sessions.flatMap((session) =>
-        session?.status === 'finished' && session.deleted_at === null ? [session.id] : [],
-      ),
-    )
+async function finishedSetsOf(exerciseIds: readonly string[]): Promise<WorkoutSet[]> {
+  const sets = await liveSetsOf(exerciseIds)
+  const sessions = await db.workoutSessions.bulkGet([...new Set(sets.map((set) => set.session_id))])
+  const finished = new Set(
+    sessions.flatMap((session) =>
+      session?.status === 'finished' && session.deleted_at === null ? [session.id] : [],
+    ),
+  )
 
-    return sets
-      .filter((set) => finished.has(set.session_id))
-      .sort((left, right) => inDoneOrder(right, left))[0]
-  })
+  return sets.filter((set) => finished.has(set.session_id))
+}
+
+export async function lastSetFor(exerciseId: string): Promise<WorkoutSet | undefined> {
+  return db.transaction(
+    'r',
+    db.workoutSessions,
+    db.workoutSets,
+    async () =>
+      (await finishedSetsOf([exerciseId])).sort((left, right) => inDoneOrder(right, left))[0],
+  )
 }
 
 export async function lastSetsFor(exerciseIds: string[]): Promise<Map<string, WorkoutSet>> {
-  const last = new Map<string, WorkoutSet>()
+  return db.transaction('r', db.workoutSessions, db.workoutSets, async () => {
+    const last = new Map<string, WorkoutSet>()
 
-  for (const row of await liveSetsOf(exerciseIds)) {
-    const held = last.get(row.exercise_id)
+    for (const row of await finishedSetsOf(exerciseIds)) {
+      const held = last.get(row.exercise_id)
 
-    if (held === undefined || inDoneOrder(row, held) > 0) {
-      last.set(row.exercise_id, row)
+      if (held === undefined || inDoneOrder(row, held) > 0) {
+        last.set(row.exercise_id, row)
+      }
     }
-  }
 
-  return last
+    return last
+  })
 }
 
 export interface ConfirmedWrites {

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AppNav } from './AppNav'
+import { useFocusMode } from './ui/FocusMode'
 
 const pathname = vi.hoisted(() => ({ value: '/' }))
 
@@ -84,3 +85,27 @@ describe('AppNav', () => {
     expect(screen.getByTestId('page-transition')).toContainElement(screen.getByText('Page body'))
   })
 })
+
+describe('AppNav focus mode', () => {
+  it('drops the bottom bar while a page asks for focus, and brings it back after', () => {
+    pathname.value = '/workout'
+    const { rerender } = render(
+      <AppNav>
+        <FocusAsker />
+      </AppNav>,
+    )
+    expect(screen.queryByRole('navigation', { name: 'Bottom navigation' })).toBeNull()
+
+    rerender(
+      <AppNav>
+        <p>Free session</p>
+      </AppNav>,
+    )
+    expect(screen.getByRole('navigation', { name: 'Bottom navigation' })).toBeInTheDocument()
+  })
+})
+
+function FocusAsker() {
+  useFocusMode(true)
+  return <p>Plan step</p>
+}

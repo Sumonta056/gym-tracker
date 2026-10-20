@@ -23,8 +23,11 @@ export type AppShellAction = {
   current?: boolean
 }
 
+export type AppShellMode = 'default' | 'focus'
+
 export type AppShellProps = {
   items: AppShellNavItem[]
+  mode?: AppShellMode
   action?: AppShellAction
   title?: string
   aside?: ReactNode
@@ -36,8 +39,14 @@ export type AppShellProps = {
 const PRESS =
   'motion-safe:transition-transform motion-safe:duration-100 motion-safe:active:scale-95'
 
+const MAIN_BOTTOM: Record<AppShellMode, string> = {
+  default: 'pb-[calc(env(safe-area-inset-bottom)+88px)] lg:pb-10',
+  focus: 'pb-[calc(max(env(safe-area-inset-bottom),18px)+96px)] lg:pb-10',
+}
+
 export function AppShell({
   items,
+  mode = 'default',
   action,
   title,
   aside,
@@ -51,7 +60,10 @@ export function AppShell({
 
   return (
     <ToastProvider>
-      <div className={cn('bg-ground text-text min-h-dvh w-full lg:flex', className)}>
+      <div
+        data-mode={mode}
+        className={cn('bg-ground text-text min-h-dvh w-full lg:flex', className)}
+      >
         <nav
           aria-label="Sidebar"
           className="border-border bg-surface hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:border-r lg:p-4"
@@ -90,7 +102,12 @@ export function AppShell({
         </nav>
 
         <div className="flex w-full min-w-0 flex-1 flex-col">
-          <main className="mx-auto w-full max-w-[1100px] px-5 pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(env(safe-area-inset-bottom)+88px)] md:px-7 lg:pt-5 lg:pb-10">
+          <main
+            className={cn(
+              'mx-auto w-full max-w-[1100px] px-5 pt-[calc(env(safe-area-inset-top)+20px)] md:px-7 lg:pt-5',
+              MAIN_BOTTOM[mode],
+            )}
+          >
             {title === undefined ? null : (
               <h1 className="text-text mb-4 text-[23px] leading-tight font-bold tracking-[-0.6px]">
                 {title}
@@ -104,31 +121,33 @@ export function AppShell({
           </main>
         </div>
 
-        <BottomNav
-          aria-label="Bottom navigation"
-          className="border-border bg-surface fixed inset-x-0 bottom-0 z-40 grid auto-cols-fr grid-flow-col items-center gap-1 border-t px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),10px)] lg:hidden"
-        >
-          {leftItems.map((item) => (
-            <BottomLink key={item.href} item={item} />
-          ))}
-          {action === undefined ? null : (
-            <Link
-              href={action.href}
-              aria-current={action.current === true ? 'page' : undefined}
-              className={cn(
-                'bg-accent text-accent-ink flex min-h-[54px] items-center justify-center rounded-full text-lg font-extrabold',
-                PRESS,
-                action.current === true ? 'border-accent-ink border-2' : '',
-              )}
-            >
-              <Glyph glyph={action.glyph} />
-              <span className="sr-only">{action.label}</span>
-            </Link>
-          )}
-          {rightItems.map((item) => (
-            <BottomLink key={item.href} item={item} />
-          ))}
-        </BottomNav>
+        {mode === 'focus' ? null : (
+          <BottomNav
+            aria-label="Bottom navigation"
+            className="border-border bg-surface fixed inset-x-0 bottom-0 z-40 grid auto-cols-fr grid-flow-col items-center gap-1 border-t px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),10px)] lg:hidden"
+          >
+            {leftItems.map((item) => (
+              <BottomLink key={item.href} item={item} />
+            ))}
+            {action === undefined ? null : (
+              <Link
+                href={action.href}
+                aria-current={action.current === true ? 'page' : undefined}
+                className={cn(
+                  'bg-accent text-accent-ink flex min-h-[54px] items-center justify-center rounded-full text-lg font-extrabold',
+                  PRESS,
+                  action.current === true ? 'border-accent-ink border-2' : '',
+                )}
+              >
+                <Glyph glyph={action.glyph} />
+                <span className="sr-only">{action.label}</span>
+              </Link>
+            )}
+            {rightItems.map((item) => (
+              <BottomLink key={item.href} item={item} />
+            ))}
+          </BottomNav>
+        )}
       </div>
     </ToastProvider>
   )

@@ -66,7 +66,12 @@ export function targetText(target: PlanTarget): string {
   return `${String(target.sets)} × ${reps}`
 }
 
-export function lastSetText(set: WorkoutSet | undefined, unit: UnitSystem): string {
+export function lastSetText(
+  set: WorkoutSet | undefined,
+  unit: UnitSystem,
+  bodyweight = false,
+): string {
+  if (bodyweight) return 'body'
   if (set === undefined) return 'first time'
   if (set.weight_kg === null) return 'body'
   return `last ${formatLoadShort(set.weight_kg, unit)} ${weightSymbol(unit)}`

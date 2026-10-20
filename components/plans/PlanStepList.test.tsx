@@ -94,6 +94,13 @@ describe('PlanStepList', () => {
     expect(await screen.findAllByText('3 × 10–12 · first time')).toHaveLength(3)
   })
 
+  it('reads body for a body-weight step never logged', async () => {
+    render(<PlanStepList plan={plan('chest-triceps')} />)
+
+    expect(await screen.findAllByText('3 × 10–12 · first time')).toHaveLength(8)
+    expect(screen.getByText('3 × 10–12 · body')).toBeInTheDocument()
+  })
+
   it('names the last weight of a step from an earlier session', async () => {
     const legs = plan('legs')
     const squat = planSteps(legs)[0]

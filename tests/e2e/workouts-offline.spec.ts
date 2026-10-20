@@ -42,5 +42,6 @@ test('renders /workouts and the plan preview with the network down after the fir
     'Chest + Triceps',
   )
   await openPreview(page)
-  await expect(page.getByText('3 × 10–12 · first time')).toHaveCount(9)
+  await expect(page.getByText('3 × 10–12 · first time')).toHaveCount(8)
+  await expect(page.getByText('3 × 10–12 · body')).toHaveCount(1)
 })

@@ -10,6 +10,7 @@ import {
   planMinutes,
   planMuscles,
   planSteps,
+  stepGroups,
 } from './index'
 
 import type { Plan, PlanId } from '../schema/plan'
@@ -179,5 +180,32 @@ describe('with a retired plan', () => {
     const combined = plans.combinePlans(['shoulders', 'legs'])
 
     expect(combined.steps.map((step) => step.slug)).toEqual(['squat', 'leg-curl', 'leg-press'])
+  })
+})
+
+describe('stepGroups', () => {
+  it('names the coach group of every step of 1 plan', () => {
+    const groups = stepGroups(['chest-triceps'])
+    const chest = COACH_PLANS[0]?.groups[0]?.steps[0]?.exerciseId ?? ''
+    const triceps = COACH_PLANS[0]?.groups[1]?.steps[0]?.exerciseId ?? ''
+
+    expect(groups.get(chest)).toBe('Chest')
+    expect(groups.get(triceps)).toBe('Triceps')
+  })
+
+  it('keeps the first group for an exercise that 2 plans share', () => {
+    const groups = stepGroups(['shoulders', 'legs', 'shoulders'])
+
+    expect(groups.size).toBe(
+      new Set(
+        COACH_PLANS.filter((plan) => ['shoulders', 'legs'].includes(plan.id)).flatMap((plan) =>
+          plan.groups.flatMap((group) => group.steps.map((step) => step.exerciseId)),
+        ),
+      ).size,
+    )
+  })
+
+  it('returns no group for an unknown plan id', () => {
+    expect(stepGroups(['retired-plan']).size).toBe(0)
   })
 })

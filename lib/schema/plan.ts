@@ -60,6 +60,7 @@ export const planStepSchema = z.object({
   }),
   video: planVideoSchema.optional(),
   target: planTargetSchema,
+  bodyweight: z.boolean({ error: 'Body weight is either true or false.' }).default(false),
 })
 
 export const planGroupSchema = z.object({

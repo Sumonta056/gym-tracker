@@ -144,6 +144,11 @@ describe('lastSetText', () => {
   it('reads body for a set with no weight', () => {
     expect(lastSetText(set(null), 'metric')).toBe('body')
   })
+
+  it('reads body for a body-weight step, done or not', () => {
+    expect(lastSetText(undefined, 'metric', true)).toBe('body')
+    expect(lastSetText(set(12), 'metric', true)).toBe('body')
+  })
 })
 
 describe('previewLine', () => {
