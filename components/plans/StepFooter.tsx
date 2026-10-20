@@ -13,7 +13,7 @@ export function StepFooter({ nextName, busy = false, onSkip, onNext, onFinish }:
   return (
     <div
       data-testid="step-footer"
-      className="border-border bg-ground fixed inset-x-0 bottom-0 z-30 border-t px-5 pt-3 pb-[max(env(safe-area-inset-bottom),18px)] md:px-7 lg:static lg:mt-4 lg:border-t-0 lg:bg-transparent lg:p-0"
+      className="border-border bg-ground fixed inset-x-0 bottom-0 z-30 border-t px-5 pt-3 pb-[max(env(safe-area-inset-bottom),18px)] md:px-7 lg:static lg:border-t-0 lg:bg-transparent lg:p-0"
     >
       {nextName === undefined ? (
         <div className="mx-auto w-full max-w-xl">
@@ -22,9 +22,11 @@ export function StepFooter({ nextName, busy = false, onSkip, onNext, onFinish }:
           </PrimaryButton>
         </div>
       ) : (
-        <div className="mx-auto grid w-full max-w-xl grid-cols-[1fr_2fr] gap-2.5">
-          <SecondaryButton disabled={busy} onClick={onSkip}>
-            Skip
+        <div className="mx-auto grid w-full max-w-xl grid-cols-[1fr_2fr] gap-2.5 lg:grid-cols-1 lg:gap-3">
+          <SecondaryButton disabled={busy} onClick={onSkip} className="lg:order-last">
+            <span>
+              Skip<span className="hidden lg:inline"> this step</span>
+            </span>
           </SecondaryButton>
           <PrimaryButton disabled={busy} onClick={onNext} className="flex-col gap-px">
             Next step

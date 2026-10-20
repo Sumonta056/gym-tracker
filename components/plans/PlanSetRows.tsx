@@ -418,7 +418,7 @@ export function PlanSetRows({
           />
         ))}
       </ol>
-      <SecondaryButton onClick={onAddRow} className="mt-1">
+      <SecondaryButton size="compact" onClick={onAddRow} className="mt-0.5">
         <span aria-hidden="true">+</span> Add set <span className="sr-only">to {name}</span>
       </SecondaryButton>
     </Card>

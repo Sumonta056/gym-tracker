@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { liftSet, sessionOn } from '../../tests/fixtures/lifts'
 import { getPlan, planSteps } from '../plans'
 
-import { sessionSummary, stepStatuses } from './planProgress'
+import { sessionSummary, stepResults, stepStatuses } from './planProgress'
 import { volumeLoad } from './volumeLoad'
 
 import type { PlanCursor } from '../db/dexie'
@@ -203,5 +203,77 @@ describe('sessionSummary', () => {
       setCount: 1,
       volumeKg: 200,
     })
+  })
+})
+
+describe('stepResults', () => {
+  it('returns one result per step in step order', () => {
+    const results = stepResults(chestSteps(), [], cursor())
+
+    expect(results.map((result) => result.step.slug)).toEqual(chestSteps().map((step) => step.slug))
+  })
+
+  it('counts the live sets of a done step and keeps its heaviest load', () => {
+    const sets = [
+      liftSet(today(), stepAt(1).exerciseId, 10, 14),
+      liftSet(today(), stepAt(1).exerciseId, 10, 16),
+      liftSet(today(), stepAt(1).exerciseId, 8, 15),
+    ]
+
+    expect(stepResults(chestSteps(), sets, cursor({ stepIndex: 2 }))[1]).toEqual({
+      step: stepAt(1),
+      outcome: 'done',
+      setCount: 3,
+      heaviestKg: 16,
+    })
+  })
+
+  it('gives a done step with only body weight sets no heaviest load', () => {
+    const sets = [
+      liftSet(today(), stepAt(8).exerciseId, 12, null),
+      liftSet(today(), stepAt(8).exerciseId, 12, null),
+    ]
+
+    expect(stepResults(chestSteps(), sets, cursor())[8]).toMatchObject({
+      outcome: 'done',
+      setCount: 2,
+      heaviestKg: null,
+    })
+  })
+
+  it('leaves a soft-deleted set and a set of another session out of the count and the load', () => {
+    const sets = [
+      liftSet(today(), stepAt(1).exerciseId, 10, 14),
+      liftSet(today(), stepAt(1).exerciseId, 10, 40, { deleted_at: DELETED }),
+      liftSet(sessionOn('2026-09-20'), stepAt(1).exerciseId, 10, 50),
+    ]
+
+    expect(stepResults(chestSteps(), sets, cursor())[1]).toMatchObject({
+      outcome: 'done',
+      setCount: 1,
+      heaviestKg: 14,
+    })
+  })
+
+  it('marks a skipped step with no set as skipped, with 0 sets', () => {
+    const skipped = cursor({ stepIndex: 4, skipped: [stepAt(3).slug] })
+
+    expect(stepResults(chestSteps(), [], skipped)[3]).toMatchObject({
+      outcome: 'skipped',
+      setCount: 0,
+      heaviestKg: null,
+    })
+  })
+
+  it('marks the step open at Finish and every step never reached as not done', () => {
+    const results = stepResults(
+      chestSteps(),
+      [],
+      cursor({ stepIndex: 2, skipped: [stepAt(0).slug, stepAt(1).slug] }),
+    )
+
+    expect(results.map((result) => result.outcome)).toEqual(
+      chestSteps().map((_, index) => (index < 2 ? 'skipped' : 'notDone')),
+    )
   })
 })

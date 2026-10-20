@@ -9,6 +9,7 @@ import {
   STEP_LIST_CLOSE,
   STEP_MARK,
   StepListSheet,
+  StepMark,
   stepRowLabel,
   stepListSummary,
   stepSections,
@@ -46,6 +47,23 @@ function setup(open = true) {
   )
   return { onPick, onClose }
 }
+
+describe('StepMark', () => {
+  it('shows the glyph and the word of its status in the muted token', () => {
+    render(<StepMark status="skipped" />)
+
+    expect(screen.getByText('Skipped')).toHaveClass('text-muted')
+    expect(screen.getByText('–')).toHaveClass('border-dashed')
+  })
+
+  it('takes a label in place of the word, in the text token when asked', () => {
+    render(<StepMark status="done" label="3 × 14 kg" tone="text" />)
+
+    const mark = screen.getByText('3 × 14 kg')
+    expect(mark).toHaveClass('text-text')
+    expect(mark).not.toHaveTextContent('Done')
+  })
+})
 
 describe('stepListSummary', () => {
   it('counts done, skipped and the steps still to go', () => {

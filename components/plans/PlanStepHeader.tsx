@@ -73,7 +73,7 @@ export function PlanStepHeader({
           aria-haspopup="dialog"
           aria-label={stepJumpLabel(stepIndex, total, seconds)}
           onClick={onOpenList}
-          className="text-muted inline-flex min-h-11 max-w-full flex-wrap items-center justify-center gap-x-[5px] rounded-full px-2 text-[13px] font-bold"
+          className="text-muted inline-flex min-h-11 max-w-full flex-wrap items-center justify-center gap-x-[5px] rounded-full px-2 text-[13px] font-bold lg:hidden"
         >
           <span className="whitespace-nowrap">{`${stepCountText(stepIndex, total)} ·`}</span>
           <span className="whitespace-nowrap">
@@ -83,6 +83,15 @@ export function PlanStepHeader({
             <span aria-hidden="true"> ▾</span>
           </span>
         </button>
+        <p
+          data-testid="step-count-wide"
+          className="text-muted hidden min-h-11 max-w-full flex-wrap items-center justify-center gap-x-[5px] px-2 text-[13px] font-bold lg:inline-flex"
+        >
+          <span className="whitespace-nowrap">{`${stepCountText(stepIndex, total)} ·`}</span>
+          <span className="text-accent text-sm font-extrabold whitespace-nowrap">
+            {formatDuration(seconds, 'clock')}
+          </span>
+        </p>
       </div>
       <button
         type="button"

@@ -15,7 +15,7 @@ import {
 import { COACH_PLANS } from '../../lib/plans/coach'
 import { FocusModeProvider, useFocusModeOn } from '../ui/FocusMode'
 import { ToastProvider } from '../ui/Toast'
-import { SUMMARY_TITLE } from '../workout/SessionSummary'
+import { NO_RECORD, SUMMARY_TITLE } from '../workout/SessionSummary'
 
 import { FINISH_ANYWAY, FINISH_TITLE, KEEP_GOING } from './FinishConfirmSheet'
 import {
@@ -37,6 +37,7 @@ import {
   startDrafts,
   UNDO_FAILED,
 } from './PlanSession'
+import { BACK_TO_WORKOUTS } from './PlanSessionDone'
 import { FIRST_TIME_HINT } from './PlanSetRows'
 import { BACK_LABEL, FINISH_LABEL, LEAVE_LABEL } from './PlanStepHeader'
 import { STEP_LIST_CLOSE } from './StepListSheet'
@@ -44,6 +45,8 @@ import { STEP_LIST_CLOSE } from './StepListSheet'
 import type { PlanSessionSource } from './PlanSession'
 import type { WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { PlanStep } from '../../lib/schema/plan'
+
+const SKIP_STEP = /^Skip ?(this step)?$/
 
 configure({ asyncUtilTimeout: 5000 })
 vi.setConfig({ testTimeout: 20000 })
@@ -58,12 +61,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals()
 })
-
-const router = vi.hoisted(() => ({ push: vi.fn() }))
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => router,
-}))
 
 vi.mock('../../lib/supabase/client', () => ({
   createClient: () => {
@@ -139,7 +136,6 @@ async function heading(name: string) {
 }
 
 beforeEach(async () => {
-  router.push.mockReset()
   await db.open()
   await Promise.all([
     db.workoutSessions.clear(),
@@ -278,7 +274,9 @@ describe('PlanSession', () => {
       }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'How to' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText('3 × 10–12')).toHaveClass('text-muted')
+    expect(
+      within(screen.getByRole('region', { name: stepAt(0).name })).getByText('3 × 10–12'),
+    ).toHaveClass('text-muted')
     expect(screen.queryByText(/^Target/)).toBeNull()
     expect(screen.queryByText(stepAt(0).how)).toBeNull()
     expect(
@@ -399,7 +397,7 @@ describe('PlanSession', () => {
     show(session)
 
     await heading(stepAt(0).name)
-    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    await userEvent.click(screen.getByRole('button', { name: SKIP_STEP }))
 
     expect(await heading(stepAt(1).name)).toBeInTheDocument()
     expect(await getPlanCursor(session.id)).toEqual({
@@ -453,7 +451,7 @@ describe('PlanSession', () => {
     const first = show(session)
 
     await heading(stepAt(0).name)
-    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    await userEvent.click(screen.getByRole('button', { name: SKIP_STEP }))
     await heading(stepAt(1).name)
     await userEvent.click(screen.getByRole('button', { name: /^Next step/ }))
     await heading(stepAt(2).name)
@@ -501,7 +499,7 @@ describe('PlanSession', () => {
     show(session, { ...REPOSITORY_PLAN_SOURCE, setPlanCursor: () => Promise.reject(refusal) })
 
     await heading(stepAt(0).name)
-    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    await userEvent.click(screen.getByRole('button', { name: SKIP_STEP }))
 
     expect(await screen.findByText(refusal.message)).toBeInTheDocument()
   })
@@ -529,10 +527,10 @@ describe('PlanSession', () => {
 
     await heading(stepAt(STEPS.length - 1).name)
     expect(screen.getByRole('button', { name: 'Finish session' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Skip' })).toBeNull()
+    expect(screen.queryByRole('button', { name: SKIP_STEP })).toBeNull()
   })
 
-  it('reads Finish session on the last step and shows the summary', async () => {
+  it('reads Finish session on the last step and shows the Done screen', async () => {
     const session = await startPlanSession(['chest-triceps'], '2026-10-20')
     await setPlanCursor({ sessionId: session.id, stepIndex: STEPS.length - 1, skipped: [] })
     show(session)
@@ -541,10 +539,14 @@ describe('PlanSession', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
     await userEvent.click(await screen.findByRole('button', { name: FINISH_ANYWAY }))
 
-    const summary = await screen.findByRole('dialog', { name: SUMMARY_TITLE })
+    await heading(SUMMARY_TITLE)
     expect(await getPlanCursor(session.id)).toBeUndefined()
-    await userEvent.click(within(summary).getAllByRole('button').at(-1) as HTMLElement)
-    expect(router.push).toHaveBeenCalledWith('/workouts')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('link', { name: BACK_TO_WORKOUTS })).toHaveAttribute(
+      'href',
+      '/workouts',
+    )
+    expect(screen.getByTestId('focus')).toHaveTextContent('default')
   })
 
   it('removes a logged set from its tick, and brings it back on Undo', async () => {
@@ -677,12 +679,14 @@ describe('PlanSession step list and Finish', () => {
     await heading(stepAt(0).name)
     await userEvent.click(screen.getByRole('button', { name: FINISH_LABEL }))
     const sheet = await screen.findByRole('dialog', { name: FINISH_TITLE })
-    expect(sheet).toHaveAccessibleDescription('9 steps not done. No set is ticked yet.')
+    expect(sheet).toHaveAccessibleDescription(
+      '9 steps not done. The summary lists them as not done. No set is ticked yet.',
+    )
     expect(within(sheet).getByRole('button', { name: KEEP_GOING })).toHaveFocus()
     await userEvent.click(within(sheet).getByRole('button', { name: KEEP_GOING }))
 
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(screen.queryByRole('dialog', { name: SUMMARY_TITLE })).toBeNull()
+    expect(screen.queryByRole('heading', { name: SUMMARY_TITLE })).toBeNull()
   })
 
   it('finishes from the header on Finish anyway and shows the summary', async () => {
@@ -693,7 +697,7 @@ describe('PlanSession step list and Finish', () => {
     await userEvent.click(screen.getByRole('button', { name: FINISH_LABEL }))
     await userEvent.click(await screen.findByRole('button', { name: FINISH_ANYWAY }))
 
-    expect(await screen.findByRole('dialog', { name: SUMMARY_TITLE })).toBeInTheDocument()
+    expect(await heading(SUMMARY_TITLE)).toBeInTheDocument()
   })
 
   it('finishes with no question when every step has a ticked set', async () => {
@@ -712,7 +716,7 @@ describe('PlanSession step list and Finish', () => {
     await screen.findByRole('heading', { level: 1 })
     await userEvent.click(screen.getByRole('button', { name: FINISH_LABEL }))
 
-    expect(await screen.findByRole('dialog', { name: SUMMARY_TITLE })).toBeInTheDocument()
+    expect(await heading(SUMMARY_TITLE)).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: FINISH_TITLE })).toBeNull()
   })
 
@@ -826,25 +830,6 @@ describe('PlanSession when a write fails', () => {
     expect(screen.getByRole('button', { name: 'Finish session' })).toBeEnabled()
   })
 
-  it('calls onFinished when given, after the summary', async () => {
-    const session = await startPlanSession(['chest-triceps'], '2026-10-20')
-    await setPlanCursor({ sessionId: session.id, stepIndex: STEPS.length - 1, skipped: [] })
-    const onFinished = vi.fn()
-    render(
-      <ToastProvider>
-        <PlanSession session={session} onFinished={onFinished} />
-      </ToastProvider>,
-    )
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Finish session' }))
-    await userEvent.click(await screen.findByRole('button', { name: FINISH_ANYWAY }))
-    const summary = await screen.findByRole('dialog', { name: SUMMARY_TITLE })
-    await userEvent.click(within(summary).getAllByRole('button').at(-1) as HTMLElement)
-
-    expect(onFinished).toHaveBeenCalledOnce()
-    expect(router.push).not.toHaveBeenCalled()
-  })
-
   it('treats a failed last set read as a first time', async () => {
     const session = await startPlanSession(['chest-triceps'], '2026-10-20')
     show(session, { ...REPOSITORY_PLAN_SOURCE, lastSetFor: () => Promise.reject(new Error('x')) })
@@ -892,5 +877,96 @@ describe('PlanSession when a write fails', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull()
     })
+  })
+
+  it('moves the cursor from a row of the step list beside the step', async () => {
+    const session = await startPlanSession(['chest-triceps'], '2026-10-20')
+    show(session)
+
+    await heading(stepAt(0).name)
+    const panel = screen.getByRole('region', { name: 'Steps' })
+    await userEvent.click(
+      within(panel).getByRole('button', { name: new RegExp(`^5\\. ${stepAt(4).name}`) }),
+    )
+
+    expect(await heading(stepAt(4).name)).toBeInTheDocument()
+    expect((await getPlanCursor(session.id))?.stepIndex).toBe(4)
+    expect(within(panel).getByRole('button', { current: 'step' })).toHaveAccessibleName(
+      `5. ${stepAt(4).name}, 3 × 10–12, Now`,
+    )
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('runs 2 plans as 1 session under both titles, with 1 bar per step', async () => {
+    const session = await startPlanSession(['shoulders', 'legs'], '2026-10-20')
+    show(session)
+
+    expect(await screen.findByText('Shoulders + Legs')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Step 1 of 8, elapsed/ })).toBeInTheDocument()
+    const bars = screen.getByRole('list', { name: 'Steps' })
+    expect(within(bars).getAllByRole('listitem')).toHaveLength(8)
+    const panel = screen.getByRole('region', { name: 'Steps' })
+    expect(within(panel).getByRole('region', { name: 'Shoulders' })).toBeInTheDocument()
+    expect(within(panel).getByRole('region', { name: 'Legs' })).toBeInTheDocument()
+  })
+
+  it('shows 8 of 9 steps on the Done screen, with the skipped step marked by word', async () => {
+    const session = await startPlanSession(['chest-triceps'], '2026-10-20')
+    const skipped = stepAt(2)
+    for (const step of STEPS) {
+      if (step.slug === skipped.slug) continue
+      await addSet({
+        session_id: session.id,
+        exercise_id: step.exerciseId,
+        reps: 10,
+        weight_kg: step.bodyweight ? null : 12,
+        completed_at: '2026-10-20T09:00:00.000Z',
+      })
+    }
+    await setPlanCursor({
+      sessionId: session.id,
+      stepIndex: STEPS.length - 1,
+      skipped: [skipped.slug],
+    })
+    show(session)
+
+    await heading(stepAt(STEPS.length - 1).name)
+    await userEvent.click(screen.getByRole('button', { name: FINISH_LABEL }))
+    await userEvent.click(await screen.findByRole('button', { name: FINISH_ANYWAY }))
+
+    await heading(SUMMARY_TITLE)
+    const weighted = STEPS.filter((step) => step.slug !== skipped.slug && !step.bodyweight)
+    expect(screen.getByTestId('done-foot')).toHaveTextContent(
+      `Volume ${String(weighted.length * 120)} kg · 8 sets · 8 of 9 steps`,
+    )
+    const rows = within(screen.getByRole('region', { name: 'Steps' })).getAllByRole('listitem')
+    expect(rows).toHaveLength(9)
+    expect(rows[2]).toHaveTextContent(`${skipped.name}–Skipped`)
+    expect(rows[0]).toHaveTextContent(`${stepAt(0).name}✓Done, 1 × 12 kg`)
+  })
+
+  it('shows 0 of 9 steps on the Done screen when no step was done', async () => {
+    const session = await startPlanSession(['chest-triceps'], '2026-10-20')
+    await setPlanCursor({
+      sessionId: session.id,
+      stepIndex: 2,
+      skipped: [stepAt(0).slug, stepAt(1).slug],
+    })
+    show(session)
+
+    await heading(stepAt(2).name)
+    await userEvent.click(screen.getByRole('button', { name: FINISH_LABEL }))
+    await userEvent.click(await screen.findByRole('button', { name: FINISH_ANYWAY }))
+
+    await heading(SUMMARY_TITLE)
+    expect(screen.getByTestId('done-foot')).toHaveTextContent('Volume 0 kg · 0 sets · 0 of 9 steps')
+    expect(screen.getByText(NO_RECORD)).toBeInTheDocument()
+    const rows = within(screen.getByRole('region', { name: 'Steps' })).getAllByRole('listitem')
+    expect(rows.map((row) => row.dataset.outcome)).toEqual([
+      'skipped',
+      'skipped',
+      ...Array.from({ length: 7 }, () => 'notDone'),
+    ])
+    expect(rows[2]).toHaveTextContent('Not done')
   })
 })

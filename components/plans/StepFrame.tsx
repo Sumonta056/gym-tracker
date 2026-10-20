@@ -14,17 +14,10 @@ export type FrameView = 'howto' | 'muscles'
 
 export const PLAY_HALF_MS = 1200
 
-export const START_CAPTION = '1 · Start'
-
-export const END_CAPTION = '2 · End'
-
 const VIEWS: { view: FrameView; label: string }[] = [
   { view: 'howto', label: 'How to' },
   { view: 'muscles', label: 'Muscles' },
 ]
-
-const CAPTION =
-  'pointer-events-none absolute top-6 left-6 rounded-full px-[9px] py-[3px] text-[11px] font-bold'
 
 export function startAlt(name: string): string {
   return `${name}, start position`
@@ -96,7 +89,6 @@ export function StepFrame({ step, className }: StepFrameProps) {
   const [still] = useState(prefersReducedMotion)
   const phase = usePlay(view === 'howto', still, paused)
   const showsEnd = phase === 'end'
-  const caption = showsEnd ? END_CAPTION : START_CAPTION
   const fail = () => {
     setFailed(true)
   }
@@ -140,11 +132,6 @@ export function StepFrame({ step, className }: StepFrameProps) {
               className="absolute inset-0 size-full focus-visible:outline-offset-[-4px]"
             />
           )}
-          <figcaption
-            className={cn(CAPTION, showsEnd ? 'bg-accent text-accent-ink' : 'bg-ground text-text')}
-          >
-            {caption}
-          </figcaption>
         </>
       )}
       <div

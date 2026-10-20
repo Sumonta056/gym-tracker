@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { END_CAPTION, endAlt, PLAY_HALF_MS, START_CAPTION, startAlt, StepFrame } from './StepFrame'
+import { endAlt, PLAY_HALF_MS, startAlt, StepFrame } from './StepFrame'
 
 const STEP = {
   name: 'Flat Dumbbell Press',
@@ -89,23 +89,23 @@ describe('StepFrame', () => {
     expect(screen.getByAltText(startAlt(STEP.name))).toBeInTheDocument()
   })
 
-  it('fades start to end and back on How to, with the label following', () => {
+  it('fades start to end and back on How to, with no caption on the image', () => {
     mockReducedMotion(false)
     vi.useFakeTimers()
     render(<StepFrame step={STEP} />)
 
-    expect(caption()).toHaveTextContent(START_CAPTION)
-    expect(caption()).toHaveClass('bg-ground')
+    expect(caption()).toBeNull()
+    expect(screen.getByAltText(startAlt(STEP.name))).toHaveClass('opacity-100')
     act(() => {
       vi.advanceTimersByTime(PLAY_HALF_MS)
     })
-    expect(caption()).toHaveTextContent(END_CAPTION)
-    expect(caption()).toHaveClass('bg-accent', 'text-accent-ink')
+    expect(caption()).toBeNull()
     expect(screen.getByAltText(endAlt(STEP.name))).toHaveClass('opacity-100')
     act(() => {
       vi.advanceTimersByTime(PLAY_HALF_MS)
     })
-    expect(caption()).toHaveTextContent(START_CAPTION)
+    expect(screen.getByAltText(startAlt(STEP.name))).toHaveClass('opacity-100')
+    expect(caption()).toBeNull()
   })
 
   it('pauses on a tap on the frame, and plays on a second tap', () => {
@@ -119,13 +119,13 @@ describe('StepFrame', () => {
     act(() => {
       vi.advanceTimersByTime(PLAY_HALF_MS * 3)
     })
-    expect(caption()).toHaveTextContent(START_CAPTION)
+    expect(screen.getByAltText(startAlt(STEP.name))).toHaveClass('opacity-100')
 
     fireEvent.click(frame)
     act(() => {
       vi.advanceTimersByTime(PLAY_HALF_MS)
     })
-    expect(caption()).toHaveTextContent(END_CAPTION)
+    expect(screen.getByAltText(endAlt(STEP.name))).toHaveClass('opacity-100')
   })
 
   it('shows End still on How to under reduced motion, with nothing to pause', () => {
@@ -133,12 +133,13 @@ describe('StepFrame', () => {
     vi.useFakeTimers()
     render(<StepFrame step={STEP} />)
 
-    expect(caption()).toHaveTextContent(END_CAPTION)
+    expect(screen.getByAltText(endAlt(STEP.name))).toHaveClass('opacity-100')
     expect(screen.queryByRole('button', { name: 'Pause the movement' })).toBeNull()
     act(() => {
       vi.advanceTimersByTime(PLAY_HALF_MS * 3)
     })
-    expect(caption()).toHaveTextContent(END_CAPTION)
+    expect(screen.getByAltText(endAlt(STEP.name))).toHaveClass('opacity-100')
+    expect(caption()).toBeNull()
   })
 
   it('keeps the box and shows the name when an image fails', () => {

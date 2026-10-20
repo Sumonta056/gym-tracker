@@ -34,6 +34,45 @@ export function recordText(record: SessionRecord, unit: UnitSystem): string {
   return `${formatLoadShort(record.weightKg, unit)} ${weightSymbol(unit)} × ${String(record.reps)}`
 }
 
+export type NewRecordsCardProps = {
+  records: readonly SessionRecord[]
+  unit: UnitSystem
+  nameOf: (exerciseId: string) => string
+  heading?: 'h2' | 'h3'
+}
+
+export function NewRecordsCard({
+  records,
+  unit,
+  nameOf,
+  heading: Heading = 'h3',
+}: NewRecordsCardProps) {
+  return (
+    <Card>
+      <Heading>
+        <MicroLabel>New records</MicroLabel>
+      </Heading>
+      {records.length === 0 ? (
+        <p className="text-muted mt-1.5 text-sm">{NO_RECORD}</p>
+      ) : (
+        <ul className="mt-1.5">
+          {records.map((record) => (
+            <li
+              key={record.exerciseId}
+              className="border-border flex min-h-11 items-center justify-between gap-3 border-b last:border-b-0"
+            >
+              <span className="text-muted min-w-0 text-sm break-words">
+                {nameOf(record.exerciseId)}
+              </span>
+              <strong className="text-accent shrink-0 text-sm">{recordText(record, unit)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
 export type SessionSummaryProps = {
   stats: SessionStats | null
   unit: UnitSystem
@@ -82,30 +121,7 @@ export function SessionSummary({ stats, unit, nameOf, onDone }: SessionSummaryPr
               ))}
             </dl>
 
-            <Card>
-              <h3>
-                <MicroLabel>New records</MicroLabel>
-              </h3>
-              {stats.newRecords.length === 0 ? (
-                <p className="text-muted mt-1.5 text-sm">{NO_RECORD}</p>
-              ) : (
-                <ul className="mt-1.5">
-                  {stats.newRecords.map((record) => (
-                    <li
-                      key={record.exerciseId}
-                      className="border-border flex min-h-11 items-center justify-between gap-3 border-b last:border-b-0"
-                    >
-                      <span className="text-muted min-w-0 text-sm break-words">
-                        {nameOf(record.exerciseId)}
-                      </span>
-                      <strong className="text-accent shrink-0 text-sm">
-                        {recordText(record, unit)}
-                      </strong>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
+            <NewRecordsCard records={stats.newRecords} unit={unit} nameOf={nameOf} />
           </div>
 
           <PrimaryButton onClick={finish}>Done</PrimaryButton>

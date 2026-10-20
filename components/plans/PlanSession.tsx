@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 import {
@@ -18,7 +17,7 @@ import {
   SignedOutOnThisDevice,
   updateSet,
 } from '../../lib/db/repository'
-import { stepStatuses } from '../../lib/metrics/planProgress'
+import { sessionSummary, stepResults, stepStatuses } from '../../lib/metrics/planProgress'
 import { sessionStats } from '../../lib/metrics/sessionStats'
 import { combinePlans, stepGroups } from '../../lib/plans'
 import { restSecondsFor } from '../../lib/workout/restTimer'
@@ -31,18 +30,19 @@ import { lastOf, READ_FAILED, REPOSITORY_LIVE_SOURCE } from '../workout/LiveSess
 import { createRestAlert } from '../workout/restAlert'
 import { RestTimerCard } from '../workout/RestTimerCard'
 import { RestTimeSheet } from '../workout/RestTimeSheet'
-import { SessionSummary } from '../workout/SessionSummary'
 import { systemNow } from '../workout/SessionTimer'
 import { ToastRoom, UndoToast } from '../workout/UndoToast'
 import { WORKOUTS_PATH } from '../workouts/historyText'
 
 import { FinishConfirmSheet } from './FinishConfirmSheet'
 import { MuscleTags } from './MuscleTags'
+import { PlanSessionDone } from './PlanSessionDone'
 import { lastTimeLine, PlanSetRows } from './PlanSetRows'
 import { PlanStepHeader } from './PlanStepHeader'
 import { targetText } from './planText'
 import { StepFooter } from './StepFooter'
 import { StepFrame } from './StepFrame'
+import { StepListPanel } from './StepListPanel'
 import { StepListSheet } from './StepListSheet'
 import { StepProgress } from './StepProgress'
 import { WatchPill } from './WatchPill'
@@ -50,7 +50,7 @@ import { WatchPill } from './WatchPill'
 import type { NotDoneStep } from './FinishConfirmSheet'
 import type { PlanCursor, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { WorkoutSetPatch } from '../../lib/db/repository'
-import type { StepStatus } from '../../lib/metrics/planProgress'
+import type { PlanSessionSummary, StepResult, StepStatus } from '../../lib/metrics/planProgress'
 import type { SessionStats } from '../../lib/metrics/sessionStats'
 import type { PlanStep } from '../../lib/schema/plan'
 import type { UnitSystem } from '../../lib/schema/profile'
@@ -117,6 +117,8 @@ type Snapshot = {
   unit: UnitSystem
   rest: RestSettings
 }
+
+type Finished = { stats: SessionStats; summary: PlanSessionSummary; results: StepResult[] }
 
 type ReadState =
   { status: 'loading' } | { status: 'failed' } | { status: 'ready'; snapshot: Snapshot }
@@ -221,7 +223,6 @@ export type PlanSessionProps = {
   source?: PlanSessionSource
   now?: () => Date
   alert?: RestAlert
-  onFinished?: () => void
 }
 
 export function PlanSession({
@@ -229,7 +230,6 @@ export function PlanSession({
   source = REPOSITORY_PLAN_SOURCE,
   now = systemNow,
   alert,
-  onFinished,
 }: PlanSessionProps) {
   const [plan] = useState(() => combinePlans(session.plan_ids ?? []))
   const [groups] = useState(() => stepGroups(session.plan_ids ?? []))
@@ -245,17 +245,16 @@ export function PlanSession({
   const [changingRest, setChangingRest] = useState<ChangingRest | null>(null)
   const [restBusy, setRestBusy] = useState(false)
   const [restError, setRestError] = useState<string | null>(null)
-  const [summary, setSummary] = useState<SessionStats | null>(null)
+  const [finished, setFinished] = useState<Finished | null>(null)
   const [listOpen, setListOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const alertRef = useRef<RestAlert | null>(alert ?? null)
   const deletes = useRef(0)
   const alive = useRef(true)
   const savedToast = useToast()
-  const router = useRouter()
   const nameId = useId()
 
-  useFocusMode(true)
+  useFocusMode(finished === null)
 
   const refreshSets = useCallback(async () => {
     const sets = await source.listSets(session.id)
@@ -551,7 +550,11 @@ export function PlanSession({
         const history = await source.setsForExercises([
           ...new Set(sets.map((set) => set.exercise_id)),
         ])
-        setSummary(sessionStats(finished, sets, history))
+        setFinished({
+          stats: sessionStats(finished, sets, history),
+          summary: sessionSummary(plan.steps, sets, cursor),
+          results: stepResults(plan.steps, sets, cursor),
+        })
       })
       .catch((cause: unknown) => {
         setBusy(false)
@@ -570,17 +573,27 @@ export function PlanSession({
     setConfirming(true)
   }
 
-  const leave = () => {
-    if (onFinished === undefined) {
-      router.push(WORKOUTS_PATH)
-      return
-    }
+  if (finished !== null) {
+    return (
+      <PlanSessionDone
+        title={plan.title}
+        durationSeconds={finished.stats.durationSeconds}
+        summary={finished.summary}
+        results={finished.results}
+        records={finished.stats.newRecords}
+        unit={unit}
+        nameOf={nameOf}
+      />
+    )
+  }
 
-    onFinished()
+  const statuses = shownStatuses(plan.steps, sets, cursor)
+  const pick = (picked: number) => {
+    if (picked !== index) move({ ...cursor, stepIndex: picked })
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-3">
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-3 lg:max-w-none">
       <PlanStepHeader
         title={plan.title}
         stepIndex={index}
@@ -598,112 +611,129 @@ export function PlanSession({
         onFinish={askFinish}
       />
 
-      <StepProgress
-        names={plan.steps.map((held) => held.name)}
-        statuses={shownStatuses(plan.steps, sets, cursor)}
-      />
+      <StepProgress names={plan.steps.map((held) => held.name)} statuses={statuses} />
 
-      <Card role="region" aria-labelledby={nameId} className="overflow-hidden">
-        <StepFrame key={step.slug} step={step} className="-mx-4 -mt-4" />
-        <h1
-          id={nameId}
-          className="text-text mt-3 text-[19px] leading-tight font-bold tracking-[-0.4px] break-words"
-        >
-          {step.name}
-        </h1>
-        <p className="text-muted mt-0.5 text-sm font-semibold">
-          {targetText(step.target)}
-          {last === undefined ? null : (
-            <>
-              <span aria-hidden="true"> · </span>
-              <span className="sr-only">. </span>
-              {lastTimeLine(last, unit)}
-            </>
-          )}
-        </p>
-        <MuscleTags
-          primary={step.muscles.primary}
-          secondary={step.muscles.secondary}
-          className="mt-2.5"
-        />
-        {step.video === undefined ? null : (
-          <WatchPill name={step.name} video={step.video} className="mt-2.5 bg-transparent" />
-        )}
-      </Card>
-
-      {stepDrafts === undefined ? (
-        <p role="status" className="text-muted text-sm">
-          {READING_STEP}
-        </p>
-      ) : (
-        <PlanSetRows
-          key={step.slug}
-          name={step.name}
-          unit={unit}
-          sets={stepSets}
-          drafts={stepDrafts}
-          previous={last}
-          equipment={step.equipment}
+      <div className="flex flex-col gap-3 lg:-mt-1.5 lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start lg:gap-[18px]">
+        <StepListPanel
+          steps={plan.steps}
+          groups={groups}
+          statuses={statuses}
           busy={busy}
-          onDraftChange={(position, draft) => {
-            setStepDrafts((held) => held.map((row, at) => (at === position ? draft : row)))
-          }}
-          onLog={logSet}
-          onAddRow={addRow}
-          onEdit={(set, position) => {
-            setEditError(null)
-            setEditing({ set, position, exerciseName: step.name })
-          }}
-          onUndo={removeSet}
+          onPick={pick}
+          className="hidden lg:grid"
         />
-      )}
 
-      {restSet === undefined || restCompletedAt === null || tweak?.skipped === true ? null : (
-        <RestTimerCard
-          key={restSet.id}
-          exerciseName={restName}
-          completedAt={restCompletedAt}
-          restSeconds={restBase}
-          savedSeconds={savedRest}
-          extraTaps={tweak?.taps ?? 0}
-          now={now}
-          onZero={() => {
-            restAlert().ring(snapshot.rest.muted)
-          }}
-          onSkip={() => {
-            changeTweak((held) => ({ ...held, skipped: true }))
-          }}
-          onAddThirty={() => {
-            changeTweak((held) => ({ ...held, taps: held.taps + 1 }))
-          }}
-          onChange={() => {
-            setRestError(null)
-            setChangingRest({
-              exerciseId: restSet.exercise_id,
-              exerciseName: restName,
-              seconds: savedRest,
-            })
-          }}
-        />
-      )}
+        <div className="flex min-w-0 flex-col gap-3">
+          <Card role="region" aria-labelledby={nameId} className="overflow-hidden">
+            <StepFrame key={step.slug} step={step} className="-mx-4 -mt-4" />
+            <h1
+              id={nameId}
+              className="text-text mt-3 text-[19px] leading-tight font-bold tracking-[-0.4px] break-words"
+            >
+              {step.name}
+            </h1>
+            <p className="text-muted mt-0.5 text-sm font-semibold">
+              {targetText(step.target)}
+              {last === undefined ? null : (
+                <>
+                  <span aria-hidden="true"> · </span>
+                  <span className="sr-only">. </span>
+                  {lastTimeLine(last, unit)}
+                </>
+              )}
+            </p>
+            <MuscleTags
+              primary={step.muscles.primary}
+              secondary={step.muscles.secondary}
+              className="mt-2.5"
+            />
+            {step.video === undefined ? null : (
+              <WatchPill name={step.name} video={step.video} className="mt-2.5 bg-transparent" />
+            )}
+          </Card>
 
-      {error === null ? null : (
-        <p role="alert" className="text-danger text-sm">
-          {error}
-        </p>
-      )}
+          <div className="flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
+            {stepDrafts === undefined ? (
+              <p role="status" className="text-muted text-sm">
+                {READING_STEP}
+              </p>
+            ) : (
+              <PlanSetRows
+                key={step.slug}
+                name={step.name}
+                unit={unit}
+                sets={stepSets}
+                drafts={stepDrafts}
+                previous={last}
+                equipment={step.equipment}
+                busy={busy}
+                onDraftChange={(position, draft) => {
+                  setStepDrafts((held) => held.map((row, at) => (at === position ? draft : row)))
+                }}
+                onLog={logSet}
+                onAddRow={addRow}
+                onEdit={(set, position) => {
+                  setEditError(null)
+                  setEditing({ set, position, exerciseName: step.name })
+                }}
+                onUndo={removeSet}
+              />
+            )}
 
-      <StepFooter
-        nextName={nextStep?.name}
-        busy={busy}
-        onSkip={() => {
-          move(skipStep(cursor, step.slug, lastIndex))
-        }}
-        onNext={() => {
-          move({ ...cursor, stepIndex: Math.min(index + 1, lastIndex) })
-        }}
-        onFinish={askFinish}
-      />
+            <div className="flex min-w-0 flex-col gap-3">
+              {restSet === undefined ||
+              restCompletedAt === null ||
+              tweak?.skipped === true ? null : (
+                <RestTimerCard
+                  key={restSet.id}
+                  exerciseName={restName}
+                  completedAt={restCompletedAt}
+                  restSeconds={restBase}
+                  savedSeconds={savedRest}
+                  extraTaps={tweak?.taps ?? 0}
+                  narrow
+                  now={now}
+                  onZero={() => {
+                    restAlert().ring(snapshot.rest.muted)
+                  }}
+                  onSkip={() => {
+                    changeTweak((held) => ({ ...held, skipped: true }))
+                  }}
+                  onAddThirty={() => {
+                    changeTweak((held) => ({ ...held, taps: held.taps + 1 }))
+                  }}
+                  onChange={() => {
+                    setRestError(null)
+                    setChangingRest({
+                      exerciseId: restSet.exercise_id,
+                      exerciseName: restName,
+                      seconds: savedRest,
+                    })
+                  }}
+                />
+              )}
+
+              <StepFooter
+                nextName={nextStep?.name}
+                busy={busy}
+                onSkip={() => {
+                  move(skipStep(cursor, step.slug, lastIndex))
+                }}
+                onNext={() => {
+                  move({ ...cursor, stepIndex: Math.min(index + 1, lastIndex) })
+                }}
+                onFinish={askFinish}
+              />
+            </div>
+          </div>
+
+          {error === null ? null : (
+            <p role="alert" className="text-danger text-sm">
+              {error}
+            </p>
+          )}
+        </div>
+      </div>
 
       <ToastRoom shown={toast !== null} />
 
@@ -738,10 +768,10 @@ export function PlanSession({
         title={plan.title}
         steps={plan.steps}
         groups={groups}
-        statuses={shownStatuses(plan.steps, sets, cursor)}
+        statuses={statuses}
         onPick={(picked) => {
           setListOpen(false)
-          if (picked !== index) move({ ...cursor, stepIndex: picked })
+          pick(picked)
         }}
         onClose={() => {
           setListOpen(false)
@@ -758,8 +788,6 @@ export function PlanSession({
           setConfirming(false)
         }}
       />
-
-      <SessionSummary stats={summary} unit={unit} nameOf={nameOf} onDone={leave} />
 
       <UndoToast
         toast={toast}

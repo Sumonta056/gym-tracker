@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { StepFooter } from './StepFooter'
 
+const SKIP = /^Skip ?(this step)?$/
+
 function setup(nextName: string | undefined, busy = false) {
   const handlers = { onSkip: vi.fn(), onNext: vi.fn(), onFinish: vi.fn() }
   render(<StepFooter nextName={nextName} busy={busy} {...handlers} />)
@@ -21,7 +23,7 @@ describe('StepFooter', () => {
     const handlers = setup('Incline Dumbbell Fly')
 
     await userEvent.click(screen.getByRole('button', { name: /^Next step/ }))
-    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    await userEvent.click(screen.getByRole('button', { name: SKIP }))
     expect(handlers.onNext).toHaveBeenCalledOnce()
     expect(handlers.onSkip).toHaveBeenCalledOnce()
   })
@@ -30,7 +32,7 @@ describe('StepFooter', () => {
     const handlers = setup(undefined)
 
     expect(screen.queryByRole('button', { name: /^Next step/ })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Skip' })).toBeNull()
+    expect(screen.queryByRole('button', { name: SKIP })).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: 'Finish session' }))
     expect(handlers.onFinish).toHaveBeenCalledOnce()
   })
@@ -38,14 +40,14 @@ describe('StepFooter', () => {
   it('makes both buttons 54 px tall', () => {
     setup('Rope Pushdown')
 
-    expect(screen.getByRole('button', { name: 'Skip' })).toHaveClass('min-h-[54px]')
+    expect(screen.getByRole('button', { name: SKIP })).toHaveClass('min-h-[54px]')
     expect(screen.getByRole('button', { name: /^Next step/ })).toHaveClass('min-h-[54px]')
   })
 
   it('disables both buttons while a write runs', () => {
     setup('Rope Pushdown', true)
 
-    expect(screen.getByRole('button', { name: 'Skip' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: SKIP })).toBeDisabled()
     expect(screen.getByRole('button', { name: /^Next step/ })).toBeDisabled()
   })
 
@@ -53,5 +55,14 @@ describe('StepFooter', () => {
     setup('Rope Pushdown')
 
     expect(screen.getByTestId('step-footer')).toHaveClass('fixed', 'bottom-0', 'lg:static')
+  })
+
+  it('stacks Next step over Skip this step at 1024 px and up', () => {
+    setup('Rope Pushdown')
+
+    const skip = screen.getByRole('button', { name: SKIP })
+    expect(skip).toHaveClass('lg:order-last')
+    expect(skip.parentElement).toHaveClass('grid-cols-[1fr_2fr]', 'lg:grid-cols-1')
+    expect(screen.getByText(/this step/)).toHaveClass('hidden', 'lg:inline')
   })
 })

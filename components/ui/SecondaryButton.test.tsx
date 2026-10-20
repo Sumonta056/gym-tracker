@@ -31,6 +31,14 @@ describe('SecondaryButton', () => {
     expect(button).not.toHaveClass('px-5')
   })
 
+  it('drops to 44 px tall and 14 px text at the compact size', () => {
+    render(<SecondaryButton size="compact">Add set</SecondaryButton>)
+    const button = screen.getByRole('button')
+    expect(button).toHaveClass('min-h-11', 'text-sm')
+    expect(button).not.toHaveClass('min-h-[54px]')
+    expect(button).not.toHaveClass('text-[15px]')
+  })
+
   it('writes its label in the text token by default', () => {
     render(<SecondaryButton>Cancel</SecondaryButton>)
     expect(screen.getByRole('button')).toHaveClass('text-text')

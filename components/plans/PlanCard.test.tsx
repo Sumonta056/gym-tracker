@@ -107,4 +107,11 @@ describe('PlanThumb', () => {
     expect(container.querySelector('img')).toBeNull()
     expect(container.firstElementChild).toHaveClass('h-10', 'w-[60px]', 'bg-surface-2')
   })
+
+  it('sits on the surface token when asked, for a row on the second surface', () => {
+    const { container } = render(<PlanThumb src={undefined} ground="surface" />)
+
+    expect(container.firstElementChild).toHaveClass('bg-surface')
+    expect(container.firstElementChild).not.toHaveClass('bg-surface-2')
+  })
 })

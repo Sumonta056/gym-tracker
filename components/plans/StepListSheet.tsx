@@ -8,6 +8,7 @@ import { targetText } from './planText'
 
 import type { StepStatus } from '../../lib/metrics/planProgress'
 import type { PlanStep } from '../../lib/schema/plan'
+import type { ReactNode } from 'react'
 
 export const STEP_LIST_CLOSE = 'Close the step list'
 
@@ -25,14 +26,20 @@ const MARK_CLASS: Record<StepStatus, string> = {
   todo: 'border-border',
 }
 
-export function StepMark({ status }: { status: StepStatus }) {
+export type StepMarkProps = {
+  status: StepStatus
+  label?: ReactNode
+  tone?: 'muted' | 'text'
+}
+
+export function StepMark({ status, label, tone = 'muted' }: StepMarkProps) {
   const mark = STEP_MARK[status]
 
   return (
     <span
       className={cn(
         'inline-flex items-center gap-1.5 text-xs font-bold whitespace-nowrap',
-        status === 'now' ? 'text-accent' : 'text-muted',
+        status === 'now' ? 'text-accent' : tone === 'text' ? 'text-text' : 'text-muted',
       )}
     >
       <span
@@ -44,7 +51,7 @@ export function StepMark({ status }: { status: StepStatus }) {
       >
         {mark.glyph}
       </span>
-      {mark.word}
+      {label ?? mark.word}
     </span>
   )
 }

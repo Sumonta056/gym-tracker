@@ -58,7 +58,9 @@ describe('FinishConfirmSheet', () => {
     setup()
 
     const dialog = screen.getByRole('dialog', { name: FINISH_TITLE })
-    expect(dialog).toHaveAccessibleDescription('3 steps not done. The 15 sets you ticked are kept.')
+    expect(dialog).toHaveAccessibleDescription(
+      '3 steps not done. The summary lists them as not done. The 15 sets you ticked are kept.',
+    )
     const rows = within(screen.getByRole('list', { name: 'Steps not done' })).getAllByRole(
       'listitem',
     )

@@ -1,5 +1,5 @@
 import { expect, readStore, test } from './support/signedIn'
-import { openPlanSession, PLAN_FIRST_STEP, pullOnlyThisWindow } from './support/workout'
+import { openPlanSession, PLAN_FIRST_STEP, pullOnlyThisWindow, stepCount } from './support/workout'
 
 type LocalSet = { exercise_id: string; reps: number; weight_kg: number | null }
 type LocalCursor = { sessionId: string; stepIndex: number; skipped: string[] }
@@ -16,7 +16,7 @@ test('starts a plan, logs a set, moves on, shows the muscles and resumes after a
 }) => {
   await openPlanSession(page, context)
 
-  await expect(page.getByRole('button', { name: /^Step 1 of 9, elapsed / })).toBeVisible()
+  await expect(stepCount(page, 1, 9)).toBeVisible()
   await expect(page.getByRole('link', { name: 'Leave to Workouts' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'How to' })).toHaveAttribute('aria-pressed', 'true')
 
@@ -36,7 +36,7 @@ test('starts a plan, logs a set, moves on, shows the muscles and resumes after a
 
   await page.getByRole('button', { name: /^Next step/ }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Flat Dumbbell Press' })).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Step 2 of 9, elapsed / })).toBeVisible()
+  await expect(stepCount(page, 2, 9)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Previous step' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Muscles' }).click()
@@ -64,6 +64,7 @@ test('jumps to any step from the step list and holds it after a reload', async (
   page,
   context,
 }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
   await openPlanSession(page, context)
 
   await page.getByRole('button', { name: /^Step 1 of 9, elapsed / }).click()
@@ -115,7 +116,84 @@ test('takes a typed weight through Other… and asks before finishing with steps
 
   await page.getByRole('button', { name: 'Finish', exact: true }).click()
   await confirm.getByRole('button', { name: 'Finish anyway' }).click()
-  await expect(page.getByRole('dialog', { name: 'Session done' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Session done' })).toBeVisible()
+  await expect(page.getByText('Volume 110 kg · 1 set · 1 of 9 steps')).toBeVisible()
+  await expect(
+    page
+      .getByRole('region', { name: 'Steps' })
+      .getByRole('listitem')
+      .filter({ hasText: 'Not done' }),
+  ).toHaveCount(8)
+  await expect(page.getByRole('link', { name: 'Back to Workouts' })).toHaveAttribute(
+    'href',
+    '/workouts',
+  )
+})
+
+test('runs Shoulders and Legs as 1 session and counts the steps on the Done screen', async ({
+  page,
+  context,
+}) => {
+  await openPlanSession(page, context, ['Shoulders', 'Legs'], 'Shoulder Press')
+
+  await expect(page.getByText('Shoulders + Legs', { exact: true })).toBeVisible()
+  await expect(stepCount(page, 1, 8)).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Steps' }).getByRole('listitem')).toHaveCount(8)
+
+  await page.getByRole('combobox', { name: 'Set 1 weight' }).selectOption('10')
+  await page.getByLabel('Set 1 reps').fill('10')
+  await page.getByRole('button', { name: 'Set 1 done' }).click()
+  await expect.poll(async () => (await readStore<LocalSet>(page, 'workoutSets')).length).toBe(1)
+
+  await page.getByRole('button', { name: 'Finish', exact: true }).click()
+  const confirm = page.getByRole('dialog', { name: 'Finish the session?' })
+  await expect(confirm.getByText('7 steps not done.')).toBeVisible()
+  await confirm.getByRole('button', { name: 'Finish anyway' }).click()
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Session done' })).toBeVisible()
+  await expect(page.getByText('Shoulders + Legs', { exact: true })).toBeVisible()
+  await expect(page.getByText('Volume 100 kg · 1 set · 1 of 8 steps')).toBeVisible()
+  const rows = page.getByRole('region', { name: 'Steps' }).getByRole('listitem')
+  await expect(rows).toHaveCount(8)
+  await expect(rows.first()).toContainText('Shoulder Press')
+  await expect(rows.first()).toContainText('1 × 10 kg')
+  await expect(rows.nth(5)).toContainText('Squat')
+})
+
+test('opens a step from the list beside it at 1440 px, with the sidebar and no bottom bar', async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openPlanSession(page, context)
+
+  await expect(page.getByRole('navigation', { name: 'Sidebar' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Bottom navigation' })).toBeHidden()
+  await expect(stepCount(page, 1, 9)).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Step 1 of 9, elapsed / })).toBeHidden()
+
+  const list = page.getByRole('region', { name: 'Steps' })
+  await expect(list.getByText('0 done · 0 skipped · 9 to go')).toBeVisible()
+  await expect(list.getByRole('button', { name: /^1\. .+, Now$/ })).toHaveAttribute(
+    'aria-current',
+    'step',
+  )
+  await list.getByRole('button', { name: /^7\. Rope Pushdown, / }).click()
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Rope Pushdown' })).toBeVisible()
+  await expect(list.getByRole('button', { name: /^7\. Rope Pushdown, .+, Now$/ })).toHaveAttribute(
+    'aria-current',
+    'step',
+  )
+  await expect(stepCount(page, 7, 9)).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect
+    .poll(async () =>
+      (await readStore<LocalCursor>(page, 'planCursors')).map((cursor) => cursor.stepIndex),
+    )
+    .toEqual([6])
+  await expect(page.getByRole('button', { name: 'Skip this step' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Next step/ })).toBeVisible()
 })
 
 test('fits every weight label and two digit reps in the set row at 320 px', async ({ page }) => {

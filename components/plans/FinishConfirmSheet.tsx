@@ -16,6 +16,8 @@ export const FINISH_ANYWAY = 'Finish anyway'
 
 export const KEEP_GOING = 'Keep going'
 
+export const LISTED_TEXT = 'The summary lists them as not done.'
+
 export type NotDoneStep = { index: number; name: string; status: StepStatus }
 
 function counted(count: number, word: string): string {
@@ -67,7 +69,7 @@ export function FinishConfirmSheet({
       <div className="flex flex-col gap-3">
         <p id={bodyId} className="text-[15px] leading-[1.45]">
           <strong>{notDoneText(notDone.length)}</strong>{' '}
-          <span className="text-muted text-sm">{keptText(setCount)}</span>
+          <span className="text-muted text-sm">{`${LISTED_TEXT} ${keptText(setCount)}`}</span>
         </p>
         <ul aria-label="Steps not done" className="bg-surface-2 rounded-input px-3.5 py-1">
           {notDone.map((step) => (

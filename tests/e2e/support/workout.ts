@@ -164,14 +164,46 @@ export async function openLiftCharts(
 
 export const PLAN_FIRST_STEP = 'Incline Dumbbell Press'
 
-export async function openPlanSession(page: Page, context: BrowserContext): Promise<void> {
+export function stepCount(page: Page, step: number, total: number) {
+  return page
+    .getByRole('button', {
+      name: new RegExp(`^Step ${String(step)} of ${String(total)}, elapsed `),
+    })
+    .or(
+      page
+        .getByTestId('step-count-wide')
+        .filter({ hasText: new RegExp(`^Step ${String(step)} of ${String(total)} ·`) }),
+    )
+    .filter({ visible: true })
+}
+
+export async function openPlanSession(
+  page: Page,
+  context: BrowserContext,
+  plans: readonly string[] = [],
+  firstStep = PLAN_FIRST_STEP,
+): Promise<void> {
   await page.goto('/workouts')
   await expect(page.getByRole('heading', { level: 1, name: 'Workouts' })).toBeVisible()
   await context.route(SUPABASE, (route) => route.abort('internetdisconnected'))
 
-  await page.getByRole('button', { name: /^Start Chest \+ Triceps/ }).click()
+  if (plans.length > 0) {
+    const list = page.getByRole('list', { name: 'Plans' })
+    await list.getByRole('button', { name: /^Chest \+ Triceps/ }).click()
+    for (const title of plans) {
+      await list.getByRole('button', { name: new RegExp(`^${title}`) }).click()
+    }
+  }
+
+  await page
+    .getByRole('button', {
+      name: new RegExp(
+        `^Start ${(plans.length > 0 ? plans : ['Chest + Triceps']).join(' + ').replaceAll('+', '\\+')}`,
+      ),
+    })
+    .click()
   await expect(page).toHaveURL(/\/workout$/)
-  await expect(page.getByRole('heading', { level: 1, name: PLAN_FIRST_STEP })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: firstStep })).toBeVisible()
   await expect
     .poll(() =>
       page

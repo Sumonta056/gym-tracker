@@ -296,6 +296,14 @@ describe('PlanSetRows', () => {
     expect(props.onAddRow).toHaveBeenCalledOnce()
   })
 
+  it('draws + Add set 44 px tall with 14 px text, as plates 18 and 18b', () => {
+    setup({ drafts: [REPEAT] })
+
+    const add = screen.getByRole('button', { name: 'Add set to Flat Dumbbell Press' })
+    expect(add).toHaveClass('min-h-11', 'text-sm')
+    expect(add).not.toHaveClass('min-h-[54px]')
+  })
+
   it('makes every tick 44 px square', () => {
     setup({ sets: [loggedSet()], drafts: [REPEAT] })
 

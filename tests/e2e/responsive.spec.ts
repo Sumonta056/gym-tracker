@@ -14,6 +14,7 @@ import {
   openPicker,
   openPlanSession,
   openWithLiftWeek,
+  stepCount,
 } from './support/workout'
 
 import type { Page } from '@playwright/test'
@@ -568,9 +569,9 @@ signedIn.describe('signed in on /workout in plan mode', () => {
   })
 
   signedIn('never scrolls sideways at 320 px on Dumbbell Overhead Extension', async ({ page }) => {
-    await page.getByRole('button', { name: 'Skip' }).click()
+    await page.getByRole('button', { name: /^Skip( this step)?$/ }).click()
     for (let step = 2; step <= 6; step += 1) {
-      await expect(page.getByText(new RegExp(`^Step ${String(step)} of 9`))).toBeVisible()
+      await expect(stepCount(page, step, 9)).toBeVisible()
       if (step < 6) await page.getByRole('button', { name: /^Next step/ }).click()
     }
     await expect(
@@ -587,6 +588,7 @@ signedIn.describe('signed in on /workout in plan mode', () => {
   signedIn(
     'keeps every tap target 44 px or taller in the step list, at all seven widths',
     async ({ page }) => {
+      await resizeAndSettle(page, 390)
       await page.getByRole('button', { name: /^Step 1 of 9, elapsed / }).click()
       await expect(page.getByRole('dialog', { name: 'Chest + Triceps' })).toBeVisible()
       expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])

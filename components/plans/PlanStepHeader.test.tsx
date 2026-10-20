@@ -72,6 +72,17 @@ describe('PlanStepHeader', () => {
     expect(screen.queryByText('Elapsed')).toBeNull()
   })
 
+  it('hides the step button at 1024 px and up, and shows the count as plain text there', () => {
+    setup(1)
+
+    expect(screen.getByRole('button', { name: JUMP })).toHaveClass('lg:hidden')
+    const wide = screen.getByTestId('step-count-wide')
+    expect(wide.tagName).toBe('P')
+    expect(wide).toHaveClass('hidden', 'lg:inline-flex')
+    expect(wide).toHaveTextContent(/^Step 2 of 9 ·\s?12:41$/)
+    expect(wide).not.toHaveTextContent('▾')
+  })
+
   it('opens the step list from the step button', async () => {
     const { onOpenList } = setup(1)
 

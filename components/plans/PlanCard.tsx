@@ -8,14 +8,16 @@ import type { Plan } from '../../lib/schema/plan'
 
 export type PlanThumbProps = {
   src: string | undefined
+  ground?: 'surface' | 'surface-2'
   className?: string
 }
 
-export function PlanThumb({ src, className }: PlanThumbProps) {
+export function PlanThumb({ src, ground = 'surface-2', className }: PlanThumbProps) {
   return (
     <span
       className={cn(
-        'bg-surface-2 block h-10 w-[60px] shrink-0 overflow-hidden rounded-[10px]',
+        'block h-10 w-[60px] shrink-0 overflow-hidden rounded-[10px]',
+        ground === 'surface' ? 'bg-surface' : 'bg-surface-2',
         className,
       )}
     >
