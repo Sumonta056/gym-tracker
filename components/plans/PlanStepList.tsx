@@ -98,13 +98,13 @@ export function PlanStepList({ plan, source = readLastSets }: PlanStepListProps)
                         {(starts[groupIndex] ?? 0) + index + 1}
                       </span>
                       <PlanThumb src={step.images.start} />
-                      <span className="grid min-w-0 flex-1">
+                      <span className="grid min-w-0 flex-1 justify-items-start">
                         <strong className="text-sm font-bold">{step.name}</strong>
                         <span className="text-muted text-xs">{stepLine(step, last)}</span>
+                        {step.video === undefined ? null : (
+                          <WatchPill name={step.name} video={step.video} className="mt-1.5" />
+                        )}
                       </span>
-                      {step.video === undefined ? null : (
-                        <WatchPill name={step.name} video={step.video} />
-                      )}
                     </li>
                   )
                 })}

@@ -26,8 +26,6 @@ const SCROLL_WIDTHS = [...new Set([...STEP_WIDTHS, 360, 414, 640, 834, 1280, 192
   (a, b) => a - b,
 )
 const MINIMUM_TAP_TARGET = 44
-const SEGMENT_TAP_TARGET = 40
-const SEGMENT_GROUP = '[role="group"][aria-label="Image view"]'
 const SIDEBAR_BREAKPOINT = 1024
 
 const CONTROL_SELECTOR = 'a, button, input, select, textarea, [role="button"], [role="tab"]'
@@ -98,15 +96,14 @@ function sideways(page: Page): Promise<string[]> {
   })
 }
 
-function smallTargets(page: Page, segment = MINIMUM_TAP_TARGET): Promise<string[]> {
+function smallTargets(page: Page): Promise<string[]> {
   return page.evaluate(
-    ({ selector, minimum, segmentGroup, segmentMinimum }) => {
+    ({ selector, minimum }) => {
       const out: string[] = []
       for (const element of document.querySelectorAll(selector)) {
         const box = element.getBoundingClientRect()
         if (box.width === 0 && box.height === 0) continue
-        const floor = element.closest(segmentGroup) === null ? minimum : segmentMinimum
-        if (box.height < floor) {
+        if (box.height < minimum) {
           const label = element.textContent.trim().slice(0, 30)
           out.push(`${element.tagName} "${label}" ${String(Math.round(box.height))}px`)
         }
@@ -116,8 +113,6 @@ function smallTargets(page: Page, segment = MINIMUM_TAP_TARGET): Promise<string[
     {
       selector: CONTROL_SELECTOR,
       minimum: MINIMUM_TAP_TARGET,
-      segmentGroup: SEGMENT_GROUP,
-      segmentMinimum: segment,
     },
   )
 }
@@ -585,12 +580,16 @@ signedIn.describe('signed in on /workout in plan mode', () => {
     expect(await atEachWidth(page, [320], () => sideways(page))).toEqual([])
   })
 
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
   signedIn(
-    'keeps every tap target 44 px or taller, the 4 view buttons 40 px, at all seven widths',
+    'keeps every tap target 44 px or taller in the step list, at all seven widths',
     async ({ page }) => {
-      expect(
-        await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page, SEGMENT_TAP_TARGET)),
-      ).toEqual([])
+      await page.getByRole('button', { name: /^Step 1 of 9, elapsed / }).click()
+      await expect(page.getByRole('dialog', { name: 'Chest + Triceps' })).toBeVisible()
+      expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
     },
   )
 

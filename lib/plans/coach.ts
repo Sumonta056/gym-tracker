@@ -31,6 +31,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -55,6 +56,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -79,6 +81,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -103,6 +106,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -127,6 +131,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
         ],
@@ -156,6 +161,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -180,6 +186,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'cable',
             bodyweight: false,
           },
           {
@@ -204,6 +211,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'cable',
             bodyweight: false,
           },
           {
@@ -228,6 +236,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'body only',
             bodyweight: true,
           },
         ],
@@ -264,6 +273,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'cable',
             bodyweight: false,
           },
           {
@@ -288,6 +298,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'cable',
             bodyweight: false,
           },
           {
@@ -312,6 +323,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'machine',
             bodyweight: false,
           },
           {
@@ -336,6 +348,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -360,6 +373,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'barbell',
             bodyweight: false,
           },
         ],
@@ -389,6 +403,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -413,6 +428,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -437,6 +453,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'barbell',
             bodyweight: false,
           },
           {
@@ -461,6 +478,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'cable',
             bodyweight: false,
           },
         ],
@@ -497,6 +515,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -521,6 +540,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -545,6 +565,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
           {
@@ -569,6 +590,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'cable',
             bodyweight: false,
           },
           {
@@ -593,6 +615,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'dumbbell',
             bodyweight: false,
           },
         ],
@@ -629,6 +652,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'barbell',
             bodyweight: false,
           },
           {
@@ -653,6 +677,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'machine',
             bodyweight: false,
           },
           {
@@ -677,6 +702,7 @@ export const COACH_PLANS: Plan[] = [
               repsMin: 10,
               repsMax: 12,
             },
+            equipment: 'machine',
             bodyweight: false,
           },
         ],

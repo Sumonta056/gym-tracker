@@ -10,7 +10,7 @@ import { MuscleMap } from './MuscleMap'
 
 import type { PlanStep } from '../../lib/schema/plan'
 
-export type FrameView = 'start' | 'end' | 'play' | 'muscles'
+export type FrameView = 'howto' | 'muscles'
 
 export const PLAY_HALF_MS = 1200
 
@@ -18,15 +18,13 @@ export const START_CAPTION = '1 · Start'
 
 export const END_CAPTION = '2 · End'
 
-const VIEWS: { view: FrameView; label: string; glyph?: string }[] = [
-  { view: 'start', label: 'Start' },
-  { view: 'end', label: 'End' },
-  { view: 'play', label: 'Play', glyph: '▶' },
+const VIEWS: { view: FrameView; label: string }[] = [
+  { view: 'howto', label: 'How to' },
   { view: 'muscles', label: 'Muscles' },
 ]
 
 const CAPTION =
-  'pointer-events-none absolute top-2 left-2 rounded-full px-[9px] py-[3px] text-[11px] font-bold'
+  'pointer-events-none absolute top-6 left-6 rounded-full px-[9px] py-[3px] text-[11px] font-bold'
 
 export function startAlt(name: string): string {
   return `${name}, start position`
@@ -92,79 +90,67 @@ function FrameImage({
 }
 
 export function StepFrame({ step, className }: StepFrameProps) {
-  const [view, setView] = useState<FrameView>('play')
+  const [view, setView] = useState<FrameView>('howto')
   const [paused, setPaused] = useState(false)
   const [failed, setFailed] = useState(false)
   const [still] = useState(prefersReducedMotion)
-  const phase = usePlay(view === 'play', still, paused)
-  const showsEnd = view === 'end' || (view === 'play' && phase === 'end')
+  const phase = usePlay(view === 'howto', still, paused)
+  const showsEnd = phase === 'end'
   const caption = showsEnd ? END_CAPTION : START_CAPTION
   const fail = () => {
     setFailed(true)
   }
 
   return (
-    <div className={className}>
-      <figure
-        data-view={view}
-        className="bg-surface-2 relative m-0 aspect-[3/2] w-full overflow-hidden rounded-[14px]"
-      >
-        {view === 'muscles' ? (
-          <>
-            <MuscleMap
-              primary={step.muscles.primary}
-              secondary={step.muscles.secondary}
-              size="frame"
+    <figure
+      data-view={view}
+      className={cn('bg-surface-2 relative m-0 aspect-[16/9] overflow-hidden', className)}
+    >
+      {view === 'muscles' ? (
+        <MuscleMap primary={step.muscles.primary} secondary={step.muscles.secondary} size="frame" />
+      ) : failed ? (
+        <p
+          data-testid="frame-failed"
+          className="text-muted absolute inset-0 grid place-items-center p-4 text-center text-sm font-bold"
+        >
+          {step.name}
+        </p>
+      ) : (
+        <>
+          <FrameImage
+            src={step.images.start}
+            alt={startAlt(step.name)}
+            shown={!showsEnd}
+            onError={fail}
+          />
+          <FrameImage
+            src={step.images.end}
+            alt={endAlt(step.name)}
+            shown={showsEnd}
+            onError={fail}
+          />
+          {still ? null : (
+            <button
+              type="button"
+              aria-pressed={paused}
+              aria-label="Pause the movement"
+              onClick={() => {
+                setPaused((held) => !held)
+              }}
+              className="absolute inset-0 size-full focus-visible:outline-offset-[-4px]"
             />
-            <figcaption className={cn(CAPTION, 'bg-ground text-text')}>Muscles</figcaption>
-          </>
-        ) : failed ? (
-          <p
-            data-testid="frame-failed"
-            className="text-muted absolute inset-0 grid place-items-center p-4 text-center text-sm font-bold"
+          )}
+          <figcaption
+            className={cn(CAPTION, showsEnd ? 'bg-accent text-accent-ink' : 'bg-ground text-text')}
           >
-            {step.name}
-          </p>
-        ) : (
-          <>
-            <FrameImage
-              src={step.images.start}
-              alt={startAlt(step.name)}
-              shown={!showsEnd}
-              onError={fail}
-            />
-            <FrameImage
-              src={step.images.end}
-              alt={endAlt(step.name)}
-              shown={showsEnd}
-              onError={fail}
-            />
-            {view === 'play' && !still ? (
-              <button
-                type="button"
-                aria-pressed={paused}
-                aria-label="Pause the movement"
-                onClick={() => {
-                  setPaused((held) => !held)
-                }}
-                className="absolute inset-0 size-full focus-visible:outline-offset-[-4px]"
-              />
-            ) : null}
-            <figcaption
-              className={cn(
-                CAPTION,
-                showsEnd ? 'bg-accent text-accent-ink' : 'bg-ground text-text',
-              )}
-            >
-              {caption}
-            </figcaption>
-          </>
-        )}
-      </figure>
+            {caption}
+          </figcaption>
+        </>
+      )}
       <div
         role="group"
         aria-label="Image view"
-        className="bg-surface-2 mt-2 grid grid-cols-4 gap-1 rounded-xl p-1"
+        className="bg-ground/85 absolute bottom-2 left-6 flex gap-1 rounded-xl p-[3px]"
       >
         {VIEWS.map((item) => (
           <button
@@ -176,15 +162,14 @@ export function StepFrame({ step, className }: StepFrameProps) {
               setPaused(false)
             }}
             className={cn(
-              'min-h-10 min-w-0 rounded-[9px] px-1 text-[13px] font-bold',
-              view === item.view ? 'bg-surface text-text' : 'text-muted',
+              'min-h-11 rounded-[9px] px-2.5 text-[13px] font-bold',
+              view === item.view ? 'bg-accent text-accent-ink' : 'text-text',
             )}
           >
-            {item.glyph === undefined ? null : <span aria-hidden="true">{`${item.glyph} `}</span>}
             {item.label}
           </button>
         ))}
       </div>
-    </div>
+    </figure>
   )
 }

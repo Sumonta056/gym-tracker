@@ -101,12 +101,12 @@ describe('MuscleMap', () => {
     }
   })
 
-  it('draws the frame size as a 3 by 2 box with Front, Back and the key', () => {
+  it('fills the frame with the figures on the right and the key top left', () => {
     const { container } = press('frame')
     const root = screen.getByRole('img')
-    expect(root.className).toContain('aspect-[3/2]')
-    expect(root.className).toContain('w-full')
-    expect(container.querySelector('svg')?.getAttribute('class')).toContain('w-[min(31cqw,88px)]')
+    expect(root).toHaveClass('absolute', 'inset-0', 'justify-end')
+    expect(container.querySelector('svg')?.getAttribute('class')).toContain('w-[min(19cqw,70px)]')
+    expect(screen.getByText('main').parentElement).toHaveClass('top-6', 'left-[26px]')
     expect(root).toHaveTextContent('Front')
     expect(root).toHaveTextContent('Back')
     expect(root).toHaveTextContent('main')
@@ -117,6 +117,7 @@ describe('MuscleMap', () => {
     const { container } = press('card')
     expect(container.querySelector('svg')?.getAttribute('class')).toContain('w-[52px]')
     expect(screen.getByRole('img')).toHaveTextContent('Front')
+    expect(screen.getByText('main').parentElement).toHaveClass('right-2.5')
   })
 
   it('draws the chip size with 26 px figures and no words', () => {

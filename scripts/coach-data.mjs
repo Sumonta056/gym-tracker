@@ -39,6 +39,7 @@ function toStep(step, uuids) {
     muscles: { primary: step.muscles.primary, secondary: step.muscles.secondary },
     ...(step.video === undefined ? {} : { video: step.video }),
     target: TARGET_REPS,
+    equipment: step.equipment,
     bodyweight: step.equipment === 'body only',
   }
 }

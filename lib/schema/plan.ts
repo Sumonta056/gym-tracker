@@ -21,11 +21,15 @@ export const MUSCLES = [
   'calves',
 ] as const
 
+export const EQUIPMENT = ['dumbbell', 'barbell', 'cable', 'machine', 'body only'] as const
+
 export const IMAGE_PATH = /^\/exercises\/[a-z0-9-]+-(start|end)\.webp$/
 
 export const planIdSchema = z.enum(PLAN_IDS, { error: 'Pick a coach plan.' })
 
 export const muscleSchema = z.enum(MUSCLES, { error: 'Pick a muscle.' })
+
+export const equipmentSchema = z.enum(EQUIPMENT, { error: 'Pick the equipment.' })
 
 const imagePath = z.string().regex(IMAGE_PATH, {
   error: 'An image path is /exercises/<slug>-start.webp or /exercises/<slug>-end.webp.',
@@ -60,6 +64,7 @@ export const planStepSchema = z.object({
   }),
   video: planVideoSchema.optional(),
   target: planTargetSchema,
+  equipment: equipmentSchema,
   bodyweight: z.boolean({ error: 'Body weight is either true or false.' }).default(false),
 })
 
@@ -78,6 +83,8 @@ export const planSchema = z.object({
 export type PlanId = z.infer<typeof planIdSchema>
 
 export type Muscle = z.infer<typeof muscleSchema>
+
+export type Equipment = z.infer<typeof equipmentSchema>
 
 export type PlanVideo = z.infer<typeof planVideoSchema>
 

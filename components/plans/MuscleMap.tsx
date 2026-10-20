@@ -27,14 +27,13 @@ const SECONDARY_STROKE_OPACITY = 0.7
 const FIGURE_CLASS: Record<MuscleMapSize, string> = {
   chip: 'w-[26px]',
   card: 'w-[52px]',
-  frame: 'w-[min(31cqw,88px)]',
+  frame: 'w-[min(19cqw,70px)]',
 }
 
 const ROOT_CLASS: Record<MuscleMapSize, string> = {
   chip: 'inline-flex shrink-0 gap-0.5',
   card: 'bg-ground relative flex aspect-[3/2] w-full items-center justify-center gap-4',
-  frame:
-    'bg-ground @container relative flex aspect-[3/2] w-full items-center justify-center gap-[min(9%,28px)] pr-[8%]',
+  frame: 'bg-ground @container absolute inset-0 flex items-center justify-end gap-2.5 pr-6',
 }
 
 export function muscleLabel(primary: readonly Muscle[], secondary: readonly Muscle[]): string {
@@ -105,11 +104,14 @@ function Figure({
   )
 }
 
-function Key() {
+function Key({ size }: { size: MuscleMapSize }) {
   return (
     <span
       aria-hidden="true"
-      className="text-muted absolute top-2.5 right-2.5 flex flex-col gap-1 text-[11px] font-semibold"
+      className={cn(
+        'text-muted absolute flex flex-col gap-1 text-[11px] font-semibold',
+        size === 'frame' ? 'top-6 left-[26px]' : 'top-2.5 right-2.5',
+      )}
     >
       <span className="flex items-center gap-1">
         <i className="bg-accent inline-block size-2.5 rounded-[3px]" />
@@ -147,7 +149,7 @@ export function MuscleMap({ primary, secondary, size, className }: MuscleMapProp
         <Figure side="back" polygons={BODY_BACK} hits={hits} className={figure} />
         <MicroLabel aria-hidden="true">Back</MicroLabel>
       </span>
-      <Key />
+      <Key size={size} />
     </div>
   )
 }

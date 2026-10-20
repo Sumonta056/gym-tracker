@@ -62,8 +62,12 @@ describe('PlanStepList', () => {
     render(<PlanStepList plan={chestTriceps} />)
 
     const withVideo = planSteps(chestTriceps).filter((step) => step.video !== undefined)
-    expect(screen.getAllByRole('link', { name: /^Watch / })).toHaveLength(withVideo.length)
-    expect(screen.getByRole('link', { name: 'Watch Bench Dips' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /^Tutorial on YouTube: / })).toHaveLength(
+      withVideo.length,
+    )
+    expect(
+      screen.getByRole('link', { name: 'Tutorial on YouTube: Bench Dips, opens a new tab' }),
+    ).toBeInTheDocument()
   })
 
   it('gives no watch pill to a step with no video', () => {
@@ -77,7 +81,7 @@ describe('PlanStepList', () => {
     }
     render(<PlanStepList plan={bare} />)
 
-    expect(screen.queryByRole('link', { name: /^Watch / })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /^Tutorial on YouTube: / })).not.toBeInTheDocument()
   })
 
   it('shows each thumbnail with an empty alt', () => {

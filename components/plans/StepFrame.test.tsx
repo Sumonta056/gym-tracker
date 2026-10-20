@@ -33,27 +33,32 @@ afterEach(() => {
 })
 
 describe('StepFrame', () => {
-  it('opens on Play with 4 view buttons and only Play pressed', () => {
+  it('opens on How to with 2 view buttons and only How to pressed', () => {
     mockReducedMotion(false)
     render(<StepFrame step={STEP} />)
 
     const buttons = within(screen.getByRole('group', { name: 'Image view' })).getAllByRole('button')
-    expect(buttons.map((button) => button.textContent)).toEqual([
-      'Start',
-      'End',
-      '▶ Play',
-      'Muscles',
-    ])
-    expect(viewButton('Play')).toHaveAttribute('aria-pressed', 'true')
-    expect(viewButton('Start')).toHaveAttribute('aria-pressed', 'false')
-    expect(document.querySelector('figure')).toHaveAttribute('data-view', 'play')
+    expect(buttons.map((button) => button.textContent)).toEqual(['How to', 'Muscles'])
+    expect(viewButton('How to')).toHaveAttribute('aria-pressed', 'true')
+    expect(viewButton('Muscles')).toHaveAttribute('aria-pressed', 'false')
+    expect(document.querySelector('figure')).toHaveAttribute('data-view', 'howto')
   })
 
-  it('makes each view button 40 px tall inside a padded track', () => {
+  it('puts the 2 view buttons on a 16 by 9 image, each 44 px tall', () => {
+    render(<StepFrame step={STEP} className="-mx-4" />)
+
+    const figure = document.querySelector('figure')
+    expect(figure).toHaveClass('aspect-[16/9]', '-mx-4')
+    expect(figure).toContainElement(screen.getByRole('group', { name: 'Image view' }))
+    expect(viewButton('How to')).toHaveClass('min-h-11')
+    expect(viewButton('Muscles')).toHaveClass('min-h-11')
+  })
+
+  it('fills the pressed view button with the accent', () => {
     render(<StepFrame step={STEP} />)
 
-    expect(viewButton('End')).toHaveClass('min-h-10')
-    expect(screen.getByRole('group', { name: 'Image view' })).toHaveClass('p-1')
+    expect(viewButton('How to')).toHaveClass('bg-accent', 'text-accent-ink')
+    expect(viewButton('Muscles')).toHaveClass('text-text')
   })
 
   it('gives the 2 images their alt texts', () => {
@@ -69,27 +74,7 @@ describe('StepFrame', () => {
     expect(endAlt(STEP.name)).toBe('Flat Dumbbell Press, end position')
   })
 
-  it('shows the start image with 1 · Start on Start', () => {
-    render(<StepFrame step={STEP} />)
-    fireEvent.click(viewButton('Start'))
-
-    expect(viewButton('Start')).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByAltText(startAlt(STEP.name))).toHaveClass('opacity-100')
-    expect(screen.getByAltText(endAlt(STEP.name))).toHaveClass('opacity-0')
-    expect(caption()).toHaveTextContent(START_CAPTION)
-    expect(caption()).toHaveClass('bg-ground')
-  })
-
-  it('shows the end image with 2 · End on the accent on End', () => {
-    render(<StepFrame step={STEP} />)
-    fireEvent.click(viewButton('End'))
-
-    expect(screen.getByAltText(endAlt(STEP.name))).toHaveClass('opacity-100')
-    expect(caption()).toHaveTextContent(END_CAPTION)
-    expect(caption()).toHaveClass('bg-accent', 'text-accent-ink')
-  })
-
-  it('shows the muscle map in the same box on Muscles', () => {
+  it('shows the muscle map in the same box on Muscles, and goes back on How to', () => {
     render(<StepFrame step={STEP} />)
     fireEvent.click(viewButton('Muscles'))
 
@@ -98,19 +83,24 @@ describe('StepFrame', () => {
       screen.getByRole('img', { name: 'Main: Chest. Helpers: Shoulders, Triceps.' }),
     ).toBeInTheDocument()
     expect(screen.queryByAltText(startAlt(STEP.name))).toBeNull()
-    expect(document.querySelector('figure')).toHaveClass('aspect-[3/2]')
+    expect(document.querySelector('figure')).toHaveClass('aspect-[16/9]')
+
+    fireEvent.click(viewButton('How to'))
+    expect(screen.getByAltText(startAlt(STEP.name))).toBeInTheDocument()
   })
 
-  it('fades start to end and back on Play, with the label following', () => {
+  it('fades start to end and back on How to, with the label following', () => {
     mockReducedMotion(false)
     vi.useFakeTimers()
     render(<StepFrame step={STEP} />)
 
     expect(caption()).toHaveTextContent(START_CAPTION)
+    expect(caption()).toHaveClass('bg-ground')
     act(() => {
       vi.advanceTimersByTime(PLAY_HALF_MS)
     })
     expect(caption()).toHaveTextContent(END_CAPTION)
+    expect(caption()).toHaveClass('bg-accent', 'text-accent-ink')
     expect(screen.getByAltText(endAlt(STEP.name))).toHaveClass('opacity-100')
     act(() => {
       vi.advanceTimersByTime(PLAY_HALF_MS)
@@ -138,7 +128,7 @@ describe('StepFrame', () => {
     expect(caption()).toHaveTextContent(END_CAPTION)
   })
 
-  it('shows End still on Play under reduced motion, with nothing to pause', () => {
+  it('shows End still on How to under reduced motion, with nothing to pause', () => {
     mockReducedMotion(true)
     vi.useFakeTimers()
     render(<StepFrame step={STEP} />)
@@ -156,7 +146,7 @@ describe('StepFrame', () => {
     fireEvent.error(screen.getByAltText(startAlt(STEP.name)))
 
     expect(screen.getByTestId('frame-failed')).toHaveTextContent(STEP.name)
-    expect(document.querySelector('figure')).toHaveClass('aspect-[3/2]', 'bg-surface-2')
+    expect(document.querySelector('figure')).toHaveClass('aspect-[16/9]', 'bg-surface-2')
     expect(screen.queryByAltText(endAlt(STEP.name))).toBeNull()
   })
 })

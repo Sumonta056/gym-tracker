@@ -1901,7 +1901,7 @@ function MuscleMapSample() {
         <MicroLabel as="p" className="mb-2">
           Frame · the Muscles view
         </MicroLabel>
-        <div className="overflow-hidden rounded-[14px]">
+        <div className="relative aspect-[16/9] overflow-hidden rounded-[14px]">
           <MuscleMap primary={primary} secondary={secondary} size="frame" />
         </div>
         <p className="text-text mt-3 text-[19px] font-bold tracking-[-0.4px]">{chosen.step.name}</p>

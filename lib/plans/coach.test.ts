@@ -101,6 +101,7 @@ describe('COACH_PLANS', () => {
         muscles: sourceStep.muscles,
         video: sourceStep.video,
         target: { sets: 3, repsMin: 10, repsMax: 12 },
+        equipment: sourceStep.equipment,
         bodyweight: sourceStep.equipment === 'body only',
       })
     })

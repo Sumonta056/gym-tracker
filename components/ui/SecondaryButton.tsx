@@ -1,10 +1,10 @@
 import { cn } from './cn'
 
-import type { ComponentPropsWithoutRef } from 'react'
+import type { ComponentPropsWithRef } from 'react'
 
 export type SecondaryButtonTone = 'default' | 'danger'
 
-export type SecondaryButtonProps = ComponentPropsWithoutRef<'button'> & {
+export type SecondaryButtonProps = ComponentPropsWithRef<'button'> & {
   tone?: SecondaryButtonTone
 }
 

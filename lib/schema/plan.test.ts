@@ -17,6 +17,7 @@ const step = {
     kind: 'search',
   },
   target: { sets: 3, repsMin: 10, repsMax: 12 },
+  equipment: 'dumbbell',
 }
 
 function plan(stepOverrides: Record<string, unknown> = {}, planOverrides = {}) {
@@ -133,6 +134,18 @@ describe('planSchema', () => {
 })
 
 describe('planStepSchema', () => {
+  it('keeps the equipment it is given', () => {
+    expect(planStepSchema.parse({ ...step, equipment: 'body only' }).equipment).toBe('body only')
+  })
+
+  it('fails on an unknown equipment', () => {
+    expect(planStepSchema.safeParse({ ...step, equipment: 'kettlebell' }).success).toBe(false)
+  })
+
+  it('fails on a step with no equipment', () => {
+    expect(planStepSchema.safeParse({ ...step, equipment: undefined }).success).toBe(false)
+  })
+
   it('defaults bodyweight to false', () => {
     expect(planStepSchema.parse(step).bodyweight).toBe(false)
   })

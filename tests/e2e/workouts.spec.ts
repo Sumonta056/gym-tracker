@@ -71,7 +71,9 @@ test('picks 2 plans on /workouts and starts them as 1 plan session', async ({ pa
     .toEqual([['chest-triceps', 'shoulders']])
 })
 
-test('previews the 9 steps of chest and triceps with a watch pill on each', async ({ page }) => {
+test('previews the 9 steps of chest and triceps with a YouTube tutorial pill on each', async ({
+  page,
+}) => {
   await page.goto('/workouts/chest-triceps')
 
   await expect(page.getByRole('heading', { level: 1, name: 'Chest + Triceps' })).toBeVisible()
@@ -80,11 +82,11 @@ test('previews the 9 steps of chest and triceps with a watch pill on each', asyn
   const triceps = page.getByRole('region', { name: 'Triceps', exact: true })
   await expect(chest.getByRole('listitem')).toHaveCount(5)
   await expect(triceps.getByRole('listitem')).toHaveCount(4)
-  await expect(page.getByRole('link', { name: /^Watch / })).toHaveCount(9)
+  await expect(page.getByRole('link', { name: /^Tutorial on YouTube: / })).toHaveCount(9)
   await expect(page.getByText('3 × 10–12 · first time')).toHaveCount(8)
   await expect(page.getByText('3 × 10–12 · body')).toHaveCount(1)
   await expect(page.getByRole('button', { name: 'Start Chest + Triceps' })).toBeEnabled()
-  await expectTall(page, /^Watch /, 'link')
+  await expectTall(page, /^Tutorial on YouTube: /, 'link')
   await expectNoSeriousIssue(page)
 
   await page.getByRole('link', { name: 'Plans' }).click()

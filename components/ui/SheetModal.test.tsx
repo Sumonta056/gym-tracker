@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -116,6 +116,43 @@ describe('SheetModal', () => {
   it('moves focus into the sheet when it opens', () => {
     setup()
     expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement)
+  })
+
+  it('puts focus on the control the caller names when it opens', () => {
+    function Sheet() {
+      const keep = useRef<HTMLButtonElement>(null)
+      return (
+        <SheetModal open title="Finish?" onClose={vi.fn()} initialFocus={keep}>
+          <button type="button">Finish anyway</button>
+          <button type="button" ref={keep}>
+            Keep going
+          </button>
+        </SheetModal>
+      )
+    }
+    render(<Sheet />)
+    expect(screen.getByRole('button', { name: 'Keep going' })).toHaveFocus()
+  })
+
+  it('keeps a subtitle in the fixed head and scrolls only the body', () => {
+    render(
+      <SheetModal open title="Chest" subtitle="1 done · 8 to go" onClose={vi.fn()}>
+        <p>Body</p>
+      </SheetModal>,
+    )
+    expect(screen.getByText('1 done · 8 to go')).toHaveClass('text-muted')
+    expect(screen.getByTestId('sheet-body')).toHaveClass('overflow-y-auto')
+    expect(screen.getByTestId('sheet-body')).toHaveTextContent('Body')
+    expect(screen.queryByTestId('sheet-footer')).toBeNull()
+  })
+
+  it('names the close button with the label the caller gives', () => {
+    render(
+      <SheetModal open title="Chest" closeLabel="Close the step list" onClose={vi.fn()}>
+        <p>Body</p>
+      </SheetModal>,
+    )
+    expect(screen.getByRole('button', { name: 'Close the step list' })).toBeInTheDocument()
   })
 
   it('has focus inside the sheet by the time the dialog is in the document, on an async open', async () => {

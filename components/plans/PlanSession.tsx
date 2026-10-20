@@ -36,15 +36,18 @@ import { systemNow } from '../workout/SessionTimer'
 import { ToastRoom, UndoToast } from '../workout/UndoToast'
 import { WORKOUTS_PATH } from '../workouts/historyText'
 
+import { FinishConfirmSheet } from './FinishConfirmSheet'
 import { MuscleTags } from './MuscleTags'
-import { lastTimePill, PlanSetRows } from './PlanSetRows'
+import { lastTimeLine, PlanSetRows } from './PlanSetRows'
 import { PlanStepHeader } from './PlanStepHeader'
 import { targetText } from './planText'
 import { StepFooter } from './StepFooter'
 import { StepFrame } from './StepFrame'
+import { StepListSheet } from './StepListSheet'
 import { StepProgress } from './StepProgress'
 import { WatchPill } from './WatchPill'
 
+import type { NotDoneStep } from './FinishConfirmSheet'
 import type { PlanCursor, WorkoutSession, WorkoutSet } from '../../lib/db/dexie'
 import type { WorkoutSetPatch } from '../../lib/db/repository'
 import type { StepStatus } from '../../lib/metrics/planProgress'
@@ -157,6 +160,16 @@ export function shownStatuses(
   )
 }
 
+export function notDoneSteps(
+  steps: PlanStep[],
+  sets: WorkoutSet[],
+  cursor: PlanCursor,
+): NotDoneStep[] {
+  return stepStatuses(steps, sets, cursor).flatMap((status, index) =>
+    status === 'done' ? [] : [{ index, name: steps[index]?.name ?? '', status }],
+  )
+}
+
 export function firstDraft(
   step: Pick<PlanStep, 'target' | 'bodyweight'>,
   previous: WorkoutSet | undefined,
@@ -233,6 +246,8 @@ export function PlanSession({
   const [restBusy, setRestBusy] = useState(false)
   const [restError, setRestError] = useState<string | null>(null)
   const [summary, setSummary] = useState<SessionStats | null>(null)
+  const [listOpen, setListOpen] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const alertRef = useRef<RestAlert | null>(alert ?? null)
   const deletes = useRef(0)
   const alive = useRef(true)
@@ -527,6 +542,7 @@ export function PlanSession({
   const finish = () => {
     if (busy) return
 
+    setConfirming(false)
     setBusy(true)
     setError(null)
     source
@@ -541,6 +557,17 @@ export function PlanSession({
         setBusy(false)
         setError(failure(cause, FINISH_FAILED))
       })
+  }
+
+  const notDone = notDoneSteps(plan.steps, sets, cursor)
+  const liveSetCount = sets.filter((held) => held.deleted_at === null).length
+  const askFinish = () => {
+    if (busy) return
+    if (notDone.length === 0) {
+      finish()
+      return
+    }
+    setConfirming(true)
   }
 
   const leave = () => {
@@ -558,7 +585,6 @@ export function PlanSession({
         title={plan.title}
         stepIndex={index}
         total={plan.steps.length}
-        group={groups.get(step.exerciseId) ?? ''}
         startedAt={session.started_at}
         leaveHref={WORKOUTS_PATH}
         now={now}
@@ -566,6 +592,10 @@ export function PlanSession({
         onBack={() => {
           move({ ...cursor, stepIndex: Math.max(0, index - 1) })
         }}
+        onOpenList={() => {
+          setListOpen(true)
+        }}
+        onFinish={askFinish}
       />
 
       <StepProgress
@@ -573,31 +603,32 @@ export function PlanSession({
         statuses={shownStatuses(plan.steps, sets, cursor)}
       />
 
-      <Card role="region" aria-labelledby={nameId}>
-        <StepFrame key={step.slug} step={step} />
+      <Card role="region" aria-labelledby={nameId} className="overflow-hidden">
+        <StepFrame key={step.slug} step={step} className="-mx-4 -mt-4" />
         <h1
           id={nameId}
           className="text-text mt-3 text-[19px] leading-tight font-bold tracking-[-0.4px] break-words"
         >
           {step.name}
         </h1>
-        <p className="text-text mt-1 text-[13.5px]">{step.how}</p>
+        <p className="text-muted mt-0.5 text-sm font-semibold">
+          {targetText(step.target)}
+          {last === undefined ? null : (
+            <>
+              <span aria-hidden="true"> · </span>
+              <span className="sr-only">. </span>
+              {lastTimeLine(last, unit)}
+            </>
+          )}
+        </p>
         <MuscleTags
           primary={step.muscles.primary}
           secondary={step.muscles.secondary}
           className="mt-2.5"
         />
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="bg-accent border-accent text-accent-ink inline-flex min-h-11 items-center rounded-full border px-4 text-[13px] font-bold whitespace-nowrap">
-            {`Target ${targetText(step.target)}`}
-          </span>
-          {last === undefined ? null : (
-            <span className="bg-surface-2 border-border text-text inline-flex min-h-11 items-center rounded-full border px-4 text-[13px] font-bold whitespace-nowrap">
-              {lastTimePill(last, unit)}
-            </span>
-          )}
-          {step.video === undefined ? null : <WatchPill name={step.name} video={step.video} />}
-        </div>
+        {step.video === undefined ? null : (
+          <WatchPill name={step.name} video={step.video} className="mt-2.5 bg-transparent" />
+        )}
       </Card>
 
       {stepDrafts === undefined ? (
@@ -612,7 +643,7 @@ export function PlanSession({
           sets={stepSets}
           drafts={stepDrafts}
           previous={last}
-          bodyweight={step.bodyweight}
+          equipment={step.equipment}
           busy={busy}
           onDraftChange={(position, draft) => {
             setStepDrafts((held) => held.map((row, at) => (at === position ? draft : row)))
@@ -671,7 +702,7 @@ export function PlanSession({
         onNext={() => {
           move({ ...cursor, stepIndex: Math.min(index + 1, lastIndex) })
         }}
-        onFinish={finish}
+        onFinish={askFinish}
       />
 
       <ToastRoom shown={toast !== null} />
@@ -699,6 +730,32 @@ export function PlanSession({
         onClose={() => {
           setChangingRest(null)
           setRestError(null)
+        }}
+      />
+
+      <StepListSheet
+        open={listOpen}
+        title={plan.title}
+        steps={plan.steps}
+        groups={groups}
+        statuses={shownStatuses(plan.steps, sets, cursor)}
+        onPick={(picked) => {
+          setListOpen(false)
+          if (picked !== index) move({ ...cursor, stepIndex: picked })
+        }}
+        onClose={() => {
+          setListOpen(false)
+        }}
+      />
+
+      <FinishConfirmSheet
+        open={confirming}
+        notDone={notDone}
+        setCount={liveSetCount}
+        busy={busy}
+        onFinish={finish}
+        onClose={() => {
+          setConfirming(false)
         }}
       />
 

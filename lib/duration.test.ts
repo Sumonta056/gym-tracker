@@ -225,6 +225,19 @@ describe('parseSheetValue', () => {
 })
 
 describe('formatDuration', () => {
+  const spokenCases: { seconds: number; text: string }[] = [
+    { seconds: 761, text: '12 minutes 41 seconds' },
+    { seconds: 3661, text: '1 hour 1 minute 1 second' },
+    { seconds: 7200, text: '2 hours' },
+    { seconds: 0, text: '0 seconds' },
+    { seconds: 60, text: '1 minute' },
+    { seconds: 3605, text: '1 hour 5 seconds' },
+  ]
+
+  it.each(spokenCases)('speaks $seconds s as $text', ({ seconds, text }) => {
+    expect(formatDuration(seconds, 'spoken')).toBe(text)
+  })
+
   const clockCases: { seconds: number; text: string }[] = [
     { seconds: 4325, text: '1:12:05' },
     { seconds: 725, text: '12:05' },

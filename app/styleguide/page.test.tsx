@@ -908,7 +908,11 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(sample.getByRole('button', { name: /^Start Shoulders \+ Legs/ })).toHaveTextContent(
       'combined',
     )
-    expect(sample.getByRole('link', { name: 'Watch Incline Dumbbell Press' })).toBeInTheDocument()
+    expect(
+      sample.getByRole('link', {
+        name: 'Tutorial on YouTube: Incline Dumbbell Press, opens a new tab',
+      }),
+    ).toBeInTheDocument()
     expect(sample.getByRole('region', { name: 'Biceps' })).toBeInTheDocument()
   })
 
