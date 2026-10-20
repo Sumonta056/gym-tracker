@@ -36,6 +36,11 @@ import { ErrorScreenView } from '../../components/errors/ErrorScreen'
 import { VersionBannerView } from '../../components/errors/VersionBanner'
 import { MuscleMap } from '../../components/plans/MuscleMap'
 import { MuscleTags } from '../../components/plans/MuscleTags'
+import { PlanCard } from '../../components/plans/PlanCard'
+import { PlanStartBar } from '../../components/plans/PlanStartBar'
+import { PlanStepList } from '../../components/plans/PlanStepList'
+import { SuggestedPlanHero } from '../../components/plans/SuggestedPlanHero'
+import { WatchPill } from '../../components/plans/WatchPill'
 import { DataCard } from '../../components/profile/DataCard'
 import { HeartRateCard } from '../../components/profile/HeartRateCard'
 import { ProfileView } from '../../components/profile/ProfileView'
@@ -1834,6 +1839,9 @@ function Styleguide() {
       <Section title="Muscle map">
         <MuscleMapSample />
       </Section>
+      <Section title="Coach plans">
+        <CoachPlanSample />
+      </Section>
     </AppShell>
   )
 }
@@ -1912,6 +1920,59 @@ function MuscleMapSample() {
         </MicroLabel>
         <MuscleMap primary={primary} secondary={secondary} size="chip" />
       </Card>
+    </div>
+  )
+}
+
+const SAMPLE_TODAY = '2026-10-20'
+
+function CoachPlanSample() {
+  const [chest, back, shoulders, legs] = COACH_PLANS
+  const [picked, setPicked] = useState(true)
+
+  if (chest === undefined || back === undefined || shoulders === undefined || legs === undefined) {
+    return null
+  }
+
+  const video = chest.groups[0]?.steps[0]?.video
+
+  return (
+    <div data-testid="coach-plan-sample" className="flex flex-col gap-3">
+      <SuggestedPlanHero plan={legs} lastDone={undefined} today={SAMPLE_TODAY} />
+      <ul aria-label="Sample plans" className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <li className="min-w-0">
+          <PlanCard
+            plan={legs}
+            lastDone={undefined}
+            today={SAMPLE_TODAY}
+            selected={picked}
+            onToggle={() => {
+              setPicked((held) => !held)
+            }}
+          />
+        </li>
+        <li className="min-w-0">
+          <PlanCard
+            plan={chest}
+            lastDone="2026-10-14"
+            today={SAMPLE_TODAY}
+            selected={false}
+            onToggle={() => undefined}
+          />
+        </li>
+      </ul>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <PlanStartBar plans={[]} />
+        <PlanStartBar plans={[legs]} />
+        <PlanStartBar plans={[shoulders, legs]} />
+      </div>
+      {video === undefined ? null : (
+        <div className="flex items-center gap-3">
+          <WatchPill name="Incline Dumbbell Press" video={video} />
+          <span className="text-muted text-[13px]">Watch pill, a link out to a new tab</span>
+        </div>
+      )}
+      <PlanStepList plan={back} />
     </div>
   )
 }

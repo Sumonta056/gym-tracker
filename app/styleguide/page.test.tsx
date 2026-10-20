@@ -17,6 +17,8 @@ vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND')
   },
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => '/styleguide',
 }))
 
 describe('the styleguide route guard', () => {
@@ -893,6 +895,21 @@ describe('the styleguide page', { timeout: 15000 }, () => {
       expect(sample.getAllByRole('img', { name: label })).toHaveLength(3)
       expect(sample.getAllByText(step.name).length).toBeGreaterThan(0)
     }
+  })
+
+  it('shows the coach plan hero, cards, start bars, watch pill and step list', async () => {
+    const sample = within(screen.getByTestId('coach-plan-sample'))
+    expect(sample.getByRole('region', { name: "Today's suggestion" })).toHaveTextContent('Legs')
+    const legs = sample.getByRole('button', { name: /^Legs/ })
+    expect(legs).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(legs)
+    expect(legs).toHaveAttribute('aria-pressed', 'false')
+    expect(sample.getByRole('button', { name: 'Pick a plan to start' })).toBeDisabled()
+    expect(sample.getByRole('button', { name: /^Start Shoulders \+ Legs/ })).toHaveTextContent(
+      'combined',
+    )
+    expect(sample.getByRole('link', { name: 'Watch Incline Dumbbell Press' })).toBeInTheDocument()
+    expect(sample.getByRole('region', { name: 'Biceps' })).toBeInTheDocument()
   })
 
   it('shows the Saved toast from its sample button', async () => {

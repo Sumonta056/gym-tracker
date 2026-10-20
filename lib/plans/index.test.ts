@@ -2,7 +2,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { COACH_PLANS } from './coach'
 
-import { combinePlans, getPlan, listPlans, planMinutes, planSteps } from './index'
+import {
+  combinePlans,
+  findPlan,
+  getPlan,
+  listPlans,
+  planMinutes,
+  planMuscles,
+  planSteps,
+} from './index'
 
 import type { Plan, PlanId } from '../schema/plan'
 
@@ -37,6 +45,23 @@ describe('planMinutes', () => {
 
   it('gives 0 for no plan', () => {
     expect(planMinutes([])).toBe(0)
+  })
+})
+
+describe('planMuscles', () => {
+  it('lists every main muscle of the plan once, in step order', () => {
+    const { primary } = planMuscles(coach('chest-triceps'))
+
+    expect(primary[0]).toBe('chest')
+    expect(new Set(primary).size).toBe(primary.length)
+  })
+
+  it('keeps a muscle that is main in 1 step out of the helpers', () => {
+    const { primary, secondary } = planMuscles(coach('chest-triceps'))
+
+    expect(primary).toContain('triceps')
+    expect(secondary).not.toContain('triceps')
+    expect(secondary.every((muscle) => !primary.includes(muscle))).toBe(true)
   })
 })
 
@@ -92,6 +117,11 @@ describe('listPlans and getPlan', () => {
   it('finds a plan by id', () => {
     expect(getPlan('legs')?.title).toBe('Legs')
   })
+
+  it('finds a listed plan from any text id', () => {
+    expect(findPlan('legs')?.title).toBe('Legs')
+    expect(findPlan('nope')).toBeUndefined()
+  })
 })
 
 describe('with a retired plan', () => {
@@ -118,6 +148,12 @@ describe('with a retired plan', () => {
       'back-biceps',
       'shoulders',
     ])
+  })
+
+  it('hides a retired plan from findPlan', async () => {
+    const plans = await withRetiredLegs()
+
+    expect(plans.findPlan('legs')).toBeUndefined()
   })
 
   it('still finds a retired plan with getPlan', async () => {

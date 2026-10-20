@@ -1,6 +1,6 @@
 import { COACH_PLANS } from './coach'
 
-import type { Plan, PlanId, PlanStep } from '../schema/plan'
+import type { Muscle, Plan, PlanId, PlanStep } from '../schema/plan'
 
 const MINUTES_PER_STEP = 5
 const MINUTES_PER_PLAN = 10
@@ -13,8 +13,22 @@ export function getPlan(id: PlanId): Plan | undefined {
   return COACH_PLANS.find((plan) => plan.id === id)
 }
 
+export function findPlan(id: string): Plan | undefined {
+  return listPlans().find((plan) => plan.id === id)
+}
+
 export function planSteps(plan: Plan): PlanStep[] {
   return plan.groups.flatMap((group) => group.steps)
+}
+
+export function planMuscles(plan: Plan): { primary: Muscle[]; secondary: Muscle[] } {
+  const steps = planSteps(plan)
+  const primary = [...new Set(steps.flatMap((step) => step.muscles.primary))]
+  const main = new Set(primary)
+  const secondary = [...new Set(steps.flatMap((step) => step.muscles.secondary))].filter(
+    (muscle) => !main.has(muscle),
+  )
+  return { primary, secondary }
 }
 
 export function planMinutes(plans: Plan[]): number {
