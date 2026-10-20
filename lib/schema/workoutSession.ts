@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { isNotFuture } from './dailyEntry'
+import { planIdSchema } from './plan'
 
 export const WORKOUT_SESSION_STATUSES = ['active', 'finished'] as const
 
@@ -20,6 +21,11 @@ const sessionFields = {
     .nullable()
     .default(null),
   status: workoutSessionStatusSchema.default('active'),
+  plan_ids: z
+    .array(planIdSchema)
+    .min(1, { error: 'Pick 1 or more coach plans.' })
+    .nullable()
+    .default(null),
 }
 
 interface SessionTimes {

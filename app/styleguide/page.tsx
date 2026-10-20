@@ -34,6 +34,13 @@ import { WeekTotalsCard } from '../../components/dashboard/WeekTotalsCard'
 import { ZoneInfoButton } from '../../components/dashboard/ZoneInfo'
 import { ErrorScreenView } from '../../components/errors/ErrorScreen'
 import { VersionBannerView } from '../../components/errors/VersionBanner'
+import { MuscleMap } from '../../components/plans/MuscleMap'
+import { MuscleTags } from '../../components/plans/MuscleTags'
+import { PlanCard } from '../../components/plans/PlanCard'
+import { PlanStartBar } from '../../components/plans/PlanStartBar'
+import { PlanStepList } from '../../components/plans/PlanStepList'
+import { SuggestedPlanHero } from '../../components/plans/SuggestedPlanHero'
+import { WatchPill } from '../../components/plans/WatchPill'
 import { DataCard } from '../../components/profile/DataCard'
 import { HeartRateCard } from '../../components/profile/HeartRateCard'
 import { ProfileView } from '../../components/profile/ProfileView'
@@ -52,6 +59,7 @@ import { SecondaryButton } from '../../components/ui/SecondaryButton'
 import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
+import { StatIcon } from '../../components/ui/StatIcon'
 import { StatusChip } from '../../components/ui/StatusChip'
 import { TextAreaField } from '../../components/ui/TextAreaField'
 import { SAVED_MESSAGE, useToast } from '../../components/ui/Toast'
@@ -70,6 +78,7 @@ import { SIGN_OUT_FAILED } from '../../lib/auth/browser'
 import { colorTokens, radiusTokens } from '../../lib/design/tokens'
 import { formatDuration } from '../../lib/duration'
 import { sessionDays } from '../../lib/metrics/sessionDays'
+import { COACH_PLANS } from '../../lib/plans/coach'
 import { MAX_REST_SECONDS } from '../../lib/schema/profile'
 
 import type { ChartGoals, RangeTab } from '../../components/charts/rangeData'
@@ -1846,6 +1855,12 @@ function Styleguide() {
           <SessionDetail view={SAMPLE_DETAIL} discard={() => Promise.resolve()} />
         </div>
       </Section>
+      <Section title="Muscle map">
+        <MuscleMapSample />
+      </Section>
+      <Section title="Coach plans">
+        <CoachPlanSample />
+      </Section>
     </AppShell>
   )
 }
@@ -1854,6 +1869,131 @@ function StatsLayoutSample() {
   const [layout, setLayout] = useState(() => resolveLayout(null))
 
   return <StatsLayoutEditor layout={layout} onChange={setLayout} />
+}
+
+const MUSCLE_SAMPLE_STEPS = COACH_PLANS.flatMap((plan) =>
+  plan.groups.flatMap((group) => group.steps.map((step) => ({ plan, step }))),
+)
+
+function MuscleMapSample() {
+  const [slug, setSlug] = useState(MUSCLE_SAMPLE_STEPS[0]?.step.slug ?? '')
+  const chosen = MUSCLE_SAMPLE_STEPS.find((entry) => entry.step.slug === slug)
+
+  if (chosen === undefined) return null
+
+  const { primary, secondary } = chosen.step.muscles
+
+  return (
+    <div data-testid="muscle-map-sample" className="grid gap-3 md:grid-cols-2">
+      <div className="md:col-span-2">
+        <MicroLabel as="label" htmlFor="muscle-map-step" className="mb-1.5">
+          Coach step
+        </MicroLabel>
+        <div className="relative md:max-w-md">
+          <select
+            id="muscle-map-step"
+            value={slug}
+            onChange={(event) => {
+              setSlug(event.target.value)
+            }}
+            className="rounded-input border-border bg-surface text-text min-h-11 w-full appearance-none border pr-10 pl-3.5 text-base font-semibold"
+          >
+            {COACH_PLANS.map((plan) => (
+              <optgroup key={plan.id} label={plan.title}>
+                {plan.groups
+                  .flatMap((group) => group.steps)
+                  .map((step) => (
+                    <option key={step.slug} value={step.slug}>
+                      {step.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+          <StatIcon
+            name="chevron"
+            className="text-muted pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 rotate-90"
+          />
+        </div>
+      </div>
+      <Card>
+        <MicroLabel as="p" className="mb-2">
+          Frame · the Muscles view
+        </MicroLabel>
+        <div className="relative aspect-[16/9] overflow-hidden rounded-[14px]">
+          <MuscleMap primary={primary} secondary={secondary} size="frame" />
+        </div>
+        <p className="text-text mt-3 text-[19px] font-bold tracking-[-0.4px]">{chosen.step.name}</p>
+        <p className="text-text mt-1 text-[13.5px]">{chosen.step.how}</p>
+        <MuscleTags primary={primary} secondary={secondary} className="mt-2.5" />
+      </Card>
+      <Card>
+        <MicroLabel as="p" className="mb-2">
+          Card · the laptop image row
+        </MicroLabel>
+        <div className="max-w-[220px] overflow-hidden rounded-[14px]">
+          <MuscleMap primary={primary} secondary={secondary} size="card" />
+        </div>
+        <MicroLabel as="p" className="mt-4 mb-2">
+          Chip · a plan card
+        </MicroLabel>
+        <MuscleMap primary={primary} secondary={secondary} size="chip" />
+      </Card>
+    </div>
+  )
+}
+
+const SAMPLE_TODAY = '2026-10-20'
+
+function CoachPlanSample() {
+  const [chest, back, shoulders, legs] = COACH_PLANS
+  const [picked, setPicked] = useState(true)
+
+  if (chest === undefined || back === undefined || shoulders === undefined || legs === undefined) {
+    return null
+  }
+
+  const video = chest.groups[0]?.steps[0]?.video
+
+  return (
+    <div data-testid="coach-plan-sample" className="flex flex-col gap-3">
+      <SuggestedPlanHero plan={legs} lastDone={undefined} today={SAMPLE_TODAY} />
+      <ul aria-label="Sample plans" className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <li className="min-w-0">
+          <PlanCard
+            plan={legs}
+            lastDone={undefined}
+            today={SAMPLE_TODAY}
+            selected={picked}
+            onToggle={() => {
+              setPicked((held) => !held)
+            }}
+          />
+        </li>
+        <li className="min-w-0">
+          <PlanCard
+            plan={chest}
+            lastDone="2026-10-14"
+            today={SAMPLE_TODAY}
+            selected={false}
+            onToggle={() => undefined}
+          />
+        </li>
+      </ul>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <PlanStartBar plans={[]} />
+        <PlanStartBar plans={[legs]} />
+        <PlanStartBar plans={[shoulders, legs]} />
+      </div>
+      {video === undefined ? null : (
+        <div className="flex items-center gap-3">
+          <WatchPill name="Incline Dumbbell Press" video={video} />
+          <span className="text-muted text-[13px]">Watch pill, a link out to a new tab</span>
+        </div>
+      )}
+      <PlanStepList plan={back} />
+    </div>
+  )
 }
 
 function ToastSample() {

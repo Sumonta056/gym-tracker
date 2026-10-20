@@ -42,7 +42,8 @@ export interface Exercise extends ExerciseInput {
   deleted_at: string | null
 }
 
-export interface WorkoutSession extends WorkoutSessionInput {
+export interface WorkoutSession
+  extends Omit<WorkoutSessionInput, 'plan_ids'>, Partial<Pick<WorkoutSessionInput, 'plan_ids'>> {
   id: string
   created_at: string
   updated_at: string
@@ -81,6 +82,12 @@ export interface DeadLetter extends OutboxEntry {
   failed_at: string
 }
 
+export interface PlanCursor {
+  sessionId: string
+  stepIndex: number
+  skipped: string[]
+}
+
 export interface SyncMetaRecord {
   key: string
   value: string | null
@@ -96,6 +103,7 @@ export type GymDatabase = Dexie & {
   workoutSessions: EntityTable<WorkoutSession, 'id'>
   workoutSets: EntityTable<WorkoutSet, 'id'>
   errorLog: EntityTable<ErrorRecord, 'id'>
+  planCursors: EntityTable<PlanCursor, 'sessionId'>
 }
 
 export const OUTBOX_SEQUENCE_KEY = 'outbox_sequence'
@@ -122,7 +130,7 @@ export const NEVER_WRITTEN = new Date(0).toISOString()
 
 export const DATABASE_NAME = 'gym-tracker'
 
-export const DATABASE_VERSION = 5
+export const DATABASE_VERSION = 6
 
 export const STORES_V1 = {
   dailyEntries: '&id, entry_date, updated_at',
@@ -148,7 +156,12 @@ export const STORES_V4 = {
   errorLog: '&id, at',
 } as const
 
-export const STORES = { ...STORES_V4 } as const
+export const STORES_V5 = { ...STORES_V4 } as const
+
+export const STORES = {
+  ...STORES_V5,
+  planCursors: '&sessionId',
+} as const
 
 export type VersionState = 'current' | 'stale' | 'blocked'
 
@@ -205,7 +218,20 @@ export function createDatabase(
   instance.version(2).stores(STORES_V2)
   instance.version(3).stores(STORES_V3)
   instance.version(4).stores(STORES_V4)
-  instance.version(DATABASE_VERSION).stores(STORES)
+  instance.version(5).stores(STORES_V5)
+  instance
+    .version(DATABASE_VERSION)
+    .stores(STORES)
+    .upgrade((transaction) =>
+      transaction
+        .table<WorkoutSession>('workoutSessions')
+        .toCollection()
+        .modify((session) => {
+          if (session.plan_ids === undefined) {
+            session.plan_ids = null
+          }
+        }),
+    )
 
   instance.on('versionchange', () => {
     instance.close({ disableAutoOpen: true })

@@ -25,7 +25,7 @@ export type SessionTimerProps = Omit<ComponentPropsWithoutRef<'p'>, 'children'> 
   now?: () => Date
 }
 
-export function SessionTimer({ startedAt, now = systemNow, ...rest }: SessionTimerProps) {
+export function useTick(now: () => Date = systemNow): Date {
   const [instant, setInstant] = useState(now)
 
   useEffect(() => {
@@ -46,6 +46,12 @@ export function SessionTimer({ startedAt, now = systemNow, ...rest }: SessionTim
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [now])
+
+  return instant
+}
+
+export function SessionTimer({ startedAt, now = systemNow, ...rest }: SessionTimerProps) {
+  const instant = useTick(now)
 
   return (
     <p role="timer" {...rest}>

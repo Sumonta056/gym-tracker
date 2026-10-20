@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
+import { PlanPicker } from '../../../components/plans/PlanPicker'
+import { SyncChip } from '../../../components/sync/SyncChip'
 import { MicroLabel } from '../../../components/ui/MicroLabel'
-import { PrimaryButton } from '../../../components/ui/PrimaryButton'
+import { SecondaryButton } from '../../../components/ui/SecondaryButton'
 import { WorkoutHistory } from '../../../components/workouts/WorkoutHistory'
 import {
   getActiveSession,
@@ -74,14 +76,14 @@ function SessionLauncher() {
       {launch === 'active' ? (
         <Link
           href={WORKOUT_PATH}
-          className="bg-accent text-accent-ink border-accent rounded-input inline-flex min-h-[54px] w-full items-center justify-center border px-4 text-[15px] font-bold tracking-[-0.2px]"
+          className="bg-surface-2 text-text border-border rounded-input inline-flex min-h-[54px] w-full items-center justify-center border px-4 text-[15px] font-bold tracking-[-0.2px]"
         >
           Resume
         </Link>
       ) : (
-        <PrimaryButton disabled={starting} onClick={start}>
+        <SecondaryButton disabled={starting} onClick={start}>
           Start a session
-        </PrimaryButton>
+        </SecondaryButton>
       )}
       {error === null ? null : (
         <p role="alert" className="text-danger text-sm">
@@ -95,12 +97,24 @@ function SessionLauncher() {
 export default function WorkoutsPage() {
   return (
     <>
-      <MicroLabel as="p">Gym Tracker</MicroLabel>
-      <h1 className="mt-2 text-[23px] leading-tight font-bold tracking-[-0.6px]">Workouts</h1>
-      <SessionLauncher />
+      <header className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <MicroLabel as="p">Gym Tracker</MicroLabel>
+          <h1 className="mt-2 text-[23px] leading-tight font-bold tracking-[-0.6px]">Workouts</h1>
+        </div>
+        <SyncChip className="shrink-0" />
+      </header>
+      <PlanPicker />
+      <section aria-labelledby="free-session" className="mt-6">
+        <MicroLabel as="p" id="free-session">
+          Free session
+        </MicroLabel>
+        <SessionLauncher />
+      </section>
       <Suspense fallback={null}>
         <WorkoutHistory />
       </Suspense>
+      <div aria-hidden="true" className="h-24 lg:hidden" />
     </>
   )
 }

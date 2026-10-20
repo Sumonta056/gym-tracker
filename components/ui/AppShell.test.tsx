@@ -226,3 +226,40 @@ describe('AppShell', () => {
     )
   })
 })
+
+describe('AppShell in focus mode', () => {
+  function focusSetup() {
+    render(
+      <AppShell
+        items={ITEMS}
+        action={{ href: '/log', label: 'Log a set', glyph: '✎' }}
+        mode="focus"
+      >
+        <p>Page body</p>
+      </AppShell>,
+    )
+  }
+
+  it('renders no bottom bar', () => {
+    focusSetup()
+    expect(screen.queryByRole('navigation', { name: 'Bottom navigation' })).toBeNull()
+  })
+
+  it('keeps the sidebar for the large breakpoint', () => {
+    focusSetup()
+    const sidebar = screen.getByRole('navigation', { name: 'Sidebar', hidden: true })
+    expect(sidebar).toHaveClass('hidden', 'lg:flex')
+  })
+
+  it('marks the frame with its mode and keeps room for the page foot bar', () => {
+    focusSetup()
+    const main = screen.getByRole('main')
+    expect(main).toHaveClass('pb-[calc(max(env(safe-area-inset-bottom),18px)+96px)]')
+    expect(main.closest('[data-mode]')).toHaveAttribute('data-mode', 'focus')
+  })
+
+  it('reads default mode when no mode is given', () => {
+    setup()
+    expect(screen.getByRole('main').closest('[data-mode]')).toHaveAttribute('data-mode', 'default')
+  })
+})

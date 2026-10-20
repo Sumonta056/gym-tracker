@@ -1,6 +1,7 @@
 import { LOCAL_PROFILE_ID } from '../db/dexie'
 import { muscleGroupSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
+import { storedWorkoutSessionSchema } from '../schema/workoutSession'
 import { MIN_REPS } from '../schema/workoutSet'
 
 import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
@@ -68,6 +69,7 @@ export function toServerSession(
     started_at: payload.started_at,
     ended_at: payload.ended_at,
     status: payload.status,
+    ...((payload.plan_ids ?? null) === null ? {} : { plan_ids: payload.plan_ids }),
     created_at: payload.created_at,
     deleted_at: payload.deleted_at,
   }
@@ -151,6 +153,7 @@ export function toLocalSession(row: Tables<'workout_sessions'>): WorkoutSession 
     started_at: row.started_at,
     ended_at: row.ended_at,
     status: row.status === 'active' ? 'active' : 'finished',
+    plan_ids: storedWorkoutSessionSchema.shape.plan_ids.safeParse(row.plan_ids).data ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     deleted_at: row.deleted_at,

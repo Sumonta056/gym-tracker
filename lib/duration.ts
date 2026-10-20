@@ -18,7 +18,7 @@ export type ParsedInput = { ok: true; seconds: number } | { ok: false; reason: s
 
 export type ParsedSheetValue = { seconds: number; certain: boolean }
 
-export type DurationStyle = 'clock' | 'hms' | 'short' | 'minutes' | 'minsec'
+export type DurationStyle = 'clock' | 'hms' | 'short' | 'minutes' | 'minsec' | 'spoken'
 
 export function parseInput(text: string): ParsedInput {
   const compact = text.toLowerCase().replaceAll(/\s+/g, '')
@@ -114,6 +114,10 @@ export function formatDuration(seconds: number, style: DurationStyle): string {
 
   const rest = safe % SECONDS_PER_MINUTE
 
+  if (style === 'spoken') {
+    return spoken(hours, minutes, rest)
+  }
+
   if (hours === 0 && style === 'clock') {
     return `${String(minutes)}:${pad(rest)}`
   }
@@ -182,6 +186,20 @@ function fail(reason: string): ParsedInput {
 
 function toNumber(part: string | undefined): number {
   return part === undefined ? 0 : Number(part)
+}
+
+function counted(value: number, word: string): string {
+  return `${String(value)} ${word}${value === 1 ? '' : 's'}`
+}
+
+function spoken(hours: number, minutes: number, seconds: number): string {
+  const parts = [
+    hours > 0 ? counted(hours, 'hour') : '',
+    minutes > 0 ? counted(minutes, 'minute') : '',
+    seconds > 0 || (hours === 0 && minutes === 0) ? counted(seconds, 'second') : '',
+  ]
+
+  return parts.filter((part) => part !== '').join(' ')
 }
 
 function pad(value: number): string {

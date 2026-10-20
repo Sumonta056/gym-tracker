@@ -1298,6 +1298,69 @@ describe('the goal and swim round trip', () => {
     expect((await db.dailyEntries.get(ROW_A))?.swim_seconds).toBe(1500)
   })
 
+  it('carries plan_ids through a push and a pull', async () => {
+    await append('workout_sessions', 'upsert', {
+      ...localSession(ROW_D),
+      plan_ids: ['chest-triceps', 'legs'],
+    })
+    const pushing = fakeClient()
+    await push(pushing.client, USER_ID, Date.now())
+    await db.outbox.clear()
+    await db.workoutSessions.clear()
+    const pulling = fakeClient({
+      serverRows: { workout_sessions: [{ ...firstUpsert(pushing).row, updated_at: LATER }] },
+    })
+
+    await pull(pulling.client)
+
+    expect((await db.workoutSessions.get(ROW_D))?.plan_ids).toEqual(['chest-triceps', 'legs'])
+  })
+
+  it('sends the plan ids on the finish when the start was refused', async () => {
+    const start = { ...localSession(ROW_D), plan_ids: ['legs' as const] }
+    await append('workout_sessions', 'upsert', start)
+    await append('workout_sessions', 'upsert', {
+      ...start,
+      status: 'finished',
+      ended_at: '2026-09-01T11:00:00.000Z',
+      updated_at: '2026-09-01T11:00:00.000Z',
+    })
+    const fake = fakeClient({
+      upsertError: {
+        workout_sessions: {
+          message:
+            'duplicate key value violates unique constraint "workout_sessions_one_active_idx"',
+          code: DUPLICATE_KEY,
+        },
+      },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(fake.upserted).toHaveLength(2)
+    expect(fake.upserted[1]?.row.plan_ids).toEqual(['legs'])
+  })
+
+  it('leaves the server with the plan ids and the finished status after a start and a finish', async () => {
+    const start = { ...localSession(ROW_D), plan_ids: ['legs' as const] }
+    await append('workout_sessions', 'upsert', start)
+    await append('workout_sessions', 'upsert', {
+      ...start,
+      status: 'finished',
+      ended_at: '2026-09-01T11:00:00.000Z',
+      updated_at: '2026-09-01T11:00:00.000Z',
+    })
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+    const server = Object.assign({}, ...fake.upserted.map((call) => call.row)) as Record<
+      string,
+      unknown
+    >
+
+    expect(server).toMatchObject({ plan_ids: ['legs'], status: 'finished' })
+  })
+
   it('leaves out the goals a device row never had, so the server keeps its own', async () => {
     await append('profiles', 'upsert', {
       id: LOCAL_PROFILE_ID,

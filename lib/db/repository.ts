@@ -31,10 +31,11 @@ import {
   SIGNED_OUT_KEY,
 } from './dexie'
 
-import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from './dexie'
+import type { DailyEntry, Exercise, PlanCursor, Profile, WorkoutSession, WorkoutSet } from './dexie'
 import type { DailyEntryDraft, DailyEntryInput } from '../schema/dailyEntry'
 import type { ErrorRecord } from '../schema/errorRecord'
 import type { ExerciseInput, MuscleGroup } from '../schema/exercise'
+import type { PlanId } from '../schema/plan'
 import type { ProfileInput } from '../schema/profile'
 import type { WorkoutSetDraft, WorkoutSetInput } from '../schema/workoutSet'
 
@@ -612,13 +613,14 @@ export async function getActiveSession(): Promise<WorkoutSession | undefined> {
   return (await activeSessions())[0]
 }
 
-export async function startSession(date: string): Promise<WorkoutSession> {
+async function beginSession(date: string, planIds: PlanId[] | null): Promise<WorkoutSession> {
   const timestamp = nowIso()
   const parsed = workoutSessionSchema.parse({
     entry_date: date,
     started_at: timestamp,
     ended_at: null,
     status: 'active',
+    plan_ids: planIds,
   })
 
   return db.transaction('rw', db.workoutSessions, db.outbox, db.syncMeta, async () => {
@@ -643,31 +645,64 @@ export async function startSession(date: string): Promise<WorkoutSession> {
   })
 }
 
+export async function startSession(date: string): Promise<WorkoutSession> {
+  return beginSession(date, null)
+}
+
+export async function startPlanSession(planIds: PlanId[], date: string): Promise<WorkoutSession> {
+  return beginSession(date, planIds)
+}
+
 export async function finishSession(id: string): Promise<WorkoutSession> {
-  return db.transaction('rw', db.workoutSessions, db.outbox, db.syncMeta, async () => {
+  return db.transaction(
+    'rw',
+    [db.workoutSessions, db.outbox, db.syncMeta, db.planCursors],
+    async () => {
+      await refuseWhenSignedOut()
+
+      const session = await liveSession(id)
+
+      await db.planCursors.delete(id)
+
+      if (session.status === 'finished') {
+        return session
+      }
+
+      const timestamp = nowIso()
+      const endedAt =
+        Date.parse(session.started_at) > Date.parse(timestamp) ? session.started_at : timestamp
+      const parsed = storedWorkoutSessionSchema.parse({
+        entry_date: session.entry_date,
+        started_at: session.started_at,
+        ended_at: endedAt,
+        status: 'finished',
+        plan_ids: session.plan_ids ?? null,
+      })
+      const row: WorkoutSession = { ...session, ...parsed, updated_at: timestamp }
+
+      await db.workoutSessions.put(row)
+      await enqueue('workout_sessions', 'upsert', row)
+
+      return row
+    },
+  )
+}
+
+export async function getPlanCursor(sessionId: string): Promise<PlanCursor | undefined> {
+  return db.planCursors.get(sessionId)
+}
+
+export async function setPlanCursor(cursor: PlanCursor): Promise<void> {
+  await db.transaction('rw', db.planCursors, db.syncMeta, async () => {
     await refuseWhenSignedOut()
+    await db.planCursors.put(cursor)
+  })
+}
 
-    const session = await liveSession(id)
-
-    if (session.status === 'finished') {
-      return session
-    }
-
-    const timestamp = nowIso()
-    const endedAt =
-      Date.parse(session.started_at) > Date.parse(timestamp) ? session.started_at : timestamp
-    const parsed = storedWorkoutSessionSchema.parse({
-      entry_date: session.entry_date,
-      started_at: session.started_at,
-      ended_at: endedAt,
-      status: 'finished',
-    })
-    const row: WorkoutSession = { ...session, ...parsed, updated_at: timestamp }
-
-    await db.workoutSessions.put(row)
-    await enqueue('workout_sessions', 'upsert', row)
-
-    return row
+export async function clearPlanCursor(sessionId: string): Promise<void> {
+  await db.transaction('rw', db.planCursors, db.syncMeta, async () => {
+    await refuseWhenSignedOut()
+    await db.planCursors.delete(sessionId)
   })
 }
 
@@ -689,7 +724,7 @@ function dayFields(row: DailyEntry): DailyEntryInput {
 export async function discardSession(id: string): Promise<void> {
   await db.transaction(
     'rw',
-    [db.workoutSessions, db.workoutSets, db.outbox, db.syncMeta],
+    [db.workoutSessions, db.workoutSets, db.outbox, db.syncMeta, db.planCursors],
     async () => {
       await refuseWhenSignedOut()
 
@@ -698,6 +733,8 @@ export async function discardSession(id: string): Promise<void> {
       if (session === undefined) {
         throw new SessionNotFound()
       }
+
+      await db.planCursors.delete(id)
 
       if (session.deleted_at !== null) {
         return
@@ -895,6 +932,12 @@ export async function listFinishedSessions(limit: number): Promise<FinishedSessi
   return { sessions: live.slice(0, limit), hasMore: live.length > limit }
 }
 
+export async function listPlanHistory(): Promise<WorkoutSession[]> {
+  const { sessions } = await listFinishedSessions(Number.POSITIVE_INFINITY)
+
+  return sessions.filter((session) => (session.plan_ids ?? null) !== null)
+}
+
 export async function getSession(id: string): Promise<WorkoutSession | undefined> {
   const row = await db.workoutSessions.get(id)
 
@@ -962,22 +1005,42 @@ export async function setsForExercises(exerciseIds: string[]): Promise<WorkoutSe
   return (await liveSetsOf(exerciseIds)).sort(inDoneOrder)
 }
 
+async function finishedSetsOf(exerciseIds: readonly string[]): Promise<WorkoutSet[]> {
+  const sets = await liveSetsOf(exerciseIds)
+  const sessions = await db.workoutSessions.bulkGet([...new Set(sets.map((set) => set.session_id))])
+  const finished = new Set(
+    sessions.flatMap((session) =>
+      session?.status === 'finished' && session.deleted_at === null ? [session.id] : [],
+    ),
+  )
+
+  return sets.filter((set) => finished.has(set.session_id))
+}
+
 export async function lastSetFor(exerciseId: string): Promise<WorkoutSet | undefined> {
-  return (await liveSetsOf([exerciseId])).sort((left, right) => inDoneOrder(right, left))[0]
+  return db.transaction(
+    'r',
+    db.workoutSessions,
+    db.workoutSets,
+    async () =>
+      (await finishedSetsOf([exerciseId])).sort((left, right) => inDoneOrder(right, left))[0],
+  )
 }
 
 export async function lastSetsFor(exerciseIds: string[]): Promise<Map<string, WorkoutSet>> {
-  const last = new Map<string, WorkoutSet>()
+  return db.transaction('r', db.workoutSessions, db.workoutSets, async () => {
+    const last = new Map<string, WorkoutSet>()
 
-  for (const row of await liveSetsOf(exerciseIds)) {
-    const held = last.get(row.exercise_id)
+    for (const row of await finishedSetsOf(exerciseIds)) {
+      const held = last.get(row.exercise_id)
 
-    if (held === undefined || inDoneOrder(row, held) > 0) {
-      last.set(row.exercise_id, row)
+      if (held === undefined || inDoneOrder(row, held) > 0) {
+        last.set(row.exercise_id, row)
+      }
     }
-  }
 
-  return last
+    return last
+  })
 }
 
 export interface ConfirmedWrites {
@@ -1016,6 +1079,7 @@ export async function clearAll<T>(
           db.workoutSessions,
           db.workoutSets,
           db.errorLog,
+          db.planCursors,
         ],
         async () => {
           const count = (await db.outbox.count()) + (await db.deadLetters.count())
@@ -1035,6 +1099,7 @@ export async function clearAll<T>(
             db.workoutSessions.clear(),
             db.workoutSets.clear(),
             db.errorLog.clear(),
+            db.planCursors.clear(),
           ])
           await db.syncMeta.bulkPut([
             { key: OUTBOX_SEQUENCE_KEY, value: String(sequence) },

@@ -8,7 +8,14 @@ import {
   test as signedIn,
 } from './support/signedIn'
 import { gotoStyleGuide, openStyleGuideSheet } from './support/styleguide'
-import { openLiftCharts, openLiveSession, openPicker, openWithLiftWeek } from './support/workout'
+import {
+  openLiftCharts,
+  openLiveSession,
+  openPicker,
+  openPlanSession,
+  openWithLiftWeek,
+  stepCount,
+} from './support/workout'
 
 import type { Page } from '@playwright/test'
 
@@ -104,7 +111,10 @@ function smallTargets(page: Page): Promise<string[]> {
       }
       return out
     },
-    { selector: CONTROL_SELECTOR, minimum: MINIMUM_TAP_TARGET },
+    {
+      selector: CONTROL_SELECTOR,
+      minimum: MINIMUM_TAP_TARGET,
+    },
   )
 }
 
@@ -513,4 +523,86 @@ signedIn.describe('signed in on /analytics with lift and week charts', () => {
   signedIn('shows exactly one navigation at every width', async ({ page }) => {
     expect(await navigationProblems(page)).toEqual([])
   })
+})
+
+const FOCUS_MODE_EXCEPTION = {
+  route: '/workout in plan mode',
+  below: SIDEBAR_BREAKPOINT,
+  reason: 'focus mode, agreed on 2026-09-24, the header carries the leave link',
+}
+
+async function focusNavigationProblems(page: Page): Promise<string[]> {
+  const sidebar = page.getByRole('navigation', { name: 'Sidebar' })
+  const bottomBar = page.getByRole('navigation', { name: 'Bottom navigation' })
+  const corner = page
+    .getByRole('link', { name: 'Leave to Workouts' })
+    .or(page.getByRole('button', { name: 'Previous step' }))
+  const found: string[] = []
+
+  for (const width of SCROLL_WIDTHS) {
+    await resizeAndSettle(page, width)
+    const sidebarVisible = await sidebar.isVisible()
+
+    if (sidebarVisible !== width >= SIDEBAR_BREAKPOINT) {
+      found.push(`${String(width)}px: sidebar ${sidebarVisible ? 'shown' : 'hidden'}`)
+    }
+    if (await bottomBar.isVisible()) {
+      found.push(`${String(width)}px: bottom bar shown in ${FOCUS_MODE_EXCEPTION.route}`)
+    }
+    if (width < FOCUS_MODE_EXCEPTION.below && !(await corner.isVisible())) {
+      found.push(`${String(width)}px: no leave link or back button`)
+    }
+  }
+
+  return found
+}
+
+signedIn.describe('signed in on /workout in plan mode', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openPlanSession(page, context)
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('never scrolls sideways at 320 px on Dumbbell Overhead Extension', async ({ page }) => {
+    await page.getByRole('button', { name: /^Skip( this step)?$/ }).click()
+    for (let step = 2; step <= 6; step += 1) {
+      await expect(stepCount(page, step, 9)).toBeVisible()
+      if (step < 6) await page.getByRole('button', { name: /^Next step/ }).click()
+    }
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Dumbbell Overhead Extension' }),
+    ).toBeVisible()
+
+    expect(await atEachWidth(page, [320], () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn(
+    'keeps every tap target 44 px or taller in the step list, at all seven widths',
+    async ({ page }) => {
+      await resizeAndSettle(page, 390)
+      await page.getByRole('button', { name: /^Step 1 of 9, elapsed / }).click()
+      await expect(page.getByRole('dialog', { name: 'Chest + Triceps' })).toBeVisible()
+      expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+    },
+  )
+
+  signedIn('clips no text, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => clippedText(page))).toEqual([])
+  })
+
+  signedIn(
+    `hides the bottom bar under ${String(FOCUS_MODE_EXCEPTION.below)} px: ${FOCUS_MODE_EXCEPTION.reason}`,
+    async ({ page }) => {
+      expect(await focusNavigationProblems(page)).toEqual([])
+    },
+  )
 })

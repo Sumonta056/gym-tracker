@@ -14,6 +14,7 @@ import {
   STORES_V1,
   STORES_V3,
   STORES_V4,
+  STORES_V5,
   subscribeVersionState,
   versionWatch,
 } from './dexie'
@@ -44,7 +45,7 @@ describe('createDatabase', () => {
     expect(instance.name).toBe('gym-tracker-alt')
   })
 
-  it('declares the nine tables of version 5', async () => {
+  it('declares the ten tables of version 6', async () => {
     const instance = createDatabase('gym-tracker-tables')
     opened.push(instance)
     await instance.open()
@@ -55,13 +56,14 @@ describe('createDatabase', () => {
       'errorLog',
       'exercises',
       'outbox',
+      'planCursors',
       'profiles',
       'syncMeta',
       'workoutSessions',
       'workoutSets',
     ])
-    expect(instance.verno).toBe(5)
-    expect(DATABASE_VERSION).toBe(5)
+    expect(instance.verno).toBe(6)
+    expect(DATABASE_VERSION).toBe(6)
   })
 
   it('upgrades a version 1 database and keeps every row it held', async () => {
@@ -200,9 +202,168 @@ describe('createDatabase', () => {
     opened.push(instance)
     await instance.open()
 
-    expect(instance.verno).toBe(5)
+    expect(instance.verno).toBe(DATABASE_VERSION)
     expect(await instance.dailyEntries.toArray()).toEqual([entry])
     expect(await instance.profiles.toArray()).toEqual([profile])
+  })
+
+  it('upgrades a version 5 database, keeps every row and starts no plan cursor', async () => {
+    const name = 'gym-tracker-upgrade-v5'
+    const old = new Dexie(name)
+    old.version(5).stores(STORES_V5)
+    await old.open()
+    const stamp = '2026-10-10T08:00:00.000Z'
+    const entry = {
+      id: '11111111-1111-4111-8111-111111111111',
+      entry_date: '2026-10-10',
+      walk_seconds: 1800,
+      gym_seconds: 3600,
+      swim_seconds: 600,
+      created_at: stamp,
+      updated_at: stamp,
+      deleted_at: null,
+    }
+    const profile = {
+      id: '00000000-0000-4000-8000-000000000000',
+      unit_system: 'metric',
+      step_goal: 12000,
+      calorie_goal: 2400,
+      updated_at: stamp,
+    }
+    const exercise = {
+      id: '8e7bfa97-3837-4259-bd85-c93f7d5db288',
+      user_id: null,
+      name: 'Lat Pulldown',
+      muscle_group: 'back',
+      is_archived: false,
+      created_at: stamp,
+      updated_at: stamp,
+      deleted_at: null,
+    }
+    const session = {
+      id: '44444444-4444-4444-8444-444444444444',
+      entry_date: '2026-10-10',
+      started_at: stamp,
+      ended_at: '2026-10-10T09:00:00.000Z',
+      status: 'finished',
+      created_at: stamp,
+      updated_at: stamp,
+      deleted_at: null,
+    }
+    const set = {
+      id: '55555555-5555-4555-8555-555555555555',
+      session_id: session.id,
+      exercise_id: exercise.id,
+      set_index: 0,
+      reps: 10,
+      weight_kg: 40,
+      rpe: null,
+      completed_at: stamp,
+      created_at: stamp,
+      updated_at: stamp,
+      deleted_at: null,
+    }
+    const queued = {
+      id: '22222222-2222-4222-8222-222222222222',
+      sequence: 7,
+      table_name: 'workout_sessions',
+      operation: 'upsert',
+      row_id: session.id,
+      payload: session,
+      created_at: stamp,
+      attempts: 0,
+      last_error: null,
+      next_attempt_at: null,
+    }
+    const dead = {
+      ...queued,
+      id: '33333333-3333-4333-8333-333333333333',
+      sequence: 6,
+      attempts: 3,
+      last_error: 'refused',
+      error_code: '23514',
+      failed_at: stamp,
+    }
+    const error = { id: '66666666-6666-4666-8666-666666666666', at: stamp, message: 'boom' }
+
+    await old.table('dailyEntries').put(entry)
+    await old.table('profiles').put(profile)
+    await old.table('exercises').put(exercise)
+    await old.table('workoutSessions').put(session)
+    await old.table('workoutSets').put(set)
+    await old.table('outbox').put(queued)
+    await old.table('deadLetters').put(dead)
+    await old.table('errorLog').put(error)
+    await old.table('syncMeta').put({ key: 'outbox_sequence', value: '7' })
+    old.close()
+
+    const instance = createDatabase(name)
+    opened.push(instance)
+    await instance.open()
+
+    expect(instance.verno).toBe(6)
+    expect(await instance.dailyEntries.toArray()).toEqual([entry])
+    expect(await instance.profiles.toArray()).toEqual([profile])
+    expect(await instance.exercises.toArray()).toEqual([exercise])
+    expect(await instance.workoutSessions.toArray()).toEqual([{ ...session, plan_ids: null }])
+    expect(await instance.workoutSets.toArray()).toEqual([set])
+    expect(await instance.outbox.toArray()).toEqual([queued])
+    expect(await instance.deadLetters.toArray()).toEqual([dead])
+    expect(await instance.errorLog.toArray()).toEqual([error])
+    expect(await instance.syncMeta.toArray()).toEqual([{ key: 'outbox_sequence', value: '7' }])
+    expect(await instance.planCursors.count()).toBe(0)
+  })
+
+  it('keeps the plan ids of a version 5 session that already holds them', async () => {
+    const name = 'gym-tracker-upgrade-v5-plans'
+    const old = new Dexie(name)
+    old.version(5).stores(STORES_V5)
+    await old.open()
+    const session = {
+      id: '44444444-4444-4444-8444-444444444444',
+      entry_date: '2026-10-10',
+      started_at: '2026-10-10T08:00:00.000Z',
+      ended_at: null,
+      status: 'active',
+      plan_ids: ['legs'],
+      created_at: '2026-10-10T08:00:00.000Z',
+      updated_at: '2026-10-10T08:00:00.000Z',
+      deleted_at: null,
+    }
+    await old.table('workoutSessions').put(session)
+    old.close()
+
+    const instance = createDatabase(name)
+    opened.push(instance)
+    await instance.open()
+
+    expect(await instance.workoutSessions.toArray()).toEqual([session])
+  })
+
+  it('keys the plan cursors on sessionId with no other index', async () => {
+    const instance = createDatabase('gym-tracker-cursor-indexes')
+    opened.push(instance)
+    await instance.open()
+
+    const cursors = instance.tables.find((table) => table.name === 'planCursors')
+
+    expect(cursors?.schema.primKey.keyPath).toBe('sessionId')
+    expect(cursors?.schema.indexes).toEqual([])
+  })
+
+  it('stores a plan cursor and reads it back by its session id', async () => {
+    const instance = createDatabase('gym-tracker-cursor-round-trip')
+    opened.push(instance)
+    await instance.open()
+    const cursor = {
+      sessionId: '44444444-4444-4444-8444-444444444444',
+      stepIndex: 2,
+      skipped: ['flat-dumbbell-fly'],
+    }
+
+    await instance.planCursors.put(cursor)
+
+    expect(await instance.planCursors.get(cursor.sessionId)).toEqual(cursor)
   })
 
   it('indexes the error log on at', async () => {
@@ -278,7 +439,7 @@ describe('createDatabase', () => {
     expect(indexes).toContain('updated_at')
   })
 
-  it('keys every table on id, and the sync meta on key', async () => {
+  it('keys every table on id, the sync meta on key and the plan cursors on sessionId', async () => {
     const instance = createDatabase('gym-tracker-keys')
     opened.push(instance)
     await instance.open()
@@ -297,6 +458,7 @@ describe('createDatabase', () => {
       workoutSessions: 'id',
       workoutSets: 'id',
       errorLog: 'id',
+      planCursors: 'sessionId',
     })
   })
 })

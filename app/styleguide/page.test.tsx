@@ -2,7 +2,9 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { muscleLabel } from '../../components/plans/MuscleMap'
 import { colorTokens } from '../../lib/design/tokens'
+import { COACH_PLANS } from '../../lib/plans/coach'
 
 import StyleguidePage from './page'
 
@@ -15,6 +17,8 @@ vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND')
   },
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => '/styleguide',
 }))
 
 describe('the styleguide route guard', () => {
@@ -861,6 +865,64 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     expect(
       await within(screen.getByTestId('error-log-card')).findByText('Loading chunk 812 failed.'),
     ).toBeInTheDocument()
+  })
+
+  it('offers every coach step in the muscle map sample', () => {
+    const sample = within(screen.getByTestId('muscle-map-sample'))
+    const steps = COACH_PLANS.flatMap((plan) => plan.groups.flatMap((group) => group.steps))
+    expect(steps).toHaveLength(26)
+    expect(
+      within(sample.getByRole('combobox', { name: 'Coach step' })).getAllByRole('option'),
+    ).toHaveLength(26)
+  })
+
+  it('drops the native select style so the coach step keeps its 44 px height in WebKit', () => {
+    const sample = within(screen.getByTestId('muscle-map-sample'))
+    const select = sample.getByRole('combobox', { name: 'Coach step' })
+    expect(select).toHaveClass('appearance-none', 'min-h-11', 'pr-10')
+    expect(select.parentElement?.querySelector('svg[data-icon="chevron"]')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
+  })
+
+  it('shows the frame, the card and the chip map for the chosen step', () => {
+    const sample = within(screen.getByTestId('muscle-map-sample'))
+    const [first] = COACH_PLANS.flatMap((plan) => plan.groups.flatMap((group) => group.steps))
+    const label = muscleLabel(first?.muscles.primary ?? [], first?.muscles.secondary ?? [])
+    expect(sample.getAllByRole('img', { name: label })).toHaveLength(3)
+    expect(sample.getByRole('list', { name: 'Muscles' })).toBeInTheDocument()
+  })
+
+  it('redraws the muscle map sample for every step it is given', async () => {
+    const sample = within(screen.getByTestId('muscle-map-sample'))
+    const select = sample.getByRole('combobox', { name: 'Coach step' })
+    const steps = COACH_PLANS.flatMap((plan) => plan.groups.flatMap((group) => group.steps))
+    for (const step of steps) {
+      await userEvent.selectOptions(select, step.slug)
+      const label = muscleLabel(step.muscles.primary, step.muscles.secondary)
+      expect(sample.getAllByRole('img', { name: label })).toHaveLength(3)
+      expect(sample.getAllByText(step.name).length).toBeGreaterThan(0)
+    }
+  })
+
+  it('shows the coach plan hero, cards, start bars, watch pill and step list', async () => {
+    const sample = within(screen.getByTestId('coach-plan-sample'))
+    expect(sample.getByRole('region', { name: "Today's suggestion" })).toHaveTextContent('Legs')
+    const legs = sample.getByRole('button', { name: /^Legs/ })
+    expect(legs).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(legs)
+    expect(legs).toHaveAttribute('aria-pressed', 'false')
+    expect(sample.getByRole('button', { name: 'Pick a plan to start' })).toBeDisabled()
+    expect(sample.getByRole('button', { name: /^Start Shoulders \+ Legs/ })).toHaveTextContent(
+      'combined',
+    )
+    expect(
+      sample.getByRole('link', {
+        name: 'Tutorial on YouTube: Incline Dumbbell Press, opens a new tab',
+      }),
+    ).toBeInTheDocument()
+    expect(sample.getByRole('region', { name: 'Biceps' })).toBeInTheDocument()
   })
 
   it('shows the Saved toast from its sample button', async () => {

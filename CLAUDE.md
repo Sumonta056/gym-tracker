@@ -16,6 +16,7 @@ It works with no network in the gym. It also works on a laptop.
 | `docs/plan/03-phase-3.md`                     | Coach plans. The current phase.                     |
 | `docs/design/prototype/index.html`            | The visual contract. Open it in a browser.          |
 | `.claude/skills/design-system/`               | Load this before any UI work                        |
+| `.claude/skills/coach-plan/`                  | Add or change a coach plan step, image or video     |
 | `.claude/rules/architecture.md`               | The repository, UUID, soft delete and seconds rules |
 | `.claude/rules/testing.md`                    | Test first, coverage floors, test naming            |
 | `.claude/rules/git.md`                        | Conventional commits, scopes, the gate, branches    |
@@ -23,13 +24,13 @@ It works with no network in the gym. It also works on a laptop.
 
 ## The Claude workspace
 
-| Path                           | What it is                                                     |
-| ------------------------------ | -------------------------------------------------------------- |
-| `.claude/rules/`               | The four rule files above. Short and testable.                 |
-| `.claude/skills/`              | `design-system`, `commit-report`, `add-screen`, `db-migration` |
-| `.claude/agents/`              | `ui-reviewer`, `sync-auditor`, `test-writer`                   |
-| `.claude/hooks/commit-gate.sh` | Blocks a commit with no matching report                        |
-| `.claude/settings.json`        | The three hooks and the permission allow list                  |
+| Path                           | What it is                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `.claude/rules/`               | The four rule files above. Short and testable.                               |
+| `.claude/skills/`              | `design-system`, `commit-report`, `add-screen`, `db-migration`, `coach-plan` |
+| `.claude/agents/`              | `ui-reviewer`, `sync-auditor`, `test-writer`                                 |
+| `.claude/hooks/commit-gate.sh` | Blocks a commit with no matching report                                      |
+| `.claude/settings.json`        | The three hooks and the permission allow list                                |
 
 Design mockups: https://claude.ai/artifact/8pajWGN8ykJNhxaGLSNNG4
 

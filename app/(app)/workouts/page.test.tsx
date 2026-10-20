@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -139,5 +139,41 @@ describe('WorkoutsPage', () => {
     render(<WorkoutsPage />)
 
     expect(await screen.findByRole('button', { name: 'Start a session' })).toBeInTheDocument()
+  })
+
+  it('shows the suggested plan above the 4 plan cards', async () => {
+    render(<WorkoutsPage />)
+
+    const hero = await screen.findByRole('region', { name: "Today's suggestion" })
+    const plans = screen.getByRole('list', { name: 'Plans' })
+    expect(hero).toHaveTextContent('Chest + Triceps')
+    expect(within(plans).getAllByRole('button')).toHaveLength(4)
+    expect(hero.compareDocumentPosition(plans) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('puts the free session under its own label, below the plans', async () => {
+    render(<WorkoutsPage />)
+
+    const free = await screen.findByRole('region', { name: 'Free session' })
+    const plans = await screen.findByRole('list', { name: 'Plans' })
+    expect(within(free).getByRole('button', { name: 'Start a session' })).toBeInTheDocument()
+    expect(plans.compareDocumentPosition(free) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('shows the sync chip beside the heading', () => {
+    render(<WorkoutsPage />)
+
+    const header = screen.getByRole('banner')
+    expect(header).toHaveTextContent('Workouts')
+    expect(within(header).getByRole('status')).toBeInTheDocument()
+  })
+
+  it('draws the free session Start as a secondary button under the plans', async () => {
+    render(<WorkoutsPage />)
+
+    expect(await screen.findByRole('button', { name: 'Start a session' })).toHaveClass(
+      'bg-surface-2',
+      'border-border',
+    )
   })
 })

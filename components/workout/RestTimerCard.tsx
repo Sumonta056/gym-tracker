@@ -37,7 +37,17 @@ export type RestTimerCardProps = {
   onSkip: () => void
   onAddThirty: () => void
   onChange: () => void
+  narrow?: boolean
   className?: string
+}
+
+const ROW_CLASS = {
+  wide: {
+    row: 'lg:flex-nowrap lg:gap-2',
+    pill: 'lg:flex-none',
+    text: 'lg:order-first',
+  },
+  narrow: { row: '', pill: '', text: '' },
 }
 
 export function RestTimerCard({
@@ -51,8 +61,10 @@ export function RestTimerCard({
   onSkip,
   onAddThirty,
   onChange,
+  narrow = false,
   className,
 }: RestTimerCardProps) {
+  const row = ROW_CLASS[narrow ? 'narrow' : 'wide']
   const endsAt = restEndsAt(completedAt, restSeconds, extraTaps)
   const [instant, setInstant] = useState(now)
   const [phase, setPhase] = useState<Phase>(() =>
@@ -129,22 +141,22 @@ export function RestTimerCard({
               style={{ width: `${String(restProgress(remaining, total))}%` }}
             />
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-2">
+          <div className={cn('mt-3 flex flex-wrap items-center gap-3', row.row)}>
             <button
               type="button"
               onClick={onSkip}
-              className={cn(PILL, 'flex-[1_1_calc(50%-6px)] lg:flex-none')}
+              className={cn(PILL, 'flex-[1_1_calc(50%-6px)]', row.pill)}
             >
               Skip <span className="sr-only">rest</span>
             </button>
             <button
               type="button"
               onClick={onAddThirty}
-              className={cn(PILL, 'flex-[1_1_calc(50%-6px)] lg:flex-none')}
+              className={cn(PILL, 'flex-[1_1_calc(50%-6px)]', row.pill)}
             >
               +30 s <span className="sr-only">more rest</span>
             </button>
-            <p className="text-muted min-w-0 flex-1 text-sm break-words lg:order-first">
+            <p className={cn('text-muted min-w-0 flex-1 text-sm break-words', row.text)}>
               {restLengthText(exerciseName, savedSeconds)}
             </p>
             <button type="button" onClick={onChange} className={cn(PILL, 'shrink-0')}>

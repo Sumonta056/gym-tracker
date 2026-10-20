@@ -48,6 +48,24 @@ afterEach(() => {
 })
 
 describe('RestTimerCard', () => {
+  it('puts the controls on 1 row from 1024 px up in the wide layout', () => {
+    renderCard()
+
+    const skip = screen.getByRole('button', { name: 'Skip rest' })
+    expect(skip.parentElement).toHaveClass('lg:flex-nowrap')
+    expect(skip).toHaveClass('lg:flex-none')
+    expect(screen.getByText('Bench Press rests 1:30')).toHaveClass('lg:order-first')
+  })
+
+  it('keeps the wrapping phone row at every width in the narrow layout', () => {
+    renderCard({ narrow: true })
+
+    const skip = screen.getByRole('button', { name: 'Skip rest' })
+    expect(skip.parentElement).not.toHaveClass('lg:flex-nowrap')
+    expect(skip).not.toHaveClass('lg:flex-none')
+    expect(screen.getByText('Bench Press rests 1:30')).not.toHaveClass('lg:order-first')
+  })
+
   it('counts down from the completed time of the last set', () => {
     renderCard()
 

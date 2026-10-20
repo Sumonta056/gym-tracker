@@ -23,22 +23,23 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 
 ## The steps
 
-| Step | File                        | Title                                  | Size | Depends on          | E2E spec                 | State |
-| ---- | --------------------------- | -------------------------------------- | ---- | ------------------- | ------------------------ | ----- |
-| 3.0  | `S3.0-test-loop.md`         | The step test loop                     | S    | Fix track           | `smoke.spec.ts`          | —     |
-| 3.1  | `S3.1-design-contract.md`   | The prototype plates and the docs      | M    | 3.0                 | none                     | —     |
-| 3.2  | `S3.2-plan-schema.md`       | The plan schema and the coach data     | M    | 3.1                 | none                     | —     |
-| 3.3  | `S3.3-exercise-seed.md`     | The coach exercises, `plan_ids`        | M    | 3.2                 | none                     | —     |
-| 3.4  | `S3.4-exercise-images.md`   | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | —     |
-| 3.4b | `S3.4b-muscle-map.md`       | The muscle map                         | S    | 3.2                 | none                     | —     |
-| 3.5  | `S3.5-plan-metrics.md`      | `lib/metrics` for plans                | S    | 3.2                 | none                     | —     |
-| 3.6  | `S3.6-plan-repository.md`   | The repository for plans               | M    | 3.3                 | none                     | —     |
-| 3.7  | `S3.7-choose-plan.md`       | `/workouts` and the plan preview       | M    | 3.4, 3.4b, 3.5, 3.6 | `workouts.spec.ts`       | —     |
-| 3.8  | `S3.8-guided-step.md`       | `/workout` in plan mode                | L    | 3.7                 | `plans.spec.ts`          | —     |
-| 3.9  | `S3.9-session-done.md`      | Done, 2 plans, the laptop layout       | M    | 3.8                 | `plans.spec.ts`          | —     |
-| 3.10 | `S3.10-styleguide-e2e.md`   | Style guide, access, end to end        | M    | 3.9                 | full `pnpm verify`       | —     |
-| 3.11 | `S3.11-coach-plan-skill.md` | The `coach-plan` skill                 | M    | 3.3, 3.4, 3.10      | none                     | —     |
-| 3.12 | `S3.12-device-check.md`     | Verification, production, device check | S    | 3.10, 3.11          | full `pnpm verify`       | —     |
+| Step | File                            | Title                                  | Size | Depends on          | E2E spec                 | State |
+| ---- | ------------------------------- | -------------------------------------- | ---- | ------------------- | ------------------------ | ----- |
+| 3.0  | `S3.0-test-loop.md`             | The step test loop                     | S    | Fix track           | `smoke.spec.ts`          | done  |
+| 3.1  | `S3.1-design-contract.md`       | The prototype plates and the docs      | M    | 3.0                 | none                     | done  |
+| 3.2  | `S3.2-plan-schema.md`           | The plan schema and the coach data     | M    | 3.1                 | none                     | done  |
+| 3.3  | `S3.3-exercise-seed.md`         | The coach exercises, `plan_ids`        | M    | 3.2                 | none                     | done  |
+| 3.4  | `S3.4-exercise-images.md`       | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | done  |
+| 3.4b | `S3.4b-muscle-map.md`           | The muscle map                         | S    | 3.2                 | none                     | done  |
+| 3.5  | `S3.5-plan-metrics.md`          | `lib/metrics` for plans                | S    | 3.2                 | none                     | done  |
+| 3.6  | `S3.6-plan-repository.md`       | The repository for plans               | M    | 3.3                 | none                     | done  |
+| 3.7  | `S3.7-choose-plan.md`           | `/workouts` and the plan preview       | M    | 3.4, 3.4b, 3.5, 3.6 | `workouts.spec.ts`       | done  |
+| 3.8  | `S3.8-guided-step.md`           | `/workout` in plan mode                | L    | 3.7                 | `plans.spec.ts`          | done  |
+| 3.8b | `S3.8b-guided-step-feedback.md` | The owner's guided step feedback       | M    | 3.8                 | `plans.spec.ts`          | done  |
+| 3.9  | `S3.9-session-done.md`          | Done, 2 plans, the laptop layout       | M    | 3.8b                | `plans.spec.ts`          | done  |
+| 3.10 | `S3.10-styleguide-e2e.md`       | Style guide, access, end to end        | M    | 3.9                 | full `pnpm verify`       | —     |
+| 3.11 | `S3.11-coach-plan-skill.md`     | The `coach-plan` skill                 | M    | 3.3, 3.4, 3.10      | none                     | done  |
+| 3.12 | `S3.12-device-check.md`         | Verification, production, device check | S    | 3.10, 3.11          | full `pnpm verify`       | —     |
 
 ## Order
 
@@ -46,7 +47,7 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 3.0 ─ 3.1 ─ 3.2 ─┬─ 3.3 ─ 3.6 ─┐
                  ├─ 3.4 ───────┤
                  ├─ 3.4b ──────┤
-                 └─ 3.5 ───────┼─ 3.7 ─ 3.8 ─ 3.9 ─ 3.10 ─ 3.11 ─ 3.12
+                 └─ 3.5 ───────┼─ 3.7 ─ 3.8 ─ 3.8b ─ 3.9 ─ 3.10 ─ 3.11 ─ 3.12
 ```
 
 3.3, 3.4, 3.4b and 3.5 are independent after 3.2. Do them in any order, one per
@@ -57,20 +58,23 @@ session.
 Stop and report to the user at each checkpoint. Run the full `pnpm verify` first. Do
 not continue without approval.
 
-### Checkpoint A — after 3.4b
+### Checkpoint A — after 3.4b · passed 2026-10-20
 
-- [ ] The owner accepted the 5 prototype plates.
-- [ ] The owner confirmed the image licence.
-- [ ] The migration is applied on the live project, and every coach exercise exists.
-- [ ] A step image loads with the network down, on a cold cache.
-- [ ] `MuscleMap` shows the right regions for all 26 steps on `/styleguide`.
+- [x] The owner accepted the 5 prototype plates.
+- [x] The owner confirmed the image licence.
+- [x] The migration is applied on the live project, and every coach exercise exists.
+- [x] A step image loads with the network down, on a cold cache.
+- [x] `MuscleMap` shows the right regions for all 26 steps on `/styleguide`.
 
-### Checkpoint B — after 3.8
+### Checkpoint B — after 3.8b · passed 2026-10-20
 
-- [ ] A full plan runs at 390 px, from Start to the last step.
-- [ ] A reload in the middle resumes at the same step.
-- [ ] The owner accepted the focus mode with no bottom bar.
-- [ ] The owner accepted the Muscles view on the phone.
+- [x] A full plan runs at 390 px, from Start to the last step.
+- [x] A reload in the middle resumes at the same step.
+- [x] The owner accepted the focus mode with no bottom bar.
+- [x] The owner accepted the Muscles view on the phone.
+- [x] The owner accepted the 3.8b demo, then the 3.8b build on the phone.
+
+The owner tested the build of `fa4e814` and passed the checkpoint. The owner chose to skip the full `pnpm verify` here.
 
 ### Checkpoint C — after 3.12
 
