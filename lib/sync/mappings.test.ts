@@ -357,6 +357,67 @@ describe('toServerSession', () => {
   })
 })
 
+describe('toServerSession and the plan ids', () => {
+  it('sends the plan ids of an active row', () => {
+    expect(toServerSession(session({ plan_ids: ['legs'] }), USER_ID).plan_ids).toEqual(['legs'])
+  })
+
+  it('sends the plan ids of a finished row', () => {
+    const sent = toServerSession(
+      session({ status: 'finished', ended_at: SERVER_AT, plan_ids: ['legs'] }),
+      USER_ID,
+    )
+
+    expect(sent.plan_ids).toEqual(['legs'])
+  })
+
+  it('leaves the plan_ids key out of a finished row with no plan', () => {
+    const sent = toServerSession(
+      session({ status: 'finished', ended_at: SERVER_AT, plan_ids: null }),
+      USER_ID,
+    )
+
+    expect('plan_ids' in sent).toBe(false)
+  })
+
+  it('leaves the plan_ids key out of an active row with no plan', () => {
+    expect('plan_ids' in toServerSession(session({ plan_ids: null }), USER_ID)).toBe(false)
+  })
+
+  it('sends the plan ids of a delete payload', () => {
+    const sent = toServerSession(
+      session({ plan_ids: ['legs'], updated_at: SERVER_AT, deleted_at: SERVER_AT }),
+      USER_ID,
+    )
+
+    expect(sent.plan_ids).toEqual(['legs'])
+  })
+
+  it('leaves the plan_ids key out of a delete payload with no plan', () => {
+    const sent = toServerSession(
+      session({ plan_ids: null, updated_at: SERVER_AT, deleted_at: SERVER_AT }),
+      USER_ID,
+    )
+
+    expect('plan_ids' in sent).toBe(false)
+  })
+
+  it('leaves the plan_ids key out when the device row never had it', () => {
+    const older: WorkoutSession = {
+      id: ROW_D,
+      entry_date: '2026-09-01',
+      started_at: LOCAL_AT,
+      ended_at: null,
+      status: 'active',
+      created_at: LOCAL_AT,
+      updated_at: LOCAL_AT,
+      deleted_at: null,
+    }
+
+    expect('plan_ids' in toServerSession(older, USER_ID)).toBe(false)
+  })
+})
+
 describe('toLocalSession', () => {
   it('drops the owner column and keeps the server updated_at', () => {
     expect(toLocalSession(serverSession())).toEqual({
@@ -366,9 +427,17 @@ describe('toLocalSession', () => {
       ended_at: null,
       status: 'active',
       created_at: LOCAL_AT,
+      plan_ids: null,
       updated_at: SERVER_AT,
       deleted_at: null,
     })
+  })
+
+  it('keeps the plan ids', () => {
+    expect(toLocalSession(serverSession({ plan_ids: ['legs', 'shoulders'] })).plan_ids).toEqual([
+      'legs',
+      'shoulders',
+    ])
   })
 
   it('keeps a finished status', () => {

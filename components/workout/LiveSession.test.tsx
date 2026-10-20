@@ -97,6 +97,23 @@ function pastSet(overrides: Partial<WorkoutSet>): WorkoutSet {
   }
 }
 
+async function putPastSet(overrides: Partial<WorkoutSet>): Promise<void> {
+  const set = pastSet(overrides)
+
+  await db.workoutSessions.put({
+    id: set.session_id,
+    entry_date: '2026-09-01',
+    started_at: '2026-09-01T09:00:00.000Z',
+    ended_at: '2026-09-01T11:00:00.000Z',
+    status: 'finished',
+    plan_ids: null,
+    created_at: '2026-09-01T09:00:00.000Z',
+    updated_at: '2026-09-01T11:00:00.000Z',
+    deleted_at: null,
+  })
+  await db.workoutSets.put(set)
+}
+
 beforeEach(async () => {
   await db.open()
   await Promise.all([
@@ -198,7 +215,7 @@ describe('LiveSession acceptance', () => {
   })
 
   it('shows the PR badge on a heavier set and not on an equal one', async () => {
-    await db.workoutSets.put(pastSet({ weight_kg: 100, reps: 5 }))
+    await putPastSet({ weight_kg: 100, reps: 5 })
     await startSession('2026-09-02')
     await renderLive()
     await pickExercise('Bench Press')
@@ -400,7 +417,7 @@ describe('LiveSession', () => {
   })
 
   it('copies the last set of an earlier session for the first set of an exercise', async () => {
-    await db.workoutSets.put(pastSet({ exercise_id: SQUAT_ID, reps: 6, weight_kg: 90 }))
+    await putPastSet({ exercise_id: SQUAT_ID, reps: 6, weight_kg: 90 })
     const session = await startSession('2026-09-02')
     await renderLive()
 
@@ -976,7 +993,7 @@ describe('the last time line', () => {
   })
 
   it('shows it before the first set of an exercise too', async () => {
-    await db.workoutSets.put(pastSet({ weight_kg: 100, reps: 5 }))
+    await putPastSet({ weight_kg: 100, reps: 5 })
     await startSession('2026-09-02')
     await renderLive()
     await pickExercise('Bench Press')

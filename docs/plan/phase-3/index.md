@@ -32,7 +32,7 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 | 3.4  | `S3.4-exercise-images.md`   | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | done  |
 | 3.4b | `S3.4b-muscle-map.md`       | The muscle map                         | S    | 3.2                 | none                     | done  |
 | 3.5  | `S3.5-plan-metrics.md`      | `lib/metrics` for plans                | S    | 3.2                 | none                     | done  |
-| 3.6  | `S3.6-plan-repository.md`   | The repository for plans               | M    | 3.3                 | none                     | —     |
+| 3.6  | `S3.6-plan-repository.md`   | The repository for plans               | M    | 3.3                 | none                     | done  |
 | 3.7  | `S3.7-choose-plan.md`       | `/workouts` and the plan preview       | M    | 3.4, 3.4b, 3.5, 3.6 | `workouts.spec.ts`       | —     |
 | 3.8  | `S3.8-guided-step.md`       | `/workout` in plan mode                | L    | 3.7                 | `plans.spec.ts`          | —     |
 | 3.9  | `S3.9-session-done.md`      | Done, 2 plans, the laptop layout       | M    | 3.8                 | `plans.spec.ts`          | —     |

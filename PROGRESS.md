@@ -5,7 +5,8 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
-**Next step:** 3.6, the repository for plans · `docs/plan/phase-3/S3.6-plan-repository.md`.
+**Next step:** 3.7, `/workouts` and the plan preview · `docs/plan/phase-3/S3.7-choose-plan.md`.
+**Step 3.6 done** on 2026-10-20. `lib/db/repository.ts`: `startPlanSession` shares `beginSession` with `startSession`; `getPlanCursor`, `setPlanCursor`, `clearPlanCursor` write `planCursors` only, no outbox; `lastSetFor`; `listPlanHistory`. `finishSession` and `discardSession` delete the cursor in their transaction; `clearAll` clears `planCursors`. The 4 sync-auditor notes from 3.3 are closed. `lib/sync/worker.ts` needed no change. Owner decisions: `toServerSession` sends `plan_ids` whenever it is non-null, at any status, and leaves the key out when it is null, so a local null never wipes the server and a refused start cannot lose the plan tag on the finish; the cursor writes refuse with `SignedOutOnThisDevice`; `lastSetFor` counts only finished, live sessions held on this device; `listPlanHistory` returns finished live plan sessions, newest first. The sync-auditor passed the final change.
 **Checkpoint A passed** on 2026-10-20. The owner approved. The first full `pnpm verify` found the `/styleguide` "Coach step" select at 24 px in WebKit: a native select ignores `min-h-11`. The fix adds `appearance-none`, `pr-10` and a `StatIcon` chevron turned 90°. The second verify: 3903 unit tests, coverage 99.3 % lines, build, and 687 of 694 e2e pass with 5 skipped. 2 WebKit timeouts, `swim.spec.ts:3` and `workout-history.spec.ts:80`, each passed 3 of 3 alone. The step e2e runs the desktop project only, so a WebKit-only drift waits for the checkpoint.
 **Step 3.4 done** on 2026-10-19. 52 WebP files in `public/exercises/`, 744 KB, from `docs/data/coach-images/` through `scripts/exercise-image.mjs`. The Serwist default glob precaches them: 122 URLs, 4.56 MB. **Licence:** the owner chose the coach images, source unknown, for personal use while the repository is private. Before the repository becomes public, switch to `docs/data/fedb-images/` or confirm the source. `offline-images.spec.ts` passes on desktop and Pixel 7. WebKit blocks service workers in Playwright, so the iPhone needs a device check.
 **Step 3.5 done** on 2026-10-19. `lib/metrics/planSuggestion.ts` (`lastDoneByPlan`, `suggestPlan`) and `lib/metrics/planProgress.ts` (`stepStatuses`, `sessionSummary`). Owner decisions: a never-done plan is suggested first, then the plan done least recently; `cursor.skipped` holds step slugs; the cursor step is `now` even when skipped; the set count and the volume take every live set of the session.
@@ -13,7 +14,7 @@ that one step only. Stop and report when the step is done.
 **Step 3.3 done** on 2026-10-19. 12 coach steps reuse a Phase 2 seed row: 8 exact names, and 4 aliases the owner chose (Flat Dumbbell Fly → Dumbbell Fly, Side Lateral Raise → Lateral Raise, One-Arm Dumbbell Row → Dumbbell Row, Shoulder Press → Dumbbell Shoulder Press). 14 new global rows. `workout_sessions.plan_ids text[]` refuses an empty list and an unknown id; null means no plan. Dexie version 6 adds `planCursors`. The rerun and bad-insert checks did not run on live: the auto mode check blocks a write through `execute_sql`.
 **Fix track closed** on 2026-10-16. The owner passed the wave 12 checkpoint and the whole checklist in `docs/archive/04-feedback-fixes.md`, on the iPhone and the laptop, with the deferred A to F device checks and the B2 bar. Known limits from wave 3: an error at the same moment as a navigation can miss the log (deferred write, A3); the Errors card loop guard matches a text prefix; no plate for the edit set sheet or the chip fade. Each report's "Things to consider" has the rest.
 **Branch:** `feat/phase-3-coach-plans`, cut from `main` after the fix track merge.
-**Last commit:** `833b7b8`, step 3.5, then step 3.4 after the owner commits it. The branch does not hold the day view merge `db58d5d` from `main` yet. Merge `main` in before the Phase 3 merge. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
+**Last commit:** `dae0f73`, the Checkpoint A fix, then step 3.6 after the owner commits it. The branch does not hold the day view merge `db58d5d` from `main` yet. Merge `main` in before the Phase 3 merge. The fix track steps: `docs/archive/feedback/index.md`. Wave 3 reports: `reports/wave-3/`.
 
 ## Resume here
 
@@ -47,10 +48,9 @@ that one step only. Stop and report when the step is done.
   while Legs is never done. `suggestPlan` returns Legs. Fix the plate's demo data so it suggests Legs. From 3.5.
 - **Step 3.8** — write step slugs into `planCursors.skipped`, not exercise ids. `stepStatuses` matches on the slug. From 3.5.
 
-- **Step 3.6** — the sync-auditor notes from 3.3. `finishSession` in `lib/db/repository.ts` must pass
-  `plan_ids: session.plan_ids ?? null` into its parse, or it clears the plan ids. `toLocalSession` must
-  map `plan_ids`. `toServerSession` must leave the key out when the payload has none, as `swim_seconds`
-  does. `clearAll` must add `db.planCursors` to its transaction and its clear.
+- **Step 3.8** — `lastSetsFor` (the exercise picker) still counts sets from the active session. `lastSetFor`
+  counts finished sessions only, so the two can disagree during a live session. Decide when the guided step shows
+  "Last time". From 3.6.
 
 - **Owner** — add four CI secrets: `E2E_EMAIL`, `E2E_PASSWORD`,
   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. From 1.16.

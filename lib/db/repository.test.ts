@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 
 import { liveQuery } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,6 +10,7 @@ import { ERROR_LOG_QUERY } from '../errors/report'
 import { dailyEntrySchema, localDate } from '../schema/dailyEntry'
 import { MAX_ERROR_RECORDS, MAX_MESSAGE_LENGTH, MAX_STACK_LENGTH } from '../schema/errorRecord'
 import { moveToDeadLetters } from '../sync/deadLetters'
+import { toServerSession } from '../sync/mappings'
 import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
 import { DAILY_CURSOR_KEY, DAILY_PULLED_KEY, db, SIGNED_OUT_KEY } from './dexie'
@@ -17,6 +18,7 @@ import {
   archiveExercise,
   clearAll,
   clearErrors,
+  clearPlanCursor,
   addSet,
   createExercise,
   deleteSet,
@@ -24,10 +26,12 @@ import {
   discardSession,
   finishSession,
   getActiveSession,
+  getPlanCursor,
   getSession,
   lastSetFor,
   lastSetsFor,
   listFinishedSessions,
+  listPlanHistory,
   listSessions,
   listSets,
   listSetsForSessions,
@@ -37,6 +41,8 @@ import {
   SessionAlreadyActive,
   SessionNotFound,
   SetNotFound,
+  setPlanCursor,
+  startPlanSession,
   startSession,
   updateSet,
   ExerciseNotFound,
@@ -81,6 +87,7 @@ import type { DailyEntry, Exercise, OutboxEntry, WorkoutSession, WorkoutSet } fr
 import type { DayWrite, ImportDay } from './repository'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { MuscleGroup } from '../schema/exercise'
+import type { PlanId } from '../schema/plan'
 import type { WorkoutSetDraft } from '../schema/workoutSet'
 
 vi.mock('../supabase/client', () => ({
@@ -173,6 +180,7 @@ beforeEach(async () => {
     db.workoutSessions.clear(),
     db.workoutSets.clear(),
     db.errorLog.clear(),
+    db.planCursors.clear(),
   ])
 })
 
@@ -1323,6 +1331,157 @@ describe('startSession', () => {
   })
 })
 
+describe('startPlanSession', () => {
+  it('writes 1 session with its plan ids and 1 outbox entry', async () => {
+    const session = await startPlanSession(['legs', 'shoulders'], '2026-09-01')
+    const queued = await queuedInOrder()
+
+    expect(session).toMatchObject({
+      entry_date: '2026-09-01',
+      status: 'active',
+      ended_at: null,
+      plan_ids: ['legs', 'shoulders'],
+      deleted_at: null,
+    })
+    expect(await db.workoutSessions.toArray()).toEqual([session])
+    expect(queued).toHaveLength(1)
+    expect(queued[0]).toMatchObject({
+      table_name: 'workout_sessions',
+      operation: 'upsert',
+      row_id: session.id,
+      payload: session,
+    })
+  })
+
+  it('throws SessionAlreadyActive when a session is already active', async () => {
+    const active = await startSession('2026-09-01')
+
+    const cause = await refusal(startPlanSession(['legs'], '2026-09-01'))
+
+    expect(cause).toBeInstanceOf(SessionAlreadyActive)
+    expect((await db.workoutSessions.toArray()).map((row) => row.id)).toEqual([active.id])
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('rejects an unknown plan id before it opens the transaction', async () => {
+    const transaction = vi.spyOn(db, 'transaction')
+
+    await expect(startPlanSession(['foo'] as unknown as PlanId[], '2026-09-01')).rejects.toThrow()
+
+    expect(transaction).not.toHaveBeenCalled()
+    expect(await db.workoutSessions.count()).toBe(0)
+  })
+
+  it('throws SignedOutOnThisDevice on a signed-out device and stores nothing', async () => {
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-09-02T00:00:00.000Z' })
+
+    const cause = await refusal(startPlanSession(['legs'], '2026-09-01'))
+
+    expect(cause).toBeInstanceOf(SignedOutOnThisDevice)
+    expect(await db.workoutSessions.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+})
+
+describe('the plan cursor', () => {
+  it('writes the cursor and no outbox entry', async () => {
+    const session = await startPlanSession(['legs'], '2026-09-01')
+    const queued = await db.outbox.count()
+
+    await setPlanCursor({ sessionId: session.id, stepIndex: 2, skipped: ['goblet-squat'] })
+
+    expect(await getPlanCursor(session.id)).toEqual({
+      sessionId: session.id,
+      stepIndex: 2,
+      skipped: ['goblet-squat'],
+    })
+    expect(await db.outbox.count()).toBe(queued)
+  })
+
+  it('returns undefined for a session with no cursor', async () => {
+    expect(await getPlanCursor(crypto.randomUUID())).toBeUndefined()
+  })
+
+  it('clears the cursor of one session and keeps the others', async () => {
+    const other = crypto.randomUUID()
+    await setPlanCursor({ sessionId: 'a', stepIndex: 1, skipped: [] })
+    await setPlanCursor({ sessionId: other, stepIndex: 3, skipped: [] })
+
+    await clearPlanCursor('a')
+
+    expect(await db.planCursors.toArray()).toEqual([
+      { sessionId: other, stepIndex: 3, skipped: [] },
+    ])
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('throws SignedOutOnThisDevice on a signed-out device and keeps the cursors', async () => {
+    await setPlanCursor({ sessionId: 'a', stepIndex: 1, skipped: [] })
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-09-02T00:00:00.000Z' })
+
+    const refusals = [
+      await refusal(setPlanCursor({ sessionId: 'a', stepIndex: 2, skipped: [] })),
+      await refusal(clearPlanCursor('a')),
+    ]
+
+    expect(refusals.every((cause) => cause instanceof SignedOutOnThisDevice)).toBe(true)
+    expect(await db.planCursors.toArray()).toEqual([{ sessionId: 'a', stepIndex: 1, skipped: [] }])
+  })
+})
+
+describe('listPlanHistory', () => {
+  it('returns the finished plan sessions, newest first', async () => {
+    const older = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T10:00:00.000Z',
+      '2026-09-01T11:00:00.000Z',
+    )
+    const newer = await finishedSession(
+      '2026-09-02',
+      '2026-09-02T10:00:00.000Z',
+      '2026-09-02T11:00:00.000Z',
+    )
+    await db.workoutSessions.bulkPut([
+      { ...older, plan_ids: ['legs'] },
+      { ...newer, plan_ids: ['chest-triceps', 'shoulders'] },
+    ])
+
+    expect((await listPlanHistory()).map((row) => row.id)).toEqual([newer.id, older.id])
+  })
+
+  it('skips a free, an active and a discarded session', async () => {
+    const free = await startSession('2026-09-01')
+    await finishSession(free.id)
+    const discarded = await startPlanSession(['legs'], '2026-09-02')
+    await finishSession(discarded.id)
+    await discardSession(discarded.id)
+    await startPlanSession(['back-biceps'], '2026-09-03')
+
+    expect(await listPlanHistory()).toEqual([])
+  })
+})
+
+describe('the screen import rule', () => {
+  function sources(folder: string): string[] {
+    return readdirSync(new URL(`../../${folder}`, import.meta.url), {
+      recursive: true,
+      encoding: 'utf8',
+    })
+      .filter((name) => /\.tsx?$/.test(name))
+      .map((name) => `${folder}/${name}`)
+  }
+
+  it('lets no screen code import lib/sync or @supabase', () => {
+    const offenders = [...sources('app'), ...sources('components')].filter((file) =>
+      /from '(@supabase\/|[^']*lib\/sync[/'])/.test(
+        readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8'),
+      ),
+    )
+
+    expect(offenders).toEqual([])
+  })
+})
+
 describe('getActiveSession', () => {
   it('returns undefined when no session is active', async () => {
     expect(await getActiveSession()).toBeUndefined()
@@ -1431,6 +1590,38 @@ describe('finishSession', () => {
       status: 'finished',
     })
     expect(await db.workoutSessions.get(session.id)).toEqual(finished)
+  })
+
+  it('queues a finish that carries no plan_ids key, so the server keeps its plan ids', async () => {
+    const session = await startSession('2026-09-01')
+
+    await finishSession(session.id)
+    const finish = (await queuedInOrder())[1]
+
+    expect(finish?.payload).toMatchObject({ status: 'finished', plan_ids: null })
+    expect('plan_ids' in toServerSession(finish?.payload as WorkoutSession, LOCAL_PROFILE_ID)).toBe(
+      false,
+    )
+  })
+
+  it('clears the cursor of the session', async () => {
+    const session = await startPlanSession(['legs'], '2026-09-01')
+    await setPlanCursor({ sessionId: session.id, stepIndex: 4, skipped: [] })
+
+    await finishSession(session.id)
+
+    expect(await getPlanCursor(session.id)).toBeUndefined()
+  })
+
+  it('keeps the plan ids of a plan session', async () => {
+    const session = await startPlanSession(['back-biceps', 'legs'], '2026-09-01')
+
+    const finished = await finishSession(session.id)
+
+    expect(finished.plan_ids).toEqual(['back-biceps', 'legs'])
+    expect((await db.outbox.orderBy('sequence').last())?.payload).toMatchObject({
+      plan_ids: ['back-biceps', 'legs'],
+    })
   })
 
   it('writes no daily entry and queues no daily write', async () => {
@@ -1671,6 +1862,15 @@ describe('restoreSet', () => {
 })
 
 describe('discardSession', () => {
+  it('clears the cursor of the session', async () => {
+    const session = await startPlanSession(['legs'], '2026-09-01')
+    await setPlanCursor({ sessionId: session.id, stepIndex: 2, skipped: [] })
+
+    await discardSession(session.id)
+
+    expect(await getPlanCursor(session.id)).toBeUndefined()
+  })
+
   it('soft deletes the session and all its sets in one transaction', async () => {
     const session = await startSession('2026-09-01')
     const sets = [
@@ -1968,46 +2168,86 @@ describe('listSetsForSessions', () => {
 })
 
 describe('lastSetFor', () => {
+  const FINISHED_ID = '66666666-6666-4666-8666-666666666666'
+
+  function finishedSet(overrides: Partial<WorkoutSet>): WorkoutSet {
+    return storedSet({ session_id: FINISHED_ID, ...overrides })
+  }
+
+  beforeEach(async () => {
+    await db.workoutSessions.put({
+      id: FINISHED_ID,
+      entry_date: '2026-09-01',
+      started_at: '2026-09-01T09:00:00.000Z',
+      ended_at: '2026-09-01T11:00:00.000Z',
+      status: 'finished',
+      plan_ids: null,
+      created_at: '2026-09-01T09:00:00.000Z',
+      updated_at: '2026-09-01T11:00:00.000Z',
+      deleted_at: null,
+    })
+  })
+
   it('returns undefined for an exercise with no set', async () => {
     expect(await lastSetFor(BENCH_ID)).toBeUndefined()
   })
 
   it('returns the newest set of the exercise across all sessions', async () => {
-    const newest = storedSet({ created_at: '2026-09-03T10:00:00.000Z', reps: 3 })
+    const newest = finishedSet({ created_at: '2026-09-03T10:00:00.000Z', reps: 3 })
     await db.workoutSets.bulkPut([
-      storedSet({ created_at: '2026-09-01T10:00:00.000Z' }),
+      finishedSet({ created_at: '2026-09-01T10:00:00.000Z' }),
       newest,
-      storedSet({ created_at: '2026-09-02T10:00:00.000Z' }),
-      storedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-04T10:00:00.000Z' }),
+      finishedSet({ created_at: '2026-09-02T10:00:00.000Z' }),
+      finishedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-04T10:00:00.000Z' }),
     ])
 
     expect(await lastSetFor(BENCH_ID)).toEqual(newest)
   })
 
   it('takes the higher set_index when two sets share a timestamp', async () => {
-    const later = storedSet({ set_index: 1 })
-    await db.workoutSets.bulkPut([storedSet({ set_index: 0 }), later])
+    const later = finishedSet({ set_index: 1 })
+    await db.workoutSets.bulkPut([finishedSet({ set_index: 0 }), later])
 
     expect(await lastSetFor(BENCH_ID)).toEqual(later)
   })
 
-  it('skips a soft-deleted set', async () => {
-    const session = await startSession('2026-09-01')
-    const kept = await addSet(aSet(session.id, { reps: 5 }))
-    const removed = await addSet(aSet(session.id, { reps: 6 }))
+  it('skips a soft-deleted set and a set from the active session', async () => {
+    const done = await startSession('2026-09-01')
+    const kept = await addSet(aSet(done.id, { reps: 5 }))
+    const removed = await addSet(aSet(done.id, { reps: 6 }))
     await deleteSet(removed.id)
+    await finishSession(done.id)
+    const active = await startSession('2026-09-02')
+    await addSet(aSet(active.id, { reps: 7 }))
+
+    expect(await lastSetFor(BENCH_ID)).toEqual(kept)
+  })
+
+  it('skips a set whose session is discarded or not on this device', async () => {
+    const kept = finishedSet({ created_at: '2026-09-01T10:00:00.000Z' })
+    const discarded = await finishedSession(
+      '2026-09-02',
+      '2026-09-02T10:00:00.000Z',
+      '2026-09-02T11:00:00.000Z',
+    )
+    await db.workoutSessions.put({ ...discarded, deleted_at: '2026-09-02T12:00:00.000Z' })
+    await db.workoutSets.bulkPut([
+      kept,
+      storedSet({ session_id: discarded.id, created_at: '2026-09-02T10:30:00.000Z' }),
+      storedSet({ created_at: '2026-09-03T10:00:00.000Z' }),
+    ])
 
     expect(await lastSetFor(BENCH_ID)).toEqual(kept)
   })
 
   it('picks the set completed last, even when it was written first', async () => {
-    const completedLast = storedSet({
+    const completedLast = finishedSet({
       created_at: '2026-09-01T10:00:00.000Z',
       completed_at: '2026-09-05T10:00:00.000Z',
     })
     await db.workoutSets.bulkPut([
       completedLast,
-      storedSet({
+      finishedSet({
         created_at: '2026-09-03T10:00:00.000Z',
         completed_at: '2026-09-04T10:00:00.000Z',
       }),
@@ -2017,9 +2257,9 @@ describe('lastSetFor', () => {
   })
 
   it('reads created_at for a set with no completed_at', async () => {
-    const written = storedSet({ created_at: '2026-09-06T10:00:00.000Z', completed_at: null })
+    const written = finishedSet({ created_at: '2026-09-06T10:00:00.000Z', completed_at: null })
     await db.workoutSets.bulkPut([
-      storedSet({
+      finishedSet({
         created_at: '2026-09-01T10:00:00.000Z',
         completed_at: '2026-09-05T10:00:00.000Z',
       }),
@@ -2030,9 +2270,9 @@ describe('lastSetFor', () => {
   })
 
   it('compares the instant, not the text, of two offsets', async () => {
-    const later = storedSet({ completed_at: '2026-09-05T09:30:00.000Z' })
+    const later = finishedSet({ completed_at: '2026-09-05T09:30:00.000Z' })
     await db.workoutSets.bulkPut([
-      storedSet({ completed_at: '2026-09-05T11:00:00.000+02:00' }),
+      finishedSet({ completed_at: '2026-09-05T11:00:00.000+02:00' }),
       later,
     ])
 
@@ -2114,12 +2354,22 @@ describe('lastSetsFor', () => {
     expect((await lastSetsFor([BENCH_ID])).get(BENCH_ID)).toEqual(kept)
   })
 
-  it('agrees with lastSetFor for every exercise', async () => {
+  it('agrees with lastSetFor for every exercise of a finished session', async () => {
+    const done = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T09:00:00.000Z',
+      '2026-09-01T11:00:00.000Z',
+    )
     await db.workoutSets.bulkPut([
-      storedSet({ created_at: '2026-09-01T10:00:00.000Z' }),
-      storedSet({ created_at: '2026-09-05T10:00:00.000Z', set_index: 2 }),
-      storedSet({ exercise_id: SQUAT_ID, created_at: '2026-09-04T10:00:00.000Z' }),
+      storedSet({ session_id: done.id, created_at: '2026-09-01T10:00:00.000Z' }),
+      storedSet({ session_id: done.id, created_at: '2026-09-05T10:00:00.000Z', set_index: 2 }),
       storedSet({
+        session_id: done.id,
+        exercise_id: SQUAT_ID,
+        created_at: '2026-09-04T10:00:00.000Z',
+      }),
+      storedSet({
+        session_id: done.id,
         exercise_id: SQUAT_ID,
         deleted_at: '2026-09-06T10:00:00.000Z',
         created_at: '2026-09-06T10:00:00.000Z',
@@ -2133,17 +2383,24 @@ describe('lastSetsFor', () => {
   })
 
   it('picks the set completed last, the same as lastSetFor', async () => {
+    const done = await finishedSession(
+      '2026-09-01',
+      '2026-09-01T09:00:00.000Z',
+      '2026-09-01T11:00:00.000Z',
+    )
     const completedLast = storedSet({
+      session_id: done.id,
       created_at: '2026-09-01T10:00:00.000Z',
       completed_at: '2026-09-05T10:00:00.000Z',
     })
     await db.workoutSets.bulkPut([
       storedSet({
+        session_id: done.id,
         created_at: '2026-09-03T10:00:00.000Z',
         completed_at: '2026-09-04T10:00:00.000Z',
       }),
       completedLast,
-      storedSet({ created_at: '2026-09-02T10:00:00.000Z' }),
+      storedSet({ session_id: done.id, created_at: '2026-09-02T10:00:00.000Z' }),
     ])
 
     expect((await lastSetsFor([BENCH_ID])).get(BENCH_ID)).toEqual(completedLast)
@@ -2509,6 +2766,14 @@ describe('clearAll', () => {
 
     await expect(clearAll(await counted(), endSession)).resolves.toBe('signed out')
     expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeDefined()
+  })
+
+  it('leaves planCursors empty', async () => {
+    await setPlanCursor({ sessionId: crypto.randomUUID(), stepIndex: 1, skipped: [] })
+
+    await clearAll(await counted(), endSession)
+
+    expect(await db.planCursors.count()).toBe(0)
   })
 
   it('clears the error log at sign-out', async () => {
