@@ -16,6 +16,7 @@ export type WeekTotalsCardProps = {
   range: WeekRange
   gymDates?: string[]
   today?: string
+  marked?: string
   sessionsGoal?: number | null
   className?: string
 }
@@ -67,13 +68,22 @@ function dayLetter(date: string): string {
   return DAY_LETTERS[new Date(`${date}T00:00:00.000Z`).getUTCDay()] ?? ''
 }
 
-export function dayState(date: string, gym: boolean, today: string | undefined): string {
+export function dayState(
+  date: string,
+  gym: boolean,
+  today: string | undefined,
+  marked: string | undefined = today,
+): string {
   const parts = [dayName(date), gym ? 'gym day' : 'no gym']
 
   if (date === today) {
     parts.push('today')
   } else if (today !== undefined && date > today) {
     parts[1] = 'to come'
+  }
+
+  if (date === marked && marked !== today) {
+    parts.push('shown')
   }
 
   return parts.join(', ')
@@ -143,6 +153,7 @@ export function WeekTotalsCard({
   range,
   gymDates = [],
   today,
+  marked = today,
   sessionsGoal = null,
   className,
 }: WeekTotalsCardProps) {
@@ -184,7 +195,7 @@ export function WeekTotalsCard({
         <ol aria-label="Gym days this week" className="grid flex-1 grid-cols-7 gap-1.5">
           {dates.map((date) => {
             const done = gym.has(date)
-            const isToday = date === today
+            const isMarked = date === marked
             const future = today !== undefined && date > today
 
             return (
@@ -193,7 +204,7 @@ export function WeekTotalsCard({
                 data-date={date}
                 className={cn(
                   'flex flex-col items-center gap-1.5 text-[11px] font-semibold',
-                  isToday ? 'text-text' : 'text-muted',
+                  isMarked ? 'text-text' : 'text-muted',
                 )}
               >
                 <span
@@ -203,13 +214,13 @@ export function WeekTotalsCard({
                     done && 'bg-accent text-accent-ink',
                     !done && future && 'border-border border border-dashed',
                     !done && !future && 'bg-surface-2',
-                    isToday && 'outline-accent outline-2 outline-offset-2',
+                    isMarked && 'outline-accent outline-2 outline-offset-2',
                   )}
                 >
                   {done ? <StatIcon name="dumbbell" className="size-4" /> : null}
                 </span>
                 <span aria-hidden="true">{dayLetter(date)}</span>
-                <span className="sr-only">{dayState(date, done, today)}</span>
+                <span className="sr-only">{dayState(date, done, today, marked)}</span>
               </li>
             )
           })}

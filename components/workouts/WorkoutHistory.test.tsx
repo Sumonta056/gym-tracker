@@ -57,6 +57,17 @@ beforeEach(async () => {
   await db.exercises.bulkPut(EXERCISES)
 })
 
+function sessionLinks(scope: HTMLElement | typeof screen = screen): HTMLElement[] {
+  const query = scope === screen ? screen : within(scope as HTMLElement)
+
+  return query
+    .getAllByRole('link')
+    .filter(
+      (link) =>
+        !link.hasAttribute('data-today') && !/^Open /.test(link.getAttribute('aria-label') ?? ''),
+    )
+}
+
 describe('WorkoutHistory', () => {
   it('lists the finished sessions newest first', async () => {
     const old = sessionOn('2026-09-01')
@@ -66,7 +77,7 @@ describe('WorkoutHistory', () => {
     render(<WorkoutHistory />)
 
     const history = await screen.findByRole('region', { name: 'History' })
-    const rows = within(history).getAllByRole('link')
+    const rows = sessionLinks(history)
     expect(rows[0]).toHaveTextContent('Tue 8 Sep')
     expect(rows[0]).toHaveTextContent('1,120 kg')
     expect(rows[0]).toHaveTextContent('1h · 2 sets · Chest')
@@ -80,10 +91,10 @@ describe('WorkoutHistory', () => {
     render(<WorkoutHistory />)
 
     await screen.findByRole('region', { name: 'History' })
-    expect(screen.getAllByRole('link')).toHaveLength(30)
+    expect(sessionLinks()).toHaveLength(30)
     await userEvent.click(screen.getByRole('button', { name: 'Show more' }))
     await waitFor(() => {
-      expect(screen.getAllByRole('link')).toHaveLength(31)
+      expect(sessionLinks()).toHaveLength(31)
     })
     expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull()
   })
@@ -153,7 +164,11 @@ describe('WorkoutHistory', () => {
     render(<WorkoutHistory />)
 
     const history = await screen.findByRole('region', { name: 'History' })
-    expect(within(history).getAllByRole('link')).toHaveLength(1)
+    expect(sessionLinks(history)).toHaveLength(1)
+    expect(within(history).getByRole('link', { name: 'Open Tue 8 Sep' })).toHaveAttribute(
+      'href',
+      '/?date=2026-09-08',
+    )
     expect(screen.queryByRole('status')).toBeNull()
   })
 })

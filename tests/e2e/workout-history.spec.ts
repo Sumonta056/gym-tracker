@@ -50,7 +50,7 @@ test('shows a finished session in a day card and deletes it through the sheet', 
   const card = history(page).getByTestId('day-card')
   await expect(card).toHaveCount(1)
   await expect(card.locator('[data-today="true"]')).toHaveCount(1)
-  const row = card.getByRole('link')
+  const row = card.getByRole('link', { name: /·/ })
   await expect(row).toContainText('480 kg')
   await expect(row).toContainText(/ · 1 set · Chest/)
   await expect(row.getByRole('img')).toHaveAccessibleName('100% of your biggest session')
@@ -85,7 +85,7 @@ test('deletes a session from its detail and goes back to the list', async ({
   await openLiveSession(page, context)
   await finishOneSetSession(page, day)
 
-  await history(page).getByRole('link').click()
+  await history(page).getByRole('link', { name: /·/ }).click()
   await expect(page).toHaveURL(/\/workouts\?session=/)
   await expect(page.getByText('It goes from all your devices after the next sync.')).toBeVisible()
 

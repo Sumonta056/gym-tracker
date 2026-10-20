@@ -1,13 +1,14 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { getDay, listSessions, upsertDay } from '../lib/db/repository'
 import { formatDuration } from '../lib/duration'
-import { parseLogDate, shiftLogDate } from '../lib/format/logDate'
+import { dayPath, parseLogDate, shiftLogDate } from '../lib/format/logDate'
 import { toDayNumber } from '../lib/metrics/day'
 import { effectiveGymSeconds } from '../lib/metrics/gymTime'
 import { dailyEntrySchema, localDate, MAX_WEIGHT_KG, MIN_WEIGHT_KG } from '../lib/schema/dailyEntry'
@@ -147,7 +148,7 @@ const DAY_STEP =
 
 const TYPING_KEYS = new Set(['Backspace', 'Delete', 'ArrowUp', 'ArrowDown'])
 
-function isTypingKey(key: string): boolean {
+export function isTypingKey(key: string): boolean {
   return key.length === 1 || TYPING_KEYS.has(key)
 }
 
@@ -481,7 +482,14 @@ export function DailyEntryForm({
             {state === null ? prettyDate(date) : `${prettyDate(date)} · ${state}`}
           </p>
         </div>
-        {online ? null : <StatusChip status="offline" className="mt-1 shrink-0" />}
+        <div className="flex shrink-0 items-center gap-2">
+          {online ? null : <StatusChip status="offline" className="shrink-0" />}
+          {date === today ? null : (
+            <Link href={dayPath(date, today)} className={PILL}>
+              View this day
+            </Link>
+          )}
+        </div>
       </header>
 
       <div

@@ -12,6 +12,7 @@ import {
 
 import {
   clearOfLine,
+  SessionAxisTick,
   tickPlace,
   volumeLabel,
   volumePlacement,
@@ -184,6 +185,35 @@ describe('tickPlace', () => {
 
   it('ends a label at the right edge when centring would cut it', () => {
     expect(tickPlace(295, 300, 'Sun 20')).toEqual({ x: 300, anchor: 'end' })
+  })
+})
+
+describe('SessionAxisTick', () => {
+  const dates = new Map([['s1', '2026-09-20']])
+
+  function tick(gutter?: number) {
+    const { container } = render(
+      <svg>
+        <SessionAxisTick
+          dates={dates}
+          x={202}
+          y={98}
+          width={212}
+          payload={{ value: 's1' }}
+          gutter={gutter}
+        />
+      </svg>,
+    )
+    return container.querySelector('text')
+  }
+
+  it('ends the last label at the plot edge when the chart has no gutter', () => {
+    expect(tick()?.getAttribute('text-anchor')).toBe('end')
+  })
+
+  it('centres the last label when the gutter beside the plot leaves room for it', () => {
+    expect(tick(34)?.getAttribute('text-anchor')).toBe('middle')
+    expect(tick(34)?.getAttribute('x')).toBe('202')
   })
 })
 

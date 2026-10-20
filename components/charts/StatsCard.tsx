@@ -163,7 +163,12 @@ export function StatsCard({ id, context }: StatsCardProps) {
       )
     case 'streak':
       return daily === null ? null : (
-        <StreakHeatMap weeks={daily.heatMap} streak={daily.streak} className={className} />
+        <StreakHeatMap
+          weeks={daily.heatMap}
+          streak={daily.streak}
+          today={daily.today}
+          className={className}
+        />
       )
     case 'totals':
       return daily === null ? null : (

@@ -38,7 +38,7 @@ const EMPTY_ROW_DATA: HistoryRow = {
   groups: [],
 }
 
-function renderCard(today = false, rows: HistoryRow[] = [FULL_ROW, EMPTY_ROW_DATA]) {
+function renderCard(today = '2026-10-17', rows: HistoryRow[] = [FULL_ROW, EMPTY_ROW_DATA]) {
   const onDelete = vi.fn()
   const view = render(
     <DayCard
@@ -54,19 +54,32 @@ function renderCard(today = false, rows: HistoryRow[] = [FULL_ROW, EMPTY_ROW_DAT
 }
 
 function links() {
-  return screen.getAllByRole('link')
+  return screen.getAllByRole('link').slice(1)
+}
+
+function dayLink() {
+  return screen.getByRole('link', { name: 'Open Fri 16 Oct' })
 }
 
 describe('DayCard', () => {
   it('shows the day number and the weekday in the date column', () => {
-    const { container } = renderCard()
-    const column = container.querySelector('[aria-hidden="true"]')
-    expect(column).toHaveTextContent('16Fri')
-    expect(column).toHaveClass('bg-surface-2', 'w-[58px]')
+    renderCard()
+    expect(dayLink()).toHaveTextContent('16Fri')
+    expect(dayLink()).toHaveClass('bg-surface-2', 'w-[58px]')
+  })
+
+  it('opens the day on the Today screen from the date column', () => {
+    renderCard()
+    expect(dayLink()).toHaveAttribute('href', '/?date=2026-10-16')
+  })
+
+  it('opens the root from the date column of today', () => {
+    renderCard('2026-10-16')
+    expect(dayLink()).toHaveAttribute('href', '/')
   })
 
   it('fills the date column with the accent for today', () => {
-    const { container } = renderCard(true)
+    const { container } = renderCard('2026-10-16')
     expect(container.querySelector('[data-today="true"]')).toHaveClass(
       'bg-accent',
       'text-accent-ink',

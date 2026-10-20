@@ -10,7 +10,7 @@ import { StatIcon } from '../ui/StatIcon'
 import { startedText } from '../workout/SessionTimer'
 import { plural, sessionPath, volumeDisplay } from '../workouts/historyText'
 
-import { formatCount } from './summary'
+import { formatCount, headerDate } from './summary'
 
 import type { TodayWorkout } from './summary'
 import type { SessionStats } from '../../lib/metrics/sessionStats'
@@ -21,7 +21,13 @@ import type { ReactNode } from 'react'
 export type TodayWorkoutCardProps = {
   workouts: TodayWorkout[]
   unit: UnitSystem
+  date: string
+  today: string
   className?: string
+}
+
+export function workoutTitle(date: string, today: string): string {
+  return date === today ? 'Workout today' : `Workout · ${headerDate(date).short}`
 }
 
 export function sessionDetail(stats: SessionStats, unit: UnitSystem): string {
@@ -81,7 +87,13 @@ function Badge({ children, className }: { children: ReactNode; className: string
   )
 }
 
-export function TodayWorkoutCard({ workouts, unit, className }: TodayWorkoutCardProps) {
+export function TodayWorkoutCard({
+  workouts,
+  unit,
+  date,
+  today,
+  className,
+}: TodayWorkoutCardProps) {
   const totals = dayTotals(workouts.map(({ stats }) => stats))
   const newestFirst = [...workouts].sort((a, b) =>
     b.session.started_at.localeCompare(a.session.started_at),
@@ -91,7 +103,7 @@ export function TodayWorkoutCard({ workouts, unit, className }: TodayWorkoutCard
     <Card className={cn('flex flex-col gap-3.5', className)}>
       <div className="flex items-center justify-between gap-3">
         <h2>
-          <MicroLabel>Workout today</MicroLabel>
+          <MicroLabel>{workoutTitle(date, today)}</MicroLabel>
         </h2>
         <span className="bg-surface-2 text-text rounded-full px-2.5 py-1 text-xs font-semibold">
           {plural(workouts.length, 'session')}

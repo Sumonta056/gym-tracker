@@ -72,6 +72,25 @@ describe('WeekTotalsCard', () => {
     expect(day('2026-10-17')).toHaveTextContent('Saturday 17 October, to come')
   })
 
+  it('marks a chosen past day and still counts the days left from today', () => {
+    render(
+      <WeekTotalsCard
+        totals={TOTALS}
+        range={RANGE}
+        today="2026-10-16"
+        marked="2026-10-14"
+        sessionsGoal={4}
+      />,
+    )
+    expect(day('2026-10-14')).toHaveTextContent('Wednesday 14 October, no gym, shown')
+    expect(day('2026-10-14').querySelector('[aria-hidden="true"]')).toHaveClass('outline-accent')
+    expect(day('2026-10-16')).toHaveTextContent('Friday 16 October, no gym, today')
+    expect(day('2026-10-16').querySelector('[aria-hidden="true"]')).not.toHaveClass(
+      'outline-accent',
+    )
+    expect(screen.getByText('3 more to reach your goal. 2 days left.')).toBeVisible()
+  })
+
   it('draws a dumbbell on a gym day only', () => {
     render(<WeekTotalsCard totals={TOTALS} range={RANGE} gymDates={['2026-10-14']} />)
     expect(day('2026-10-14').querySelector('svg[data-icon="dumbbell"]')).not.toBeNull()

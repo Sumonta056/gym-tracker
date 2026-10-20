@@ -155,10 +155,11 @@ const DAY_MONTH = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'UTC',
 })
 
-export function headerDate(date: string): { weekday: string; dayMonth: string } {
+export function headerDate(date: string): { weekday: string; dayMonth: string; short: string } {
   const at = new Date(`${date}T00:00:00Z`)
+  const { day, month } = dayMonthShort(date)
 
-  return { weekday: WEEKDAY.format(at), dayMonth: DAY_MONTH.format(at) }
+  return { weekday: WEEKDAY.format(at), dayMonth: DAY_MONTH.format(at), short: `${day} ${month}` }
 }
 
 const COUNT = new Intl.NumberFormat('en-GB')

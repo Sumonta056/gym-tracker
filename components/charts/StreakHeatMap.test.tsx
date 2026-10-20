@@ -24,13 +24,13 @@ const full = analyse(logged, logged, 'week', TODAY, NOW, 12000)
 
 describe('StreakHeatMap', () => {
   it('shows its empty state for an empty series, without throwing', () => {
-    render(<StreakHeatMap weeks={empty.heatMap} streak={empty.streak} />)
+    render(<StreakHeatMap weeks={empty.heatMap} streak={empty.streak} today={TODAY} />)
     expect(screen.getByText('Log a day to start a streak.')).toBeVisible()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 
   it('names the streak from lib/metrics/streak in its label', () => {
-    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} today={TODAY} />)
     expect(
       screen.getByRole('img', {
         name: 'Streak over the last 12 weeks: logged 3 of 80 days. Current streak 3 days, longest 3 days.',
@@ -39,21 +39,25 @@ describe('StreakHeatMap', () => {
   })
 
   it('shows the current and the longest streak beside the title', () => {
-    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} today={TODAY} />)
     expect(screen.getByText('3 days · longest 3 days')).toBeVisible()
   })
 })
 
 describe('StreakHeatMap grid', () => {
   it('labels the 7 rows Mon to Sun, Monday first', () => {
-    const { container } = render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    const { container } = render(
+      <StreakHeatMap weeks={full.heatMap} streak={full.streak} today={TODAY} />,
+    )
     expect(
       Array.from(container.querySelectorAll('[data-weekday-label]'), (node) => node.textContent),
     ).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
   })
 
   it('draws 84 square cells', () => {
-    const { container } = render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    const { container } = render(
+      <StreakHeatMap weeks={full.heatMap} streak={full.streak} today={TODAY} />,
+    )
     const cells = container.querySelectorAll('[data-state]')
     expect(cells).toHaveLength(84)
     for (const cell of cells) {
@@ -62,14 +66,16 @@ describe('StreakHeatMap grid', () => {
   })
 
   it('outlines a future day so it stays visible', () => {
-    const { container } = render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    const { container } = render(
+      <StreakHeatMap weeks={full.heatMap} streak={full.streak} today={TODAY} />,
+    )
     const future = container.querySelector('[data-state="future"]')
     expect(future).toHaveClass('border-dashed', 'border-dim')
     expect(future).not.toHaveClass('bg-dim')
   })
 
   it('names the 3 states in the legend', () => {
-    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} today={TODAY} />)
     const legend = screen.getAllByRole('list')[0] as HTMLElement
     expect(
       within(legend)
@@ -123,12 +129,13 @@ describe('recentDays', () => {
 })
 
 describe('StreakHeatMap day links', () => {
-  it('links the last 7 days to the log, outside the chart image', () => {
-    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} />)
+  it('links the last 7 days to the day screen, outside the chart image', () => {
+    render(<StreakHeatMap weeks={full.heatMap} streak={full.streak} today={TODAY} />)
     const list = screen.getByRole('list', { name: 'Open a day' })
     const links = within(list).getAllByRole('link')
     expect(links).toHaveLength(7)
-    expect(links.at(-1)).toHaveAttribute('href', `/log?date=${TODAY}`)
+    expect(links.at(-1)).toHaveAttribute('href', '/')
+    expect(links[0]).toHaveAttribute('href', '/?date=2026-09-17')
     expect(links.at(-1)).toHaveAccessibleName(/, logged$/)
     for (const link of links) {
       expect(link).toHaveClass('min-h-11')
@@ -137,7 +144,7 @@ describe('StreakHeatMap day links', () => {
   })
 
   it('shows no day links while the heat map is empty', () => {
-    render(<StreakHeatMap weeks={empty.heatMap} streak={empty.streak} />)
+    render(<StreakHeatMap weeks={empty.heatMap} streak={empty.streak} today={TODAY} />)
     expect(screen.queryByRole('list', { name: 'Open a day' })).not.toBeInTheDocument()
   })
 })

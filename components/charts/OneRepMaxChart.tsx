@@ -265,7 +265,7 @@ export function OneRepMaxChart({
             dataKey="id"
             ticks={sessionTicks(rows.map((row) => String(row.id)))}
             interval={0}
-            tick={<SessionAxisTick dates={dates} />}
+            tick={<SessionAxisTick dates={dates} gutter={END_LABEL_GUTTER} />}
             axisLine={false}
             tickLine={false}
             height={AXIS_HEIGHT}
