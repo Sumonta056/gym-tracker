@@ -54,6 +54,7 @@ import { SecondaryButton } from '../../components/ui/SecondaryButton'
 import { SegmentedTabs } from '../../components/ui/SegmentedTabs'
 import { SheetModal } from '../../components/ui/SheetModal'
 import { StatCard } from '../../components/ui/StatCard'
+import { StatIcon } from '../../components/ui/StatIcon'
 import { StatusChip } from '../../components/ui/StatusChip'
 import { TextAreaField } from '../../components/ui/TextAreaField'
 import { SAVED_MESSAGE, useToast } from '../../components/ui/Toast'
@@ -1861,26 +1862,32 @@ function MuscleMapSample() {
         <MicroLabel as="label" htmlFor="muscle-map-step" className="mb-1.5">
           Coach step
         </MicroLabel>
-        <select
-          id="muscle-map-step"
-          value={slug}
-          onChange={(event) => {
-            setSlug(event.target.value)
-          }}
-          className="rounded-input border-border bg-surface text-text min-h-11 w-full border px-3.5 text-base font-semibold md:max-w-md"
-        >
-          {COACH_PLANS.map((plan) => (
-            <optgroup key={plan.id} label={plan.title}>
-              {plan.groups
-                .flatMap((group) => group.steps)
-                .map((step) => (
-                  <option key={step.slug} value={step.slug}>
-                    {step.name}
-                  </option>
-                ))}
-            </optgroup>
-          ))}
-        </select>
+        <div className="relative md:max-w-md">
+          <select
+            id="muscle-map-step"
+            value={slug}
+            onChange={(event) => {
+              setSlug(event.target.value)
+            }}
+            className="rounded-input border-border bg-surface text-text min-h-11 w-full appearance-none border pr-10 pl-3.5 text-base font-semibold"
+          >
+            {COACH_PLANS.map((plan) => (
+              <optgroup key={plan.id} label={plan.title}>
+                {plan.groups
+                  .flatMap((group) => group.steps)
+                  .map((step) => (
+                    <option key={step.slug} value={step.slug}>
+                      {step.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+          <StatIcon
+            name="chevron"
+            className="text-muted pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 rotate-90"
+          />
+        </div>
       </div>
       <Card>
         <MicroLabel as="p" className="mb-2">

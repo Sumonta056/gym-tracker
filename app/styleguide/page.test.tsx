@@ -865,6 +865,16 @@ describe('the styleguide page', { timeout: 15000 }, () => {
     ).toHaveLength(26)
   })
 
+  it('drops the native select style so the coach step keeps its 44 px height in WebKit', () => {
+    const sample = within(screen.getByTestId('muscle-map-sample'))
+    const select = sample.getByRole('combobox', { name: 'Coach step' })
+    expect(select).toHaveClass('appearance-none', 'min-h-11', 'pr-10')
+    expect(select.parentElement?.querySelector('svg[data-icon="chevron"]')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
+  })
+
   it('shows the frame, the card and the chip map for the chosen step', () => {
     const sample = within(screen.getByTestId('muscle-map-sample'))
     const [first] = COACH_PLANS.flatMap((plan) => plan.groups.flatMap((group) => group.steps))

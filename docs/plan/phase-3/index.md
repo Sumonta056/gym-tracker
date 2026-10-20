@@ -57,13 +57,13 @@ session.
 Stop and report to the user at each checkpoint. Run the full `pnpm verify` first. Do
 not continue without approval.
 
-### Checkpoint A — after 3.4b
+### Checkpoint A — after 3.4b · passed 2026-10-20
 
 - [x] The owner accepted the 5 prototype plates.
 - [x] The owner confirmed the image licence.
 - [x] The migration is applied on the live project, and every coach exercise exists.
-- [ ] A step image loads with the network down, on a cold cache.
-- [ ] `MuscleMap` shows the right regions for all 26 steps on `/styleguide`.
+- [x] A step image loads with the network down, on a cold cache.
+- [x] `MuscleMap` shows the right regions for all 26 steps on `/styleguide`.
 
 ### Checkpoint B — after 3.8
 

@@ -5,7 +5,8 @@ that one step only. Stop and report when the step is done.
 
 **Current phase:** Phase 3 — Coach plans · `docs/plan/03-phase-3.md`
 **Step index:** `docs/plan/phase-3/index.md`
-**Next step:** Checkpoint A in `docs/plan/phase-3/index.md`: the full `pnpm verify`, then the owner's approval. Then 3.6, the repository for plans · `docs/plan/phase-3/S3.6-plan-repository.md`.
+**Next step:** 3.6, the repository for plans · `docs/plan/phase-3/S3.6-plan-repository.md`.
+**Checkpoint A passed** on 2026-10-20. The owner approved. The first full `pnpm verify` found the `/styleguide` "Coach step" select at 24 px in WebKit: a native select ignores `min-h-11`. The fix adds `appearance-none`, `pr-10` and a `StatIcon` chevron turned 90°. The second verify: 3903 unit tests, coverage 99.3 % lines, build, and 687 of 694 e2e pass with 5 skipped. 2 WebKit timeouts, `swim.spec.ts:3` and `workout-history.spec.ts:80`, each passed 3 of 3 alone. The step e2e runs the desktop project only, so a WebKit-only drift waits for the checkpoint.
 **Step 3.4 done** on 2026-10-19. 52 WebP files in `public/exercises/`, 744 KB, from `docs/data/coach-images/` through `scripts/exercise-image.mjs`. The Serwist default glob precaches them: 122 URLs, 4.56 MB. **Licence:** the owner chose the coach images, source unknown, for personal use while the repository is private. Before the repository becomes public, switch to `docs/data/fedb-images/` or confirm the source. `offline-images.spec.ts` passes on desktop and Pixel 7. WebKit blocks service workers in Playwright, so the iPhone needs a device check.
 **Step 3.5 done** on 2026-10-19. `lib/metrics/planSuggestion.ts` (`lastDoneByPlan`, `suggestPlan`) and `lib/metrics/planProgress.ts` (`stepStatuses`, `sessionSummary`). Owner decisions: a never-done plan is suggested first, then the plan done least recently; `cursor.skipped` holds step slugs; the cursor step is `now` even when skipped; the set count and the volume take every live set of the session.
 **Step 3.4b done** on 2026-10-19. `components/plans/MuscleMap.tsx` (sizes `chip`, `card`, `frame`) and `MuscleTags.tsx`, drawn from `lib/design/body.ts`, which `scripts/coach-data.mjs` generates. Owner decisions: a helper chip has a dashed `border-dim` border, in the app and the prototype; the map label reads "Main: Chest. Helpers: Shoulders, Triceps."; frame figures cap at 88 px and the key is stacked; the JSON draws 22 regions, not 19. The spec `docs/specs/2026-09-24-coach-plans-design.md:241` still says 19. The plan was revised on 2026-10-17: `docs/specs/2026-09-24-coach-plans-design.md` sections 11 to 14, the accepted mockup https://claude.ai/artifact/FqAoJcGnmTCUEqQsTtNLa7, and the source data in `docs/data/`.
@@ -75,7 +76,7 @@ that one step only. Stop and report when the step is done.
   same rule fits daily entries and profiles. From 2.2c.
 - **Owner** — the e2e suite fails 1 to 6 tests on some runs: WebKit timeouts and `fetch failed`
   in the Supabase cleanup helper. Each passes on rerun. From 2.2c. Also `dashboard.spec.ts:27` on WebKit: the
-  dashboard showed the day with no gym time; it passed 5 of 5 alone. From 2.5b A. Again in the 2.10 verify; 3 of 3 alone.
+  dashboard showed the day with no gym time; it passed 5 of 5 alone. From 2.5b A. Again in the 2.10 verify; 3 of 3 alone. At Checkpoint A: `swim.spec.ts:3` and `workout-history.spec.ts:80` on WebKit timed out at 5 s; each passed 3 of 3 alone.
 - **Owner** — no test proves that `activate` deletes an old `supabase` cache on a device with the old worker. From 2.5b A.
 - **Later step** — match the Supabase rule in `app/sw.ts` on the origin of `NEXT_PUBLIC_SUPABASE_URL`, not on the
   `.supabase.co` host, so a custom domain or a local stack is not cached. From 2.5b A.
