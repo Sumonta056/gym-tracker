@@ -23,23 +23,23 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 
 ## The steps
 
-| Step | File                            | Title                                  | Size | Depends on          | E2E spec                 | State |
-| ---- | ------------------------------- | -------------------------------------- | ---- | ------------------- | ------------------------ | ----- |
-| 3.0  | `S3.0-test-loop.md`             | The step test loop                     | S    | Fix track           | `smoke.spec.ts`          | done  |
-| 3.1  | `S3.1-design-contract.md`       | The prototype plates and the docs      | M    | 3.0                 | none                     | done  |
-| 3.2  | `S3.2-plan-schema.md`           | The plan schema and the coach data     | M    | 3.1                 | none                     | done  |
-| 3.3  | `S3.3-exercise-seed.md`         | The coach exercises, `plan_ids`        | M    | 3.2                 | none                     | done  |
-| 3.4  | `S3.4-exercise-images.md`       | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | done  |
-| 3.4b | `S3.4b-muscle-map.md`           | The muscle map                         | S    | 3.2                 | none                     | done  |
-| 3.5  | `S3.5-plan-metrics.md`          | `lib/metrics` for plans                | S    | 3.2                 | none                     | done  |
-| 3.6  | `S3.6-plan-repository.md`       | The repository for plans               | M    | 3.3                 | none                     | done  |
-| 3.7  | `S3.7-choose-plan.md`           | `/workouts` and the plan preview       | M    | 3.4, 3.4b, 3.5, 3.6 | `workouts.spec.ts`       | done  |
-| 3.8  | `S3.8-guided-step.md`           | `/workout` in plan mode                | L    | 3.7                 | `plans.spec.ts`          | done  |
-| 3.8b | `S3.8b-guided-step-feedback.md` | The owner's guided step feedback       | M    | 3.8                 | `plans.spec.ts`          | —     |
-| 3.9  | `S3.9-session-done.md`          | Done, 2 plans, the laptop layout       | M    | 3.8b                | `plans.spec.ts`          | —     |
-| 3.10 | `S3.10-styleguide-e2e.md`       | Style guide, access, end to end        | M    | 3.9                 | full `pnpm verify`       | —     |
-| 3.11 | `S3.11-coach-plan-skill.md`     | The `coach-plan` skill                 | M    | 3.3, 3.4, 3.10      | none                     | —     |
-| 3.12 | `S3.12-device-check.md`         | Verification, production, device check | S    | 3.10, 3.11          | full `pnpm verify`       | —     |
+| Step | File                            | Title                                  | Size | Depends on          | E2E spec                 | State       |
+| ---- | ------------------------------- | -------------------------------------- | ---- | ------------------- | ------------------------ | ----------- |
+| 3.0  | `S3.0-test-loop.md`             | The step test loop                     | S    | Fix track           | `smoke.spec.ts`          | done        |
+| 3.1  | `S3.1-design-contract.md`       | The prototype plates and the docs      | M    | 3.0                 | none                     | done        |
+| 3.2  | `S3.2-plan-schema.md`           | The plan schema and the coach data     | M    | 3.1                 | none                     | done        |
+| 3.3  | `S3.3-exercise-seed.md`         | The coach exercises, `plan_ids`        | M    | 3.2                 | none                     | done        |
+| 3.4  | `S3.4-exercise-images.md`       | The images, offline                    | S    | 3.2                 | `offline-images.spec.ts` | done        |
+| 3.4b | `S3.4b-muscle-map.md`           | The muscle map                         | S    | 3.2                 | none                     | done        |
+| 3.5  | `S3.5-plan-metrics.md`          | `lib/metrics` for plans                | S    | 3.2                 | none                     | done        |
+| 3.6  | `S3.6-plan-repository.md`       | The repository for plans               | M    | 3.3                 | none                     | done        |
+| 3.7  | `S3.7-choose-plan.md`           | `/workouts` and the plan preview       | M    | 3.4, 3.4b, 3.5, 3.6 | `workouts.spec.ts`       | done        |
+| 3.8  | `S3.8-guided-step.md`           | `/workout` in plan mode                | L    | 3.7                 | `plans.spec.ts`          | done        |
+| 3.8b | `S3.8b-guided-step-feedback.md` | The owner's guided step feedback       | M    | 3.8                 | `plans.spec.ts`          | part 1 done |
+| 3.9  | `S3.9-session-done.md`          | Done, 2 plans, the laptop layout       | M    | 3.8b                | `plans.spec.ts`          | —           |
+| 3.10 | `S3.10-styleguide-e2e.md`       | Style guide, access, end to end        | M    | 3.9                 | full `pnpm verify`       | —           |
+| 3.11 | `S3.11-coach-plan-skill.md`     | The `coach-plan` skill                 | M    | 3.3, 3.4, 3.10      | none                     | —           |
+| 3.12 | `S3.12-device-check.md`         | Verification, production, device check | S    | 3.10, 3.11          | full `pnpm verify`       | —           |
 
 ## Order
 
