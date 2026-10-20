@@ -30,7 +30,7 @@ export const PICK_WEIGHT = 'Pick'
 type CopySource = Pick<WorkoutSet, 'reps' | 'weight_kg'>
 
 const ROW =
-  'grid min-h-11 grid-cols-[18px_minmax(0,1fr)_72px_44px] items-center gap-1.5 min-[390px]:grid-cols-[34px_minmax(0,1fr)_minmax(0,1fr)_44px] min-[390px]:gap-2'
+  'grid min-h-11 grid-cols-[18px_minmax(0,1fr)_74px_44px] items-center gap-1.5 min-[390px]:grid-cols-[34px_minmax(0,1fr)_minmax(0,1fr)_44px] min-[390px]:gap-2'
 
 const CELL =
   'bg-surface-2 border-border flex min-h-11 min-w-0 items-center gap-1 rounded-xl border px-2 text-[15px] font-bold whitespace-nowrap min-[390px]:px-3'
@@ -226,7 +226,7 @@ function LoggedRow({
       <button
         type="button"
         aria-label={setRowLabel(position, set, unit, false)}
-        className="col-span-2 grid min-h-11 touch-pan-y grid-cols-[minmax(0,1fr)_72px] gap-1.5 text-left select-none [-webkit-touch-callout:none] min-[390px]:grid-cols-2 min-[390px]:gap-2"
+        className="col-span-2 grid min-h-11 touch-pan-y grid-cols-[minmax(0,1fr)_74px] gap-1.5 text-left select-none [-webkit-touch-callout:none] min-[390px]:grid-cols-2 min-[390px]:gap-2"
         {...gestures}
       >
         <span className={CELL}>{bodyweight ? BODY_HINT : loadText(set.weight_kg, unit)}</span>

@@ -17,7 +17,7 @@ async function openWorkouts(page: Page): Promise<void> {
 async function openPreview(page: Page): Promise<void> {
   await page.goto('/workouts/chest-triceps')
   await expect(page.getByRole('heading', { level: 1, name: 'Chest + Triceps' })).toBeVisible()
-  await expect(page.getByRole('link', { name: /^Watch / })).toHaveCount(9)
+  await expect(page.getByRole('link', { name: /^Tutorial on YouTube: / })).toHaveCount(9)
 }
 
 test('renders /workouts and the plan preview with the network down after the first visit', async ({
