@@ -42,7 +42,7 @@ const SUFFIX =
   'text-muted pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-medium'
 
 const SELECT =
-  'bg-surface-2 border-border text-text min-h-11 w-full min-w-0 appearance-none rounded-xl border pr-7 pl-2.5 text-[15px] font-bold min-[390px]:pr-8 min-[390px]:pl-3'
+  'bg-surface-2 border-border text-text min-h-11 w-full min-w-0 appearance-none rounded-xl border pr-[22px] pl-2.5 text-[15px] font-bold min-[390px]:pr-8 min-[390px]:pl-3'
 
 const TICK = 'inline-flex size-11 items-center justify-center rounded-xl border font-extrabold'
 
@@ -192,7 +192,7 @@ function WeightCell({
       </select>
       <StatIcon
         name="chevron"
-        className="text-muted pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 rotate-90 min-[390px]:right-3"
+        className="text-muted pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rotate-90 min-[390px]:right-3"
       />
     </span>
   )

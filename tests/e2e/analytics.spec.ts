@@ -282,15 +282,15 @@ test('draws the lifting charts to the width of their cards at 320 px', async ({ 
   await page.goto('/styleguide')
   await liftBoxes(page)
 
-  const widths = await page
-    .getByTestId('lift-grid')
-    .locator('[role="img"] svg')
-    .evaluateAll((elements) =>
-      elements.map((element) => ({
-        svg: element.getBoundingClientRect().width,
-        card: element.closest('[role="img"]')?.getBoundingClientRect().width ?? 0,
-      })),
-    )
+  const charts = page.getByTestId('lift-grid').locator('[role="img"] svg')
+  await expect(charts).toHaveCount(2)
+
+  const widths = await charts.evaluateAll((elements) =>
+    elements.map((element) => ({
+      svg: element.getBoundingClientRect().width,
+      card: element.closest('[role="img"]')?.getBoundingClientRect().width ?? 0,
+    })),
+  )
 
   expect(widths).toHaveLength(2)
   for (const width of widths) {
@@ -373,15 +373,15 @@ test('draws the week charts to the width of their cards at 320 px', async ({ pag
   await page.goto('/styleguide')
   await weekBoxes(page)
 
-  const widths = await page
-    .getByTestId('week-grid')
-    .locator('[role="img"] svg')
-    .evaluateAll((elements) =>
-      elements.map((element) => ({
-        svg: element.getBoundingClientRect().width,
-        card: element.closest('[role="img"]')?.getBoundingClientRect().width ?? 0,
-      })),
-    )
+  const charts = page.getByTestId('week-grid').locator('[role="img"] svg')
+  await expect(charts).toHaveCount(3)
+
+  const widths = await charts.evaluateAll((elements) =>
+    elements.map((element) => ({
+      svg: element.getBoundingClientRect().width,
+      card: element.closest('[role="img"]')?.getBoundingClientRect().width ?? 0,
+    })),
+  )
 
   expect(widths).toHaveLength(3)
   for (const width of widths) {
