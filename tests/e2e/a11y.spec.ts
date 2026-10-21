@@ -9,7 +9,13 @@ import {
   test as signedIn,
 } from './support/signedIn'
 import { gotoStyleGuide, openStyleGuideSheet } from './support/styleguide'
-import { openLiftCharts, openLiveSession, openPicker, openWithLiftWeek } from './support/workout'
+import {
+  openLiftCharts,
+  openLiveSession,
+  openPicker,
+  openPlanSession,
+  openWithLiftWeek,
+} from './support/workout'
 
 import type { Page } from '@playwright/test'
 
@@ -207,3 +213,100 @@ signedIn(
     expect(await blocking(page)).toEqual([])
   },
 )
+
+test('reports no serious or critical accessibility issue with the plan sheets open on the style guide', async ({
+  page,
+}) => {
+  await gotoStyleGuide(page)
+  await page.getByRole('button', { name: 'Open the step list sheet' }).click()
+  await expect(page.getByRole('dialog', { name: 'Chest + Triceps' })).toBeVisible()
+  expect(await blocking(page)).toEqual([])
+  await page.getByRole('button', { name: 'Close the step list' }).click()
+  await page.getByRole('button', { name: 'Open the finish confirm sheet' }).click()
+  await expect(page.getByRole('dialog', { name: 'Finish the session?' })).toBeVisible()
+  expect(await blocking(page)).toEqual([])
+})
+
+signedIn.describe('signed in on /workouts/chest-triceps', () => {
+  signedIn.beforeEach(async ({ page }) => {
+    await page.goto('/workouts/chest-triceps')
+    await expect(page.getByRole('heading', { level: 1, name: 'Chest + Triceps' })).toBeVisible()
+  })
+
+  signedIn('reports no serious or critical accessibility issue', async ({ page }) => {
+    expect(await blocking(page)).toEqual([])
+  })
+
+  signedIn('shows a focus ring on every tab stop', async ({ page, browserName }) => {
+    for (const width of FOCUS_WIDTHS) {
+      await page.setViewportSize({ width, height: 900 })
+      const { stops, bare } = await tabStopsWithNoRing(page, tabKey(browserName))
+      expect(stops, `tab stops at ${String(width)}px`).toBeGreaterThan(0)
+      expect(bare, `stops with no ring at ${String(width)}px`).toEqual([])
+    }
+  })
+})
+
+signedIn.describe('signed in on /workout in plan mode', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openPlanSession(page, context)
+  })
+
+  signedIn(
+    'reports no serious or critical accessibility issue at 390 px and 1440 px',
+    async ({ page }) => {
+      for (const width of FOCUS_WIDTHS) {
+        await page.setViewportSize({ width, height: 900 })
+        expect(await blocking(page), `${String(width)}px`).toEqual([])
+      }
+    },
+  )
+
+  signedIn(
+    'reports no serious or critical accessibility issue with a set logged',
+    async ({ page }) => {
+      await page.getByRole('combobox', { name: 'Set 1 weight' }).selectOption('10')
+      await page.getByLabel('Set 1 reps').fill('12')
+      await page.getByRole('button', { name: 'Set 1 done' }).click()
+      await expect(page.getByRole('region', { name: 'Rest timer' })).toBeVisible()
+
+      expect(await blocking(page)).toEqual([])
+    },
+  )
+
+  signedIn(
+    'reports no serious or critical accessibility issue with the step list open',
+    async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.getByRole('button', { name: /^Step 1 of \d+, elapsed / }).click()
+      await expect(page.getByRole('dialog', { name: 'Chest + Triceps' })).toBeVisible()
+
+      expect(await blocking(page)).toEqual([])
+    },
+  )
+
+  signedIn(
+    'reports no serious or critical accessibility issue with the finish confirm open and on the Done screen',
+    async ({ page }) => {
+      await page.getByRole('button', { name: 'Finish', exact: true }).click()
+      const confirm = page.getByRole('dialog', { name: 'Finish the session?' })
+      await expect(confirm).toBeVisible()
+      expect(await blocking(page)).toEqual([])
+
+      await confirm.getByRole('button', { name: 'Finish anyway' }).click()
+      await expect(page.getByRole('heading', { level: 1, name: 'Session done' })).toBeVisible()
+      expect(await blocking(page)).toEqual([])
+    },
+  )
+
+  signedIn('shows a focus ring on every tab stop', async ({ page, browserName }) => {
+    for (const width of FOCUS_WIDTHS) {
+      await page.setViewportSize({ width, height: 900 })
+      const { stops, bare } = await tabStopsWithNoRing(page, tabKey(browserName))
+      expect(stops, `tab stops at ${String(width)}px`).toBeGreaterThan(0)
+      expect(bare, `stops with no ring at ${String(width)}px`).toEqual([])
+    }
+  })
+})

@@ -45,7 +45,7 @@ export function StepMark({ status, label, tone = 'muted' }: StepMarkProps) {
       <span
         aria-hidden="true"
         className={cn(
-          'inline-flex size-5 items-center justify-center rounded-full border text-[11px]',
+          'font-glyph inline-flex size-5 items-center justify-center rounded-full border text-[11px]',
           MARK_CLASS[status],
         )}
       >

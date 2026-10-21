@@ -45,32 +45,29 @@ describe('COACH_PLANS', () => {
     }
   })
 
-  it('holds 4 plans of 9, 9, 5 and 3 steps, 26 in all', () => {
-    expect(COACH_PLANS.map((plan) => plan.id)).toEqual([
-      'chest-triceps',
-      'back-biceps',
-      'shoulders',
-      'legs',
-    ])
+  it('holds the plans of the JSON, with every step of each', () => {
+    expect(COACH_PLANS.map((plan) => plan.id)).toEqual(source.plans.map((plan) => plan.id))
     expect(
       COACH_PLANS.map((plan) => plan.groups.reduce((sum, group) => sum + group.steps.length, 0)),
-    ).toEqual([9, 9, 5, 3])
-    expect(steps).toHaveLength(26)
+    ).toEqual(
+      source.plans.map((plan) => plan.groups.reduce((sum, group) => sum + group.steps.length, 0)),
+    )
+    expect(steps).toHaveLength(sourceSteps.length)
   })
 
   it('gives every step a unique slug', () => {
-    expect(new Set(steps.map((step) => step.slug)).size).toBe(26)
+    expect(new Set(steps.map((step) => step.slug)).size).toBe(steps.length)
   })
 
   it('gives every step a unique exercise id', () => {
-    expect(new Set(steps.map((step) => step.exerciseId)).size).toBe(26)
+    expect(new Set(steps.map((step) => step.exerciseId)).size).toBe(steps.length)
   })
 
-  it('holds 26 unique UUIDs in the JSON, one per slug', () => {
+  it('holds 1 unique UUID in the JSON per slug', () => {
     const uuids = Object.values(source.uuids)
 
-    expect(uuids).toHaveLength(26)
-    expect(new Set(uuids).size).toBe(26)
+    expect(uuids).toHaveLength(sourceSteps.length)
+    expect(new Set(uuids).size).toBe(uuids.length)
     expect(Object.keys(source.uuids).sort()).toEqual(sourceSteps.map((step) => step.slug).sort())
   })
 
@@ -159,11 +156,11 @@ describe('the step images', () => {
     }
   })
 
-  it('keeps exactly the 52 step files in public/exercises/', () => {
+  it('keeps exactly 2 step files per step in public/exercises/', () => {
     const files = readdirSync(resolve(publicDir, 'exercises')).map((file) => `/exercises/${file}`)
     const named = steps.flatMap((step) => [step.images.start, step.images.end])
 
-    expect(files).toHaveLength(52)
+    expect(files).toHaveLength(steps.length * 2)
     expect(files.sort()).toEqual(named.sort())
   })
 })
@@ -213,14 +210,17 @@ const GROUP_OF_MUSCLE: Record<string, string> = {
 describe('the coach exercise rows', () => {
   const phase2 = seedRows(migrationFile('_phase2_exercise_seed.sql'))
   const phase3 = seedRows(migrationFile('_phase3_coach_plans.sql'))
+  const coachRows = readdirSync(MIGRATIONS)
+    .filter((name) => /_coach_exercise_[a-z0-9_]+\.sql$/.test(name))
+    .flatMap(seedRows)
 
   it('reads the 40 Phase 2 seed rows and the 14 Phase 3 coach rows', () => {
     expect(phase2).toHaveLength(40)
     expect(phase3).toHaveLength(14)
   })
 
-  it('finds every coach exercise id in the Phase 2 seed or the Phase 3 migration', () => {
-    const ids = new Set([...phase2, ...phase3].map((row) => row.id))
+  it('finds every coach exercise id in the Phase 2 seed, the Phase 3 migration or a coach exercise migration', () => {
+    const ids = new Set([...phase2, ...phase3, ...coachRows].map((row) => row.id))
 
     for (const step of steps) {
       expect(ids).toContain(step.exerciseId)
@@ -281,7 +281,7 @@ describe('the coach exercise rows', () => {
   it('names each new row as its coach step and files it under its main muscle group', () => {
     const groups: readonly string[] = MUSCLE_GROUPS
 
-    for (const row of phase3) {
+    for (const row of [...phase3, ...coachRows]) {
       const step = steps.find((candidate) => candidate.exerciseId === row.id)
       const primary = step?.muscles.primary[0] ?? ''
 
@@ -298,8 +298,14 @@ describe('the coach exercise rows', () => {
     expect(text).toMatch(/add column if not exists plan_ids text\[\]/)
   })
 
-  it('checks every plan id of a session against the 4 plan ids', () => {
-    const text = readFileSync(resolve(MIGRATIONS, migrationFile('_phase3_coach_plans.sql')), 'utf8')
+  it('checks every plan id of a session against every plan id', () => {
+    const newest = readdirSync(MIGRATIONS)
+      .sort()
+      .filter((name) =>
+        readFileSync(resolve(MIGRATIONS, name), 'utf8').includes('workout_sessions_plan_ids_known'),
+      )
+      .at(-1)
+    const text = readFileSync(resolve(MIGRATIONS, newest ?? ''), 'utf8')
     const allowed = /plan_ids <@ array\[([^\]]+)\]::text\[\]/.exec(text)?.[1] ?? ''
 
     expect([...allowed.matchAll(/'([^']+)'/g)].map(([, id]) => id)).toEqual([...PLAN_IDS])

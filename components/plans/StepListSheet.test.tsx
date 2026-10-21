@@ -23,13 +23,10 @@ const STATUSES: StepStatus[] = [
   'done',
   'now',
   'skipped',
-  'todo',
-  'todo',
-  'todo',
-  'todo',
-  'todo',
-  'todo',
+  ...PLAN.steps.slice(3).map((): StepStatus => 'todo'),
 ]
+
+const SUMMARY_LINE = `1 done · 1 skipped · ${String(PLAN.steps.length - 2)} to go`
 
 function setup(open = true) {
   const onPick = vi.fn()
@@ -56,6 +53,12 @@ describe('StepMark', () => {
     expect(screen.getByText('–')).toHaveClass('border-dashed')
   })
 
+  it('draws the glyph in the system font, as the plates do, not the Arial fallback', () => {
+    render(<StepMark status="todo" />)
+
+    expect(screen.getByText('○')).toHaveClass('font-glyph', 'size-5', 'text-[11px]')
+  })
+
   it('takes a label in place of the word, in the text token when asked', () => {
     render(<StepMark status="done" label="3 × 14 kg" tone="text" />)
 
@@ -67,7 +70,7 @@ describe('StepMark', () => {
 
 describe('stepListSummary', () => {
   it('counts done, skipped and the steps still to go', () => {
-    expect(stepListSummary(STATUSES)).toBe('1 done · 1 skipped · 7 to go')
+    expect(stepListSummary(STATUSES)).toBe(SUMMARY_LINE)
   })
 })
 
@@ -84,11 +87,12 @@ describe('stepSections', () => {
   it('keeps the coach order under each group', () => {
     const sections = stepSections(PLAN.steps, GROUPS)
 
-    expect(sections.map((section) => [section.name, section.items.length])).toEqual([
-      ['Chest', 5],
-      ['Triceps', 4],
-    ])
-    expect(sections[1]?.items[0]?.index).toBe(5)
+    const coach = COACH_PLANS.find((plan) => plan.id === 'chest-triceps')?.groups ?? []
+
+    expect(sections.map((section) => [section.name, section.items.length])).toEqual(
+      coach.map((group) => [group.name, group.steps.length]),
+    )
+    expect(sections[1]?.items[0]?.index).toBe(coach[0]?.steps.length)
   })
 
   it('puts a step with no group under an empty name', () => {
@@ -110,11 +114,12 @@ describe('StepListSheet', () => {
     setup()
 
     const dialog = screen.getByRole('dialog', { name: 'Chest + Triceps' })
-    expect(within(dialog).getByText('1 done · 1 skipped · 7 to go')).toBeInTheDocument()
+    expect(within(dialog).getByText(SUMMARY_LINE)).toBeInTheDocument()
     const chest = within(dialog).getByRole('region', { name: 'Chest' })
     const triceps = within(dialog).getByRole('region', { name: 'Triceps' })
-    expect(within(chest).getAllByRole('button')).toHaveLength(5)
-    expect(within(triceps).getAllByRole('button')).toHaveLength(4)
+    const coach = COACH_PLANS.find((plan) => plan.id === 'chest-triceps')?.groups ?? []
+    expect(within(chest).getAllByRole('button')).toHaveLength(coach[0]?.steps.length ?? 0)
+    expect(within(triceps).getAllByRole('button')).toHaveLength(coach[1]?.steps.length ?? 0)
   })
 
   it('marks each status with a shape and a word', () => {

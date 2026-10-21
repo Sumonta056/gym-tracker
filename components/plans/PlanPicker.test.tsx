@@ -2,8 +2,10 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import { getPlan, listPlans } from '../../lib/plans'
+
 import { PlanPicker } from './PlanPicker'
-import { MISSED_DAY_NOTE } from './planText'
+import { cardLine, MISSED_DAY_NOTE } from './planText'
 
 import type { PlanStartSource } from './PlanStartBar'
 import type { WorkoutSession } from '../../lib/db/dexie'
@@ -24,6 +26,12 @@ vi.mock('../../lib/supabase/client', () => ({
 
 const TODAY = '2026-10-20'
 
+function legs() {
+  const found = getPlan('legs')
+  if (found === undefined) throw new Error('expected the plan legs')
+  return found
+}
+
 function done(planIds: PlanId[], date: string): WorkoutSession {
   return {
     id: `${planIds.join('-')}-${date}`,
@@ -43,6 +51,9 @@ const EVERY_PLAN_DONE = [
   done(['back-biceps'], '2026-10-18'),
   done(['shoulders'], '2026-10-16'),
   done(['legs'], '2026-10-17'),
+  ...listPlans()
+    .filter((plan) => !['chest-triceps', 'back-biceps', 'shoulders', 'legs'].includes(plan.id))
+    .map((plan) => done([plan.id], '2026-10-19')),
 ]
 
 const LEGS_NEVER_DONE = [
@@ -82,15 +93,15 @@ describe('PlanPicker', () => {
     renderPicker(LEGS_NEVER_DONE)
 
     expect(await hero()).toHaveTextContent('Legs')
-    expect(card(/^Legs/)).toHaveTextContent('3 exercises · never done')
+    expect(card(/^Legs/)).toHaveTextContent(cardLine(legs(), undefined, TODAY))
   })
 
-  it('shows the 4 plan cards', async () => {
+  it('shows 1 card per listed plan', async () => {
     renderPicker(EVERY_PLAN_DONE)
     await hero()
 
     expect(within(screen.getByRole('list', { name: 'Plans' })).getAllByRole('button')).toHaveLength(
-      4,
+      listPlans().length,
     )
   })
 

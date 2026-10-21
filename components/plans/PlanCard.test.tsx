@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-import { getPlan } from '../../lib/plans'
+import { getPlan, planSteps } from '../../lib/plans'
 
 import { PlanCard, PlanThumb } from './PlanCard'
 
@@ -56,7 +56,11 @@ describe('PlanCard', () => {
   it('names the exercise count and the last day', () => {
     renderCard(false)
 
-    expect(screen.getByText('9 exercises · last done 6 days ago')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        `${String(planSteps(plan('chest-triceps')).length)} exercises · last done 6 days ago`,
+      ),
+    ).toBeInTheDocument()
   })
 
   it('reads never done for a plan with no session', () => {
@@ -70,7 +74,9 @@ describe('PlanCard', () => {
       />,
     )
 
-    expect(screen.getByText('3 exercises · never done')).toBeInTheDocument()
+    expect(
+      screen.getByText(`${String(planSteps(plan('legs')).length)} exercises · never done`),
+    ).toBeInTheDocument()
   })
 
   it('labels the muscle map with the plan muscles', () => {

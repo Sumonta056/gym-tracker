@@ -267,34 +267,33 @@ pnpm test lib/plans lib/schema lib/design
 pnpm test components/plans
 ```
 
-The first must pass. The second shows the screen tests that pin a plan's shape (see
-below). `pnpm check:step` runs them before any commit, so the owner needs to know now.
+Both must pass. `pnpm check:step` runs them before any commit, so the owner needs to
+know now.
 
 Then report: the request, every file changed (`git status --short`), what each WebP
 shows, any migration written and not applied, and any test you updated. Never commit.
 
 ## The tests that pin the data
 
-`lib/plans/coach.test.ts` and `lib/plans/index.test.ts` pin today's plans: the step
-counts, the slug lists, the minutes, the number of WebP files, the seed migrations
-they read. An add, a remove or a new plan changes those facts, so the expected values
-must change with them. Update only the expected value of a fact the request changed,
-from the new data, and list every such edit in the report. Never weaken a check, and
-never change a test to pass a mistake: when a check fails for a reason the request
-did not cause, stop and report it.
+Since step 3.10 the plan tests read their counts from the data: the step counts, the
+plan list, the slug lists, the minutes, the WebP file count, the `uuids` count and the
+`PlanId` list come from `docs/data/coach-exercises.json`, `COACH_PLANS` or
+`combinePlans`. Every `*_coach_exercise_*.sql` file joins the seed lookup, and the
+`plan_ids` check test reads the newest migration that sets
+`workout_sessions_plan_ids_known`. An add, a remove or a new plan made by this skill
+needs no test edit in `lib/plans`, `lib/schema/plan.test.ts` or `components/plans`.
+Checked on 2026-10-21 with 1 step added to Legs, 1 step added to Chest, and a new plan
+with its seed and check migrations.
 
-What a request changes:
+A few facts stay pinned on purpose. When the request changes one, update only its
+expected value, from the new data, and list the edit in the report:
 
-| Request                      | Expected values to update                                                                                                                                                                                                                                                                                            |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Add or remove a step         | `coach.test.ts`: the steps per plan and the total, the unique slug and id counts, the `uuids` count, the WebP file count (2 per step). A reused exact seed name: the exact count and the `seedName` map. A `body only` step: the body-weight list. `index.test.ts`: that plan's step counts, slug lists and minutes. |
-| A new seed row               | `coach.test.ts` reads only the Phase 3 migration. Add the rows of every `*_coach_exercise_*.sql` file to the lookup in "finds every coach exercise id" and "names each new row". Keep the Phase 3 count at 14.                                                                                                       |
-| A new plan                   | `coach.test.ts`: the plan list and counts, and the `plan_ids` check test must read the newest migration that sets `workout_sessions_plan_ids_known`. `index.test.ts`: the plan lists. `lib/schema/plan.test.ts` pins the 4 ids: it is outside the write list, so ask the owner before you add the new id there.      |
-| Retire a plan                | `coach.test.ts`: "retires no coach plan" names the retired plan. `index.test.ts`: the listed plans.                                                                                                                                                                                                                  |
-| Change an image, set a video | Nothing. The tests must pass as they are.                                                                                                                                                                                                                                                                            |
+| Request                    | Expected values to update                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| A reused exact seed name   | `coach.test.ts`: the exact count and the `seedName` map.                                                                        |
+| A `body only` step         | `coach.test.ts`: the body-weight list.                                                                                          |
+| Retire a plan              | `coach.test.ts`: "retires no coach plan" names the retired plan.                                                                |
+| A step before a named step | A test that names a step by its place, for example Rope Pushdown as step 7 in `tests/e2e/plans.spec.ts`, follows the new place. |
 
-Suites outside `lib/plans` pin a plan's shape too. Adding 1 step to Legs broke 8
-tests in `components/plans/` (`PlanCard`, `PlanPicker`, `PlanStartBar`,
-`PlanStepList`, `planText`): step counts, minutes and "first time" lines. They are
-outside the write list. Name every failing test in the report and ask the owner
-before you touch one.
+Never weaken a check, and never change a test to pass a mistake: when a check fails
+for a reason the request did not cause, stop and report it.

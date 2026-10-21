@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import { previewLine } from '../../../../components/plans/planText'
+import { getPlan, listPlans, planSteps } from '../../../../lib/plans'
+
 import PlanPreviewPage, { dynamicParams, generateMetadata, generateStaticParams } from './page'
 
 const notFound = vi.hoisted(() =>
@@ -21,18 +24,19 @@ vi.mock('../../../../lib/supabase/client', () => ({
   },
 }))
 
+function chestTriceps() {
+  const plan = getPlan('chest-triceps')
+  if (plan === undefined) throw new Error('expected the plan chest-triceps')
+  return plan
+}
+
 function params(planId: string) {
   return { params: Promise.resolve({ planId }) }
 }
 
 describe('PlanPreviewPage', () => {
-  it('builds the 4 coach plans at build time and no other id', () => {
-    expect(generateStaticParams()).toEqual([
-      { planId: 'chest-triceps' },
-      { planId: 'back-biceps' },
-      { planId: 'shoulders' },
-      { planId: 'legs' },
-    ])
+  it('builds every listed coach plan at build time and no other id', () => {
+    expect(generateStaticParams()).toEqual(listPlans().map((plan) => ({ planId: plan.id })))
     expect(dynamicParams).toBe(false)
   })
 
@@ -40,7 +44,7 @@ describe('PlanPreviewPage', () => {
     render(await PlanPreviewPage(params('chest-triceps')))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Chest + Triceps' })).toBeInTheDocument()
-    expect(screen.getByText('9 exercises · 27 sets · about 55 min')).toBeInTheDocument()
+    expect(screen.getByText(previewLine(chestTriceps()))).toBeInTheDocument()
   })
 
   it('links back to the plans', async () => {
@@ -51,10 +55,10 @@ describe('PlanPreviewPage', () => {
     expect(back).toHaveClass('min-h-11')
   })
 
-  it('lists the 9 steps of the plan', async () => {
+  it('lists every step of the plan', async () => {
     render(await PlanPreviewPage(params('chest-triceps')))
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(9)
+    expect(screen.getAllByRole('listitem')).toHaveLength(planSteps(chestTriceps()).length)
   })
 
   it('offers Start for the plan at the foot', async () => {

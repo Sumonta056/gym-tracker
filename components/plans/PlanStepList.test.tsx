@@ -22,6 +22,10 @@ function plan(id: PlanId): Plan {
   return found
 }
 
+function loadedSteps(id: PlanId): number {
+  return planSteps(plan(id)).filter((step) => !step.bodyweight).length
+}
+
 function lastSet(weight: number | null): WorkoutSet {
   return { reps: 10, weight_kg: weight } as WorkoutSet
 }
@@ -38,23 +42,25 @@ beforeEach(async () => {
 })
 
 describe('PlanStepList', () => {
-  it('lists 9 steps in 2 groups for chest and triceps', () => {
-    render(<PlanStepList plan={plan('chest-triceps')} />)
+  it('lists the steps of each group of chest and triceps under its name', () => {
+    const chestTriceps = plan('chest-triceps')
+    render(<PlanStepList plan={chestTriceps} />)
 
-    const chest = screen.getByRole('region', { name: 'Chest' })
-    const triceps = screen.getByRole('region', { name: 'Triceps' })
-
-    expect(within(chest).getAllByRole('listitem')).toHaveLength(5)
-    expect(within(triceps).getAllByRole('listitem')).toHaveLength(4)
+    for (const group of chestTriceps.groups) {
+      expect(
+        within(screen.getByRole('region', { name: group.name })).getAllByRole('listitem'),
+      ).toHaveLength(group.steps.length)
+    }
   })
 
   it('numbers the steps across the groups', () => {
-    render(<PlanStepList plan={plan('chest-triceps')} />)
-    const triceps = screen.getByRole('region', { name: 'Triceps' })
+    const chestTriceps = plan('chest-triceps')
+    render(<PlanStepList plan={chestTriceps} />)
+    const [chest, triceps] = chestTriceps.groups
 
-    expect(within(triceps).getAllByRole('listitem')[0]).toHaveTextContent(
-      /^6Dumbbell Overhead Extension/,
-    )
+    expect(
+      within(screen.getByRole('region', { name: 'Triceps' })).getAllByRole('listitem')[0],
+    ).toHaveTextContent(`${String((chest?.steps.length ?? 0) + 1)}${triceps?.steps[0]?.name ?? ''}`)
   })
 
   it('gives 1 watch pill per step that has a video', () => {
@@ -88,20 +94,22 @@ describe('PlanStepList', () => {
     const { container } = render(<PlanStepList plan={plan('legs')} />)
     const images = [...container.querySelectorAll('img')]
 
-    expect(images).toHaveLength(3)
+    expect(images).toHaveLength(planSteps(plan('legs')).length)
     expect(images.every((image) => image.getAttribute('alt') === '')).toBe(true)
   })
 
   it('reads first time for a step never logged', async () => {
     render(<PlanStepList plan={plan('legs')} />)
 
-    expect(await screen.findAllByText('3 × 10–12 · first time')).toHaveLength(3)
+    expect(await screen.findAllByText('3 × 10–12 · first time')).toHaveLength(loadedSteps('legs'))
   })
 
   it('reads body for a body-weight step never logged', async () => {
     render(<PlanStepList plan={plan('chest-triceps')} />)
 
-    expect(await screen.findAllByText('3 × 10–12 · first time')).toHaveLength(8)
+    expect(await screen.findAllByText('3 × 10–12 · first time')).toHaveLength(
+      loadedSteps('chest-triceps'),
+    )
     expect(screen.getByText('3 × 10–12 · body')).toBeInTheDocument()
   })
 
@@ -152,7 +160,7 @@ describe('PlanStepList', () => {
   it('falls back to first time when the device cannot be read', async () => {
     render(<PlanStepList plan={plan('legs')} source={() => Promise.reject(new Error('broken'))} />)
 
-    expect(await screen.findAllByText('3 × 10–12 · first time')).toHaveLength(3)
+    expect(await screen.findAllByText('3 × 10–12 · first time')).toHaveLength(loadedSteps('legs'))
   })
 })
 

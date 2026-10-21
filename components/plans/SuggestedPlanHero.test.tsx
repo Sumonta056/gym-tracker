@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { getPlan } from '../../lib/plans'
+import { getPlan, planSteps } from '../../lib/plans'
 
 import { SuggestedPlanHero } from './SuggestedPlanHero'
 
@@ -39,7 +39,9 @@ describe('SuggestedPlanHero', () => {
     render(
       <SuggestedPlanHero plan={plan('chest-triceps')} lastDone="2026-10-14" today="2026-10-20" />,
     )
-    const link = screen.getByRole('link', { name: 'See the 9 steps →' })
+    const link = screen.getByRole('link', {
+      name: `See the ${String(planSteps(plan('chest-triceps')).length)} steps →`,
+    })
 
     expect(link).toHaveAttribute('href', '/workouts/chest-triceps')
     expect(link).toHaveClass('min-h-11')

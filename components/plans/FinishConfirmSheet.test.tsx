@@ -71,6 +71,15 @@ describe('FinishConfirmSheet', () => {
     ])
   })
 
+  it('draws each mark in the system font, as the plates do', () => {
+    setup()
+
+    const rows = within(screen.getByRole('list', { name: 'Steps not done' })).getAllByRole(
+      'listitem',
+    )
+    expect(rows[1]?.querySelector('[aria-hidden="true"]')).toHaveClass('font-glyph')
+  })
+
   it('starts focus on Keep going', () => {
     setup()
 

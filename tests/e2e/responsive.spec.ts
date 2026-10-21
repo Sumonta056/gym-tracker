@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { combinePlans } from '../../lib/plans'
+
 import { openImportReview } from './support/sheet'
 import {
   openRoute,
@@ -26,6 +28,7 @@ const STEP_WIDTHS = [320, 390, 430, 768, 1024, 1440, 2560]
 const SCROLL_WIDTHS = [...new Set([...STEP_WIDTHS, 360, 414, 640, 834, 1280, 1920])].sort(
   (a, b) => a - b,
 )
+const CHEST = combinePlans(['chest-triceps']).steps.length
 const MINIMUM_TAP_TARGET = 44
 const SIDEBAR_BREAKPOINT = 1024
 
@@ -571,7 +574,7 @@ signedIn.describe('signed in on /workout in plan mode', () => {
   signedIn('never scrolls sideways at 320 px on Dumbbell Overhead Extension', async ({ page }) => {
     await page.getByRole('button', { name: /^Skip( this step)?$/ }).click()
     for (let step = 2; step <= 6; step += 1) {
-      await expect(stepCount(page, step, 9)).toBeVisible()
+      await expect(stepCount(page, step, CHEST)).toBeVisible()
       if (step < 6) await page.getByRole('button', { name: /^Next step/ }).click()
     }
     await expect(
@@ -589,7 +592,9 @@ signedIn.describe('signed in on /workout in plan mode', () => {
     'keeps every tap target 44 px or taller in the step list, at all seven widths',
     async ({ page }) => {
       await resizeAndSettle(page, 390)
-      await page.getByRole('button', { name: /^Step 1 of 9, elapsed / }).click()
+      await page
+        .getByRole('button', { name: new RegExp(`^Step 1 of ${String(CHEST)}, elapsed `) })
+        .click()
       await expect(page.getByRole('dialog', { name: 'Chest + Triceps' })).toBeVisible()
       expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
     },
@@ -603,6 +608,80 @@ signedIn.describe('signed in on /workout in plan mode', () => {
     `hides the bottom bar under ${String(FOCUS_MODE_EXCEPTION.below)} px: ${FOCUS_MODE_EXCEPTION.reason}`,
     async ({ page }) => {
       expect(await focusNavigationProblems(page)).toEqual([])
+    },
+  )
+})
+
+signedIn.describe('signed in on /workouts/chest-triceps', () => {
+  signedIn.beforeEach(async ({ page }) => {
+    await page.goto('/workouts/chest-triceps')
+    await expect(page.getByRole('heading', { level: 1, name: 'Chest + Triceps' })).toBeVisible()
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('clips no text, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => clippedText(page))).toEqual([])
+  })
+
+  signedIn('shows exactly one navigation at every width', async ({ page }) => {
+    expect(await navigationProblems(page)).toEqual([])
+  })
+})
+
+signedIn.describe('signed in on /workout in plan mode with a set logged', () => {
+  signedIn.use({ serviceWorkers: 'block' })
+
+  signedIn.beforeEach(async ({ page, context }) => {
+    await openPlanSession(page, context)
+    await page.getByRole('combobox', { name: 'Set 1 weight' }).selectOption('10')
+    await page.getByLabel('Set 1 reps').fill('12')
+    await page.getByRole('button', { name: 'Set 1 done' }).click()
+    await expect(page.getByRole('region', { name: 'Rest timer' })).toBeVisible()
+  })
+
+  signedIn('never scrolls sideways, from 320 px to 2560 px', async ({ page }) => {
+    expect(await atEachWidth(page, SCROLL_WIDTHS, () => sideways(page))).toEqual([])
+  })
+
+  signedIn('keeps every tap target 44 px or taller, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => smallTargets(page))).toEqual([])
+  })
+
+  signedIn('clips no text, at all seven widths', async ({ page }) => {
+    expect(await atEachWidth(page, STEP_WIDTHS, () => clippedText(page))).toEqual([])
+  })
+
+  signedIn(
+    'keeps the rest card to 1 row and Skip this step above the fold at 1280 px and 1440 × 900',
+    async ({ page }) => {
+      for (const width of [1280, 1440]) {
+        await page.setViewportSize({ width, height: 900 })
+        const rest = page.getByRole('region', { name: 'Rest timer' })
+        const timer = await rest.getByRole('timer', { name: 'Rest remaining' }).boundingBox()
+        const skip = await rest.getByRole('button', { name: 'Skip rest' }).boundingBox()
+        const more = await rest.getByRole('button', { name: '+30 s more rest' }).boundingBox()
+        expect(timer && skip && more, `${String(width)}px: the rest card controls`).toBeTruthy()
+        if (timer === null || skip === null || more === null) continue
+        expect(
+          Math.abs(skip.y - more.y),
+          `${String(width)}px: Skip and +30 s on 1 row`,
+        ).toBeLessThan(1)
+        expect(skip.x, `${String(width)}px: Skip right of the time`).toBeGreaterThan(
+          timer.x + timer.width,
+        )
+        expect(skip.height).toBeGreaterThanOrEqual(MINIMUM_TAP_TARGET)
+        await expect(rest.getByRole('button', { name: /^Change/ })).toBeHidden()
+        const step = await page.getByRole('button', { name: 'Skip this step' }).boundingBox()
+        expect(step, `${String(width)}px: Skip this step`).not.toBeNull()
+        expect((step?.y ?? Infinity) + (step?.height ?? 0)).toBeLessThanOrEqual(900)
+      }
     },
   )
 })

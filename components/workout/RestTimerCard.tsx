@@ -43,11 +43,25 @@ export type RestTimerCardProps = {
 
 const ROW_CLASS = {
   wide: {
+    body: '',
+    live: '',
+    total: '',
+    timer: '',
+    bar: '',
     row: 'lg:flex-nowrap lg:gap-2',
     pill: 'lg:flex-none',
     text: 'lg:order-first',
   },
-  narrow: { row: '', pill: '', text: '' },
+  narrow: {
+    body: 'xl:grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center xl:gap-x-2',
+    live: 'xl:col-span-2',
+    total: 'xl:hidden',
+    timer: 'xl:mt-0.5 xl:text-2xl xl:tracking-[-0.6px]',
+    bar: 'xl:hidden',
+    row: 'xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:mt-0 xl:flex-nowrap xl:gap-2',
+    pill: 'xl:flex-none',
+    text: 'xl:hidden',
+  },
 }
 
 export function RestTimerCard({
@@ -115,56 +129,66 @@ export function RestTimerCard({
 
   return (
     <Card tone="rest" role="region" aria-label="Rest timer" className={className}>
-      <div className="flex items-center justify-between gap-3">
-        <MicroLabel>Rest</MicroLabel>
-        <span className="text-muted text-xs">{`of ${formatDuration(total, 'clock')}`}</span>
-      </div>
-      <p
-        role="timer"
-        aria-label="Rest remaining"
-        className="text-data-cyan mt-1.5 text-[34px] leading-[1.05] font-extrabold tracking-[-1.2px]"
-      >
-        {formatDuration(remaining, 'clock')}
-      </p>
-      <p aria-live="polite" className={cn('text-text text-sm font-bold', over ? 'mt-1.5' : '')}>
-        {over ? REST_OVER : ''}
-      </p>
-      {over ? null : (
-        <>
-          <div
-            aria-hidden="true"
-            className="bg-surface-2 mt-2.5 h-[5px] overflow-hidden rounded-full"
-          >
+      <div className={row.body}>
+        <div className="flex items-center justify-between gap-3">
+          <MicroLabel>Rest</MicroLabel>
+          <span className={cn('text-muted text-xs', row.total)}>
+            {`of ${formatDuration(total, 'clock')}`}
+          </span>
+        </div>
+        <p
+          role="timer"
+          aria-label="Rest remaining"
+          className={cn(
+            'text-data-cyan mt-1.5 text-[34px] leading-[1.05] font-extrabold tracking-[-1.2px]',
+            row.timer,
+          )}
+        >
+          {formatDuration(remaining, 'clock')}
+        </p>
+        <p
+          aria-live="polite"
+          className={cn('text-text text-sm font-bold', over ? 'mt-1.5' : '', row.live)}
+        >
+          {over ? REST_OVER : ''}
+        </p>
+        {over ? null : (
+          <>
             <div
-              data-testid="rest-bar"
-              className="bg-data-cyan h-full rounded-full"
-              style={{ width: `${String(restProgress(remaining, total))}%` }}
-            />
-          </div>
-          <div className={cn('mt-3 flex flex-wrap items-center gap-3', row.row)}>
-            <button
-              type="button"
-              onClick={onSkip}
-              className={cn(PILL, 'flex-[1_1_calc(50%-6px)]', row.pill)}
+              aria-hidden="true"
+              className={cn('bg-surface-2 mt-2.5 h-[5px] overflow-hidden rounded-full', row.bar)}
             >
-              Skip <span className="sr-only">rest</span>
-            </button>
-            <button
-              type="button"
-              onClick={onAddThirty}
-              className={cn(PILL, 'flex-[1_1_calc(50%-6px)]', row.pill)}
-            >
-              +30 s <span className="sr-only">more rest</span>
-            </button>
-            <p className={cn('text-muted min-w-0 flex-1 text-sm break-words', row.text)}>
-              {restLengthText(exerciseName, savedSeconds)}
-            </p>
-            <button type="button" onClick={onChange} className={cn(PILL, 'shrink-0')}>
-              Change <span className="sr-only">{`the rest time for ${exerciseName}`}</span>
-            </button>
-          </div>
-        </>
-      )}
+              <div
+                data-testid="rest-bar"
+                className="bg-data-cyan h-full rounded-full"
+                style={{ width: `${String(restProgress(remaining, total))}%` }}
+              />
+            </div>
+            <div className={cn('mt-3 flex flex-wrap items-center gap-3', row.row)}>
+              <button
+                type="button"
+                onClick={onSkip}
+                className={cn(PILL, 'flex-[1_1_calc(50%-6px)]', row.pill)}
+              >
+                Skip <span className="sr-only">rest</span>
+              </button>
+              <button
+                type="button"
+                onClick={onAddThirty}
+                className={cn(PILL, 'flex-[1_1_calc(50%-6px)]', row.pill)}
+              >
+                +30 s <span className="sr-only">more rest</span>
+              </button>
+              <p className={cn('text-muted min-w-0 flex-1 text-sm break-words', row.text)}>
+                {restLengthText(exerciseName, savedSeconds)}
+              </p>
+              <button type="button" onClick={onChange} className={cn(PILL, 'shrink-0', row.text)}>
+                Change <span className="sr-only">{`the rest time for ${exerciseName}`}</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </Card>
   )
 }

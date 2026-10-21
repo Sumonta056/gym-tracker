@@ -29,6 +29,7 @@ export function endAlt(name: string): string {
 
 export type StepFrameProps = {
   step: Pick<PlanStep, 'name' | 'images' | 'muscles'>
+  initialView?: FrameView
   className?: string
 }
 
@@ -82,8 +83,8 @@ function FrameImage({
   )
 }
 
-export function StepFrame({ step, className }: StepFrameProps) {
-  const [view, setView] = useState<FrameView>('howto')
+export function StepFrame({ step, initialView = 'howto', className }: StepFrameProps) {
+  const [view, setView] = useState<FrameView>(initialView)
   const [paused, setPaused] = useState(false)
   const [failed, setFailed] = useState(false)
   const [still] = useState(prefersReducedMotion)

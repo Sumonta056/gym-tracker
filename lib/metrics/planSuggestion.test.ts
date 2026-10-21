@@ -5,7 +5,15 @@ import { listPlans } from '../plans'
 
 import { lastDoneByPlan, suggestPlan } from './planSuggestion'
 
+import type { Plan } from '../schema/plan'
+
 const DELETED = '2026-09-23T12:30:00.000Z'
+
+const COACH_ORDER = ['chest-triceps', 'back-biceps', 'shoulders', 'legs']
+
+function fourPlans(): Plan[] {
+  return listPlans().filter((plan) => COACH_ORDER.includes(plan.id))
+}
 
 describe('lastDoneByPlan', () => {
   it('returns an empty record for no sessions', () => {
@@ -68,17 +76,17 @@ describe('suggestPlan', () => {
       sessionOn('2026-09-03', { plan_ids: ['legs'] }),
     ]
 
-    expect(suggestPlan(listPlans(), sessions)).toBe('shoulders')
+    expect(suggestPlan(fourPlans(), sessions)).toBe('shoulders')
   })
 
-  it('breaks a tie on the order of listPlans()', () => {
+  it('breaks a tie on the order of the plans it is given', () => {
     const sessions = [
       sessionOn('2026-09-20', {
         plan_ids: ['legs', 'shoulders', 'back-biceps', 'chest-triceps'],
       }),
     ]
 
-    expect(suggestPlan(listPlans(), sessions)).toBe(listPlans()[0]?.id)
+    expect(suggestPlan(fourPlans(), sessions)).toBe(fourPlans()[0]?.id)
   })
 
   it('counts a combined session for both of its plans', () => {
@@ -88,7 +96,7 @@ describe('suggestPlan', () => {
       sessionOn('2026-09-15', { plan_ids: ['legs'] }),
     ]
 
-    expect(suggestPlan(listPlans(), sessions)).toBe('shoulders')
+    expect(suggestPlan(fourPlans(), sessions)).toBe('shoulders')
   })
 
   it('ignores an active session and a soft-deleted session', () => {
@@ -99,7 +107,7 @@ describe('suggestPlan', () => {
       sessionOn('2026-09-22', { plan_ids: ['shoulders'], deleted_at: DELETED }),
     ]
 
-    expect(suggestPlan(listPlans(), sessions)).toBe('shoulders')
+    expect(suggestPlan(fourPlans(), sessions)).toBe('shoulders')
   })
 
   it('returns undefined for no plans and no sessions', () => {
@@ -110,8 +118,8 @@ describe('suggestPlan', () => {
     expect(suggestPlan([], [sessionOn('2026-09-20', { plan_ids: ['legs'] })])).toBeUndefined()
   })
 
-  it('returns the first plan of listPlans() when no plan was ever done', () => {
-    expect(suggestPlan(listPlans(), [])).toBe('chest-triceps')
+  it('returns the first plan it is given when no plan was ever done', () => {
+    expect(suggestPlan(fourPlans(), [])).toBe('chest-triceps')
   })
 
   it('returns the plan with the oldest last date when every plan was done', () => {
@@ -122,7 +130,7 @@ describe('suggestPlan', () => {
       sessionOn('2026-09-23', { plan_ids: ['legs'] }),
     ]
 
-    expect(suggestPlan(listPlans(), sessions)).toBe('shoulders')
+    expect(suggestPlan(fourPlans(), sessions)).toBe('shoulders')
   })
 
   it('judges a plan by its latest date, not its oldest', () => {
@@ -132,11 +140,11 @@ describe('suggestPlan', () => {
       sessionOn('2026-09-10', { plan_ids: ['back-biceps', 'shoulders', 'legs'] }),
     ]
 
-    expect(suggestPlan(listPlans(), sessions)).toBe('back-biceps')
+    expect(suggestPlan(fourPlans(), sessions)).toBe('back-biceps')
   })
 
   it('breaks a tie on the order of the given plans', () => {
-    const reversed = [...listPlans()].reverse()
+    const reversed = [...fourPlans()].reverse()
 
     expect(suggestPlan(reversed, [])).toBe('legs')
   })

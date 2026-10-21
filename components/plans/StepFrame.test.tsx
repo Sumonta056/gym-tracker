@@ -44,6 +44,16 @@ describe('StepFrame', () => {
     expect(document.querySelector('figure')).toHaveAttribute('data-view', 'howto')
   })
 
+  it('opens on the view it is given', () => {
+    render(<StepFrame step={STEP} initialView="muscles" />)
+
+    expect(viewButton('Muscles')).toHaveAttribute('aria-pressed', 'true')
+    expect(document.querySelector('figure')).toHaveAttribute('data-view', 'muscles')
+    expect(
+      screen.getByRole('img', { name: 'Main: Chest. Helpers: Shoulders, Triceps.' }),
+    ).toBeInTheDocument()
+  })
+
   it('puts the 2 view buttons on a 16 by 9 image, each 44 px tall', () => {
     render(<StepFrame step={STEP} className="-mx-4" />)
 

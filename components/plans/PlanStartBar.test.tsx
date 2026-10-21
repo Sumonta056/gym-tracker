@@ -12,6 +12,7 @@ import {
 import { getPlan } from '../../lib/plans'
 
 import { PLAN_START_FAILED, PlanStartBar } from './PlanStartBar'
+import { startDetail } from './planText'
 
 import type { PlanStartSource } from './PlanStartBar'
 import type { WorkoutSession } from '../../lib/db/dexie'
@@ -70,14 +71,14 @@ describe('PlanStartBar', () => {
     const button = screen.getByRole('button', { name: /^Start Chest \+ Triceps/ })
 
     expect(button).toBeEnabled()
-    expect(button).toHaveTextContent('9 exercises · about 55 min')
+    expect(button).toHaveTextContent(startDetail([plan('chest-triceps')]) ?? '')
   })
 
   it('names 2 plans and says combined', () => {
     render(<PlanStartBar plans={[plan('shoulders'), plan('legs')]} />)
 
     expect(screen.getByRole('button', { name: /^Start Shoulders \+ Legs/ })).toHaveTextContent(
-      '8 exercises · about 60 min · combined',
+      startDetail([plan('shoulders'), plan('legs')]) ?? '',
     )
   })
 

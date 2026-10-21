@@ -57,13 +57,37 @@ describe('RestTimerCard', () => {
     expect(screen.getByText('Bench Press rests 1:30')).toHaveClass('lg:order-first')
   })
 
-  it('keeps the wrapping phone row at every width in the narrow layout', () => {
+  it('keeps the wrapping phone row up to 1279 px in the narrow layout', () => {
     renderCard({ narrow: true })
 
     const skip = screen.getByRole('button', { name: 'Skip rest' })
     expect(skip.parentElement).not.toHaveClass('lg:flex-nowrap')
     expect(skip).not.toHaveClass('lg:flex-none')
     expect(screen.getByText('Bench Press rests 1:30')).not.toHaveClass('lg:order-first')
+  })
+
+  it('folds the narrow card to 1 row of time, Skip and +30 s from 1280 px up', () => {
+    renderCard({ narrow: true })
+
+    const skip = screen.getByRole('button', { name: 'Skip rest' })
+    expect(skip.parentElement).toHaveClass('xl:col-start-2', 'xl:row-span-2', 'xl:flex-nowrap')
+    expect(skip).toHaveClass('xl:flex-none', 'min-h-11')
+    expect(screen.getByRole('button', { name: '+30 s more rest' })).toHaveClass('min-h-11')
+    expect(remaining()).toHaveClass('xl:text-2xl')
+    expect(remaining().parentElement).toHaveClass('xl:grid')
+    expect(screen.getByText('of 1:30')).toHaveClass('xl:hidden')
+    expect(screen.getByText('Bench Press rests 1:30')).toHaveClass('xl:hidden')
+    expect(
+      screen.getByRole('button', { name: 'Change the rest time for Bench Press' }),
+    ).toHaveClass('xl:hidden')
+    expect(screen.getByTestId('rest-bar').parentElement).toHaveClass('xl:hidden')
+  })
+
+  it('keeps the wide card free of the 1280 px fold', () => {
+    renderCard()
+
+    expect(remaining().parentElement).not.toHaveClass('xl:grid')
+    expect(screen.getByText('of 1:30')).not.toHaveClass('xl:hidden')
   })
 
   it('counts down from the completed time of the last set', () => {

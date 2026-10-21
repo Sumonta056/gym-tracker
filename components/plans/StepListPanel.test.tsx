@@ -14,13 +14,10 @@ const STATUSES: StepStatus[] = [
   'done',
   'now',
   'skipped',
-  'todo',
-  'todo',
-  'todo',
-  'todo',
-  'todo',
-  'todo',
+  ...PLAN.steps.slice(3).map((): StepStatus => 'todo'),
 ]
+
+const SUMMARY_LINE = `1 done · 1 skipped · ${String(PLAN.steps.length - 2)} to go`
 
 function setup(busy = false, statuses: readonly StepStatus[] = STATUSES) {
   const onPick = vi.fn()
@@ -41,7 +38,7 @@ describe('StepListPanel', () => {
   it('heads the list Steps with the done, skipped and to go counts', () => {
     const { panel } = setup()
 
-    expect(within(panel).getByText('1 done · 1 skipped · 7 to go')).toBeInTheDocument()
+    expect(within(panel).getByText(SUMMARY_LINE)).toBeInTheDocument()
   })
 
   it('lists every step under its group as a button with a thumbnail, the target and a mark', () => {

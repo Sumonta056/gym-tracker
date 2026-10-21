@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { COACH_PLANS } from '../plans/coach'
+
 import { MUSCLES, PLAN_IDS, planIdSchema, planSchema, planStepSchema } from './plan'
 
 const step = {
@@ -38,12 +40,13 @@ function issuePaths(result: ReturnType<typeof plan>) {
 }
 
 describe('planIdSchema', () => {
-  it('holds the 4 coach plan ids', () => {
-    expect(PLAN_IDS).toEqual(['chest-triceps', 'back-biceps', 'shoulders', 'legs'])
+  it('holds the id of every plan in the coach data, the first 4 in their order', () => {
+    expect(PLAN_IDS.slice(0, 4)).toEqual(['chest-triceps', 'back-biceps', 'shoulders', 'legs'])
+    expect(PLAN_IDS).toEqual(COACH_PLANS.map((plan) => plan.id))
   })
 
   it('rejects an unknown plan id', () => {
-    expect(planIdSchema.safeParse('arms').success).toBe(false)
+    expect(planIdSchema.safeParse('not-a-plan').success).toBe(false)
   })
 })
 
@@ -129,7 +132,7 @@ describe('planSchema', () => {
   })
 
   it('fails on an unknown plan id', () => {
-    expect(issuePaths(plan({}, { id: 'arms' }))).toEqual(['id'])
+    expect(issuePaths(plan({}, { id: 'not-a-plan' }))).toEqual(['id'])
   })
 })
 

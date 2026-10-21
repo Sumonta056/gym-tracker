@@ -12,6 +12,7 @@ import {
   startPlanSession,
   startSession,
 } from '../../lib/db/repository'
+import { combinePlans } from '../../lib/plans'
 import { COACH_PLANS } from '../../lib/plans/coach'
 import { FocusModeProvider, useFocusModeOn } from '../ui/FocusMode'
 import { ToastProvider } from '../ui/Toast'
@@ -70,6 +71,10 @@ vi.mock('../../lib/supabase/client', () => ({
 
 const PLAN = COACH_PLANS.find((plan) => plan.id === 'chest-triceps')
 const STEPS: PlanStep[] = PLAN === undefined ? [] : PLAN.groups.flatMap((group) => group.steps)
+
+const TOTAL = String(STEPS.length)
+
+const FIRST_STEP_JUMP = new RegExp(`^Step 1 of ${TOTAL}, elapsed`)
 
 function stepAt(index: number): PlanStep {
   const step = STEPS[index]
@@ -633,7 +638,7 @@ describe('PlanSession step list and Finish', () => {
     show(session)
 
     await heading(stepAt(0).name)
-    await userEvent.click(screen.getByRole('button', { name: /^Step 1 of 9, elapsed/ }))
+    await userEvent.click(screen.getByRole('button', { name: FIRST_STEP_JUMP }))
     const sheet = await screen.findByRole('dialog', { name: 'Chest + Triceps' })
     expect(within(sheet).getByRole('button', { current: 'step' })).toHaveAccessibleName(
       `1. ${stepAt(0).name}, 3 × 10–12, Now`,
@@ -652,7 +657,7 @@ describe('PlanSession step list and Finish', () => {
     show(session)
 
     await heading(stepAt(0).name)
-    await userEvent.click(screen.getByRole('button', { name: /^Step 1 of 9, elapsed/ }))
+    await userEvent.click(screen.getByRole('button', { name: FIRST_STEP_JUMP }))
     await userEvent.click(await screen.findByRole('button', { name: STEP_LIST_CLOSE }))
 
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -664,7 +669,7 @@ describe('PlanSession step list and Finish', () => {
     show(session)
 
     await heading(stepAt(0).name)
-    await userEvent.click(screen.getByRole('button', { name: /^Step 1 of 9, elapsed/ }))
+    await userEvent.click(screen.getByRole('button', { name: FIRST_STEP_JUMP }))
     const sheet = await screen.findByRole('dialog')
     await userEvent.click(within(sheet).getByRole('button', { current: 'step' }))
 
@@ -680,7 +685,7 @@ describe('PlanSession step list and Finish', () => {
     await userEvent.click(screen.getByRole('button', { name: FINISH_LABEL }))
     const sheet = await screen.findByRole('dialog', { name: FINISH_TITLE })
     expect(sheet).toHaveAccessibleDescription(
-      '9 steps not done. The summary lists them as not done. No set is ticked yet.',
+      `${TOTAL} steps not done. The summary lists them as not done. No set is ticked yet.`,
     )
     expect(within(sheet).getByRole('button', { name: KEEP_GOING })).toHaveFocus()
     await userEvent.click(within(sheet).getByRole('button', { name: KEEP_GOING }))
@@ -902,15 +907,18 @@ describe('PlanSession when a write fails', () => {
     show(session)
 
     expect(await screen.findByText('Shoulders + Legs')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^Step 1 of 8, elapsed/ })).toBeInTheDocument()
+    const combined = combinePlans(['shoulders', 'legs']).steps.length
+    expect(
+      screen.getByRole('button', { name: new RegExp(`^Step 1 of ${String(combined)}, elapsed`) }),
+    ).toBeInTheDocument()
     const bars = screen.getByRole('list', { name: 'Steps' })
-    expect(within(bars).getAllByRole('listitem')).toHaveLength(8)
+    expect(within(bars).getAllByRole('listitem')).toHaveLength(combined)
     const panel = screen.getByRole('region', { name: 'Steps' })
     expect(within(panel).getByRole('region', { name: 'Shoulders' })).toBeInTheDocument()
     expect(within(panel).getByRole('region', { name: 'Legs' })).toBeInTheDocument()
   })
 
-  it('shows 8 of 9 steps on the Done screen, with the skipped step marked by word', async () => {
+  it('shows all steps but 1 as done on the Done screen, with the skipped step marked by word', async () => {
     const session = await startPlanSession(['chest-triceps'], '2026-10-20')
     const skipped = stepAt(2)
     for (const step of STEPS) {
@@ -937,15 +945,15 @@ describe('PlanSession when a write fails', () => {
     await heading(SUMMARY_TITLE)
     const weighted = STEPS.filter((step) => step.slug !== skipped.slug && !step.bodyweight)
     expect(screen.getByTestId('done-foot')).toHaveTextContent(
-      `Volume ${String(weighted.length * 120)} kg · 8 sets · 8 of 9 steps`,
+      `Volume ${String(weighted.length * 120)} kg · ${String(STEPS.length - 1)} sets · ${String(STEPS.length - 1)} of ${TOTAL} steps`,
     )
     const rows = within(screen.getByRole('region', { name: 'Steps' })).getAllByRole('listitem')
-    expect(rows).toHaveLength(9)
+    expect(rows).toHaveLength(STEPS.length)
     expect(rows[2]).toHaveTextContent(`${skipped.name}–Skipped`)
     expect(rows[0]).toHaveTextContent(`${stepAt(0).name}✓Done, 1 × 12 kg`)
   })
 
-  it('shows 0 of 9 steps on the Done screen when no step was done', async () => {
+  it('shows 0 steps done on the Done screen when no step was done', async () => {
     const session = await startPlanSession(['chest-triceps'], '2026-10-20')
     await setPlanCursor({
       sessionId: session.id,
@@ -959,13 +967,15 @@ describe('PlanSession when a write fails', () => {
     await userEvent.click(await screen.findByRole('button', { name: FINISH_ANYWAY }))
 
     await heading(SUMMARY_TITLE)
-    expect(screen.getByTestId('done-foot')).toHaveTextContent('Volume 0 kg · 0 sets · 0 of 9 steps')
+    expect(screen.getByTestId('done-foot')).toHaveTextContent(
+      `Volume 0 kg · 0 sets · 0 of ${TOTAL} steps`,
+    )
     expect(screen.getByText(NO_RECORD)).toBeInTheDocument()
     const rows = within(screen.getByRole('region', { name: 'Steps' })).getAllByRole('listitem')
     expect(rows.map((row) => row.dataset.outcome)).toEqual([
       'skipped',
       'skipped',
-      ...Array.from({ length: 7 }, () => 'notDone'),
+      ...Array.from({ length: STEPS.length - 2 }, () => 'notDone'),
     ])
     expect(rows[2]).toHaveTextContent('Not done')
   })

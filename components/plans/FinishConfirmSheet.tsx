@@ -79,7 +79,7 @@ export function FinishConfirmSheet({
             >
               <span className="min-w-0 text-sm break-words">{`${String(step.index + 1)} · ${step.name}`}</span>
               <span className="text-muted text-[13px] whitespace-nowrap">
-                <span aria-hidden="true">{`${markOf(step).glyph} `}</span>
+                <span aria-hidden="true" className="font-glyph">{`${markOf(step).glyph} `}</span>
                 {markOf(step).word}
               </span>
             </li>

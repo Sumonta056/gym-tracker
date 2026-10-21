@@ -77,6 +77,10 @@ In a component you reach a token through its Tailwind class — `bg-surface`,
 Figtree, weights 400, 500, 600, 700, 800. `font-variant-numeric: tabular-nums` is set
 on the body so numbers do not jump when they tick.
 
+`--font-glyph` (`font-glyph`) is the system font stack, for a symbol glyph such as the
+step marks `✓ ● – ○`. The Figtree latin subset has no such glyph, so the body stack
+falls to its Arial fallback, which draws `○` at two thirds of the plate size.
+
 | Role         | Size      | Weight | Tracking               |
 | ------------ | --------- | ------ | ---------------------- |
 | Hero number  | 44–50 px  | 800    | -2.2 to -2.6 px        |

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { getPlan } from '../../lib/plans'
+import { combinePlans, getPlan, planMinutes, planSteps } from '../../lib/plans'
 
 import {
   agoText,
@@ -28,6 +28,10 @@ function plan(id: PlanId): Plan {
   const found = getPlan(id)
   if (found === undefined) throw new Error(`expected the plan ${id}`)
   return found
+}
+
+function count(id: PlanId): string {
+  return String(planSteps(plan(id)).length)
 }
 
 function set(weight: number | null): WorkoutSet {
@@ -103,18 +107,20 @@ describe('reasonText', () => {
 describe('cardLine', () => {
   it('names the exercise count and the last day', () => {
     expect(cardLine(plan('chest-triceps'), '2026-10-14', '2026-10-20')).toBe(
-      '9 exercises · last done 6 days ago',
+      `${count('chest-triceps')} exercises · last done 6 days ago`,
     )
   })
 
   it('reads never done for legs on a new device', () => {
-    expect(cardLine(plan('legs'), undefined, '2026-10-20')).toBe('3 exercises · never done')
+    expect(cardLine(plan('legs'), undefined, '2026-10-20')).toBe(
+      `${count('legs')} exercises · never done`,
+    )
   })
 })
 
 describe('stepsLinkText', () => {
   it('counts the steps of the plan', () => {
-    expect(stepsLinkText(plan('chest-triceps'))).toBe('See the 9 steps →')
+    expect(stepsLinkText(plan('chest-triceps'))).toBe(`See the ${count('chest-triceps')} steps →`)
   })
 })
 
@@ -153,7 +159,12 @@ describe('lastSetText', () => {
 
 describe('previewLine', () => {
   it('names exercises, sets and minutes for chest and triceps', () => {
-    expect(previewLine(plan('chest-triceps'))).toBe('9 exercises · 27 sets · about 55 min')
+    const steps = planSteps(plan('chest-triceps'))
+    const sets = steps.reduce((total, step) => total + step.target.sets, 0)
+
+    expect(previewLine(plan('chest-triceps'))).toBe(
+      `${count('chest-triceps')} exercises · ${String(sets)} sets · about ${String(10 + 5 * steps.length)} min`,
+    )
   })
 })
 
@@ -177,12 +188,14 @@ describe('startDetail', () => {
   })
 
   it('names the exercises and the minutes of 1 plan', () => {
-    expect(startDetail([plan('chest-triceps')])).toBe('9 exercises · about 55 min')
+    expect(startDetail([plan('chest-triceps')])).toBe(
+      `${count('chest-triceps')} exercises · about ${String(planMinutes([plan('chest-triceps')]))} min`,
+    )
   })
 
   it('adds both plans and says combined for 2', () => {
     expect(startDetail([plan('shoulders'), plan('legs')])).toBe(
-      '8 exercises · about 60 min · combined',
+      `${String(combinePlans(['shoulders', 'legs']).steps.length)} exercises · about ${String(planMinutes([plan('shoulders'), plan('legs')]))} min · combined`,
     )
   })
 })

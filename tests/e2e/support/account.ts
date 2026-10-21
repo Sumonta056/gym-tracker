@@ -252,6 +252,22 @@ export class Account {
     return data
   }
 
+  async setsOf(sessionId: string): Promise<SetRow[]> {
+    const { data, error } = await retryTransient(() =>
+      this.client
+        .from('workout_sets')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('completed_at'),
+    )
+
+    if (error !== null) {
+      throw new Error(`Reading the test sets failed: ${error.message}`)
+    }
+
+    return data
+  }
+
   async clearSessions(from: string, to: string): Promise<void> {
     for (let round = 0; round < CLEAR_ROUNDS; round += 1) {
       const { error } = await retryTransient(() =>

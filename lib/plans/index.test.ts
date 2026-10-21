@@ -25,23 +25,34 @@ function coach(id: PlanId): Plan {
   return plan
 }
 
+function stepCount(plan: Plan): number {
+  return plan.groups.reduce((sum, group) => sum + group.steps.length, 0)
+}
+
+function slugs(id: PlanId): string[] {
+  return coach(id).groups.flatMap((group) => group.steps.map((step) => step.slug))
+}
+
 describe('planSteps', () => {
   it('flattens the groups in order', () => {
-    const steps = planSteps(coach('chest-triceps'))
+    const plan = coach('chest-triceps')
 
-    expect(steps).toHaveLength(9)
-    expect(steps[0]?.slug).toBe('incline-dumbbell-press')
-    expect(steps[5]?.slug).toBe('dumbbell-overhead-extension')
+    expect(planSteps(plan)).toEqual(plan.groups.flatMap((group) => group.steps))
+    expect(planSteps(plan)[0]?.slug).toBe('incline-dumbbell-press')
   })
 })
 
 describe('planMinutes', () => {
-  it('gives 55, 55, 35 and 25 for the 4 coach plans', () => {
-    expect(COACH_PLANS.map((plan) => planMinutes([plan]))).toEqual([55, 55, 35, 25])
+  it('gives 10 minutes per plan and 5 per step', () => {
+    expect(COACH_PLANS.map((plan) => planMinutes([plan]))).toEqual(
+      COACH_PLANS.map((plan) => 10 + 5 * stepCount(plan)),
+    )
   })
 
-  it('gives 60 for shoulders and legs together', () => {
-    expect(planMinutes([coach('shoulders'), coach('legs')])).toBe(60)
+  it('adds the minutes of shoulders and legs together', () => {
+    expect(planMinutes([coach('shoulders'), coach('legs')])).toBe(
+      20 + 5 * (stepCount(coach('shoulders')) + stepCount(coach('legs'))),
+    )
   })
 
   it('gives 0 for no plan', () => {
@@ -67,10 +78,9 @@ describe('planMuscles', () => {
 })
 
 describe('combinePlans', () => {
-  it('returns 8 steps for shoulders and legs, shoulders first', () => {
+  it('returns the steps of shoulders and then legs', () => {
     const combined = combinePlans(['shoulders', 'legs'])
 
-    expect(combined.steps).toHaveLength(8)
     expect(combined.steps.map((step) => step.slug)).toEqual([
       ...planSteps(coach('shoulders')).map((step) => step.slug),
       ...planSteps(coach('legs')).map((step) => step.slug),
@@ -89,7 +99,7 @@ describe('combinePlans', () => {
   it('drops an unknown id', () => {
     const combined = combinePlans(['legs', 'nope'])
 
-    expect(combined.steps.map((step) => step.slug)).toEqual(['squat', 'leg-curl', 'leg-press'])
+    expect(combined.steps.map((step) => step.slug)).toEqual(slugs('legs'))
     expect(combined.title).toBe('Legs')
   })
 
@@ -100,19 +110,21 @@ describe('combinePlans', () => {
   it('drops a repeated plan id', () => {
     const combined = combinePlans(['legs', 'legs'])
 
-    expect(combined.steps).toHaveLength(3)
+    expect(combined.steps).toHaveLength(stepCount(coach('legs')))
     expect(combined.title).toBe('Legs')
   })
 })
 
 describe('listPlans and getPlan', () => {
-  it('lists the 4 coach plans when none is retired', () => {
-    expect(listPlans().map((plan) => plan.id)).toEqual([
-      'chest-triceps',
-      'back-biceps',
-      'shoulders',
-      'legs',
-    ])
+  it('lists every coach plan that is not retired, in order', () => {
+    expect(listPlans().map((plan) => plan.id)).toEqual(
+      COACH_PLANS.filter((plan) => !plan.retired).map((plan) => plan.id),
+    )
+    expect(
+      listPlans()
+        .map((plan) => plan.id)
+        .slice(0, 4),
+    ).toEqual(['chest-triceps', 'back-biceps', 'shoulders', 'legs'])
   })
 
   it('finds a plan by id', () => {
@@ -144,11 +156,9 @@ describe('with a retired plan', () => {
   it('hides a retired plan from listPlans', async () => {
     const plans = await withRetiredLegs()
 
-    expect(plans.listPlans().map((plan) => plan.id)).toEqual([
-      'chest-triceps',
-      'back-biceps',
-      'shoulders',
-    ])
+    expect(plans.listPlans().map((plan) => plan.id)).toEqual(
+      COACH_PLANS.filter((plan) => !plan.retired && plan.id !== 'legs').map((plan) => plan.id),
+    )
   })
 
   it('hides a retired plan from findPlan', async () => {
@@ -179,7 +189,7 @@ describe('with a retired plan', () => {
 
     const combined = plans.combinePlans(['shoulders', 'legs'])
 
-    expect(combined.steps.map((step) => step.slug)).toEqual(['squat', 'leg-curl', 'leg-press'])
+    expect(combined.steps.map((step) => step.slug)).toEqual(slugs('legs'))
   })
 })
 

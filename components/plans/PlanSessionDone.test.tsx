@@ -98,14 +98,14 @@ describe('PlanSessionDone', () => {
     expect(screen.getByText('Chest + Triceps')).toHaveClass('text-muted')
   })
 
-  it('shows the gym time and the 8 of 9 line on the hero', () => {
+  it('shows the gym time and the steps done of the total on the hero', () => {
     show()
 
     const hero = screen.getByRole('region', { name: 'Gym time' })
     expect(hero).toHaveClass('bg-accent')
     expect(hero).toHaveTextContent('51:08')
     expect(screen.getByTestId('done-foot')).toHaveTextContent(
-      'Volume 3,420 kg · 25 sets · 8 of 9 steps',
+      `Volume 3,420 kg · 25 sets · 8 of ${String(PLAN.steps.length)} steps`,
     )
   })
 
@@ -130,7 +130,7 @@ describe('PlanSessionDone', () => {
     show()
 
     const rows = within(screen.getByRole('region', { name: 'Steps' })).getAllByRole('listitem')
-    expect(rows).toHaveLength(9)
+    expect(rows).toHaveLength(PLAN.steps.length)
     expect(rows[0]).toHaveTextContent(`${stepAt(0).name}✓Done, 3 × 14 kg`)
     expect(rows[2]).toHaveTextContent(`${stepAt(2).name}–Skipped`)
     expect(rows[2]?.querySelector('[aria-hidden="true"]')).toHaveClass('border-dashed')
