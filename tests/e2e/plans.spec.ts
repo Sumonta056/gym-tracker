@@ -340,7 +340,6 @@ test.describe('the offline plan session', () => {
     day,
     browserName,
   }) => {
-    test.setTimeout(180000)
     const worker = browserName !== 'webkit'
     const sixth = bothStep(5)
     const second = bothStep(1)

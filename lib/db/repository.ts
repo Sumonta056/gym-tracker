@@ -55,7 +55,7 @@ export {
   haltSync,
   resumeSync,
   startSync,
-  sync as syncNow,
+  syncNow,
 } from '../sync/worker'
 
 export { lastSequence as outboxSequence, pendingCount as pendingWrites } from '../sync/outbox'

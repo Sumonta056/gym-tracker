@@ -161,6 +161,8 @@ let draining: Promise<SyncOutcome> | null = null
 
 let queued: Promise<SyncOutcome> | null = null
 
+let queuedOptions: PushOptions = {}
+
 let halted = false
 
 let clearedHere = false
@@ -1008,7 +1010,7 @@ function stopped(): SyncOutcome {
   return { status: 'offline', pushed: 0, pulled: 0, error: null }
 }
 
-export function sync(): Promise<SyncOutcome> {
+export function sync(options: Pick<PushOptions, 'ignoreBackoff'> = {}): Promise<SyncOutcome> {
   if (halted) {
     return Promise.resolve(stopped())
   }
@@ -1018,23 +1020,30 @@ export function sync(): Promise<SyncOutcome> {
   }
 
   if (draining === null) {
-    draining = startDrain({}, null, false)
+    draining = startDrain({ ...options }, null, false)
 
     return draining
   }
 
   if (queued === null) {
+    queuedOptions = { ...options }
     queued = startDrain(
-      {},
+      queuedOptions,
       draining.finally(() => {
         queued = null
       }),
       false,
     )
     draining = queued
+  } else if (options.ignoreBackoff === true) {
+    queuedOptions.ignoreBackoff = true
   }
 
   return queued
+}
+
+export function syncNow(): Promise<SyncOutcome> {
+  return sync({ ignoreBackoff: true })
 }
 
 export async function drainForSignOut(timeoutMs: number = HALT_TIMEOUT_MS): Promise<void> {
@@ -1048,10 +1057,16 @@ export async function drainForSignOut(timeoutMs: number = HALT_TIMEOUT_MS): Prom
 let triggers: { callers: number; teardown: () => void } | null = null
 
 function mountTriggers(): () => void {
-  const tick = (): void => {
-    sync().catch((cause: unknown) => {
+  const run = (options: Pick<PushOptions, 'ignoreBackoff'>): void => {
+    sync(options).catch((cause: unknown) => {
       reportError(cause, { route: currentRoute(), source: 'sync' })
     })
+  }
+  const tick = (): void => {
+    run({})
+  }
+  const online = (): void => {
+    run({ ignoreBackoff: true })
   }
 
   channel = openChannel()
@@ -1061,7 +1076,7 @@ function mountTriggers(): () => void {
   }
 
   tick()
-  window.addEventListener('online', tick)
+  window.addEventListener('online', online)
 
   const timer = window.setInterval(() => {
     if (isOnline()) {
@@ -1070,7 +1085,7 @@ function mountTriggers(): () => void {
   }, SYNC_INTERVAL_MS)
 
   return () => {
-    window.removeEventListener('online', tick)
+    window.removeEventListener('online', online)
     window.clearInterval(timer)
     channel?.close()
     channel = null

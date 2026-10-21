@@ -71,6 +71,7 @@ import {
   SYNC_INTERVAL_MS,
   SYNC_STOPPED,
   sync,
+  syncNow,
   withDrainLock,
 } from './worker'
 
@@ -3626,5 +3627,173 @@ describe('startSync', () => {
       })
     })
     stop()
+  })
+})
+
+describe('the online trigger', () => {
+  async function backedOff(id: string, attempts = 6): Promise<string> {
+    const entry = await append('daily_entries', 'upsert', localEntry(id))
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      await markFailed(entry.id, 'network down', Date.now())
+    }
+
+    return entry.id
+  }
+
+  function gatedPull(): { fake: Fake; release: () => void } {
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const fake = fakeClient({ onSelect: () => gate })
+
+    return { fake, release }
+  }
+
+  it('pushes an entry still in backoff as soon as the network returns', async () => {
+    await backedOff(ROW_A)
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const stop = startSync()
+    await drained(1)
+    expect(fake.upserted).toHaveLength(0)
+
+    window.dispatchEvent(new Event('online'))
+    await drained(2)
+    stop()
+
+    expect(fake.upserted.map((call) => call.row.id)).toEqual([ROW_A])
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('pushes an entry in backoff after a drain that was running when the network returned', async () => {
+    await backedOff(ROW_A)
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const stop = startSync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    window.dispatchEvent(new Event('online'))
+    release()
+    await drained(2)
+    stop()
+
+    expect(fake.upserted.map((call) => call.row.id)).toEqual([ROW_A])
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('lifts the backoff of a follow-up drain that was already queued', async () => {
+    await backedOff(ROW_A)
+    const { fake, release } = gatedPull()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const stop = startSync()
+    await vi.waitFor(() => {
+      expect(fake.selected.length).toBeGreaterThan(0)
+    })
+    const queued = sync()
+    window.dispatchEvent(new Event('online'))
+    release()
+    const outcome = await queued
+    await drained(2)
+    stop()
+
+    expect(outcome).toMatchObject({ status: 'synced', pushed: 1 })
+    expect(mocks.createClient).toHaveBeenCalledTimes(2)
+  })
+
+  it('touches no network on the online event while halted', async () => {
+    await backedOff(ROW_A)
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    await haltSync()
+    const stop = startSync()
+    window.dispatchEvent(new Event('online'))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    stop()
+
+    expect(mocks.createClient).not.toHaveBeenCalled()
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('leaves an entry in backoff alone on the interval tick', async () => {
+    await backedOff(ROW_A)
+    vi.useFakeTimers()
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const stop = startSync()
+    await drained(1)
+    await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS)
+    await drained(2)
+    stop()
+    vi.useRealTimers()
+
+    expect(fake.upserted).toHaveLength(0)
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('tries a failing entry once per online event, then keeps its backoff on the interval', async () => {
+    const id = await backedOff(ROW_A)
+    vi.useFakeTimers()
+    const fake = fakeClient({
+      upsertError: { daily_entries: { message: 'network down' } },
+      upsertErrorAlways: true,
+    })
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const stop = startSync()
+    await drained(1)
+    window.dispatchEvent(new Event('online'))
+    await drained(2)
+    await vi.advanceTimersByTimeAsync(SYNC_INTERVAL_MS)
+    await drained(3)
+    stop()
+    vi.useRealTimers()
+
+    expect(fake.upserted).toHaveLength(1)
+    expect(await db.outbox.get(id)).toMatchObject({ attempts: 7, last_error: 'network down' })
+  })
+})
+
+describe('syncNow', () => {
+  it('pushes an entry still in backoff at once', async () => {
+    const entry = await append('daily_entries', 'upsert', localEntry(ROW_A))
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await markFailed(entry.id, 'network down', Date.now())
+    }
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    const outcome = await syncNow()
+
+    expect(outcome).toMatchObject({ status: 'synced', pushed: 1 })
+    expect(fake.upserted.map((call) => call.row.id)).toEqual([ROW_A])
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('touches no network while halted', async () => {
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+
+    await haltSync()
+
+    expect(await syncNow()).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
+    expect(mocks.createClient).not.toHaveBeenCalled()
+  })
+
+  it('touches no network while another tab signs out', async () => {
+    await append('daily_entries', 'upsert', localEntry(ROW_A))
+    const fake = fakeClient()
+    mocks.createClient.mockReturnValue(fake.client)
+    anotherTabSignsOut()
+
+    expect(await syncNow()).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
+    expect(mocks.createClient).not.toHaveBeenCalled()
   })
 })

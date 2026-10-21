@@ -1380,7 +1380,7 @@ describe('changing the rest time', () => {
       expect(within(restCard()).getByText('Bench Press rests 2:00')).toBeInTheDocument()
     })
     await pickExercise('Back Squat')
-    await userEvent.type(within(card('Back Squat')).getByLabelText('Reps'), '5')
+    await userEvent.type(await within(card('Back Squat')).findByLabelText('Reps'), '5')
     await userEvent.click(
       within(card('Back Squat')).getByRole('button', { name: 'Add set to Back Squat' }),
     )

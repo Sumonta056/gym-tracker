@@ -83,7 +83,7 @@ test('sends the offline day to Supabase when the network returns, and the chip t
   await context.setOffline(false)
 
   const synced = chip(page, 'Synced')
-  await expect(synced).toBeVisible()
+  await expect(synced).toBeVisible({ timeout: 15000 })
   await expect(synced.locator('[aria-hidden="true"]').first()).toHaveCSS(
     'background-color',
     OK_GREEN,

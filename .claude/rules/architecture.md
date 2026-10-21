@@ -112,6 +112,17 @@ still holds the lock.
   success sets the count to 0. Sign-out clears it. Nothing else lowers it, so a retried
   dead letter that is refused again backs off too. The sign-out drain then stops at the
   first refused write, and the confirm sheet counts every write behind it.
+- **The network return skips the backoff.** The `online` event and "Sync now" push an
+  entry still in backoff at once. App start and the 30 s timer keep the backoff. Each
+  `online` event skips it once, so a failure still waits for the next event or the
+  timer.
+- **Known limit: every open tab retries on `online`.** Each tab hears its own `online`
+  event and pushes the same entry again, one after the other under `DRAIN_LOCK`. A
+  failing write gains about 1 attempt per tab on each network return. With 3 tabs, about
+  7 returns on a flapping network reach the 20-attempt ceiling, and the entry moves to
+  the dead letters. Before, that took about 16 minutes of failure. The write is not
+  lost; it waits for a retry by hand. Kept on purpose. Each account has one person, and
+  that person usually has 1 tab open.
 - **A signed-out device takes no save.** The clear writes `signed_out` into `syncMeta`
   in the same transaction. Every repository write checks it inside its own transaction
   and refuses with `SignedOutOnThisDevice`. A drain that reads a signed-in user lifts
