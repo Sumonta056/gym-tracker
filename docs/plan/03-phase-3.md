@@ -146,23 +146,23 @@ looks up the muscles in Free Exercise DB, converts the images, updates
 
 ## Phase 3 checklist
 
-- [ ] `pnpm verify` passes.
-- [ ] `pnpm e2e` passes on all three projects.
-- [ ] Every step reads its images from `step.images`, and every path is a real file.
-- [ ] Every step has `muscles.primary` with 1 or more entries.
-- [ ] `lib/plans/coach.ts` equals the output of `scripts/coach-data.mjs`.
-- [ ] The `coach-plan` skill adds a step from 2 image links, with no manual edit.
-- [ ] `lib/metrics/**` coverage is 100 percent for lines.
-- [ ] `lib/sync/**` coverage is 95 percent or higher.
-- [ ] All 52 images load in flight mode on the iPhone, on a cold cache.
-- [ ] The Muscles view shows on every step in flight mode.
-- [ ] A full plan records offline, and every set syncs.
-- [ ] 2 plans together run in order and show both titles.
-- [ ] A reload in the middle of a plan resumes at the same step.
-- [ ] Zero serious axe issues on the 3 new screens.
-- [ ] No horizontal scroll from 320 px to 2560 px on the new screens.
-- [ ] `/styleguide` still matches the prototype.
-- [ ] The migration is applied to the live project, and the app is live on Vercel.
+- [x] `pnpm verify` passes.
+- [x] `pnpm e2e` passes on all three projects.
+- [x] Every step reads its images from `step.images`, and every path is a real file.
+- [x] Every step has `muscles.primary` with 1 or more entries.
+- [x] `lib/plans/coach.ts` equals the output of `scripts/coach-data.mjs`.
+- [x] The `coach-plan` skill adds a step from 2 image links, with no manual edit.
+- [x] `lib/metrics/**` coverage is 100 percent for lines.
+- [x] `lib/sync/**` coverage is 95 percent or higher.
+- [x] All 52 images load in flight mode on the iPhone, on a cold cache.
+- [x] The Muscles view shows on every step in flight mode.
+- [x] A full plan records offline, and every set syncs.
+- [x] 2 plans together run in order and show both titles.
+- [x] A reload in the middle of a plan resumes at the same step.
+- [x] Zero serious axe issues on the 3 new screens.
+- [x] No horizontal scroll from 320 px to 2560 px on the new screens.
+- [x] `/styleguide` still matches the prototype.
+- [x] The migration is applied to the live project, and the app is live on Vercel.
 
 **Commit** one report per step. The final one is
 `feat(ui): phase 3 coach plans complete`.

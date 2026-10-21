@@ -39,7 +39,7 @@ The full `pnpm verify` runs at a checkpoint only, and before the merge to `main`
 | 3.9  | `S3.9-session-done.md`          | Done, 2 plans, the laptop layout       | M    | 3.8b                | `plans.spec.ts`          | done  |
 | 3.10 | `S3.10-styleguide-e2e.md`       | Style guide, access, end to end        | M    | 3.9                 | full `pnpm verify`       | done  |
 | 3.11 | `S3.11-coach-plan-skill.md`     | The `coach-plan` skill                 | M    | 3.3, 3.4, 3.10      | none                     | done  |
-| 3.12 | `S3.12-device-check.md`         | Verification, production, device check | S    | 3.10, 3.11          | full `pnpm verify`       | —     |
+| 3.12 | `S3.12-device-check.md`         | Verification, production, device check | S    | 3.10, 3.11          | full `pnpm verify`       | done  |
 
 ## Order
 
@@ -76,9 +76,9 @@ not continue without approval.
 
 The owner tested the build of `fa4e814` and passed the checkpoint. The owner chose to skip the full `pnpm verify` here.
 
-### Checkpoint C — after 3.12
+### Checkpoint C — after 3.12 · passed 2026-10-21
 
-- [ ] Every item in the Phase 3 checklist of `docs/plan/03-phase-3.md` passes.
+- [x] Every item in the Phase 3 checklist of `docs/plan/03-phase-3.md` passes.
 
 ## What the fix track already built
 
