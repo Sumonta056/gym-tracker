@@ -72,16 +72,16 @@ dayPath(next, today))`, then the page reads the new `?date=`. Keep `SyncChip` an
 
 ## Acceptance criteria
 
-- [ ] `/?date=2026-10-10` renders that day's entry, workouts, note, zones and week.
-- [ ] `/?date=` with a bad or future value shows today, and the URL is left alone.
-- [ ] Previous moves one day back and updates the URL. Back in the browser returns.
-- [ ] Next is disabled on today.
-- [ ] The date picker opens from the header date and jumps to the picked day.
-- [ ] Every label that said "today" names the day when the day is not today.
-- [ ] A past day shows "Edit this day", which opens `/log?date=<date>`.
-- [ ] The heat map and the Workouts day card open `/?date=<date>`.
-- [ ] No raw hex, every button typed, 44 px targets, `pnpm design:check` passes.
-- [ ] Coverage floors hold. `pnpm verify` passes.
+- [x] `/?date=2026-10-10` renders that day's entry, workouts, note, zones and week.
+- [x] `/?date=` with a bad or future value shows today, and the URL is left alone.
+- [x] Previous moves one day back and updates the URL. Back in the browser returns.
+- [x] Next is disabled on today.
+- [x] The date picker opens from the header date and jumps to the picked day.
+- [x] Every label that said "today" names the day when the day is not today.
+- [x] A past day shows "Edit this day", which opens `/log?date=<date>`.
+- [x] The heat map and the Workouts day card open `/?date=<date>`.
+- [x] No raw hex, every button typed, 44 px targets, `pnpm design:check` passes.
+- [x] Coverage floors hold. `pnpm verify` passes.
 
 ## Tests
 

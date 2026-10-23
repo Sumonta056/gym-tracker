@@ -126,7 +126,7 @@ plates; 4.4 and 4.5 add the samples that must match them.
       write and no duplicate row.
 - [x] On the iPhone, from the home screen, an Instagram link opens Instagram and a
       YouTube link opens YouTube (spec 13.1). The owner confirmed Instagram. YouTube on
-      the iPhone is not yet confirmed.
+      the iPhone is confirmed by the owner on 2026-10-23.
 - [x] A video saved offline with a new category shows at once and syncs with no
       duplicate row (13.2).
 - [x] High above Normal above Low, in "All" and in a category (13.3).

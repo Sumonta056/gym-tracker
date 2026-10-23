@@ -49,7 +49,7 @@ Stop and report to the owner at each checkpoint. Do not continue without approva
 - [x] The owner reported which way opens each app, from the home screen app.
 - [x] `STANDALONE_WAY` holds the answer, with its tests.
 - [x] If no way opens Instagram, the owner decided again. Not needed: Instagram opens
-      with the default way. YouTube on the iPhone is not yet confirmed by the owner.
+      with the default way. The owner confirmed YouTube and the whole phase on 2026-10-23.
 
 ### Checkpoint B — after 4.6
 
