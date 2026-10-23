@@ -78,6 +78,7 @@ import {
   PlanDoneSample,
   SetRowsSample,
 } from './PlanSamples'
+import { SavedListSample, SaveFormSample } from './SavedSamples'
 
 import type { ChartGoals, RangeTab } from '../../components/charts/rangeData'
 import type { LiftSource } from '../../components/charts/useLiftData'
@@ -1930,6 +1931,12 @@ export function Styleguide({ only }: StyleguideProps) {
         </Section>
         <Section title="Plan session done">
           <PlanDoneSample />
+        </Section>
+        <Section title="Saved list">
+          <SavedListSample />
+        </Section>
+        <Section title="Save form">
+          <SaveFormSample />
         </Section>
       </AppShell>
     </SectionFilter.Provider>

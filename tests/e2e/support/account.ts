@@ -45,6 +45,10 @@ export type SeedSet = Pick<TablesInsert<'workout_sets'>, 'exercise_id' | 'reps' 
 
 export type SeedFinishedSession = SeedSession & { ended_at: string; sets: readonly SeedSet[] }
 
+export type SavedVideoRow = Tables<'saved_videos'>
+
+export type VideoCategoryRow = Tables<'video_categories'>
+
 type Client = SupabaseClient<Database>
 
 type StoredState = { cookies: Cookie[]; origins: unknown[] }
@@ -428,6 +432,79 @@ export class Account {
     const byId = new Map((data as Tables<Table>[]).map((row) => [row.id, row]))
 
     return ids.flatMap((id) => byId.get(id) ?? [])
+  }
+
+  async savedVideosByIds(ids: readonly string[]): Promise<SavedVideoRow[]> {
+    const { data, error } = await retryTransient(() =>
+      this.client
+        .from('saved_videos')
+        .select('*')
+        .filter('id', 'in', `(${ids.join(',')})`),
+    )
+
+    if (error !== null) {
+      throw new Error(`Reading the test videos failed: ${error.message}`)
+    }
+
+    return data
+  }
+
+  async savedVideosTitled(word: string): Promise<SavedVideoRow[]> {
+    const { data, error } = await retryTransient(() =>
+      this.client.from('saved_videos').select('*').ilike('title', `%${word}%`),
+    )
+
+    if (error !== null) {
+      throw new Error(`Reading the test videos failed: ${error.message}`)
+    }
+
+    return data
+  }
+
+  async videoCategoriesByIds(ids: readonly string[]): Promise<VideoCategoryRow[]> {
+    const { data, error } = await retryTransient(() =>
+      this.client
+        .from('video_categories')
+        .select('*')
+        .filter('id', 'in', `(${ids.join(',')})`),
+    )
+
+    if (error !== null) {
+      throw new Error(`Reading the test categories failed: ${error.message}`)
+    }
+
+    return data
+  }
+
+  async removeSavedVideos(
+    videoIds: readonly string[],
+    categoryIds: readonly string[],
+  ): Promise<void> {
+    if (videoIds.length > 0) {
+      const { error } = await retryTransient(() =>
+        this.client
+          .from('saved_videos')
+          .delete()
+          .filter('id', 'in', `(${videoIds.join(',')})`),
+      )
+
+      if (error !== null) {
+        throw new Error(`Removing the test videos failed: ${error.message}`)
+      }
+    }
+
+    if (categoryIds.length > 0) {
+      const { error } = await retryTransient(() =>
+        this.client
+          .from('video_categories')
+          .delete()
+          .filter('id', 'in', `(${categoryIds.join(',')})`),
+      )
+
+      if (error !== null) {
+        throw new Error(`Removing the test categories failed: ${error.message}`)
+      }
+    }
   }
 
   async clear(from: string, to: string): Promise<void> {

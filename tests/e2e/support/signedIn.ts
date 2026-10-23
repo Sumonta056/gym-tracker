@@ -115,6 +115,8 @@ type StoreName =
   | 'workoutSessions'
   | 'workoutSets'
   | 'planCursors'
+  | 'videoCategories'
+  | 'savedVideos'
 
 export function readStore<Row>(page: Page, store: StoreName): Promise<Row[]> {
   return page.evaluate(

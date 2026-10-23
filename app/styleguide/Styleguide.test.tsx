@@ -78,6 +78,8 @@ describe('the styleguide', { timeout: 15000 }, () => {
       'Guided step',
       'Guided step sets and rest',
       'Plan session done',
+      'Saved list',
+      'Save form',
     ]) {
       expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
     }
