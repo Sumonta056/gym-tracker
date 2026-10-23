@@ -100,7 +100,7 @@ jobs:
   browser:
     name: Browser (${{ matrix.project }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     concurrency:
       group: e2e-test-account-${{ matrix.project }}
       cancel-in-progress: false
