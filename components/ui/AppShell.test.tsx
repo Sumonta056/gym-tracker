@@ -97,6 +97,31 @@ describe('AppShell', () => {
     expect(labels).toEqual(['/', '/history', '/log', '/body', '/settings'])
   })
 
+  it('puts 2 links each side of the centre action in the bar', () => {
+    setup()
+    const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
+    const links = within(bar).getAllByRole('link')
+    const centre = links.findIndex((link) => link.getAttribute('href') === '/log')
+    expect(centre).toBe(2)
+    expect(links).toHaveLength(5)
+  })
+
+  it('lists sidebarItems in the sidebar and items in the bar', () => {
+    render(
+      <AppShell
+        items={ITEMS}
+        sidebarItems={[...ITEMS, { href: '/profile', label: 'Profile', glyph: '☰' }]}
+        action={{ href: '/log', label: 'Log a set' }}
+      >
+        <p>Page body</p>
+      </AppShell>,
+    )
+    const sidebar = screen.getByRole('navigation', { name: 'Sidebar' })
+    const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
+    expect(within(sidebar).getByRole('link', { name: 'Profile' })).toBeInTheDocument()
+    expect(within(bar).queryByRole('link', { name: 'Profile' })).toBeNull()
+  })
+
   it('marks the current item on both navigations', () => {
     setup()
     const current = screen.getAllByRole('link', { name: 'Today' })

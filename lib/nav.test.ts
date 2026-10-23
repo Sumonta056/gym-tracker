@@ -1,14 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCurrentPath, NAV_ACTION, NAV_DESTINATIONS } from './nav'
+import {
+  isCurrentPath,
+  NAV_ACTION,
+  NAV_DESTINATIONS,
+  PROFILE_DESTINATION,
+  SIDEBAR_DESTINATIONS,
+} from './nav'
 
 describe('NAV_DESTINATIONS', () => {
-  it('holds the four destinations that sit beside the centre action', () => {
+  it('lists Today, Stats, Workouts and Saved', () => {
+    expect(NAV_DESTINATIONS.map((item) => item.label)).toEqual([
+      'Today',
+      'Stats',
+      'Workouts',
+      'Saved',
+    ])
     expect(NAV_DESTINATIONS.map((item) => item.href)).toEqual([
       '/',
       '/analytics',
       '/workouts',
-      '/profile',
+      '/saved',
     ])
   })
 
@@ -17,6 +29,23 @@ describe('NAV_DESTINATIONS', () => {
       expect(item.label).not.toBe('')
       expect(item.glyph).not.toBe('')
     }
+  })
+})
+
+describe('SIDEBAR_DESTINATIONS', () => {
+  it('lists Today, Stats, Workouts, Saved and Profile', () => {
+    expect(SIDEBAR_DESTINATIONS.map((item) => item.label)).toEqual([
+      'Today',
+      'Stats',
+      'Workouts',
+      'Saved',
+      'Profile',
+    ])
+  })
+
+  it('ends with the profile destination', () => {
+    expect(SIDEBAR_DESTINATIONS.at(-1)).toBe(PROFILE_DESTINATION)
+    expect(PROFILE_DESTINATION.href).toBe('/profile')
   })
 })
 

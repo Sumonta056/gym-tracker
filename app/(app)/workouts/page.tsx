@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
 import { PlanPicker } from '../../../components/plans/PlanPicker'
+import { ProfileAvatarLink } from '../../../components/profile/ProfileAvatarLink'
 import { SyncChip } from '../../../components/sync/SyncChip'
 import { MicroLabel } from '../../../components/ui/MicroLabel'
 import { SecondaryButton } from '../../../components/ui/SecondaryButton'
@@ -102,7 +103,10 @@ export default function WorkoutsPage() {
           <MicroLabel as="p">Gym Tracker</MicroLabel>
           <h1 className="mt-2 text-[23px] leading-tight font-bold tracking-[-0.6px]">Workouts</h1>
         </div>
-        <SyncChip className="shrink-0" />
+        <div className="flex shrink-0 items-center gap-2">
+          <SyncChip />
+          <ProfileAvatarLink />
+        </div>
       </header>
       <PlanPicker />
       <section aria-labelledby="free-session" className="mt-6">

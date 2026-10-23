@@ -1,11 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useRef, useState } from 'react'
 
 import { dayPath, parseLogDate, shiftLogDate } from '../../lib/format/logDate'
 import { toDayNumber } from '../../lib/metrics/day'
 import { isTypingKey, prettyDate } from '../DailyEntryForm'
+import { ProfileAvatarLink } from '../profile/ProfileAvatarLink'
 import { SyncChip } from '../sync/SyncChip'
 import { MicroLabel } from '../ui/MicroLabel'
 import { StatIcon } from '../ui/StatIcon'
@@ -15,19 +15,12 @@ import { headerDate } from './summary'
 export type DashboardHeaderProps = {
   date: string
   today: string
-  displayName: string | null
 }
 
 export const DAY_PICKER_ID = 'dashboard-day'
 
 const DAY_STEP =
   'bg-surface-2 border-border text-text rounded-input inline-flex h-[52px] w-11 shrink-0 items-center justify-center border text-xl font-bold disabled:opacity-50'
-
-export function initialOf(name: string | null): string {
-  const first = name?.trim().charAt(0) ?? ''
-
-  return first === '' ? '☰' : first.toLocaleUpperCase('en-GB')
-}
 
 export function microLabel(date: string, today: string): string {
   const { weekday } = headerDate(date)
@@ -39,7 +32,7 @@ export function openDay(path: string): void {
   window.history.pushState(null, '', path)
 }
 
-export function DashboardHeader({ date, today, displayName }: DashboardHeaderProps) {
+export function DashboardHeader({ date, today }: DashboardHeaderProps) {
   const { dayMonth, short } = headerDate(date)
   const previous = shiftLogDate(date, -1)
   const next = shiftLogDate(date, 1)
@@ -159,13 +152,7 @@ export function DashboardHeader({ date, today, displayName }: DashboardHeaderPro
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <SyncChip />
-        <Link
-          href="/profile"
-          aria-label="Profile"
-          className="bg-surface-2 border-border text-accent flex size-11 items-center justify-center rounded-full border text-[13px] font-bold"
-        >
-          <span aria-hidden="true">{initialOf(displayName)}</span>
-        </Link>
+        <ProfileAvatarLink />
       </div>
     </header>
   )

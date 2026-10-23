@@ -41,15 +41,19 @@ describe('SavedHeader', () => {
       'text-accent-ink',
     )
   })
+})
 
-  it('puts a slot to the right of + Save for the avatar', () => {
-    render(
-      <SavedHeader count={0} categories={0} onSave={vi.fn()}>
-        <a href="/profile">Profile</a>
-      </SavedHeader>,
-    )
+describe('SavedHeader avatar', () => {
+  it('puts the avatar right-most in its header', () => {
+    render(<SavedHeader count={0} categories={0} onSave={vi.fn()} />)
+    const header = screen.getByRole('banner')
+    expect(header.lastElementChild?.lastElementChild).toHaveAccessibleName('Profile')
+  })
 
-    const end = screen.getByRole('button', { name: 'Save a video' }).parentElement
-    expect(end?.lastElementChild).toBe(screen.getByRole('link', { name: 'Profile' }))
+  it('puts + Save left of the avatar', () => {
+    render(<SavedHeader count={0} categories={0} onSave={vi.fn()} />)
+    const save = screen.getByRole('button', { name: 'Save a video' })
+    const avatar = screen.getByRole('link', { name: 'Profile' })
+    expect(save.compareDocumentPosition(avatar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })

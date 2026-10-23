@@ -27,6 +27,7 @@ export type AppShellMode = 'default' | 'focus'
 
 export type AppShellProps = {
   items: AppShellNavItem[]
+  sidebarItems?: AppShellNavItem[]
   mode?: AppShellMode
   action?: AppShellAction
   title?: string
@@ -46,6 +47,7 @@ const MAIN_BOTTOM: Record<AppShellMode, string> = {
 
 export function AppShell({
   items,
+  sidebarItems = items,
   mode = 'default',
   action,
   title,
@@ -69,7 +71,7 @@ export function AppShell({
           className="border-border bg-surface hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:border-r lg:p-4"
         >
           <MicroLabel className="mb-3 px-3">Gym Tracker</MicroLabel>
-          {items.map((item) => (
+          {sidebarItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

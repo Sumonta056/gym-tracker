@@ -386,3 +386,12 @@ describe('AnalyticsHeader', () => {
     expect(onEdit).toHaveBeenCalledOnce()
   })
 })
+
+describe('AnalyticsHeader avatar', () => {
+  it('puts the avatar right-most in its header', () => {
+    render(<AnalyticsHeader label={null} onEdit={() => undefined} />)
+
+    const links = within(screen.getByRole('banner')).getAllByRole('link')
+    expect(links.at(-1)).toHaveAccessibleName('Profile')
+  })
+})

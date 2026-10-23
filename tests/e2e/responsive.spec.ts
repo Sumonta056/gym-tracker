@@ -19,10 +19,11 @@ import {
   stepCount,
 } from './support/workout'
 
+import type { SignedInRoute } from './support/signedIn'
 import type { Page } from '@playwright/test'
 
 const PUBLIC_ROUTES = ['/sign-in', '/sign-up', '/styleguide', '/~offline']
-const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/profile']
+const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/saved', '/profile']
 const SHELL_ROUTES = ['/styleguide']
 const STEP_WIDTHS = [320, 390, 430, 768, 1024, 1440, 2560]
 const SCROLL_WIDTHS = [...new Set([...STEP_WIDTHS, 360, 414, 640, 834, 1280, 1920])].sort(
@@ -685,3 +686,110 @@ signedIn.describe('signed in on /workout in plan mode with a set logged', () => 
     },
   )
 })
+
+signedIn.describe('signed in navigation', () => {
+  signedIn.beforeEach(async ({ page, account, day }) => {
+    await openWithWeek(page, account, day)
+    await openRoute(page, '/')
+  })
+
+  signedIn(
+    'shows 4 tabs and the centre action in the bar from 320 to 1023 px',
+    async ({ page }) => {
+      const bar = page.getByRole('navigation', { name: 'Bottom navigation' })
+
+      for (const width of [320, 390, 768, 1023]) {
+        await resizeAndSettle(page, width)
+        await expect(bar.getByRole('link')).toHaveText([
+          /Today/,
+          /Stats/,
+          /Log the day/,
+          /Workouts/,
+          /Saved/,
+        ])
+        await expect(bar.getByRole('link', { name: 'Profile' })).toHaveCount(0)
+      }
+    },
+  )
+
+  signedIn('keeps a gap between the Workouts and Saved labels at 320 px', async ({ page }) => {
+    await resizeAndSettle(page, 320)
+    const gap = await page.evaluate(() => {
+      const bar = document.querySelector('nav[aria-label="Bottom navigation"]')
+      const textBox = (name: string) => {
+        const link = Array.from(bar?.querySelectorAll('a') ?? []).find((item) =>
+          item.textContent.trim().endsWith(name),
+        )
+        const label = link?.lastElementChild
+        if (label === null || label === undefined) return null
+        const range = document.createRange()
+        range.selectNodeContents(label)
+        return range.getBoundingClientRect()
+      }
+      const left = textBox('Workouts')
+      const right = textBox('Saved')
+      return left === null || right === null ? null : right.left - left.right
+    })
+
+    expect(gap).not.toBeNull()
+    expect(gap ?? 0).toBeGreaterThanOrEqual(4)
+  })
+
+  signedIn('opens /profile from the header avatar under 1024 px', async ({ page }) => {
+    await resizeAndSettle(page, 390)
+    await page.locator('main header').getByRole('link', { name: 'Profile' }).click()
+
+    await expect(page).toHaveURL(/\/profile\/?$/)
+    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  })
+
+  signedIn('lists 5 items in the sidebar and no avatar at 1440 px', async ({ page }) => {
+    await resizeAndSettle(page, 1440)
+    const sidebar = page.getByRole('navigation', { name: 'Sidebar' })
+
+    await expect(sidebar.getByRole('link')).toHaveText([
+      /Today/,
+      /Stats/,
+      /Workouts/,
+      /Saved/,
+      /Profile/,
+      /Log the day/,
+    ])
+    await expect(page.locator('main header').getByRole('link', { name: 'Profile' })).toBeHidden()
+  })
+})
+
+for (const route of ['/analytics', '/workouts']) {
+  signedIn.describe(`signed in header on ${route}`, () => {
+    signedIn.beforeEach(async ({ page, context, account, day }) => {
+      if (route === '/workouts') {
+        await openWithLiftWeek(page, context, account, day)
+      } else {
+        await openWithWeek(page, account, day)
+      }
+      await openRoute(page, route as SignedInRoute)
+    })
+
+    signedIn('fits the sync chip and the avatar side by side at 320 px', async ({ page }) => {
+      await resizeAndSettle(page, 320)
+      const boxes = await page
+        .locator('main header')
+        .locator('a, button, [role="status"]')
+        .evaluateAll((items) =>
+          items.map((item) => {
+            const box = item.getBoundingClientRect()
+            return { left: box.left, right: box.right, width: box.width }
+          }),
+        )
+      const sorted = [...boxes].sort((a, b) => a.left - b.left)
+
+      for (let index = 1; index < sorted.length; index += 1) {
+        expect(sorted[index]?.left ?? 0).toBeGreaterThanOrEqual(
+          (sorted[index - 1]?.right ?? 0) - 0.5,
+        )
+      }
+      expect(sorted.at(-1)?.right ?? 0).toBeLessThanOrEqual(320)
+      expect(await sideways(page)).toEqual([])
+    })
+  })
+}

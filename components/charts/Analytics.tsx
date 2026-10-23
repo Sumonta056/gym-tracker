@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { updateProfile } from '../../lib/db/repository'
+import { ProfileAvatarLink } from '../profile/ProfileAvatarLink'
 import { SyncChip } from '../sync/SyncChip'
 import { PrimaryButton } from '../ui/PrimaryButton'
 import { SecondaryButton } from '../ui/SecondaryButton'
@@ -82,6 +83,7 @@ export function AnalyticsHeader({
             </svg>
           </button>
         )}
+        <ProfileAvatarLink />
       </div>
     </header>
   )

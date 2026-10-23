@@ -109,7 +109,13 @@ const NAV = [
   { href: '/', label: 'Today', glyph: '◧', current: false },
   { href: '/analytics', label: 'Stats', glyph: '◔' },
   { href: '/workouts', label: 'Workouts', glyph: '⛊' },
-  { href: '/styleguide', label: 'Style guide', glyph: '☰', current: true },
+  { href: '/saved', label: 'Saved', glyph: '▶' },
+]
+
+const SIDEBAR_NAV = [
+  ...NAV,
+  { href: '/profile', label: 'Profile', glyph: '☰' },
+  { href: '/styleguide', label: 'Style guide', glyph: '◫', current: true },
 ]
 
 const SAMPLE_DAY: DailyEntry = {
@@ -1075,6 +1081,7 @@ export function Styleguide({ only }: StyleguideProps) {
     <SectionFilter.Provider value={only}>
       <AppShell
         items={NAV}
+        sidebarItems={SIDEBAR_NAV}
         action={{ href: '/log', label: 'Log the day', glyph: '✎' }}
         title="Style guide"
       >
@@ -1177,10 +1184,10 @@ export function Styleguide({ only }: StyleguideProps) {
 
         <Section title="Dashboard">
           <Card className="mb-3">
-            <DashboardHeader date="2026-09-13" today="2026-09-13" displayName="Sumonta" />
+            <DashboardHeader date="2026-09-13" today="2026-09-13" />
           </Card>
           <Card className="mb-3">
-            <DashboardHeader date="2026-09-10" today="2026-09-13" displayName="Sumonta" />
+            <DashboardHeader date="2026-09-10" today="2026-09-13" />
           </Card>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             <TodayHero

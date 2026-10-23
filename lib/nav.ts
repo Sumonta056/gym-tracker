@@ -8,7 +8,18 @@ export const NAV_DESTINATIONS: readonly NavDestination[] = [
   { href: '/', label: 'Today', glyph: '◧' },
   { href: '/analytics', label: 'Stats', glyph: '◔' },
   { href: '/workouts', label: 'Workouts', glyph: '⛊' },
-  { href: '/profile', label: 'Profile', glyph: '☰' },
+  { href: '/saved', label: 'Saved', glyph: '▶' },
+]
+
+export const PROFILE_DESTINATION: NavDestination = {
+  href: '/profile',
+  label: 'Profile',
+  glyph: '☰',
+}
+
+export const SIDEBAR_DESTINATIONS: readonly NavDestination[] = [
+  ...NAV_DESTINATIONS,
+  PROFILE_DESTINATION,
 ]
 
 export const NAV_ACTION: NavDestination = { href: '/log', label: 'Log the day', glyph: '✎' }

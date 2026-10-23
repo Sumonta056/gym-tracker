@@ -2,14 +2,14 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { DashboardHeader, initialOf, microLabel, openDay } from './DashboardHeader'
+import { DashboardHeader, microLabel, openDay } from './DashboardHeader'
 
 const TODAY = '2026-09-13'
 const PAST = '2026-09-10'
 
 function renderHeader(date = TODAY) {
   const push = vi.spyOn(window.history, 'pushState').mockImplementation(() => undefined)
-  render(<DashboardHeader date={date} today={TODAY} displayName="Sumonta" />)
+  render(<DashboardHeader date={date} today={TODAY} />)
   return push
 }
 
@@ -116,8 +116,8 @@ describe('DashboardHeader', () => {
 
   it('resets the picker when the shown day changes from outside', () => {
     vi.spyOn(window.history, 'pushState').mockImplementation(() => undefined)
-    const view = render(<DashboardHeader date={TODAY} today={TODAY} displayName={null} />)
-    view.rerender(<DashboardHeader date={PAST} today={TODAY} displayName={null} />)
+    const view = render(<DashboardHeader date={TODAY} today={TODAY} />)
+    view.rerender(<DashboardHeader date={PAST} today={TODAY} />)
     expect(screen.getByLabelText('Day')).toHaveValue(PAST)
     expect(screen.getByText('Thursday')).toBeInTheDocument()
   })
@@ -126,7 +126,6 @@ describe('DashboardHeader', () => {
     renderHeader()
     const avatar = screen.getByRole('link', { name: 'Profile' })
     expect(avatar).toHaveAttribute('href', '/profile')
-    expect(avatar).toHaveTextContent('S')
   })
 
   it('shows the sync chip beside the avatar', () => {
@@ -158,16 +157,12 @@ describe('openDay', () => {
   })
 })
 
-describe('initialOf', () => {
-  it('takes the first letter of the name in upper case', () => {
-    expect(initialOf('  sumonta')).toBe('S')
-  })
-
-  it('falls back to the profile glyph with no name', () => {
-    expect(initialOf(null)).toBe('☰')
-  })
-
-  it('falls back to the profile glyph with a blank name', () => {
-    expect(initialOf('   ')).toBe('☰')
+describe('DashboardHeader avatar', () => {
+  it('puts the avatar right-most in its header', () => {
+    renderHeader()
+    const header = screen.getByRole('banner')
+    const last = header.querySelector('a:last-of-type')
+    expect(last).toHaveAccessibleName('Profile')
+    expect(header.lastElementChild?.lastElementChild).toBe(last)
   })
 })

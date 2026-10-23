@@ -87,7 +87,7 @@ export function DashboardView({ summary, today = summary.today }: DashboardViewP
 
   return (
     <>
-      <DashboardHeader date={date} today={today} displayName={summary.displayName} />
+      <DashboardHeader date={date} today={today} />
 
       <div
         data-testid="dashboard-grid"

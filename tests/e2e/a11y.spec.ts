@@ -20,7 +20,7 @@ import {
 import type { Page } from '@playwright/test'
 
 const PUBLIC_ROUTES = ['/sign-in', '/sign-up', '/styleguide', '/~offline']
-const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/profile']
+const SIGNED_IN_ROUTES = ['/', '/log', '/analytics', '/workouts', '/saved', '/profile']
 const FOCUS_WIDTHS = [390, 1440]
 const MOST_TAB_STOPS = 400
 
@@ -308,5 +308,18 @@ signedIn.describe('signed in on /workout in plan mode', () => {
       expect(stops, `tab stops at ${String(width)}px`).toBeGreaterThan(0)
       expect(bare, `stops with no ring at ${String(width)}px`).toEqual([])
     }
+  })
+})
+
+signedIn.describe('signed in on /saved with the Save form open', () => {
+  signedIn.beforeEach(async ({ page, account, day }) => {
+    await openWithWeek(page, account, day)
+    await openRoute(page, '/saved')
+    await page.getByRole('button', { name: 'Save a video' }).first().click()
+    await expect(page.getByRole('dialog', { name: 'Save a video' })).toBeVisible()
+  })
+
+  signedIn('reports no serious or critical accessibility issue', async ({ page }) => {
+    expect(await blocking(page)).toEqual([])
   })
 })

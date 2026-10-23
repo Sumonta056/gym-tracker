@@ -169,6 +169,13 @@ describe('WorkoutsPage', () => {
     expect(within(header).getByRole('status')).toBeInTheDocument()
   })
 
+  it('puts the avatar right-most in its header', () => {
+    render(<WorkoutsPage />)
+
+    const header = screen.getByRole('banner')
+    expect(header.lastElementChild?.lastElementChild).toHaveAccessibleName('Profile')
+  })
+
   it('draws the free session Start as a secondary button under the plans', async () => {
     render(<WorkoutsPage />)
 

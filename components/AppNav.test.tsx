@@ -31,7 +31,23 @@ describe('AppNav', () => {
     const hrefs = within(bar)
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'))
-    expect(hrefs).toEqual(['/', '/analytics', '/log', '/workouts', '/profile'])
+    expect(hrefs).toEqual(['/', '/analytics', '/log', '/workouts', '/saved'])
+  })
+
+  it('lists Profile as a fifth item in the sidebar only', () => {
+    setup('/profile')
+    const sidebar = screen.getByRole('navigation', { name: 'Sidebar' })
+    const bar = screen.getByRole('navigation', { name: 'Bottom navigation' })
+    expect(
+      within(sidebar)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/', '/analytics', '/workouts', '/saved', '/profile', '/log'])
+    expect(within(bar).queryByRole('link', { name: 'Profile' })).toBeNull()
+    expect(within(sidebar).getByRole('link', { name: 'Profile' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   it('marks the root as the current page on the root path', () => {

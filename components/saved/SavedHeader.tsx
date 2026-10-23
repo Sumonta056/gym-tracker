@@ -1,3 +1,5 @@
+import { ProfileAvatarLink } from '../profile/ProfileAvatarLink'
+
 import type { ReactNode } from 'react'
 
 export type SavedHeaderProps = {
@@ -39,6 +41,7 @@ export function SavedHeader({ count, categories, onSave, children }: SavedHeader
       <div className="flex shrink-0 items-center gap-2">
         <SaveButton onSave={onSave} />
         {children}
+        <ProfileAvatarLink />
       </div>
     </header>
   )
