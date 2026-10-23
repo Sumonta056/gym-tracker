@@ -150,10 +150,13 @@ function SaveVideoForm({
   const categoryErrorId = useId()
   const newNameId = useId()
   const newNameRef = useRef<HTMLInputElement | null>(null)
+  const newChipRef = useRef<HTMLButtonElement | null>(null)
+  const beforeNew = useRef('')
   const saving = useRef(false)
 
   const {
     control,
+    clearErrors,
     formState: { errors },
     handleSubmit,
     register,
@@ -197,6 +200,10 @@ function SaveVideoForm({
   const newNameError = errors.newName?.message
 
   const pick = (id: string) => {
+    if (id === NEW_CATEGORY && categoryId !== NEW_CATEGORY) {
+      beforeNew.current = categoryId
+    }
+
     setValue('categoryId', id, { shouldValidate: errors.categoryId !== undefined })
 
     if (id === NEW_CATEGORY) {
@@ -204,6 +211,15 @@ function SaveVideoForm({
         newNameRef.current?.focus()
       })
     }
+  }
+
+  const cancelNew = () => {
+    setValue('newName', '')
+    setValue('categoryId', beforeNew.current)
+    clearErrors(['newName', 'categoryId'])
+    requestAnimationFrame(() => {
+      newChipRef.current?.focus()
+    })
   }
 
   return (
@@ -259,40 +275,54 @@ function SaveVideoForm({
               <span className="min-w-0 [overflow-wrap:anywhere]">{category.name}</span>
             </button>
           ))}
-          <button
-            type="button"
-            aria-pressed={categoryId === NEW_CATEGORY}
-            onClick={() => {
-              pick(NEW_CATEGORY)
-            }}
-            className={cn(CHIP_CLASS, chipTone(categoryId === NEW_CATEGORY))}
-          >
-            + New
-          </button>
+          {categoryId === NEW_CATEGORY ? null : (
+            <button
+              type="button"
+              ref={newChipRef}
+              aria-pressed={false}
+              onClick={() => {
+                pick(NEW_CATEGORY)
+              }}
+              className={cn(CHIP_CLASS, chipTone(false))}
+            >
+              + New
+            </button>
+          )}
         </div>
         {categoryId === NEW_CATEGORY ? (
           <>
-            <label htmlFor={newNameId} className="sr-only">
-              New category name
-            </label>
-            <input
-              id={newNameId}
-              type="text"
-              autoComplete="off"
-              maxLength={MAX_CATEGORY_NAME_LENGTH}
-              placeholder="New category"
-              aria-invalid={newNameError === undefined ? undefined : true}
-              aria-describedby={newNameError === undefined ? undefined : `${newNameId}-error`}
-              className={cn(
-                FIELD_INPUT_CLASS,
-                newNameError === undefined ? 'border-border' : 'border-danger',
-              )}
-              ref={(element) => {
-                newNameField(element)
-                newNameRef.current = element
-              }}
-              {...newNameProps}
-            />
+            <div className="relative">
+              <label htmlFor={newNameId} className="sr-only">
+                New category name
+              </label>
+              <input
+                id={newNameId}
+                type="text"
+                autoComplete="off"
+                maxLength={MAX_CATEGORY_NAME_LENGTH}
+                placeholder="New category"
+                aria-invalid={newNameError === undefined ? undefined : true}
+                aria-describedby={newNameError === undefined ? undefined : `${newNameId}-error`}
+                className={cn(
+                  FIELD_INPUT_CLASS,
+                  'pr-14',
+                  newNameError === undefined ? 'border-border' : 'border-danger',
+                )}
+                ref={(element) => {
+                  newNameField(element)
+                  newNameRef.current = element
+                }}
+                {...newNameProps}
+              />
+              <button
+                type="button"
+                aria-label="Cancel new category"
+                onClick={cancelNew}
+                className="text-muted absolute inset-y-0 right-0 inline-flex min-h-11 min-w-11 items-center justify-center text-xl"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
             {newNameError === undefined ? null : (
               <p id={`${newNameId}-error`} role="alert" className="text-danger text-xs">
                 {newNameError}

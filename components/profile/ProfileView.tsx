@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useId, useState } from 'react'
 
 import { ImportReview } from '../csv/ImportReview'
@@ -188,12 +187,6 @@ export function ProfileView({
           </div>
         </div>
       </div>
-      <Link
-        href="/link-test"
-        className="text-muted mt-3 inline-flex min-h-11 items-center text-[13px] font-semibold underline"
-      >
-        Link test
-      </Link>
       <ManageExercisesSheet
         open={managing}
         onClose={() => {

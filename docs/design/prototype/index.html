@@ -2958,6 +2958,30 @@
         margin-top: 8px;
       }
 
+      .sv-newcat {
+        position: relative;
+      }
+
+      .sv-newcat .input {
+        padding-right: 56px;
+      }
+
+      .sv-newcat-x {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: 0;
+        color: var(--color-muted);
+        font-size: 20px;
+      }
+
       .sv-tagrow {
         display: flex;
         flex-wrap: wrap;
@@ -9112,12 +9136,16 @@ Left knee a little stiff.</p>
                   <button class="pill pill-fixed" type="button" aria-pressed="false">Home</button>
                   <button class="pill pill-fixed" type="button" aria-pressed="false">Meditation</button>
                   <button class="pill pill-fixed" type="button" aria-pressed="false">Stretching</button>
-                  <button class="pill pill-fixed" type="button" aria-pressed="true">+ New</button>
                 </div>
-                <label class="sv-newrow" style="display: block" for="sv-newcat">
-                  <span class="visually-hidden">New category name</span>
+                <div class="sv-newrow sv-newcat">
+                  <label for="sv-newcat">
+                    <span class="visually-hidden">New category name</span>
+                  </label>
                   <input class="input" id="sv-newcat" type="text" maxlength="40" value="Yoga" />
-                </label>
+                  <button class="sv-newcat-x" type="button" aria-label="Cancel new category">
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </div>
               </div>
               <div class="field" role="group" aria-labelledby="sv-tags-label">
                 <span class="micro" id="sv-tags-label">Tags</span>
@@ -9148,7 +9176,7 @@ Left knee a little stiff.</p>
           </div>
         </div>
         <p class="dim" style="margin: 12px 2px 0">
-          The same sheet adds and edits. Category chips, then "+ New" with its input open; a name
+          The same sheet adds and edits. Category chips; "+ New" gives way to its input, with a × to cancel; a name
           that matches a live category reuses it. Tags: the chosen ones first, then suggestions
           from tags already used. A new link starts on Normal.
         </p>

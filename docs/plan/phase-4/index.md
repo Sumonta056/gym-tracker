@@ -25,12 +25,12 @@ the owner runs both.
 
 | Step | File                      | Title                                    | Size | Depends on    | E2E spec                             | State |
 | ---- | ------------------------- | ---------------------------------------- | ---- | ------------- | ------------------------------------ | ----- |
-| 4.1  | `S4.1-design-contract.md` | The prototype plates                     | M    | spec approved | none                                 | open  |
-| 4.2  | `S4.2-link-spike.md`      | The iPhone link spike and `openTarget`   | S    | 4.1           | none                                 | open  |
-| 4.3  | `S4.3-data-and-sync.md`   | Schemas, migration, repository, sync     | L    | 4.1           | none                                 | open  |
-| 4.4  | `S4.4-saved-screen.md`    | `/saved` and the add and edit form       | L    | 4.2, 4.3      | `saved.spec.ts`                      | open  |
-| 4.5  | `S4.5-navigation.md`      | The Saved tab and the header avatar      | M    | 4.4           | `responsive.spec.ts`, `a11y.spec.ts` | open  |
-| 4.6  | `S4.6-verification.md`    | Full verify, browser check, device check | S    | 4.5, Ckpt A   | full `pnpm verify`                   | open  |
+| 4.1  | `S4.1-design-contract.md` | The prototype plates                     | M    | spec approved | none                                 | done  |
+| 4.2  | `S4.2-link-spike.md`      | The iPhone link spike and `openTarget`   | S    | 4.1           | none                                 | done  |
+| 4.3  | `S4.3-data-and-sync.md`   | Schemas, migration, repository, sync     | L    | 4.1           | none                                 | done  |
+| 4.4  | `S4.4-saved-screen.md`    | `/saved` and the add and edit form       | L    | 4.2, 4.3      | `saved.spec.ts`                      | done  |
+| 4.5  | `S4.5-navigation.md`      | The Saved tab and the header avatar      | M    | 4.4           | `responsive.spec.ts`, `a11y.spec.ts` | done  |
+| 4.6  | `S4.6-verification.md`    | Full verify, browser check, device check | S    | 4.5, Ckpt A   | full `pnpm verify`                   | done  |
 
 ## Order
 
@@ -46,14 +46,15 @@ Stop and report to the owner at each checkpoint. Do not continue without approva
 
 ### Checkpoint A — the iPhone link answer
 
-- [ ] The owner reported which way opens each app, from the home screen app.
-- [ ] `STANDALONE_WAY` holds the answer, with its tests.
-- [ ] If no way opens Instagram, the owner decided again.
+- [x] The owner reported which way opens each app, from the home screen app.
+- [x] `STANDALONE_WAY` holds the answer, with its tests.
+- [x] If no way opens Instagram, the owner decided again. Not needed: Instagram opens
+      with the default way. YouTube on the iPhone is not yet confirmed by the owner.
 
 ### Checkpoint B — after 4.6
 
-- [ ] Run the full `pnpm verify` first.
-- [ ] Every item in the Phase 4 checklist of `docs/plan/04-phase-4.md` passes.
+- [x] Run the full `pnpm verify` first.
+- [x] Every item in the Phase 4 checklist of `docs/plan/04-phase-4.md` passes.
 
 ## What already exists. Read it; do not build it again
 

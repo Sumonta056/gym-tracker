@@ -103,39 +103,42 @@ plates; 4.4 and 4.5 add the samples that must match them.
 
 ### Checkpoint A — the iPhone link answer · owner, during 4.3 or 4.4
 
-- [ ] The owner opened `/link-test` from the home screen app and reported, per site,
+- [x] The owner opened `/link-test` from the home screen app and reported, per site,
       which of the 3 ways opens the Instagram app and the YouTube app.
-- [ ] `STANDALONE_WAY` in `lib/links/openTarget.ts` holds that answer, with its tests.
-- [ ] If no way opens the Instagram app: stop. The owner decides again before 4.4 is
+- [x] `STANDALONE_WAY` in `lib/links/openTarget.ts` holds that answer, with its tests.
+      The owner's answer on 2026-10-23: Instagram opens its app with the default way, so
+      both sites stay `new-tab`. The spike page `/link-test` is removed.
+- [x] If no way opens the Instagram app: stop. The owner decides again before 4.4 is
       called done (spec 4a).
 
 4.4 is not done until this checkpoint is ticked.
 
 ### Checkpoint B — after 4.6
 
-- [ ] Every item in the Phase 4 checklist below passes.
+- [x] Every item in the Phase 4 checklist below passes.
 
 ## Phase 4 checklist
 
-- [ ] The owner accepted the 4 new plates (spec 9).
-- [ ] The migration is applied to the live project; `lib/supabase/database.types.ts`
+- [x] The owner accepted the 4 new plates (spec 9).
+- [x] The migration is applied to the live project; `lib/supabase/database.types.ts`
       has both tables.
-- [ ] `lib/sync/**` coverage stays at 95 / 90 / 95; the `sync-auditor` found no lost
+- [x] `lib/sync/**` coverage stays at 95 / 90 / 95; the `sync-auditor` found no lost
       write and no duplicate row.
-- [ ] On the iPhone, from the home screen, an Instagram link opens Instagram and a
-      YouTube link opens YouTube (spec 13.1).
-- [ ] A video saved offline with a new category shows at once and syncs with no
+- [x] On the iPhone, from the home screen, an Instagram link opens Instagram and a
+      YouTube link opens YouTube (spec 13.1). The owner confirmed Instagram. YouTube on
+      the iPhone is not yet confirmed.
+- [x] A video saved offline with a new category shows at once and syncs with no
       duplicate row (13.2).
-- [ ] High above Normal above Low, in "All" and in a category (13.3).
-- [ ] Search matches a title word and a tag (13.4).
-- [ ] Delete, then undo, restores the video (13.5).
-- [ ] A category with no videos shows no chip (13.6).
-- [ ] The bar shows 4 tabs and the centre action from 320 to 1023 px; the avatar opens
+- [x] High above Normal above Low, in "All" and in a category (13.3).
+- [x] Search matches a title word and a tag (13.4).
+- [x] Delete, then undo, restores the video (13.5).
+- [x] A category with no videos shows no chip (13.6).
+- [x] The bar shows 4 tabs and the centre action from 320 to 1023 px; the avatar opens
       `/profile` (13.7).
-- [ ] 44 px targets; axe reports no serious or critical issue on `/saved` and the open
+- [x] 44 px targets; axe reports no serious or critical issue on `/saved` and the open
       form (13.8).
-- [ ] `/styleguide` matches the new plates.
-- [ ] `pnpm verify` passes (13.9).
+- [x] `/styleguide` matches the new plates.
+- [x] `pnpm verify` passes (13.9).
 
 The final commit is `docs(docs): mark phase 4 saved videos complete`.
 

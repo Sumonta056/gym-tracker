@@ -136,11 +136,9 @@ describe('SaveVideoSheet', () => {
   it('shows the "+ New" input, max 40 characters, and selects the new name', async () => {
     show()
 
-    const add = within(categoryGroup()).getByRole('button', { name: '+ New' })
-    await userEvent.click(add)
+    await userEvent.click(within(categoryGroup()).getByRole('button', { name: '+ New' }))
 
     const name = screen.getByRole('textbox', { name: 'New category name' })
-    expect(add).toHaveAttribute('aria-pressed', 'true')
     expect(name).toHaveAttribute('maxLength', '40')
     await waitFor(() => {
       expect(name).toHaveFocus()
@@ -148,6 +146,53 @@ describe('SaveVideoSheet', () => {
 
     await userEvent.click(within(categoryGroup()).getByRole('button', { name: 'Home' }))
     expect(screen.queryByRole('textbox', { name: 'New category name' })).not.toBeInTheDocument()
+  })
+
+  it('hides the "+ New" chip while the name input is open', async () => {
+    show()
+
+    await userEvent.click(within(categoryGroup()).getByRole('button', { name: '+ New' }))
+
+    expect(within(categoryGroup()).queryByRole('button', { name: '+ New' })).not.toBeInTheDocument()
+    expect(within(categoryGroup()).getByRole('button', { name: 'Home' })).toBeInTheDocument()
+  })
+
+  it('restores the chip, clears the name and focuses the chip on cancel', async () => {
+    show()
+
+    await userEvent.click(within(categoryGroup()).getByRole('button', { name: '+ New' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'New category name' }), 'Yoga')
+    await userEvent.click(
+      within(categoryGroup()).getByRole('button', { name: 'Cancel new category' }),
+    )
+
+    const chip = within(categoryGroup()).getByRole('button', { name: '+ New' })
+    expect(screen.queryByRole('textbox', { name: 'New category name' })).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(chip).toHaveFocus()
+    })
+    expect(within(categoryGroup()).getByRole('button', { name: 'Home' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+
+    await userEvent.click(chip)
+    expect(screen.getByRole('textbox', { name: 'New category name' })).toHaveValue('')
+  })
+
+  it('goes back to the category picked before "+ New" on cancel', async () => {
+    show()
+
+    await userEvent.click(within(categoryGroup()).getByRole('button', { name: 'Home' }))
+    await userEvent.click(within(categoryGroup()).getByRole('button', { name: '+ New' }))
+    await userEvent.click(
+      within(categoryGroup()).getByRole('button', { name: 'Cancel new category' }),
+    )
+
+    expect(within(categoryGroup()).getByRole('button', { name: 'Home' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 
   it('asks for a name when "+ New" is left empty', async () => {
