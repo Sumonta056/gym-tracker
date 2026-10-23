@@ -25,7 +25,7 @@ before you change files. Never commit without being asked.
   since the last website update.
 - `pnpm site:check --range <that commit>..HEAD` names every `feat` under `app/` or
   `components/` the website does not show yet.
-- Read the spec in `docs/specs/` and the step lines in `PROGRESS.md` for each one.
+- Read the feature file in `docs/features/` for each one.
 - Keep only what a user sees. Tests, refactors, sync internals and CI stay out.
 
 ## 2. Map each change to the places it shows

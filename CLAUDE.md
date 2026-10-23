@@ -4,36 +4,39 @@ A personal gym log. It replaces an Excel sheet. Open registration. Each account 
 Installable on an iPhone.
 It works with no network in the gym. It also works on a laptop.
 
-**Start here:** `PROGRESS.md` names the next step. Never skip it.
+**Start here:** `docs/README.md` maps every document. `docs/decisions.md` holds what is
+settled.
 
-| Document                                      | Purpose                                             |
-| --------------------------------------------- | --------------------------------------------------- |
-| `PROGRESS.md`                                 | The next step. Update it after every step.          |
-| `docs/specs/2026-09-20-gym-tracker-design.md` | What we are building and why                        |
-| `docs/archive/00-phase-0.md`                  | Foundation: tooling, Claude setup, design system    |
-| `docs/archive/01-phase-1.md`                  | The daily tracker                                   |
-| `docs/archive/02-phase-2.md`                  | The live workout log and the CSV import             |
-| `docs/plan/03-phase-3.md`                     | Coach plans. The current phase.                     |
-| `docs/design/prototype/index.html`            | The visual contract. Open it in a browser.          |
-| `.claude/skills/design-system/`               | Load this before any UI work                        |
-| `.claude/skills/coach-plan/`                  | Add or change a coach plan step, image or video     |
-| `.claude/skills/update-website/`              | Bring the website and the README up to date         |
-| `README.md`                                   | The public front page of the repository             |
-| `site/`                                       | The GitHub Pages website and its screenshots        |
-| `.claude/rules/architecture.md`               | The repository, UUID, soft delete and seconds rules |
-| `.claude/rules/testing.md`                    | Test first, coverage floors, test naming            |
-| `.claude/rules/git.md`                        | Conventional commits, scopes, the gate, branches    |
-| `.claude/rules/accessibility.md`              | 44 px targets, real elements, labels, contrast      |
+| Document                           | Purpose                                             |
+| ---------------------------------- | --------------------------------------------------- |
+| `docs/README.md`                   | The index of `docs/`                                |
+| `docs/features/product.md`         | What we are building and why                        |
+| `docs/features/`                   | One design doc per shipped feature                  |
+| `docs/decisions.md`                | Settled decisions. Do not reopen them.              |
+| `docs/architecture.md`             | How a save moves from a screen to Supabase          |
+| `docs/data/`                       | Coach plan data, exercise photos, body map          |
+| `docs/design/prototype/index.html` | The visual contract. Open it in a browser.          |
+| `.claude/skills/new-feature/`      | The workflow for any new feature                    |
+| `.claude/skills/release/`          | Version, changelog and tag                          |
+| `.claude/skills/design-system/`    | Load this before any UI work                        |
+| `.claude/skills/coach-plan/`       | Add or change a coach plan step, image or video     |
+| `.claude/skills/update-website/`   | Bring the website and the README up to date         |
+| `README.md`                        | The public front page of the repository             |
+| `site/`                            | The GitHub Pages website and its screenshots        |
+| `.claude/rules/architecture.md`    | The repository, UUID, soft delete and seconds rules |
+| `.claude/rules/testing.md`         | Test first, coverage floors, test naming            |
+| `.claude/rules/git.md`             | Conventional commits, scopes, the gate, branches    |
+| `.claude/rules/accessibility.md`   | 44 px targets, real elements, labels, contrast      |
 
 ## The Claude workspace
 
-| Path                           | What it is                                                                                     |
-| ------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `.claude/rules/`               | The four rule files above. Short and testable.                                                 |
-| `.claude/skills/`              | `design-system`, `commit-report`, `add-screen`, `db-migration`, `coach-plan`, `update-website` |
-| `.claude/agents/`              | `ui-reviewer`, `sync-auditor`, `test-writer`                                                   |
-| `.claude/hooks/commit-gate.sh` | Blocks a commit with no matching report                                                        |
-| `.claude/settings.json`        | The three hooks and the permission allow list                                                  |
+| Path                           | What it is                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `.claude/rules/`               | The four rule files above. Short and testable.                                                                           |
+| `.claude/skills/`              | `design-system`, `commit-report`, `add-screen`, `db-migration`, `coach-plan`, `update-website`, `new-feature`, `release` |
+| `.claude/agents/`              | `ui-reviewer`, `sync-auditor`, `test-writer`                                                                             |
+| `.claude/hooks/commit-gate.sh` | Blocks a commit with no matching report                                                                                  |
+| `.claude/settings.json`        | The three hooks and the permission allow list                                                                            |
 
 Design mockups: https://claude.ai/artifact/8pajWGN8ykJNhxaGLSNNG4
 
@@ -195,12 +198,26 @@ After any user-visible `feat` under `app/` or `components/`, run the `update-web
 before the commit report. A `feat` with nothing to show adds `Site-update: none` to its
 commit body. `pnpm site:check` enforces this in CI on every push to `main`.
 
-## Phases
+## How to work
 
-Phase 0 is the foundation: tooling, the Claude workspace, the design system and the
-prototype. Phase 1 is the daily tracker. Phase 2 is the live workout log and the CSV
-import. Phase 3 is the coach plans: the guided step, the muscle map and the video
-link. Do not start a phase before the previous checklist passes.
+There are no plan or progress files. Git history holds the old phase plans.
+
+- **A new feature:** run the `new-feature` skill. It writes `docs/features/<name>.md`,
+  builds test first, runs the gates and stops before the commit.
+- **A release:** run the `release` skill. It owns `CHANGELOG.md` and the version.
+- **A settled decision:** read `docs/decisions.md` first. Add a new one there.
+
+## Shipped features
+
+| Feature                                 | Doc                               |
+| --------------------------------------- | --------------------------------- |
+| Daily tracker, stats, offline sync, PWA | `docs/features/product.md`        |
+| Live workout log, CSV import            | `docs/features/product.md`        |
+| Email and password registration         | `docs/features/registration.md`   |
+| Owner feedback fixes                    | `docs/features/feedback-fixes.md` |
+| Coach plans, muscle map, video link     | `docs/features/coach-plans.md`    |
+| Day view                                | `docs/features/product.md`        |
+| Saved videos                            | `docs/features/saved-videos.md`   |
 
 # Custom System Prompt Extensions
 

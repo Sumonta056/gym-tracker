@@ -56,8 +56,8 @@ A file that truly has no unit seam goes in the `EXEMPT` list in
 `pnpm verify` runs `pnpm static`, then coverage, then the build, then the end to end
 suite. It must pass before any step is done.
 
-In Phase 3 a step runs `pnpm check:step`, then `pnpm e2e:step <spec>` for the spec
-its step file names. The full `pnpm verify` runs at each checkpoint and before the
+A feature step runs `pnpm check:step`, then `pnpm e2e:step <spec>` for the end to end
+spec of that feature. The full `pnpm verify` runs at each checkpoint and before the
 merge to `main`.
 
 Continuous integration runs the same gates in three parallel jobs: **Static**,

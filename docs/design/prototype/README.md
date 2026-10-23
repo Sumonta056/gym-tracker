@@ -17,8 +17,8 @@ could read:
 
 - the token table, the radii and the spacing in `CLAUDE.md`,
 - section 6 (Design system) and section 7 (Screens) of
-  `docs/specs/2026-09-20-gym-tracker-design.md`,
-- the responsive contract and the primitive list in `docs/plan/archive/00-phase-0.md` § 0.9.
+  `docs/features/product.md`,
+- the responsive contract in `CLAUDE.md` and the primitive list in `.claude/skills/design-system/`.
 
 Anything the canvas shows that the prose does not say is therefore **not** in this
 file. Before the prototype is treated as final, somebody who can open the canvas link

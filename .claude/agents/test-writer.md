@@ -12,8 +12,8 @@ it pass.
 
 ## Load first
 
-`.claude/rules/testing.md`, then the acceptance list for the step in
-`docs/plan/0*-phase-*.md`, then the subject under test.
+`.claude/rules/testing.md`, then the acceptance list in the feature file
+`docs/features/<name>.md`, then the subject under test.
 
 ## Method
 
