@@ -73,6 +73,41 @@ export const VIDEO_CATEGORIES = [
   { key: 'shoulders', name: 'Shoulders', color: 'data-blue' },
 ]
 
+export const LIVE_LIFTS = [
+  {
+    name: 'Bench Press',
+    sets: [
+      { reps: 8, kg: 60 },
+      { reps: 8, kg: 62.5 },
+      { reps: 6, kg: 65 },
+    ],
+  },
+  {
+    name: 'Barbell Row',
+    sets: [
+      { reps: 10, kg: 50 },
+      { reps: 10, kg: 52.5 },
+    ],
+  },
+  { name: 'Back Squat', sets: [{ reps: 5, kg: 90 }] },
+]
+
+export const PLAN_DONE_STEPS = 4
+
+export const PLAN_DONE_REPS = [12, 10, 10]
+
+export const IMPORT_SHEET = [
+  'Day,Walk Time,Gym Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
+  'August 4,22.30,1:04:12,129,163,83.10,402,10215',
+  'August 5,31.45,52.40,126,158,82.95,377,11630',
+  'August 7,0,01.12.05,134,170,,566,6840',
+  'August 8,19.20,01.05.30,128,161,82.70,431,"10,902"',
+  'August 11,1.05.00,0,,,82.55,,13120',
+  'August 12,26.10,48.15,125,155,82.60,352,9480',
+  'August 14,44.00,01.09.47,133,168,82.30,468,"12,377"',
+  'August 15,28.55,57.02,127,160,82.15,389,10044',
+].join('\n')
+
 export const SAVED_VIDEOS = [
   {
     category: 'big-lifts',

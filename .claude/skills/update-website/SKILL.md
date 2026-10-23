@@ -1,7 +1,7 @@
 ---
 name: update-website
-description: Update the GitHub Pages website (`site/`), its live demo links, its screenshots
-  and `README.md` after a user-visible change ships. Use when asked to "update the
+description:
+  Update the GitHub Pages website (`site/`), its screenshots and `README.md` after a user-visible change ships. Use when asked to "update the
   website", "update the README", "refresh screenshots", or "the site is out of date";
   after any user-visible `feat` commit under `app/` or `components/`; and when the CI
   step "The website shows every new feature" (`pnpm site:check`) fails.
@@ -11,9 +11,8 @@ description: Update the GitHub Pages website (`site/`), its live demo links, its
 
 The website lives in `site/` and deploys to `https://sumonta056.github.io/gym-tracker/`
 through `.github/workflows/pages.yml`, after the `CI` workflow passes on a push to `main`.
-`pnpm site:build` writes `_site/`: a copy of `site/`, plus the design prototype
-`docs/design/prototype/index.html` as the live demo in `_site/demo/`. The screenshots come
-from the real app through `pnpm site:shots`.
+`pnpm site:build` writes `_site/`: a copy of `site/`, checked by the coach image guard. There
+is no live demo. The screenshots come from the real app through `pnpm site:shots`.
 
 **Before you start:** the feature must be built. `pnpm site:shots` captures the current
 `.next` build, so uncommitted or unbuilt code does not show. Plan the edits and get approval
@@ -30,27 +29,28 @@ before you change files. Never commit without being asked.
 
 ## 2. Map each change to the places it shows
 
-| Area changed                  | Website block in `site/index.html`                               | Screenshot(s)                                              | `README.md` section                   | Demo plate (`data-plate`) |
-| ----------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------- | ------------------------- |
-| Today, the day control        | feature `<h3>Today</h3>`, hero                                   | `today-1440.png`, `today-390.png`                          | Features › Today                      | `p1`                      |
-| Log days, the duration picker | feature `<h3>Log days</h3>`                                      | `log-1440.png`                                             | Features › Log days                   | `p2`                      |
-| Stats, a chart, the edit mode | feature `<h3>Stats and charts</h3>`                              | `analytics-1440.png`, `analytics-390.png`                  | Features › Stats and charts           | `p5`                      |
-| Live workout, history         | feature `<h3>Live workout</h3>`                                  | `workouts-1440.png`                                        | Features › Live workout               | `p3`                      |
-| Coach plans, muscle map       | feature `<h3>Coach plans and muscle map</h3>`                    | `plan-step-1440.png`, `plan-step-390.png`                  | Features › Coach plans and muscle map | `p18`, `pl-guided`        |
-| Saved videos                  | feature `<h3>Saved videos</h3>`                                  | `saved-1440.png`, `saved-390.png`                          | Features › Saved videos               | `p20`                     |
-| CSV import, export, Profile   | feature `<h3>CSV import</h3>`                                    | `profile-390.png`                                          | Features › CSV import                 | `p10`                     |
-| Offline sync                  | feature `<h3>Offline sync</h3>`, `#sync`                         | —                                                          | Features › Offline sync, How it works | —                         |
-| Install, sign-up              | feature `<h3>Install on iPhone</h3>`, `#install`                 | —                                                          | Install                               | —                         |
-| New route                     | a new `.wrap.feature` block; alternate `flip` with its neighbour | a new entry in `SHOTS` in `scripts/site-screenshots.mjs`   | a new Features subsection             | the route's plate         |
-| New field on a screen         | the matching block's list                                        | retake that screen's shots                                 | the matching subsection               | —                         |
-| New field the sample lacks    | —                                                                | extend `scripts/site-sample-data.mjs` so the shot shows it | —                                     | —                         |
-| New prototype plate           | a `data-plate` link or a button in `#demo .tries`                | —                                                          | —                                     | the new plate id          |
-| A phase or a feature closes   | —                                                                | —                                                          | Changelog, newest first               | —                         |
+**The rule: every feature block shows a phone (390) and a laptop (1440) screenshot**, each in
+its frame with a short caption. No block ships with only one of them.
 
-The demo jumps work like this: `site/site.js` reads `data-plate` on any element, scrolls
-the demo frame to the element with that id in the prototype, and switches to the laptop
-view when the id starts with `pl-`. The id must exist as `<span class="name" id="…">` in
-`docs/design/prototype/index.html`.
+| Area changed                  | Website block in `site/index.html`             | Screenshots                                                                                | `README.md` section                   |
+| ----------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------- |
+| Today                         | `#f-today`, hero                               | `today-390.png`, `today-1440.png`                                                          | Features › Today                      |
+| The day control, date picker  | `#f-day`                                       | `day-picker-390.png`, `day-picker-1440.png`                                                | Features › Day view and date picker   |
+| Log the day, duration picker  | `#f-log`                                       | `log-390.png`, `log-1440.png`                                                              | Features › Log the day                |
+| Stats, a chart, the edit mode | `#f-stats`                                     | `analytics-390.png`, `analytics-1440.png`                                                  | Features › Stats and charts           |
+| Live workout                  | `#f-workout`                                   | `workout-live-390.png`, `workout-live-1440.png`                                            | Features › Live workout               |
+| Coach plans, the guided step  | `#f-plans`                                     | `plan-step-390.png`, `plan-step-1440.png`                                                  | Features › Coach plans                |
+| Muscle map                    | `#f-muscles`                                   | `plan-muscles-390.png`, `plan-muscles-1440.png`                                            | Features › Muscle map                 |
+| Session done                  | `#f-done`                                      | `plan-done-390.png`, `plan-done-1440.png`                                                  | Features › Session done               |
+| Saved videos                  | `#f-saved`                                     | `saved-390.png`, `saved-1440.png`                                                          | Features › Saved videos               |
+| CSV import and export         | `#f-import`                                    | `import-390.png`, `import-1440.png`                                                        | Features › CSV import                 |
+| Profile, goals, sync state    | `#f-profile`                                   | `profile-390.png`, `profile-1440.png`                                                      | Features › Profile and goals          |
+| Offline sync                  | `#f-offline`, `#sync` (CSS explainer, no shot) | —                                                                                          | Features › Offline sync, How it works |
+| Install, sign-up              | `#install` (device tabs, What you get)         | —                                                                                          | Install the app                       |
+| New route                     | a new `.wrap.feature` block; alternate `flip`  | 2 new entries in `SHOTS` in `scripts/site-screenshots.mjs`: `<name>-390` and `<name>-1440` | a new Features subsection             |
+| New field on a screen         | the matching block's list                      | retake both shots of that screen                                                           | the matching subsection               |
+| New field the sample lacks    | —                                              | extend `scripts/site-sample-data.mjs`                                                      | —                                     |
+| A phase or a feature closes   | —                                              | —                                                                                          | Changelog, newest first               |
 
 ## 3. Take the screenshots
 
@@ -72,14 +72,23 @@ pnpm site:shots --only today-390,saved-1440     # only these, on the current bui
 
 - The website and the README use the same words for the same thing. Sentence case, plain
   verbs, short sentences.
-- Each feature block: one `<h3>`, one or two sentences, at most 4 list items, then the
-  "Try it in the demo →" link.
+- Each feature block: one `<h3>`, one plain sentence, "You can:" and at most 4 list items
+  that start with a verb, then the phone shot and the laptop shot, each with a short
+  `<figcaption>`. The phone shot comes first under 1024 px; from 1024 px the 2 sit side by
+  side, and a `flip` block swaps their order.
+- Every image but the 2 hero images has `loading="lazy"`.
 - Every new image gets a real `alt` that says what the picture shows, and the `width` and
   `height` of the file.
-- README: the bullets go under the matching Features subsection, its screenshot after it.
-  A phone shot is `<img … width="300">` in a centred `<p>`.
+- README: "You can:" and the bullets go under the matching Features subsection, then the
+  phone shot as `<img … width="300">` in a centred `<p>`, then the laptop shot.
 - When the product itself changes, update `<meta name="description">`, `og:description`,
   `twitter:description` and the JSON-LD `description` and `screenshot` in `site/index.html`.
+- Keep the hero stickers (`.stickers` in `site/index.html`) and the "Built with care" strip true. A new fact gets a short sticker tag; place it with `--x` and `--y` so it keeps at least 50 px from the title, the paragraph and the buttons at 1400 and 1920 px. Re-count when a chart card
+  (`components/charts/statsCards.ts`), a seeded exercise (`supabase/migrations/`), a body
+  region (`docs/data/body-polygons.json`) or the test count changes. Test counts round down
+  to the nearest 10 with a "+".
+- Keep the `FAQPage` JSON-LD word for word in step with the visible `#faq`, and set the
+  `lastmod` in `site/sitemap.xml` to the day of any content change.
 
 ## 5. Build and check
 
@@ -90,10 +99,10 @@ python3 -I -m http.server 8811 --directory _site
 
 With Chrome DevTools MCP, in your own tab, closed at the end:
 
-1. Open `http://127.0.0.1:8811/` at 390, 768 and 1440 px. No sideways scroll, every image
-   loads, every "Try it in the demo →" jumps to its plate.
-2. Open `http://127.0.0.1:8811/demo/`. The prototype loads with its photos.
-3. `lighthouse_audit` on the home page: Accessibility 100 and SEO 100.
+1. Open `http://127.0.0.1:8811/` at 390, 768, 1024, 1280 and 1440 px. No sideways scroll,
+   every image loads, the hero text is centred over the buttons, every install tab opens
+   its own steps.
+2. `lighthouse_audit` on the home page: Accessibility 100 and SEO 100.
 
 Then:
 
@@ -131,7 +140,8 @@ Scopes come from `.claude/rules/git.md`; `site` is not one. The commit body carr
 
 - Every `feat` that `pnpm site:check` named is on the website and in the README.
 - `pnpm site:build` passes its image guard.
-- The site reads cleanly at 390, 768 and 1440 px, and Lighthouse scores 100 for
+- Every feature block shows a phone and a laptop shot.
+- The site reads cleanly at 390, 768, 1024, 1280 and 1440 px, and Lighthouse scores 100 for
   Accessibility and SEO.
 - `pnpm format:check` passes.
 - The owner has the commit command and has not been committed for.

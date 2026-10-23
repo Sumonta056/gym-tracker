@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Your gym log, even with no signal.</b><br>
-  A personal gym log that replaces the spreadsheet. It installs on an iPhone, works in the gym with no network and syncs when you are back online.
+  A mobile-first gym log that installs like an app. Use it on your phone in the gym and on the web at your desk, even with no signal.
 </p>
 
 <p align="center">
@@ -18,17 +18,13 @@
 </p>
 
 <p align="center">
+  <a href="https://gym-tracker-ten-gamma.vercel.app/"><b>Try it out</b></a> ·
   <a href="https://sumonta056.github.io/gym-tracker/"><b>Website</b></a> ·
-  <a href="https://sumonta056.github.io/gym-tracker/#demo"><b>Live demo</b></a> ·
-  <a href="#install"><b>Install</b></a>
+  <a href="#install-the-app"><b>Install the app</b></a>
 </p>
 
 <p align="center">
   <img src="site/screenshots/today-1440.png" alt="The Today screen on a laptop: a sidebar on the left, the gym time hero card, the streak and the stat cards of the day" width="100%">
-</p>
-
-<p align="center">
-  <img src="site/screenshots/plan-step-1440.png" alt="A guided coach plan step on a laptop: the step list on the left, the exercise photo, the set rows and the rest timer" width="100%">
 </p>
 
 ---
@@ -37,8 +33,7 @@
 
 - [Why Gym Tracker](#why-gym-tracker)
 - [Features](#features)
-- [Live demo](#live-demo)
-- [Install](#install)
+- [Install the app](#install-the-app)
 - [Quick start for developers](#quick-start-for-developers)
 - [How it works](#how-it-works)
 - [Tests](#tests)
@@ -51,136 +46,249 @@ The gym log lived in an Excel sheet. A sheet is hard to fill in on a phone, betw
 
 - **It replaces the spreadsheet.** The 8 columns of the old sheet are one form, and the CSV import brings the old rows with you.
 - **It works with no network in the gym.** Every save lands on the phone first. The outbox pushes it when the network comes back.
-- **It installs on an iPhone.** No App Store. Add it to the Home Screen from Safari and it opens full screen. It also works on a laptop.
+- **It installs like an app, on phone and web.** No app store. Add it to the Home Screen of an iPhone or Android phone, or install it from Chrome, Edge or Safari on a laptop. It opens full screen in its own window.
 - **Each account sees only its own rows.** Registration is open. Every table on the server has a rule: a row is visible only to the account that owns it.
 
 ## Features
 
 ### Today
 
-The home screen shows the day at a glance. Gym time is the hero number, with your streak, the day's stats and how far you are from each goal.
+See your whole day on one screen: gym time, streak and every number against its goal.
 
-- Gym time from your finished sessions, or the time you type.
-- Steps, calories, weight and walk time against your goals.
-- Heart rate zones from your maximum heart rate.
-- Week totals: sessions, gym minutes, calories, steps.
-- Go back to any earlier day with the arrows or the date picker in the top bar.
+You can:
+
+- See gym time from your finished sessions, or type your own.
+- Track steps, calories, weight and walk time against your goals.
+- Read your heart rate zones with their bpm ranges.
+- Check the week totals: sessions, gym minutes, calories, steps.
 
 <p align="center">
   <img src="site/screenshots/today-390.png" alt="Today on an iPhone: the gym time hero card, the streak and the stat cards" width="300">
 </p>
 
-### Log days
+![Today on a laptop: the sidebar, the gym time hero card and the stat cards in 3 columns](site/screenshots/today-1440.png)
 
-The 8 columns of the old sheet, as one form: walk time, gym time, heart rate, weight, calories and steps. Go back to any earlier day and fix it.
+### Day view and date picker
 
-- Previous and next day, a date picker and heat map links.
-- A duration picker with presets and −15 s / +15 s, no keyboard.
-- A swim time and a note for the day.
-- A Saved toast after every save.
+Open any earlier day and see it as it was.
 
-![The daily log form on a laptop with walk time, gym time, heart rate, weight, calories and steps](site/screenshots/log-1440.png)
+You can:
+
+- Step back and forward one day with the arrows.
+- Jump to any date with the date picker.
+- Open a day from the streak heat map.
+- Fix a day you logged wrong.
+
+<p align="center">
+  <img src="site/screenshots/day-picker-390.png" alt="An earlier day open on an iPhone, with the date control and its arrows in the top bar" width="300">
+</p>
+
+![An earlier day open on a laptop, with the date control in the top bar](site/screenshots/day-picker-1440.png)
+
+### Log the day
+
+Fill in the 8 columns of the old spreadsheet in one form, with no keyboard for times.
+
+You can:
+
+- Set walk, gym and swim time with preset chips and −15 s / +15 s.
+- Enter heart rate, weight, calories and steps.
+- Add a note to the day.
+- See a Saved message after every save.
+
+<p align="center">
+  <img src="site/screenshots/log-390.png" alt="The daily log form on an iPhone with the duration chips" width="300">
+</p>
+
+![The daily log form on a laptop: training, heart, body and activity cards](site/screenshots/log-1440.png)
 
 ### Stats and charts
 
-Day, Week and Month tabs. Every chart has day labels, value labels, a goal or average line, and reads well on the first day as on a full month.
+Day, Week and Month charts that show whether you are getting stronger, including the volume and one-rep max trends you need for progressive overload.
 
-- Weight with a 7-day moving average.
-- Volume load per session and estimated one-rep max.
-- Personal records, muscle group balance, gaps between sessions.
-- Edit mode: reorder and hide cards, saved to your profile.
+You can:
 
-![Stats on a laptop: weight with a 7-day average, calories, steps and heart rate charts](site/screenshots/analytics-1440.png)
+- Follow your weight with a 7-day average line.
+- See volume load, one-rep max and personal records.
+- Compare muscle groups and the gaps between sessions.
+- Reorder and hide the chart cards.
 
 <p align="center">
   <img src="site/screenshots/analytics-390.png" alt="Stats on an iPhone with the Day, Week and Month tabs" width="300">
 </p>
 
+![Stats on a laptop: weight, calories, steps and heart rate charts in 2 columns](site/screenshots/analytics-1440.png)
+
 ### Live workout
 
-Start a session and log each set as you lift. A timer runs, a rest timer counts down, and the volume adds up on screen.
+Track sets and reps as you lift, with a session timer and a rest countdown.
 
-- Exercise picker with search, a muscle filter and a recent list.
-- Set rows with reps and weight; untick with undo.
-- A summary with new records when you finish.
-- Every past session in the Workouts history.
+You can:
 
-![Workouts on a laptop: the suggested coach plan, the plan cards and the session history](site/screenshots/workouts-1440.png)
-
-### Coach plans and muscle map
-
-4 coach plans, 26 exercises, one exercise per screen. The app suggests the plan you did least recently, and you can join 2 plans on a day you missed.
-
-- Start and end photos, the how-to and a muscle map per step.
-- A tutorial link on YouTube for every exercise.
-- Next, Back and Skip; the step list beside the step on a laptop.
-- A Done screen: steps, sets, volume and new records.
-
-![A guided coach plan step on a laptop: the step list on the left, the exercise photo, the set rows and the rest timer](site/screenshots/plan-step-1440.png)
+- Pick an exercise by search, muscle or your recent list.
+- Log reps and weight per set, and untick with undo.
+- Rest with a countdown timer.
+- See the volume add up while you train.
 
 <p align="center">
-  <img src="site/screenshots/plan-step-390.png" alt="A guided coach plan step on an iPhone with the exercise photo, the muscle chips and the set rows" width="300">
+  <img src="site/screenshots/workout-live-390.png" alt="A live workout on an iPhone: the timer, set rows and the rest timer" width="300">
 </p>
+
+![A live workout on a laptop: the set rows and the running volume](site/screenshots/workout-live-1440.png)
+
+### Coach plans
+
+Follow a coach plan one exercise at a time.
+
+You can:
+
+- Let the app suggest the plan you did least recently.
+- Join 2 plans on a day you missed.
+- See start and end photos, the how-to and a YouTube tutorial link.
+- Go Next, Back or Skip at your own pace.
+
+<p align="center">
+  <img src="site/screenshots/plan-step-390.png" alt="A guided plan step on an iPhone: the exercise photo, the target and the set rows" width="300">
+</p>
+
+![A guided plan step on a laptop: the step list on the left, the photo and the set rows](site/screenshots/plan-step-1440.png)
+
+### Muscle map
+
+See which muscles an exercise works before you lift.
+
+You can:
+
+- See the main muscles and the helpers on a front and back body map.
+- Read the muscle names as chips under the map.
+- Switch between How to and Muscles on the step photo.
+
+<p align="center">
+  <img src="site/screenshots/plan-muscles-390.png" alt="The muscle map of a plan step on an iPhone, front and back" width="300">
+</p>
+
+![The muscle map of a plan step on a laptop](site/screenshots/plan-muscles-1440.png)
+
+### Session done
+
+Finish a plan and see what you did.
+
+You can:
+
+- See gym time, volume and sets for the session.
+- See each step as done, skipped or not done.
+- Spot your new records.
+- Go back to Workouts in one tap.
+
+<p align="center">
+  <img src="site/screenshots/plan-done-390.png" alt="The session done screen on an iPhone: gym time, volume, new records and the steps" width="300">
+</p>
+
+![The session done screen on a laptop](site/screenshots/plan-done-1440.png)
 
 ### Saved videos
 
-Keep the Instagram Reels and YouTube videos you find, grouped by your own categories. Tap a card and the video opens in its own app.
+Keep the Instagram Reels and YouTube videos you want to try, in your own categories.
 
-- A title, 1 category, tags and a priority per video.
-- High first, then Normal, then Low.
-- Filter by category, search titles and tags.
-- Edit and delete, with undo.
+You can:
 
-![Saved videos on a laptop: category chips, a search box and a grid of video cards](site/screenshots/saved-1440.png)
+- Save a link with a title, a category, tags and a priority.
+- See the high priority videos first.
+- Filter by category and search titles and tags.
+- Tap a card to open the video in its own app.
 
 <p align="center">
-  <img src="site/screenshots/saved-390.png" alt="Saved videos on an iPhone with priority badges" width="300">
+  <img src="site/screenshots/saved-390.png" alt="Saved videos on an iPhone with category chips and priority badges" width="300">
 </p>
+
+![Saved videos on a laptop: category chips, a search box and a grid of cards](site/screenshots/saved-1440.png)
 
 ### CSV import
 
-Bring the old sheet with you. The sheet mixed `15.54`, `1:03:13` and `01.44.50`; the importer guesses each format and stores whole seconds.
+Bring your old spreadsheet with you, from Profile › Import the old sheet, when the import is turned on for the app.
 
-- Every unclear row is flagged, and only those.
-- Fix the rows on a review screen before anything is saved.
-- A result screen says what was added.
-- Export every table as CSV in one zip, read from this device. Works offline.
+You can:
+
+- Import times written as 15.54, 1:03:13 or 01.44.50.
+- Fix every unclear row on a review screen before anything is saved.
+- Export every table as CSV in one zip.
 
 The import shows in Profile only when the build sets `NEXT_PUBLIC_ENABLE_CSV_IMPORT=1`.
 
 <p align="center">
-  <img src="site/screenshots/profile-390.png" alt="Profile on an iPhone: goals, units, the CSV import, the sync state and sign out" width="300">
+  <img src="site/screenshots/import-390.png" alt="The CSV import review on an iPhone with the unclear rows flagged" width="300">
 </p>
+
+![The CSV import review on a laptop](site/screenshots/import-1440.png)
+
+### Profile and goals
+
+Set your goals once and every chart and card uses them.
+
+You can:
+
+- Set goals for steps, calories, gym time, walk time, sessions per week and weight.
+- Give your birth year for the heart rate zones.
+- See the sync state and the error list.
+- Sign out safely: unsynced saves are pushed first.
+
+<p align="center">
+  <img src="site/screenshots/profile-390.png" alt="Profile on an iPhone: goals, the sync state and sign out" width="300">
+</p>
+
+![Profile on a laptop with the goals and the sync state](site/screenshots/profile-1440.png)
 
 ### Offline sync
 
-Every save lands on your phone first, so the app never waits for the network. A chip on every data screen says where your data is.
+Every save lands on your device first, so the app never waits for the network.
 
-- Saves work in flight mode, in a basement gym, anywhere.
-- The outbox pushes when the network comes back.
-- A retry never makes a duplicate row.
+You can:
 
-### Install on iPhone
+- Log in flight mode, in a basement gym, anywhere.
+- See where your data is from the chip on every data screen.
+- Trust that a retry never makes a duplicate row.
 
-No App Store. Open the app in Safari and add it to your Home Screen. It then opens full screen, like any other app, and logs offline. The steps are under [Install](#install).
+How it works is under [How it works](#how-it-works).
 
-## Live demo
+## Install the app
 
-**[Walk through every screen](https://sumonta056.github.io/gym-tracker/#demo)** on the website. The demo is the design prototype, the visual contract the app is built against: every screen at phone size, and the big ones at laptop size. It saves nothing, so scroll freely. Open it full screen at [`demo/`](https://sumonta056.github.io/gym-tracker/demo/).
+The app is free, with open registration: **<https://gym-tracker-ten-gamma.vercel.app/>**. No app store and no download. On every device, start the same way:
 
-## Install
+1. Open <https://gym-tracker-ten-gamma.vercel.app/>.
+2. Tap **Create an account** and enter your name, email and a password of 8 or more characters. Or sign in if you have one.
 
-The app is free, with open registration: **<https://gym-tracker-ten-gamma.vercel.app>**
+Then add it to your device:
 
-**On an iPhone:**
+**iPhone and iPad** (use Safari; other browsers on iPhone and iPad cannot add an app to the Home Screen)
 
-1. Open the address in **Safari**. Other browsers on iPhone cannot add an app to the Home Screen.
-2. Tap **Create an account**: your name, email and a password of 8 or more characters. Your rows belong to this account only.
-3. Tap **Share**, the square with an arrow, in the Safari toolbar.
-4. Scroll the share sheet and tap **Add to Home Screen**, then **Add**.
-5. Open it from the Home Screen. It opens full screen with no browser bar. Turn on flight mode and log a set: it syncs when you are back online.
+3. Tap **Share**, the square with an arrow. On iPhone it is in the bottom bar, on iPad at the top right.
+4. Scroll the share sheet and tap **Add to Home Screen**.
+5. Tap **Add**.
 
-**On a laptop:** open the same address in any current browser. At 1024 px and wider the app shows a sidebar and up to 3 columns. Your data is the same on both.
+**Android** (use Chrome)
+
+3. Tap **⋮**, the 3 dots at the top right.
+4. Tap **Install app**. On some phones it says **Add to Home screen**.
+5. Tap **Install**.
+
+**Laptop: Chrome or Edge** (Windows, macOS, Linux or ChromeOS)
+
+3. Click the **install icon** at the right end of the address bar, a small screen with a down arrow.
+4. Or use the menu. In Chrome: **⋮** → **Cast, save and share** → **Install Gym Tracker**. In Edge: **…** → **Apps** → **Install Gym Tracker**.
+5. Click **Install**.
+
+**Mac: Safari** (Safari 17 or newer, macOS Sonoma or later)
+
+3. In the menu bar, click **File**.
+4. Click **Add to Dock**.
+5. Click **Add**.
+
+**What you get**
+
+- **Opens full screen.** Its own icon and its own window, like any app. No browser bar.
+- **Works with no signal.** Log in the gym with no network. Every save stays on your device.
+- **Syncs when back online.** The saves go up by themselves when the network comes back.
+- **One account, every device.** Sign in on your phone and your laptop and see the same data.
 
 ## Quick start for developers
 
@@ -274,12 +382,12 @@ Full detail: [`.claude/rules/testing.md`](.claude/rules/testing.md).
 
 The website lives in `site/` and deploys to <https://sumonta056.github.io/gym-tracker/>.
 
-- **`pnpm site:build`** copies `site/` to `_site/`, and copies the design prototype `docs/design/prototype/index.html` to `_site/demo/` as the live demo.
+- **`pnpm site:build`** copies `site/` to `_site/` and fails if a private coach photo reaches the output.
 - **`pnpm site:shots`** captures `site/screenshots/` from the real app. It signs in the test account, blocks every Supabase write, and writes 1440 px shots at 1800 px wide and 390 px shots at 780 px wide. `--only today-390,saved-1440` takes a few; `--build` builds the app first.
 - **`pnpm site:check`** fails when a `feat` commit under `app/` or `components/` lands with no change to `site/` or `README.md`. A feat with nothing to show adds `Site-update: none` to its commit body. CI runs it on every push to `main`.
 - **`.github/workflows/pages.yml`** builds and deploys `_site/` after the `CI` workflow passes on a push to `main`.
 
-**The image licence rule.** The coach photos in `docs/data/coach-images/` and `public/exercises/` have an unknown source. They never reach the website. The demo and the screenshots use the public domain photos of Free Exercise DB in `docs/data/fedb-images/` instead, and the build fails if a coach image reaches `_site/`.
+**The image licence rule.** The coach photos in `docs/data/coach-images/` and `public/exercises/` have an unknown source. They never reach the website. The screenshots use the public domain photos of Free Exercise DB in `docs/data/fedb-images/` instead, and the build fails if a coach image reaches `_site/`.
 
 ## Changelog
 

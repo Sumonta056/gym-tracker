@@ -7,7 +7,16 @@ import { parseArgs } from 'node:util'
 import { chromium } from '@playwright/test'
 import { createServerClient } from '@supabase/ssr'
 
-import { buildSample, loadSchemas, SAMPLE_STORES, sampleClock } from './site-sample-data.mjs'
+import {
+  buildSample,
+  IMPORT_SHEET,
+  LIVE_LIFTS,
+  loadSchemas,
+  PLAN_DONE_REPS,
+  PLAN_DONE_STEPS,
+  SAMPLE_STORES,
+  sampleClock,
+} from './site-sample-data.mjs'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const OUT_DIR = join(ROOT, 'site/screenshots')
@@ -35,18 +44,34 @@ const VIEWPORTS = {
 }
 
 const SHOTS = [
-  { name: 'today-1440', route: '/', width: 1440, seed: true },
   { name: 'today-390', route: '/', width: 390, seed: true },
+  { name: 'today-1440', route: '/', width: 1440, seed: true },
+  { name: 'day-picker-390', route: '/', width: 390, seed: true, act: 'dayPicker' },
+  { name: 'day-picker-1440', route: '/', width: 1440, seed: true, act: 'dayPicker' },
+  { name: 'log-390', route: '/log', width: 390, seed: true },
   { name: 'log-1440', route: '/log', width: 1440, seed: true },
-  { name: 'analytics-1440', route: '/analytics', width: 1440, seed: true },
   { name: 'analytics-390', route: '/analytics', width: 390, seed: true },
+  { name: 'analytics-1440', route: '/analytics', width: 1440, seed: true },
+  { name: 'workout-live-390', route: '/workouts', width: 390, act: 'liveSession' },
+  { name: 'workout-live-1440', route: '/workouts', width: 1440, act: 'liveSession' },
+  { name: 'workouts-390', route: '/workouts', width: 390, seed: true },
   { name: 'workouts-1440', route: '/workouts', width: 1440, seed: true },
-  { name: 'plan-step-390', route: 'plan', width: 390 },
-  { name: 'plan-step-1440', route: 'plan', width: 1440 },
-  { name: 'saved-1440', route: '/saved', width: 1440, seed: true },
+  { name: 'plan-step-390', route: '/workouts', width: 390, act: 'planStep' },
+  { name: 'plan-step-1440', route: '/workouts', width: 1440, act: 'planStep' },
+  { name: 'plan-muscles-390', route: '/workouts', width: 390, act: 'planMuscles' },
+  { name: 'plan-muscles-1440', route: '/workouts', width: 1440, act: 'planMuscles' },
+  { name: 'plan-done-390', route: '/workouts', width: 390, act: 'planDone' },
+  { name: 'plan-done-1440', route: '/workouts', width: 1440, act: 'planDone' },
   { name: 'saved-390', route: '/saved', width: 390, seed: true },
+  { name: 'saved-1440', route: '/saved', width: 1440, seed: true },
+  { name: 'import-390', route: '/profile', width: 390, act: 'importReview' },
+  { name: 'import-1440', route: '/profile', width: 1440, act: 'importReview' },
   { name: 'profile-390', route: '/profile', width: 390 },
+  { name: 'profile-1440', route: '/profile', width: 1440 },
 ]
+
+const CLOCK_ACTS = new Set(['liveSession', 'planDone'])
+const IMAGE_ACTS = new Set(['planStep'])
 
 const HELP = `Capture the marketing screenshots of the real app into site/screenshots/.
 
@@ -55,7 +80,8 @@ Usage:
 
 Options:
   --only <names>  Capture only these shots, by name without .png. Repeat or comma separate.
-  --build         Run pnpm build before the capture. Without it the current .next build is used.
+  --build         Run pnpm build with NEXT_PUBLIC_ENABLE_CSV_IMPORT=1 before the capture.
+                  Without it the current .next build is used; the import shots need the flag.
   --help          Show this help.
 
 Shots: ${SHOTS.map((shot) => shot.name).join(', ')}
@@ -74,9 +100,12 @@ How it runs:
      <slug>-0|1.jpg (public domain). The coach images never reach a screenshot.
      The run fails if any image under /exercises/ escapes that route.
   6. The shots marked seed run with the browser clock fixed on the last Friday at 18:00,
-     so every run shows the same week shape. Before them, the script writes the
-     sample rows of scripts/site-sample-data.mjs into this browser's IndexedDB only, after the first pull, with no outbox entry, so
-     nothing is pushed. Every row is parsed through its zod schema in lib/schema first.
+     so every run shows the same week shape. Before them, the script writes the sample
+     rows of scripts/site-sample-data.mjs into this browser's IndexedDB only, after the
+     first pull, with no outbox entry. Every row is parsed through its zod schema first.
+     The live session and plan done shots start the clock at the same time and move it
+     forward, then log their sets in the browser; their pushes are aborted and counted.
+     The import shots load IMPORT_SHEET and stop on the review screen; nothing is applied.
   7. Replaces the account email on the profile with ${PLACEHOLDER_EMAIL}.
   8. Shrinks each PNG to ${String(VIEWPORTS[1440].outWidth)} px (desktop) or ${String(VIEWPORTS[390].outWidth)} px (phone) wide with a
      256 colour palette, through the sharp that next ships, and warns above ${String(MAX_BYTES / 1024)} KB.`
@@ -122,9 +151,13 @@ function pickShots(only) {
   return SHOTS.filter((shot) => names.includes(shot.name))
 }
 
-function run(command, args) {
+function run(command, args, env = {}) {
   return new Promise((done, reject) => {
-    const child = spawn(command, args, { cwd: ROOT, stdio: 'inherit' })
+    const child = spawn(command, args, {
+      cwd: ROOT,
+      stdio: 'inherit',
+      env: { ...process.env, ...env },
+    })
     child.on('exit', (code) => {
       if (code === 0) {
         done()
@@ -343,8 +376,6 @@ async function openRoute(page, route) {
 }
 
 async function openPlanStep(page) {
-  await openRoute(page, '/workouts')
-  await settle(page)
   await page.getByRole('button', { name: /^Start Chest \+ Triceps/ }).click()
   await page.waitForURL(/\/workout$/, { timeout: CONTENT_WAIT_MS })
   await page
@@ -356,6 +387,144 @@ async function openPlanStep(page) {
     .first()
     .waitFor({ timeout: CONTENT_WAIT_MS })
   await waitForTransition(page)
+}
+
+async function openDayPicker(page) {
+  await page
+    .getByRole('button', { name: /^Previous day,/ })
+    .filter({ visible: true })
+    .first()
+    .click()
+  await page
+    .getByRole('link', { name: 'Edit this day' })
+    .filter({ visible: true })
+    .first()
+    .waitFor({ timeout: CONTENT_WAIT_MS })
+}
+
+async function addLiveLift(page, lift) {
+  await page.getByRole('button', { name: 'Add exercise' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Pick an exercise' })
+  await dialog.getByRole('searchbox', { name: 'Search exercises' }).fill(lift.name)
+  await dialog
+    .getByRole('button', { name: new RegExp(`^${lift.name}`) })
+    .first()
+    .click()
+  const card = page.getByRole('region', { name: lift.name })
+  await card.waitFor({ timeout: CONTENT_WAIT_MS })
+  for (const [index, set] of lift.sets.entries()) {
+    await card.getByRole('textbox', { name: 'Reps', exact: true }).fill(String(set.reps))
+    await card.getByRole('textbox', { name: /^Load/ }).fill(String(set.kg))
+    await card.getByRole('button', { name: `Add set to ${lift.name}` }).click()
+    await card.getByRole('listitem').nth(index).waitFor({ timeout: CONTENT_WAIT_MS })
+  }
+}
+
+async function runLiveSession(page) {
+  await page.getByRole('button', { name: 'Start a session' }).click()
+  await page
+    .getByRole('heading', { level: 1, name: 'Session' })
+    .waitFor({ timeout: CONTENT_WAIT_MS })
+  for (const [index, lift] of LIVE_LIFTS.entries()) {
+    if (index === LIVE_LIFTS.length - 1) {
+      await page.clock.fastForward('24:00')
+    }
+    await addLiveLift(page, lift)
+  }
+  await page.getByRole('region', { name: 'Rest timer' }).waitFor({ timeout: CONTENT_WAIT_MS })
+  await page.evaluate(() => {
+    scrollTo(0, 0)
+  })
+}
+
+async function openPlanMuscles(page) {
+  await openPlanStep(page)
+  const muscles = page.getByRole('button', { name: 'Muscles' })
+  await muscles.click()
+  await page.waitForFunction(
+    () =>
+      document.querySelector('figure[data-view="muscles"]') !== null &&
+      [...document.querySelectorAll('button')].some(
+        (button) =>
+          button.textContent === 'Muscles' && button.getAttribute('aria-pressed') === 'true',
+      ),
+    undefined,
+    { timeout: CONTENT_WAIT_MS },
+  )
+}
+
+async function logPlanSet(page, step, position, reps) {
+  const weight = page.getByRole('combobox', { name: `Set ${String(position)} weight` })
+  const count = await weight.locator('option').count()
+  await weight.selectOption({
+    index: Math.max(1, Math.min(count - 2, 2 + step + (position === 1 ? 0 : 1))),
+  })
+  await page.getByLabel(`Set ${String(position)} reps`).fill(String(reps))
+  await page.getByRole('button', { name: `Set ${String(position)} done` }).click()
+  await page
+    .getByRole('button', { name: `Set ${String(position)} done` })
+    .and(page.locator('[aria-pressed="true"]'))
+    .waitFor({ timeout: CONTENT_WAIT_MS })
+}
+
+async function finishPlan(page) {
+  await openPlanStep(page)
+  for (let step = 1; step <= PLAN_DONE_STEPS; step += 1) {
+    for (const [index, reps] of PLAN_DONE_REPS.entries()) {
+      await logPlanSet(page, step, index + 1, reps)
+    }
+    await page.clock.fastForward('09:00')
+    if (step < PLAN_DONE_STEPS) {
+      await page
+        .getByRole('button', { name: /^Next step/ })
+        .filter({ visible: true })
+        .first()
+        .click()
+      await page
+        .getByRole('combobox', { name: 'Set 1 weight' })
+        .and(page.locator(':not([disabled])'))
+        .waitFor({ timeout: CONTENT_WAIT_MS })
+      await waitForTransition(page)
+    }
+  }
+  await page.getByRole('button', { name: 'Finish', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Finish the session?' })
+    .getByRole('button', { name: 'Finish anyway' })
+    .click()
+  await page
+    .getByRole('heading', { level: 1, name: 'Session done' })
+    .waitFor({ timeout: CONTENT_WAIT_MS })
+  await waitForTransition(page)
+}
+
+async function openImportReview(page, clockNow) {
+  const open = page.getByRole('button', { name: 'Import the old sheet' })
+  if ((await open.count()) === 0) {
+    fail(
+      'the CSV import is off in this build. Run with --build, which sets NEXT_PUBLIC_ENABLE_CSV_IMPORT=1.',
+    )
+  }
+  await open.click()
+  await page.getByLabel('Year of the sheet').fill(String(clockNow.getFullYear()))
+  await page.getByLabel('The sheet as a CSV file').setInputFiles({
+    name: 'gym-sheet.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(IMPORT_SHEET),
+  })
+  await page
+    .getByRole('heading', { level: 1, name: 'Import review' })
+    .waitFor({ timeout: CONTENT_WAIT_MS })
+  await waitForTransition(page)
+}
+
+const ACTS = {
+  dayPicker: (page) => openDayPicker(page),
+  liveSession: (page) => runLiveSession(page),
+  planStep: (page) => openPlanStep(page),
+  planMuscles: (page) => openPlanMuscles(page),
+  planDone: (page) => finishPlan(page),
+  importReview: (page) => openImportReview(page, new Date()),
 }
 
 async function maskEmail(page, email) {
@@ -508,15 +677,17 @@ async function capture(browser, env, cookies, shot, sample) {
   try {
     if (shot.seed) {
       await context.clock.setFixedTime(sample.clock)
+    } else if (CLOCK_ACTS.has(shot.act)) {
+      await context.clock.install({ time: sample.clock })
     }
     const page = await context.newPage()
     if (shot.seed) {
       await seedDevice(page, sample)
     }
-    if (shot.route === 'plan') {
-      await openPlanStep(page)
-    } else {
-      await openRoute(page, shot.route)
+    await openRoute(page, shot.route)
+    if (shot.act !== undefined) {
+      await settle(page)
+      await ACTS[shot.act](page)
     }
     await settle(page)
     await waitForTransition(page)
@@ -534,7 +705,7 @@ async function capture(browser, env, cookies, shot, sample) {
     }
     await page.mouse.move(0, 0)
     const images = await imageReport(page)
-    const proof = proveImages(shot, images, served, escaped, shot.route === 'plan')
+    const proof = proveImages(shot, images, served, escaped, IMAGE_ACTS.has(shot.act))
     const raw = await page.screenshot({ animations: 'disabled', caret: 'hide' })
     const size = await shrink(raw, shot.width, join(OUT_DIR, `${shot.name}.png`))
     return { ...size, proof, blocked }
@@ -558,7 +729,7 @@ async function main() {
   const shots = pickShots(values.only)
   const env = loadEnv()
   if (values.build) {
-    await run('pnpm', ['build'])
+    await run('pnpm', ['build'], { NEXT_PUBLIC_ENABLE_CSV_IMPORT: '1' })
   }
   mkdirSync(OUT_DIR, { recursive: true })
   const server = await startServer()
