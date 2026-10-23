@@ -345,7 +345,7 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px 8px;
+  gap: 18px 8px;
   list-style: none;
   padding: 0;
   margin: 28px auto 0;
@@ -366,7 +366,7 @@ h3 {
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
-  transform: rotate(var(--r));
+  transform: rotate(calc(var(--r) * 0.3));
   box-shadow: 0 10px 24px -10px rgb(0 0 0 / 0.8);
 }
 
@@ -1242,6 +1242,7 @@ h3 {
   .stk {
     position: absolute;
     top: var(--y);
+    transform: rotate(var(--r));
     animation: bob 6s ease-in-out infinite;
     animation-delay: calc(var(--x) / -100px * 1s);
   }
