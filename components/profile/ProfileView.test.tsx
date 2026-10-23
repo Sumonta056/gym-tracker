@@ -100,6 +100,11 @@ describe('ProfileView', () => {
     expect(third.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
   })
 
+  it('links the temporary link test page at the foot', () => {
+    renderView()
+    expect(screen.getByRole('link', { name: 'Link test' })).toHaveAttribute('href', '/link-test')
+  })
+
   it('joins the second and third columns into one below the wide layout', () => {
     renderView()
     const joined = screen.getByTestId('profile-grid-column-2-3')
