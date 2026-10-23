@@ -8,6 +8,8 @@ import {
 } from '../schema/errorRecord'
 import { exerciseSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
+import { savedVideoSchema } from '../schema/savedVideo'
+import { nextCategoryColor, videoCategorySchema } from '../schema/videoCategory'
 import { storedWorkoutSessionSchema, workoutSessionSchema } from '../schema/workoutSession'
 import { workoutSetSchema } from '../schema/workoutSet'
 import { append as enqueue, lastSequence } from '../sync/outbox'
@@ -20,6 +22,7 @@ import {
   resumeSync,
   withDrainLock,
 } from '../sync/worker'
+import { byPriorityThenNewest } from '../videos/list'
 
 import {
   DAILY_CURSOR_KEY,
@@ -31,12 +34,22 @@ import {
   SIGNED_OUT_KEY,
 } from './dexie'
 
-import type { DailyEntry, Exercise, PlanCursor, Profile, WorkoutSession, WorkoutSet } from './dexie'
+import type {
+  DailyEntry,
+  Exercise,
+  PlanCursor,
+  Profile,
+  SavedVideo,
+  VideoCategory,
+  WorkoutSession,
+  WorkoutSet,
+} from './dexie'
 import type { DailyEntryDraft, DailyEntryInput } from '../schema/dailyEntry'
 import type { ErrorRecord } from '../schema/errorRecord'
 import type { ExerciseInput, MuscleGroup } from '../schema/exercise'
 import type { PlanId } from '../schema/plan'
 import type { ProfileInput } from '../schema/profile'
+import type { SavedVideoDraft } from '../schema/savedVideo'
 import type { WorkoutSetDraft, WorkoutSetInput } from '../schema/workoutSet'
 
 export { LOCAL_PROFILE_ID, NEVER_WRITTEN, OUTBOX_SEQUENCE_KEY } from './dexie'
@@ -125,6 +138,27 @@ export class SetNotFound extends Error {
   constructor() {
     super('This set is not on this device.')
     this.name = 'SetNotFound'
+  }
+}
+
+export class SavedVideoNotFound extends Error {
+  constructor() {
+    super('This video is not on this device.')
+    this.name = 'SavedVideoNotFound'
+  }
+}
+
+export class VideoCategoryNotFound extends Error {
+  constructor() {
+    super('This category is not on this device.')
+    this.name = 'VideoCategoryNotFound'
+  }
+}
+
+export class CategoryNameTaken extends Error {
+  constructor(readonly categoryName: string) {
+    super(`Another category is already called ${categoryName}.`)
+    this.name = 'CategoryNameTaken'
   }
 }
 
@@ -1043,6 +1077,206 @@ export async function lastSetsFor(exerciseIds: string[]): Promise<Map<string, Wo
   })
 }
 
+export type CategoryChoice = { id: string } | { name: string }
+
+export type SavedVideoWrite = Omit<SavedVideoDraft, 'category_id'> & { category: CategoryChoice }
+
+export type ListedVideo = SavedVideo & { category: VideoCategory | null }
+
+function sameName(left: string, right: string): boolean {
+  return left.toLocaleLowerCase() === right.toLocaleLowerCase()
+}
+
+async function liveCategories(): Promise<VideoCategory[]> {
+  return db.videoCategories.filter((row) => row.deleted_at === null).toArray()
+}
+
+async function liveVideo(id: string): Promise<SavedVideo> {
+  const existing = await db.savedVideos.get(id)
+
+  if (existing === undefined || existing.deleted_at !== null) {
+    throw new SavedVideoNotFound()
+  }
+
+  return existing
+}
+
+async function storedVideo(id: string): Promise<SavedVideo> {
+  const existing = await db.savedVideos.get(id)
+
+  if (existing === undefined) {
+    throw new SavedVideoNotFound()
+  }
+
+  return existing
+}
+
+async function chosenCategory(choice: CategoryChoice): Promise<string> {
+  if ('id' in choice) {
+    const existing = await db.videoCategories.get(choice.id)
+
+    if (existing === undefined || existing.deleted_at !== null) {
+      throw new VideoCategoryNotFound()
+    }
+
+    return existing.id
+  }
+
+  const name = videoCategorySchema.shape.name.parse(choice.name)
+  const live = await liveCategories()
+  const match = live.find((row) => sameName(row.name, name))
+
+  if (match !== undefined) {
+    return match.id
+  }
+
+  const timestamp = nowIso()
+  const row: VideoCategory = {
+    ...videoCategorySchema.parse({ name, color: nextCategoryColor(live.map((row) => row.color)) }),
+    id: newId(),
+    created_at: timestamp,
+    updated_at: timestamp,
+    deleted_at: null,
+  }
+
+  await db.videoCategories.put(row)
+  await enqueue('video_categories', 'upsert', row)
+
+  return row.id
+}
+
+function writeVideos<T>(work: () => Promise<T>): Promise<T> {
+  return db.transaction(
+    'rw',
+    [db.videoCategories, db.savedVideos, db.outbox, db.syncMeta],
+    async () => {
+      await refuseWhenSignedOut()
+
+      return work()
+    },
+  )
+}
+
+async function savedVideo(
+  input: SavedVideoWrite,
+  base: Pick<SavedVideo, 'id' | 'created_at'>,
+  timestamp: string,
+): Promise<SavedVideo> {
+  const { category, ...fields } = input
+  const categoryId = await chosenCategory(category)
+  const row: SavedVideo = {
+    ...savedVideoSchema.parse({ ...fields, category_id: categoryId }),
+    id: base.id,
+    created_at: base.created_at,
+    updated_at: timestamp,
+    deleted_at: null,
+  }
+
+  await db.savedVideos.put(row)
+  await enqueue('saved_videos', 'upsert', row)
+
+  return row
+}
+
+export async function listVideoCategories(): Promise<VideoCategory[]> {
+  const rows = await liveCategories()
+
+  return rows.sort(
+    (left, right) =>
+      left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }) ||
+      left.id.localeCompare(right.id),
+  )
+}
+
+export async function listSavedVideos(): Promise<ListedVideo[]> {
+  const [videos, categories] = await Promise.all([
+    db.savedVideos.filter((row) => row.deleted_at === null).toArray(),
+    liveCategories(),
+  ])
+  const byId = new Map(categories.map((row) => [row.id, row]))
+
+  return videos
+    .sort(byPriorityThenNewest)
+    .map((row) => ({ ...row, category: byId.get(row.category_id) ?? null }))
+}
+
+export async function listVideoTags(): Promise<string[]> {
+  const videos = await db.savedVideos.filter((row) => row.deleted_at === null).toArray()
+
+  return [...new Set(videos.flatMap((row) => row.tags))].sort()
+}
+
+export async function addSavedVideo(input: SavedVideoWrite): Promise<SavedVideo> {
+  const timestamp = nowIso()
+
+  return writeVideos(() => savedVideo(input, { id: newId(), created_at: timestamp }, timestamp))
+}
+
+export async function updateSavedVideo(id: string, input: SavedVideoWrite): Promise<SavedVideo> {
+  return writeVideos(async () => {
+    const existing = await liveVideo(id)
+
+    return savedVideo(input, existing, nowIso())
+  })
+}
+
+export async function deleteSavedVideo(id: string): Promise<void> {
+  await writeVideos(async () => {
+    const existing = await storedVideo(id)
+
+    if (existing.deleted_at !== null) {
+      return
+    }
+
+    const timestamp = nowIso()
+    const row: SavedVideo = { ...existing, updated_at: timestamp, deleted_at: timestamp }
+
+    await db.savedVideos.put(row)
+    await enqueue('saved_videos', 'delete', row)
+  })
+}
+
+export async function restoreSavedVideo(id: string): Promise<void> {
+  await writeVideos(async () => {
+    const existing = await storedVideo(id)
+
+    if (existing.deleted_at === null) {
+      return
+    }
+
+    const row: SavedVideo = { ...existing, updated_at: nowIso(), deleted_at: null }
+
+    await db.savedVideos.put(row)
+    await enqueue('saved_videos', 'upsert', row)
+  })
+}
+
+export async function renameVideoCategory(id: string, name: string): Promise<VideoCategory> {
+  return writeVideos(async () => {
+    const existing = await db.videoCategories.get(id)
+
+    if (existing === undefined || existing.deleted_at !== null) {
+      throw new VideoCategoryNotFound()
+    }
+
+    const trimmed = videoCategorySchema.shape.name.parse(name)
+    const holder = (await liveCategories()).find(
+      (row) => row.id !== id && sameName(row.name, trimmed),
+    )
+
+    if (holder !== undefined) {
+      throw new CategoryNameTaken(holder.name)
+    }
+
+    const row: VideoCategory = { ...existing, name: trimmed, updated_at: nowIso() }
+
+    await db.videoCategories.put(row)
+    await enqueue('video_categories', 'upsert', row)
+
+    return row
+  })
+}
+
 export interface ConfirmedWrites {
   count: number
   sequence: number
@@ -1080,6 +1314,8 @@ export async function clearAll<T>(
           db.workoutSets,
           db.errorLog,
           db.planCursors,
+          db.videoCategories,
+          db.savedVideos,
         ],
         async () => {
           const count = (await db.outbox.count()) + (await db.deadLetters.count())
@@ -1100,6 +1336,8 @@ export async function clearAll<T>(
             db.workoutSets.clear(),
             db.errorLog.clear(),
             db.planCursors.clear(),
+            db.videoCategories.clear(),
+            db.savedVideos.clear(),
           ])
           await db.syncMeta.bulkPut([
             { key: OUTBOX_SEQUENCE_KEY, value: String(sequence) },

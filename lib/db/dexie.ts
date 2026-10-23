@@ -4,6 +4,8 @@ import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { ErrorRecord } from '../schema/errorRecord'
 import type { ExerciseInput } from '../schema/exercise'
 import type { ProfileInput } from '../schema/profile'
+import type { SavedVideoInput } from '../schema/savedVideo'
+import type { VideoCategoryInput } from '../schema/videoCategory'
 import type { WorkoutSessionInput } from '../schema/workoutSession'
 import type { WorkoutSetInput } from '../schema/workoutSet'
 
@@ -57,10 +59,31 @@ export interface WorkoutSet extends WorkoutSetInput {
   deleted_at: string | null
 }
 
-export type OutboxTableName =
-  'daily_entries' | 'profiles' | 'exercises' | 'workout_sessions' | 'workout_sets'
+export interface VideoCategory extends VideoCategoryInput {
+  id: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
 
-export type OutboxPayload = DailyEntry | Profile | Exercise | WorkoutSession | WorkoutSet
+export interface SavedVideo extends SavedVideoInput {
+  id: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export type OutboxTableName =
+  | 'daily_entries'
+  | 'profiles'
+  | 'exercises'
+  | 'workout_sessions'
+  | 'workout_sets'
+  | 'video_categories'
+  | 'saved_videos'
+
+export type OutboxPayload =
+  DailyEntry | Profile | Exercise | WorkoutSession | WorkoutSet | VideoCategory | SavedVideo
 
 export type OutboxOperation = 'upsert' | 'delete'
 
@@ -104,6 +127,8 @@ export type GymDatabase = Dexie & {
   workoutSets: EntityTable<WorkoutSet, 'id'>
   errorLog: EntityTable<ErrorRecord, 'id'>
   planCursors: EntityTable<PlanCursor, 'sessionId'>
+  videoCategories: EntityTable<VideoCategory, 'id'>
+  savedVideos: EntityTable<SavedVideo, 'id'>
 }
 
 export const OUTBOX_SEQUENCE_KEY = 'outbox_sequence'
@@ -120,6 +145,10 @@ export const SESSION_CURSOR_KEY = 'pull_cursor_workout_sessions'
 
 export const SET_CURSOR_KEY = 'pull_cursor_workout_sets'
 
+export const VIDEO_CATEGORY_CURSOR_KEY = 'pull_cursor_video_categories'
+
+export const SAVED_VIDEO_CURSOR_KEY = 'pull_cursor_saved_videos'
+
 export const DEAD_STREAK_KEY = 'dead_letter_streak'
 
 export const SIGNED_OUT_KEY = 'signed_out'
@@ -130,7 +159,7 @@ export const NEVER_WRITTEN = new Date(0).toISOString()
 
 export const DATABASE_NAME = 'gym-tracker'
 
-export const DATABASE_VERSION = 6
+export const DATABASE_VERSION = 7
 
 export const STORES_V1 = {
   dailyEntries: '&id, entry_date, updated_at',
@@ -158,9 +187,15 @@ export const STORES_V4 = {
 
 export const STORES_V5 = { ...STORES_V4 } as const
 
-export const STORES = {
+export const STORES_V6 = {
   ...STORES_V5,
   planCursors: '&sessionId',
+} as const
+
+export const STORES = {
+  ...STORES_V6,
+  videoCategories: '&id, updated_at',
+  savedVideos: '&id, category_id, updated_at',
 } as const
 
 export type VersionState = 'current' | 'stale' | 'blocked'
@@ -220,8 +255,8 @@ export function createDatabase(
   instance.version(4).stores(STORES_V4)
   instance.version(5).stores(STORES_V5)
   instance
-    .version(DATABASE_VERSION)
-    .stores(STORES)
+    .version(6)
+    .stores(STORES_V6)
     .upgrade((transaction) =>
       transaction
         .table<WorkoutSession>('workoutSessions')
@@ -232,6 +267,7 @@ export function createDatabase(
           }
         }),
     )
+  instance.version(DATABASE_VERSION).stores(STORES)
 
   instance.on('versionchange', () => {
     instance.close({ disableAutoOpen: true })

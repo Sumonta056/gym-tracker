@@ -15,6 +15,17 @@ import { resumeSync, SIGN_OUT_MARKER } from '../sync/worker'
 
 import { DAILY_CURSOR_KEY, DAILY_PULLED_KEY, db, SIGNED_OUT_KEY } from './dexie'
 import {
+  addSavedVideo,
+  CategoryNameTaken,
+  deleteSavedVideo,
+  listSavedVideos,
+  listVideoCategories,
+  listVideoTags,
+  renameVideoCategory,
+  restoreSavedVideo,
+  SavedVideoNotFound,
+  updateSavedVideo,
+  VideoCategoryNotFound,
   archiveExercise,
   clearAll,
   clearErrors,
@@ -83,8 +94,16 @@ import {
 } from './repository'
 import { safeQuery } from './safeQuery'
 
-import type { DailyEntry, Exercise, OutboxEntry, WorkoutSession, WorkoutSet } from './dexie'
-import type { DayWrite, ImportDay } from './repository'
+import type {
+  DailyEntry,
+  Exercise,
+  OutboxEntry,
+  SavedVideo,
+  VideoCategory,
+  WorkoutSession,
+  WorkoutSet,
+} from './dexie'
+import type { DayWrite, ImportDay, SavedVideoWrite } from './repository'
 import type { DailyEntryInput } from '../schema/dailyEntry'
 import type { MuscleGroup } from '../schema/exercise'
 import type { PlanId } from '../schema/plan'
@@ -181,10 +200,13 @@ beforeEach(async () => {
     db.workoutSets.clear(),
     db.errorLog.clear(),
     db.planCursors.clear(),
+    db.videoCategories.clear(),
+    db.savedVideos.clear(),
   ])
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
@@ -2803,6 +2825,21 @@ describe('clearAll', () => {
     expect(await db.syncMeta.get(SIGNED_OUT_KEY)).toBeDefined()
   })
 
+  it('leaves videoCategories and savedVideos empty', async () => {
+    Object.defineProperty(globalThis.navigator, 'onLine', { value: false, configurable: true })
+    await addSavedVideo({
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category: { name: 'Yoga' },
+    })
+    await drainForSignOut()
+
+    await clearAll(await counted(), endSession)
+
+    expect(await db.videoCategories.count()).toBe(0)
+    expect(await db.savedVideos.count()).toBe(0)
+  })
+
   it('leaves planCursors empty', async () => {
     await setPlanCursor({ sessionId: crypto.randomUUID(), stepIndex: 1, skipped: [] })
 
@@ -3580,5 +3617,411 @@ describe('the error log', () => {
     await clearErrors()
 
     expect(await listErrors()).toEqual([])
+  })
+})
+
+const YOGA_ID = '66666666-6666-4666-8666-666666666666'
+const MOBILITY_ID = '77777777-7777-4777-8777-777777777777'
+const MISSING_ID = '88888888-8888-4888-8888-888888888888'
+
+function category(id: string, name: string, overrides: Partial<VideoCategory> = {}): VideoCategory {
+  return {
+    id,
+    name,
+    color: 'data-cyan',
+    created_at: '2026-10-01T08:00:00.000Z',
+    updated_at: '2026-10-01T08:00:00.000Z',
+    deleted_at: null,
+    ...overrides,
+  }
+}
+
+function video(id: string, overrides: Partial<SavedVideo> = {}): SavedVideo {
+  return {
+    id,
+    url: 'https://youtu.be/x',
+    title: 'Hip mobility',
+    category_id: YOGA_ID,
+    tags: [],
+    priority: 'normal',
+    created_at: '2026-10-01T08:00:00.000Z',
+    updated_at: '2026-10-01T08:00:00.000Z',
+    deleted_at: null,
+    ...overrides,
+  }
+}
+
+function write(overrides: Partial<SavedVideoWrite> = {}): SavedVideoWrite {
+  return {
+    url: 'https://youtu.be/x',
+    title: 'Hip mobility',
+    category: { id: YOGA_ID },
+    ...overrides,
+  }
+}
+
+async function queued(): Promise<OutboxEntry[]> {
+  return db.outbox.orderBy('sequence').toArray()
+}
+
+function at(iso: string): void {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(iso))
+}
+
+describe('addSavedVideo', () => {
+  it('writes 1 video and 1 outbox entry for an existing category', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+
+    const saved = await addSavedVideo(write({ tags: ['#Hips'], priority: 'high' }))
+
+    expect(saved).toMatchObject({
+      category_id: YOGA_ID,
+      tags: ['hips'],
+      priority: 'high',
+      deleted_at: null,
+    })
+    expect(await db.savedVideos.get(saved.id)).toEqual(saved)
+    expect(await db.videoCategories.count()).toBe(1)
+    expect(
+      (await queued()).map((entry) => [entry.table_name, entry.operation, entry.row_id]),
+    ).toEqual([['saved_videos', 'upsert', saved.id]])
+  })
+
+  it('writes the new category, then the video, with 2 outbox entries in that sequence', async () => {
+    const saved = await addSavedVideo(write({ category: { name: '  Yoga ' } }))
+
+    const [made] = await db.videoCategories.toArray()
+    const entries = await queued()
+
+    expect(made).toMatchObject({ name: 'Yoga', color: 'data-cyan', deleted_at: null })
+    expect(saved.category_id).toBe(made?.id)
+    expect(entries.map((entry) => [entry.table_name, entry.row_id])).toEqual([
+      ['video_categories', made?.id],
+      ['saved_videos', saved.id],
+    ])
+    expect(entries[1]?.sequence).toBe((entries[0]?.sequence ?? 0) + 1)
+  })
+
+  it('gives a new category the next unused color', async () => {
+    await db.videoCategories.bulkPut([
+      category(YOGA_ID, 'Yoga', { color: 'data-cyan' }),
+      category(MOBILITY_ID, 'Mobility', { color: 'data-pink' }),
+      category(MISSING_ID, 'Old', { color: 'data-violet', deleted_at: '2026-10-02T08:00:00.000Z' }),
+    ])
+
+    const saved = await addSavedVideo(write({ category: { name: 'Stretch' } }))
+
+    expect((await db.videoCategories.get(saved.category_id))?.color).toBe('data-violet')
+  })
+
+  it('reuses a live category whose name matches " yoga " case-insensitively, with no new row', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+    await db.savedVideos.put(video(MOBILITY_ID))
+
+    const saved = await addSavedVideo(write({ category: { name: ' yoga ' } }))
+
+    expect(saved.category_id).toBe(YOGA_ID)
+    expect(await db.videoCategories.count()).toBe(1)
+    expect((await queued()).map((entry) => entry.table_name)).toEqual(['saved_videos'])
+  })
+
+  it('reuses a live category that has no videos', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+
+    const saved = await addSavedVideo(write({ category: { name: 'YOGA' } }))
+
+    expect(saved.category_id).toBe(YOGA_ID)
+    expect(await db.videoCategories.count()).toBe(1)
+  })
+
+  it('makes a new row when the matching name belongs to a soft-deleted category', async () => {
+    await db.videoCategories.put(
+      category(YOGA_ID, 'Yoga', { deleted_at: '2026-10-02T08:00:00.000Z' }),
+    )
+
+    const saved = await addSavedVideo(write({ category: { name: 'Yoga' } }))
+
+    expect(saved.category_id).not.toBe(YOGA_ID)
+    expect(await db.videoCategories.count()).toBe(2)
+  })
+
+  it('rolls back the category when the video fails its schema', async () => {
+    const refused = await refusal(
+      addSavedVideo(write({ url: 'javascript:alert(1)', category: { name: 'Yoga' } })),
+    )
+
+    expect(refused).toBeInstanceOf(Error)
+    expect(await db.videoCategories.count()).toBe(0)
+    expect(await db.savedVideos.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses a new category name of 41 characters and writes nothing', async () => {
+    const refused = await refusal(addSavedVideo(write({ category: { name: 'a'.repeat(41) } })))
+
+    expect(refused).toBeInstanceOf(Error)
+    expect(await db.videoCategories.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses with SignedOutOnThisDevice and writes nothing', async () => {
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-10-01T08:00:00.000Z' })
+
+    const refused = await refusal(addSavedVideo(write({ category: { name: 'Yoga' } })))
+
+    expect(refused).toBeInstanceOf(SignedOutOnThisDevice)
+    expect(await db.videoCategories.count()).toBe(0)
+    expect(await db.savedVideos.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses a category id that is not on this device with VideoCategoryNotFound', async () => {
+    const refused = await refusal(addSavedVideo(write({ category: { id: MISSING_ID } })))
+
+    expect(refused).toBeInstanceOf(VideoCategoryNotFound)
+    expect(await db.savedVideos.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses a soft-deleted category id with VideoCategoryNotFound', async () => {
+    await db.videoCategories.put(
+      category(YOGA_ID, 'Yoga', { deleted_at: '2026-10-02T08:00:00.000Z' }),
+    )
+
+    await expect(addSavedVideo(write())).rejects.toBeInstanceOf(VideoCategoryNotFound)
+  })
+})
+
+describe('updateSavedVideo', () => {
+  it('keeps created_at, so the video keeps its place in its level', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+    at('2026-10-05T08:00:00.000Z')
+    const saved = await addSavedVideo(write())
+    at('2026-10-06T08:00:00.000Z')
+
+    const changed = await updateSavedVideo(saved.id, write({ title: 'Hip flow', priority: 'low' }))
+
+    expect(changed).toMatchObject({
+      id: saved.id,
+      title: 'Hip flow',
+      priority: 'low',
+      created_at: '2026-10-05T08:00:00.000Z',
+      updated_at: '2026-10-06T08:00:00.000Z',
+    })
+    expect(await db.savedVideos.get(saved.id)).toEqual(changed)
+    expect((await queued()).map((entry) => entry.payload)).toEqual([saved, changed])
+  })
+
+  it('moves a video to a new category made in the same save', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+    await db.savedVideos.put(video(MOBILITY_ID))
+
+    const changed = await updateSavedVideo(MOBILITY_ID, write({ category: { name: 'Mobility' } }))
+
+    const made = (await db.videoCategories.toArray()).find((row) => row.name === 'Mobility')
+    expect(changed.category_id).toBe(made?.id)
+    expect((await queued()).map((entry) => entry.table_name)).toEqual([
+      'video_categories',
+      'saved_videos',
+    ])
+  })
+
+  it('refuses a soft-deleted video with SavedVideoNotFound', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+    await db.savedVideos.put(video(MOBILITY_ID, { deleted_at: '2026-10-02T08:00:00.000Z' }))
+
+    await expect(updateSavedVideo(MOBILITY_ID, write())).rejects.toBeInstanceOf(SavedVideoNotFound)
+    await expect(updateSavedVideo(MISSING_ID, write())).rejects.toBeInstanceOf(SavedVideoNotFound)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses with SignedOutOnThisDevice and writes nothing', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+    await db.savedVideos.put(video(MOBILITY_ID))
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-10-01T08:00:00.000Z' })
+
+    await expect(updateSavedVideo(MOBILITY_ID, write({ title: 'New' }))).rejects.toBeInstanceOf(
+      SignedOutOnThisDevice,
+    )
+    expect((await db.savedVideos.get(MOBILITY_ID))?.title).toBe('Hip mobility')
+  })
+})
+
+describe('deleteSavedVideo and restoreSavedVideo', () => {
+  it('sets deleted_at and queues a delete entry', async () => {
+    await db.savedVideos.put(video(MOBILITY_ID))
+    at('2026-10-06T08:00:00.000Z')
+
+    await deleteSavedVideo(MOBILITY_ID)
+
+    expect(await db.savedVideos.get(MOBILITY_ID)).toMatchObject({
+      deleted_at: '2026-10-06T08:00:00.000Z',
+      updated_at: '2026-10-06T08:00:00.000Z',
+    })
+    expect((await queued()).map((entry) => [entry.table_name, entry.operation])).toEqual([
+      ['saved_videos', 'delete'],
+    ])
+  })
+
+  it('does nothing for a video that is already deleted', async () => {
+    await db.savedVideos.put(video(MOBILITY_ID, { deleted_at: '2026-10-02T08:00:00.000Z' }))
+
+    await deleteSavedVideo(MOBILITY_ID)
+
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('restores the video with 1 upsert entry', async () => {
+    await db.savedVideos.put(video(MOBILITY_ID))
+    await deleteSavedVideo(MOBILITY_ID)
+
+    await restoreSavedVideo(MOBILITY_ID)
+
+    expect((await db.savedVideos.get(MOBILITY_ID))?.deleted_at).toBeNull()
+    expect((await queued()).map((entry) => entry.operation)).toEqual(['delete', 'upsert'])
+  })
+
+  it('does nothing when it restores a live video', async () => {
+    await db.savedVideos.put(video(MOBILITY_ID))
+
+    await restoreSavedVideo(MOBILITY_ID)
+
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses a video that is not on this device with SavedVideoNotFound', async () => {
+    await expect(deleteSavedVideo(MISSING_ID)).rejects.toBeInstanceOf(SavedVideoNotFound)
+    await expect(restoreSavedVideo(MISSING_ID)).rejects.toBeInstanceOf(SavedVideoNotFound)
+  })
+
+  it('refuses both with SignedOutOnThisDevice', async () => {
+    await db.savedVideos.put(video(MOBILITY_ID))
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-10-01T08:00:00.000Z' })
+
+    await expect(deleteSavedVideo(MOBILITY_ID)).rejects.toBeInstanceOf(SignedOutOnThisDevice)
+    await expect(restoreSavedVideo(MOBILITY_ID)).rejects.toBeInstanceOf(SignedOutOnThisDevice)
+    expect(await db.outbox.count()).toBe(0)
+  })
+})
+
+describe('listSavedVideos', () => {
+  it('leaves out a soft-deleted video', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+    await db.savedVideos.bulkPut([
+      video(MOBILITY_ID),
+      video(MISSING_ID, { deleted_at: '2026-10-02T08:00:00.000Z' }),
+    ])
+
+    expect((await listSavedVideos()).map((row) => row.id)).toEqual([MOBILITY_ID])
+  })
+
+  it('orders High, Normal, Low, newest first inside a level', async () => {
+    const ids = [
+      '10000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000002',
+      '10000000-0000-4000-8000-000000000003',
+      '10000000-0000-4000-8000-000000000004',
+    ]
+    await db.savedVideos.bulkPut([
+      video(ids[0] ?? '', { priority: 'low', created_at: '2026-10-09T08:00:00.000Z' }),
+      video(ids[1] ?? '', { priority: 'normal', created_at: '2026-10-01T08:00:00.000Z' }),
+      video(ids[2] ?? '', { priority: 'high', created_at: '2026-10-02T08:00:00.000Z' }),
+      video(ids[3] ?? '', { priority: 'normal', created_at: '2026-10-03T08:00:00.000Z' }),
+    ])
+
+    expect((await listSavedVideos()).map((row) => row.id)).toEqual([ids[2], ids[3], ids[1], ids[0]])
+  })
+
+  it('joins each video to its category', async () => {
+    const yoga = category(YOGA_ID, 'Yoga')
+    await db.videoCategories.put(yoga)
+    await db.savedVideos.put(video(MOBILITY_ID))
+
+    expect(await listSavedVideos()).toEqual([{ ...video(MOBILITY_ID), category: yoga }])
+  })
+
+  it('returns a video whose category is not on this device with category null', async () => {
+    await db.savedVideos.put(video(MOBILITY_ID, { category_id: MISSING_ID }))
+
+    expect(await listSavedVideos()).toEqual([
+      { ...video(MOBILITY_ID, { category_id: MISSING_ID }), category: null },
+    ])
+  })
+})
+
+describe('listVideoCategories', () => {
+  it('returns live categories by name A to Z', async () => {
+    await db.videoCategories.bulkPut([
+      category(YOGA_ID, 'yoga'),
+      category(MOBILITY_ID, 'Mobility'),
+      category(MISSING_ID, 'Arms', { deleted_at: '2026-10-02T08:00:00.000Z' }),
+    ])
+
+    expect((await listVideoCategories()).map((row) => row.name)).toEqual(['Mobility', 'yoga'])
+  })
+
+  it('keeps 2 categories of the same name, made on 2 devices, in a stable order by id', async () => {
+    await db.videoCategories.bulkPut([category(YOGA_ID, 'Yoga'), category(MOBILITY_ID, 'Yoga')])
+
+    expect((await listVideoCategories()).map((row) => row.id)).toEqual([YOGA_ID, MOBILITY_ID])
+  })
+})
+
+describe('listVideoTags', () => {
+  it('returns each tag of the live videos once, A to Z', async () => {
+    await db.savedVideos.bulkPut([
+      video(YOGA_ID, { tags: ['hips', 'flow'] }),
+      video(MOBILITY_ID, { tags: ['flow', 'back'] }),
+      video(MISSING_ID, { tags: ['gone'], deleted_at: '2026-10-02T08:00:00.000Z' }),
+    ])
+
+    expect(await listVideoTags()).toEqual(['back', 'flow', 'hips'])
+  })
+})
+
+describe('renameVideoCategory', () => {
+  it('changes 1 row and every video follows', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+    await db.savedVideos.bulkPut([video(MOBILITY_ID), video(MISSING_ID)])
+
+    const renamed = await renameVideoCategory(YOGA_ID, '  Yoga flow ')
+
+    expect(renamed).toMatchObject({ id: YOGA_ID, name: 'Yoga flow', color: 'data-cyan' })
+    expect((await queued()).map((entry) => [entry.table_name, entry.row_id])).toEqual([
+      ['video_categories', YOGA_ID],
+    ])
+    expect((await listSavedVideos()).map((row) => row.category?.name)).toEqual([
+      'Yoga flow',
+      'Yoga flow',
+    ])
+  })
+
+  it('takes a new case of its own name', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+
+    expect((await renameVideoCategory(YOGA_ID, 'YOGA')).name).toBe('YOGA')
+  })
+
+  it('refuses a name another live category holds, with CategoryNameTaken', async () => {
+    await db.videoCategories.bulkPut([category(YOGA_ID, 'Yoga'), category(MOBILITY_ID, 'Mobility')])
+
+    await expect(renameVideoCategory(YOGA_ID, ' mobility ')).rejects.toBeInstanceOf(
+      CategoryNameTaken,
+    )
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('refuses a category that is not on this device with VideoCategoryNotFound', async () => {
+    await expect(renameVideoCategory(MISSING_ID, 'Yoga')).rejects.toBeInstanceOf(
+      VideoCategoryNotFound,
+    )
+  })
+
+  it('refuses with SignedOutOnThisDevice', async () => {
+    await db.videoCategories.put(category(YOGA_ID, 'Yoga'))
+    await db.syncMeta.put({ key: SIGNED_OUT_KEY, value: '2026-10-01T08:00:00.000Z' })
+
+    await expect(renameVideoCategory(YOGA_ID, 'Flow')).rejects.toBeInstanceOf(SignedOutOnThisDevice)
   })
 })

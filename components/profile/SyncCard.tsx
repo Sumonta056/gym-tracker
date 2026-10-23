@@ -12,6 +12,8 @@ import type {
   DailyEntry,
   DeadLetter,
   Exercise,
+  SavedVideo,
+  VideoCategory,
   WorkoutSession,
   WorkoutSet,
 } from '../../lib/db/dexie'
@@ -59,6 +61,10 @@ export function deadLetterName(letter: DeadLetter): string {
     }
     case 'daily_entries':
       return dayName((letter.payload as DailyEntry).entry_date)
+    case 'video_categories':
+      return `Category ${(letter.payload as VideoCategory).name}`
+    case 'saved_videos':
+      return `Video ${(letter.payload as SavedVideo).title}`
   }
 }
 

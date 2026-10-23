@@ -234,11 +234,25 @@ describe('the styleguide', { timeout: 15000 }, () => {
   it('shows the sync card with a write the server refused', () => {
     show(['Profile'])
 
-    expect(screen.getByRole('list', { name: 'Failed writes' })).toHaveTextContent(
+    const card = within(screen.getByTestId('sync-card-refused'))
+    expect(card.getByRole('list', { name: 'Failed writes' })).toHaveTextContent(
       'Sunday 13 September',
     )
-    expect(screen.getByRole('button', { name: 'Retry Sunday 13 September' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Discard Sunday 13 September' })).toBeInTheDocument()
+    expect(card.getByRole('button', { name: 'Retry Sunday 13 September' })).toBeInTheDocument()
+    expect(card.getByRole('button', { name: 'Discard Sunday 13 September' })).toBeInTheDocument()
+  })
+
+  it('shows the sync card with a refused video category and saved video', () => {
+    show(['Profile'])
+
+    const card = within(screen.getByTestId('sync-card-refused-videos'))
+    const list = card.getByRole('list', { name: 'Failed writes' })
+    expect(list).toHaveTextContent('Category Yoga')
+    expect(list).toHaveTextContent('Video Hip mobility flow')
+    expect(card.getByRole('button', { name: 'Retry Category Yoga' })).toBeInTheDocument()
+    expect(
+      card.getByRole('button', { name: 'Discard Video Hip mobility flow' }),
+    ).toBeInTheDocument()
   })
 
   it('keeps the refused write sample still when its Sync now is pressed', async () => {

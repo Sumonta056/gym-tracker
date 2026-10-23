@@ -11,16 +11,20 @@ import {
   EXERCISE_CURSOR_KEY,
   PROFILE_CURSOR_KEY,
   SESSION_CURSOR_KEY,
+  SAVED_VIDEO_CURSOR_KEY,
   SET_CURSOR_KEY,
   SIGNED_OUT_KEY,
+  VIDEO_CATEGORY_CURSOR_KEY,
 } from '../db/dexie'
 import {
+  addSavedVideo,
   addSet,
   clearAll,
   createExercise,
   getDay,
   ImportNeedsFirstSync,
   importDays,
+  listSavedVideos,
   LOCAL_PROFILE_ID,
   loggedDates,
   setRestSeconds,
@@ -40,12 +44,14 @@ import {
   MAX_ATTEMPTS,
   MAX_CONSECUTIVE_DEAD,
   moveToDeadLetters,
+  discardDeadLetter,
   readDeadStreak,
   retryDeadLetter,
 } from './deadLetters'
 import { append, listPending, markFailed, pendingCount } from './outbox'
 import {
   ACTIVE_SESSION_MESSAGE,
+  CATEGORY_NOT_SYNCED_MESSAGE,
   DRAIN_LOCK,
   DrainLockBusy,
   drainForSignOut,
@@ -76,7 +82,15 @@ import {
 } from './worker'
 
 import type { SyncState } from './worker'
-import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
+import type {
+  DailyEntry,
+  Exercise,
+  Profile,
+  SavedVideo,
+  VideoCategory,
+  WorkoutSession,
+  WorkoutSet,
+} from '../db/dexie'
 import type * as Report from '../errors/report'
 import type { Database } from '../supabase/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -531,6 +545,8 @@ beforeEach(async () => {
     db.exercises.clear(),
     db.workoutSessions.clear(),
     db.workoutSets.clear(),
+    db.videoCategories.clear(),
+    db.savedVideos.clear(),
   ])
   Object.defineProperty(globalThis.navigator, 'onLine', { value: true, configurable: true })
   FakeChannel.open = []
@@ -1181,6 +1197,8 @@ describe('the workout pull', () => {
       { table: 'exercises', cursor: '2026-09-02T10:00:00.000Z' },
       { table: 'workout_sessions', cursor: '2026-09-03T10:00:00.000Z' },
       { table: 'workout_sets', cursor: '2026-09-04T10:00:00.000Z' },
+      { table: 'video_categories', cursor: EPOCH },
+      { table: 'saved_videos', cursor: EPOCH },
     ])
   })
 
@@ -2220,9 +2238,15 @@ describe('pull', () => {
     await pull(fake.client)
 
     expect(fake.selected).toEqual(
-      ['daily_entries', 'profiles', 'exercises', 'workout_sessions', 'workout_sets'].map(
-        (table) => ({ table, cursor: '1970-01-01T00:00:00.000Z' }),
-      ),
+      [
+        'daily_entries',
+        'profiles',
+        'exercises',
+        'workout_sessions',
+        'workout_sets',
+        'video_categories',
+        'saved_videos',
+      ].map((table) => ({ table, cursor: '1970-01-01T00:00:00.000Z' })),
     )
   })
 
@@ -2395,6 +2419,8 @@ describe('the first daily pull', () => {
       'exercises',
       'workout_sessions',
       'workout_sets',
+      'video_categories',
+      'saved_videos',
     ])
   })
 
@@ -3795,5 +3821,279 @@ describe('syncNow', () => {
 
     expect(await syncNow()).toEqual({ status: 'offline', pushed: 0, pulled: 0, error: null })
     expect(mocks.createClient).not.toHaveBeenCalled()
+  })
+})
+
+describe('the saved videos', () => {
+  function localCategory(id: string, overrides: Partial<VideoCategory> = {}): VideoCategory {
+    return {
+      id,
+      name: 'Yoga',
+      color: 'data-cyan',
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+      deleted_at: null,
+      ...overrides,
+    }
+  }
+
+  function localVideo(id: string, overrides: Partial<SavedVideo> = {}): SavedVideo {
+    return {
+      id,
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category_id: ROW_C,
+      tags: ['hips'],
+      priority: 'normal',
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+      deleted_at: null,
+      ...overrides,
+    }
+  }
+
+  function serverCategory(id: string, updatedAt: string): Record<string, unknown> {
+    return { ...localCategory(id), user_id: USER_ID, updated_at: updatedAt }
+  }
+
+  function serverVideo(
+    id: string,
+    updatedAt: string,
+    overrides: Partial<SavedVideo> = {},
+  ): Record<string, unknown> {
+    return { ...localVideo(id, overrides), user_id: USER_ID, updated_at: updatedAt }
+  }
+
+  it('pushes the category before the video made in the same save', async () => {
+    const saved = await addSavedVideo({
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category: { name: 'Yoga' },
+    })
+    const fake = fakeClient()
+
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 2, error: null })
+    expect(fake.upserted.map((call) => [call.table, call.row.id])).toEqual([
+      ['video_categories', saved.category_id],
+      ['saved_videos', saved.id],
+    ])
+    expect(fake.upserted.every((call) => call.row.user_id === USER_ID)).toBe(true)
+    expect(fake.upserted.every((call) => !('updated_at' in call.row))).toBe(true)
+    expect(fake.upserted.every((call) => call.onConflict === 'id')).toBe(true)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('stamps the server updated_at on the pushed video', async () => {
+    const saved = await addSavedVideo({
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category: { name: 'Yoga' },
+    })
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect((await db.savedVideos.get(saved.id))?.updated_at).toBe(SERVER_STAMP)
+    expect((await db.videoCategories.get(saved.category_id))?.updated_at).toBe(SERVER_STAMP)
+  })
+
+  it('turns a foreign key refusal on a video into PARENT_NOT_SYNCED', async () => {
+    const queued = await append('saved_videos', 'upsert', localVideo(ROW_A))
+    const fake = fakeClient({
+      upsertError: {
+        saved_videos: {
+          message: 'insert or update on table "saved_videos" violates foreign key constraint',
+          code: FOREIGN_KEY,
+        },
+      },
+    })
+
+    const result = await push(fake.client, USER_ID, Date.parse('2026-10-01T08:00:00.000Z'))
+
+    expect(result.error).toBe(CATEGORY_NOT_SYNCED_MESSAGE)
+    expect(await db.outbox.get(queued.id)).toMatchObject({
+      attempts: 1,
+      last_error: CATEGORY_NOT_SYNCED_MESSAGE,
+      next_attempt_at: '2026-10-01T08:00:01.000Z',
+    })
+    expect(await db.deadLetters.count()).toBe(0)
+  })
+
+  it('moves a video its category never took to the dead letters as PARENT_NOT_SYNCED at the ceiling', async () => {
+    const queued = await append('saved_videos', 'upsert', localVideo(ROW_A))
+    await db.outbox.update(queued.id, { attempts: MAX_ATTEMPTS - 1 })
+    const fake = fakeClient({
+      upsertError: { saved_videos: { message: 'foreign key', code: FOREIGN_KEY } },
+    })
+
+    await push(fake.client, USER_ID, Date.now(), { ignoreBackoff: true })
+
+    expect(await db.deadLetters.get(queued.id)).toMatchObject({ error_code: PARENT_NOT_SYNCED })
+  })
+
+  it('keeps a foreign key refusal on a category permanent, since a category has no parent', async () => {
+    const queued = await append('video_categories', 'upsert', localCategory(ROW_C))
+    const fake = fakeClient({
+      upsertError: { video_categories: { message: 'foreign key', code: FOREIGN_KEY } },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(await db.deadLetters.get(queued.id)).toMatchObject({ error_code: FOREIGN_KEY })
+  })
+
+  it('holds the video of a refused category and still sends what comes after it', async () => {
+    await append('video_categories', 'upsert', localCategory(ROW_C))
+    const video = await append('saved_videos', 'upsert', localVideo(ROW_A))
+    await append('daily_entries', 'upsert', localEntry(ROW_B))
+    const fake = fakeClient({
+      upsertError: { video_categories: { message: 'check violation', code: '23514' } },
+    })
+
+    await push(fake.client, USER_ID, Date.now())
+
+    expect(fake.upserted.map((call) => call.table)).toEqual(['video_categories', 'daily_entries'])
+    expect(await db.outbox.get(video.id)).toEqual(video)
+  })
+
+  it('sends no video of a discarded category, so nothing is refused and nothing stalls', async () => {
+    const saved = await addSavedVideo({
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category: { name: 'Yoga' },
+    })
+    await addSavedVideo({ url: 'https://youtu.be/y', title: 'Flow', category: { name: 'Yoga' } })
+    await append('daily_entries', 'upsert', localEntry(ROW_B))
+    await push(
+      fakeClient({
+        upsertError: { video_categories: { message: 'check violation', code: '23514' } },
+      }).client,
+      USER_ID,
+      Date.now(),
+    )
+    const [letter] = await db.deadLetters.toArray()
+    expect(letter?.row_id).toBe(saved.category_id)
+
+    await discardDeadLetter(letter?.id ?? '')
+    const fake = fakeClient({
+      upsertError: {
+        saved_videos: { message: 'row-level security', code: '42501' },
+      },
+      upsertErrorAlways: true,
+    })
+    const result = await push(fake.client, USER_ID, Date.now())
+
+    expect(result).toEqual({ pushed: 0, error: null })
+    expect(fake.upserted).toEqual([])
+    expect(await db.outbox.count()).toBe(0)
+    expect(await db.deadLetters.count()).toBe(0)
+    expect(await readDeadStreak()).toBe(0)
+    expect(await db.savedVideos.count()).toBe(2)
+  })
+
+  it('retries a failed video push with the same id and makes no second row', async () => {
+    await append('saved_videos', 'upsert', localVideo(ROW_A))
+    const flaky = fakeClient({ upsertThrows: ['saved_videos'] })
+    await push(flaky.client, USER_ID, Date.now())
+    const fake = fakeClient()
+
+    await push(fake.client, USER_ID, Date.now(), { ignoreBackoff: true })
+
+    const calls = [...flaky.upserted, ...fake.upserted]
+    expect(calls.map((call) => call.row.id)).toEqual([ROW_A, ROW_A])
+    expect(calls.every((call) => call.onConflict === 'id')).toBe(true)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('pulls categories before videos in one pull', async () => {
+    const fake = fakeClient({
+      serverRows: {
+        video_categories: [serverCategory(ROW_C, LATER)],
+        saved_videos: [serverVideo(ROW_A, LATER)],
+      },
+    })
+
+    const result = await pull(fake.client)
+
+    expect(result).toEqual({ pulled: 2, error: null })
+    expect(fake.selected.map((call) => call.table).slice(-2)).toEqual([
+      'video_categories',
+      'saved_videos',
+    ])
+    expect(await db.videoCategories.get(ROW_C)).toEqual(localCategory(ROW_C, { updated_at: LATER }))
+    expect(await db.savedVideos.get(ROW_A)).toEqual(localVideo(ROW_A, { updated_at: LATER }))
+    expect(await cursor(VIDEO_CATEGORY_CURSOR_KEY)).toBe(LATER)
+    expect(await cursor(SAVED_VIDEO_CURSOR_KEY)).toBe(LATER)
+  })
+
+  it('reads the video cursors on the next pull', async () => {
+    await db.syncMeta.bulkPut([
+      { key: VIDEO_CATEGORY_CURSOR_KEY, value: SERVER_STAMP },
+      { key: SAVED_VIDEO_CURSOR_KEY, value: LATER },
+    ])
+    const fake = fakeClient()
+
+    await pull(fake.client)
+
+    expect(fake.selected.slice(-2)).toEqual([
+      { table: 'video_categories', cursor: SERVER_STAMP },
+      { table: 'saved_videos', cursor: LATER },
+    ])
+  })
+
+  it('keeps a local video that still has a queued write over a newer server row', async () => {
+    await db.savedVideos.put(localVideo(ROW_A, { title: 'Mine' }))
+    await append('saved_videos', 'upsert', localVideo(ROW_A, { title: 'Mine' }))
+    const fake = fakeClient({
+      serverRows: {
+        saved_videos: [serverVideo(ROW_A, '2026-10-05T08:00:00.000Z', { title: 'Theirs' })],
+      },
+    })
+
+    await pull(fake.client)
+
+    expect((await db.savedVideos.get(ROW_A))?.title).toBe('Mine')
+  })
+
+  it('keeps a local category that still has a queued write over a newer server row', async () => {
+    await db.videoCategories.put(localCategory(ROW_C, { name: 'Mine' }))
+    await append('video_categories', 'upsert', localCategory(ROW_C, { name: 'Mine' }))
+    const fake = fakeClient({
+      serverRows: { video_categories: [serverCategory(ROW_C, '2026-10-05T08:00:00.000Z')] },
+    })
+
+    await pull(fake.client)
+
+    expect((await db.videoCategories.get(ROW_C))?.name).toBe('Mine')
+  })
+
+  it('pulls a soft delete and the list leaves the video out', async () => {
+    await db.videoCategories.put(localCategory(ROW_C))
+    await db.savedVideos.put(localVideo(ROW_A))
+    expect(await listSavedVideos()).toHaveLength(1)
+    const deletedAt = '2026-10-02T08:00:00.000Z'
+    const fake = fakeClient({
+      serverRows: { saved_videos: [serverVideo(ROW_A, deletedAt, { deleted_at: deletedAt })] },
+    })
+
+    await pull(fake.client)
+
+    expect((await db.savedVideos.get(ROW_A))?.deleted_at).toBe(deletedAt)
+    expect(await listSavedVideos()).toEqual([])
+  })
+
+  it('reports a failed video pull after the categories already landed', async () => {
+    const fake = fakeClient({
+      serverRows: { video_categories: [serverCategory(ROW_C, LATER)] },
+      selectError: { saved_videos: 'the videos could not be read' },
+    })
+
+    const result = await pull(fake.client)
+
+    expect(result).toEqual({ pulled: 1, error: 'the videos could not be read' })
+    expect(await db.videoCategories.get(ROW_C)).toBeDefined()
+    expect(await cursor(SAVED_VIDEO_CURSOR_KEY)).toBeUndefined()
   })
 })

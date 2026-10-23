@@ -5,9 +5,11 @@ import {
   EXERCISE_CURSOR_KEY,
   LOCAL_PROFILE_ID,
   PROFILE_CURSOR_KEY,
+  SAVED_VIDEO_CURSOR_KEY,
   SESSION_CURSOR_KEY,
   SET_CURSOR_KEY,
   SIGNED_OUT_KEY,
+  VIDEO_CATEGORY_CURSOR_KEY,
 } from '../db/dexie'
 import { currentRoute, reportError } from '../errors/report'
 import { newId } from '../id'
@@ -27,13 +29,17 @@ import {
   toLocalEntry,
   toLocalExercise,
   toLocalProfile,
+  toLocalSavedVideo,
   toLocalSession,
   toLocalSet,
+  toLocalVideoCategory,
   toServerEntry,
   toServerExercise,
   toServerProfile,
+  toServerSavedVideo,
   toServerSession,
   toServerSet,
+  toServerVideoCategory,
 } from './mappings'
 import { isDue, markDone, markFailed, nextPending, syncedCount } from './outbox'
 
@@ -43,6 +49,8 @@ import type {
   OutboxEntry,
   OutboxTableName,
   Profile,
+  SavedVideo,
+  VideoCategory,
   WorkoutSession,
   WorkoutSet,
 } from '../db/dexie'
@@ -64,6 +72,9 @@ export const PARENT_NOT_SYNCED = 'PARENT_NOT_SYNCED'
 
 export const PARENT_NOT_SYNCED_MESSAGE =
   'The session or exercise of this set has not reached the server yet.'
+
+export const CATEGORY_NOT_SYNCED_MESSAGE =
+  'The category of this video has not reached the server yet.'
 
 export const GLOBAL_ROW_MESSAGE = 'A built-in exercise is never sent to the server.'
 
@@ -412,13 +423,19 @@ async function sendSession(
   )
 }
 
-function setRefusal(error: Refusal): SendResult {
-  if (error.code === FOREIGN_KEY) {
-    return { error: PARENT_NOT_SYNCED_MESSAGE, code: PARENT_NOT_SYNCED }
-  }
+function parentRefusal(message: string): (error: Refusal) => SendResult {
+  return (error) => {
+    if (error.code === FOREIGN_KEY) {
+      return { error: message, code: PARENT_NOT_SYNCED }
+    }
 
-  return refused(error)
+    return refused(error)
+  }
 }
+
+const setRefusal = parentRefusal(PARENT_NOT_SYNCED_MESSAGE)
+
+const videoRefusal = parentRefusal(CATEGORY_NOT_SYNCED_MESSAGE)
 
 async function sendSet(
   client: Client,
@@ -438,6 +455,48 @@ async function sendSet(
     answer,
     (serverAt) => stampRow(db.workoutSets, payload.id, payload.updated_at, serverAt),
     setRefusal,
+  )
+}
+
+async function sendVideoCategory(
+  client: Client,
+  payload: VideoCategory,
+  userId: string,
+  signal: AbortSignal,
+): Promise<SendResult> {
+  const answer = await untilStopped(
+    client
+      .from('video_categories')
+      .upsert(toServerVideoCategory(payload, userId), { onConflict: 'id' })
+      .select('updated_at')
+      .maybeSingle(),
+    signal,
+  )
+
+  return settle(answer, (serverAt) =>
+    stampRow(db.videoCategories, payload.id, payload.updated_at, serverAt),
+  )
+}
+
+async function sendSavedVideo(
+  client: Client,
+  payload: SavedVideo,
+  userId: string,
+  signal: AbortSignal,
+): Promise<SendResult> {
+  const answer = await untilStopped(
+    client
+      .from('saved_videos')
+      .upsert(toServerSavedVideo(payload, userId), { onConflict: 'id' })
+      .select('updated_at')
+      .maybeSingle(),
+    signal,
+  )
+
+  return settle(
+    answer,
+    (serverAt) => stampRow(db.savedVideos, payload.id, payload.updated_at, serverAt),
+    videoRefusal,
   )
 }
 
@@ -490,6 +549,10 @@ async function sendEntry(
         return await sendSet(client, entry.payload as WorkoutSet, signal)
       case 'daily_entries':
         return await sendDailyEntry(client, entry.payload as DailyEntry, userId, true, signal)
+      case 'video_categories':
+        return await sendVideoCategory(client, entry.payload as VideoCategory, userId, signal)
+      case 'saved_videos':
+        return await sendSavedVideo(client, entry.payload as SavedVideo, userId, signal)
     }
   } catch (cause) {
     return { error: errorMessage(cause), code: null }
@@ -726,6 +789,42 @@ function pullSteps(
           localKey: (row) => row.id,
           readLocal: (key) => db.workoutSets.get(key),
           write: (row) => db.workoutSets.put(toLocalSet(row)),
+        },
+        signal,
+      ),
+    () =>
+      pullTable(
+        {
+          tableName: 'video_categories',
+          table: db.videoCategories,
+          cursorKey: VIDEO_CATEGORY_CURSOR_KEY,
+          fetch: (from) =>
+            client
+              .from('video_categories')
+              .select('*')
+              .gt('updated_at', from)
+              .order('updated_at', { ascending: true }),
+          localKey: (row) => row.id,
+          readLocal: (key) => db.videoCategories.get(key),
+          write: (row) => db.videoCategories.put(toLocalVideoCategory(row)),
+        },
+        signal,
+      ),
+    () =>
+      pullTable(
+        {
+          tableName: 'saved_videos',
+          table: db.savedVideos,
+          cursorKey: SAVED_VIDEO_CURSOR_KEY,
+          fetch: (from) =>
+            client
+              .from('saved_videos')
+              .select('*')
+              .gt('updated_at', from)
+              .order('updated_at', { ascending: true }),
+          localKey: (row) => row.id,
+          readLocal: (key) => db.savedVideos.get(key),
+          write: (row) => db.savedVideos.put(toLocalSavedVideo(row)),
         },
         signal,
       ),

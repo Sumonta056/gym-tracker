@@ -15,6 +15,7 @@ import {
   STORES_V3,
   STORES_V4,
   STORES_V5,
+  STORES_V6,
   subscribeVersionState,
   versionWatch,
 } from './dexie'
@@ -45,7 +46,7 @@ describe('createDatabase', () => {
     expect(instance.name).toBe('gym-tracker-alt')
   })
 
-  it('declares the ten tables of version 6', async () => {
+  it('opens at version 7 with videoCategories and savedVideos', async () => {
     const instance = createDatabase('gym-tracker-tables')
     opened.push(instance)
     await instance.open()
@@ -58,12 +59,94 @@ describe('createDatabase', () => {
       'outbox',
       'planCursors',
       'profiles',
+      'savedVideos',
       'syncMeta',
+      'videoCategories',
       'workoutSessions',
       'workoutSets',
     ])
-    expect(instance.verno).toBe(6)
-    expect(DATABASE_VERSION).toBe(6)
+    expect(instance.verno).toBe(7)
+    expect(DATABASE_VERSION).toBe(7)
+  })
+
+  it('indexes the video categories on updated_at and the saved videos on category_id and updated_at', async () => {
+    const instance = createDatabase('gym-tracker-video-indexes')
+    opened.push(instance)
+    await instance.open()
+
+    const indexes = Object.fromEntries(
+      instance.tables.map((table) => [table.name, table.schema.indexes.map((index) => index.name)]),
+    )
+
+    expect(indexes.videoCategories).toEqual(['updated_at'])
+    expect(indexes.savedVideos).toEqual(['category_id', 'updated_at'])
+  })
+
+  it('upgrades a version 6 database and keeps its sessions and their plan_ids', async () => {
+    const name = 'gym-tracker-upgrade-v6'
+    const old = new Dexie(name)
+    old.version(6).stores(STORES_V6)
+    await old.open()
+    const stamp = '2026-10-20T08:00:00.000Z'
+    const planned = {
+      id: '44444444-4444-4444-8444-444444444444',
+      entry_date: '2026-10-20',
+      started_at: stamp,
+      ended_at: null,
+      status: 'active',
+      plan_ids: ['legs'],
+      created_at: stamp,
+      updated_at: stamp,
+      deleted_at: null,
+    }
+    const free = {
+      ...planned,
+      id: '55555555-5555-4555-8555-555555555555',
+      status: 'finished',
+      plan_ids: null,
+    }
+    const cursor = { sessionId: planned.id, stepIndex: 1, skipped: [] }
+    await old.table('workoutSessions').bulkPut([planned, free])
+    await old.table('planCursors').put(cursor)
+    await old.table('syncMeta').put({ key: 'outbox_sequence', value: '9' })
+    old.close()
+
+    const instance = createDatabase(name)
+    opened.push(instance)
+    await instance.open()
+
+    expect(instance.verno).toBe(7)
+    expect(await instance.workoutSessions.orderBy('id').toArray()).toEqual([planned, free])
+    expect(await instance.planCursors.toArray()).toEqual([cursor])
+    expect(await instance.syncMeta.toArray()).toEqual([{ key: 'outbox_sequence', value: '9' }])
+    expect(await instance.videoCategories.count()).toBe(0)
+    expect(await instance.savedVideos.count()).toBe(0)
+  })
+
+  it('upgrades a version 5 database and still fills plan_ids with null', async () => {
+    const name = 'gym-tracker-upgrade-v5-to-v7'
+    const old = new Dexie(name)
+    old.version(5).stores(STORES_V5)
+    await old.open()
+    const session = {
+      id: '44444444-4444-4444-8444-444444444444',
+      entry_date: '2026-10-10',
+      started_at: '2026-10-10T08:00:00.000Z',
+      ended_at: null,
+      status: 'finished',
+      created_at: '2026-10-10T08:00:00.000Z',
+      updated_at: '2026-10-10T08:00:00.000Z',
+      deleted_at: null,
+    }
+    await old.table('workoutSessions').put(session)
+    old.close()
+
+    const instance = createDatabase(name)
+    opened.push(instance)
+    await instance.open()
+
+    expect(instance.verno).toBe(7)
+    expect(await instance.workoutSessions.toArray()).toEqual([{ ...session, plan_ids: null }])
   })
 
   it('upgrades a version 1 database and keeps every row it held', async () => {
@@ -301,7 +384,7 @@ describe('createDatabase', () => {
     opened.push(instance)
     await instance.open()
 
-    expect(instance.verno).toBe(6)
+    expect(instance.verno).toBe(DATABASE_VERSION)
     expect(await instance.dailyEntries.toArray()).toEqual([entry])
     expect(await instance.profiles.toArray()).toEqual([profile])
     expect(await instance.exercises.toArray()).toEqual([exercise])
@@ -459,6 +542,8 @@ describe('createDatabase', () => {
       workoutSets: 'id',
       errorLog: 'id',
       planCursors: 'sessionId',
+      videoCategories: 'id',
+      savedVideos: 'id',
     })
   })
 })

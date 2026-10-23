@@ -19,7 +19,7 @@ import {
   SYNCED_TABLES,
 } from './outbox'
 
-import type { DailyEntry, OutboxEntry, OutboxTableName } from '../db/dexie'
+import type { DailyEntry, OutboxEntry, OutboxTableName, SavedVideo } from '../db/dexie'
 
 const ROW_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -180,6 +180,8 @@ describe('SYNCED_TABLES', () => {
       'exercises',
       'workout_sessions',
       'workout_sets',
+      'video_categories',
+      'saved_videos',
     ])
   })
 })
@@ -331,5 +333,63 @@ describe('lastSequence', () => {
     await markDone(first.id)
 
     expect(await lastSequence()).toBe(2)
+  })
+})
+
+describe('a saved video behind its category', () => {
+  const CATEGORY_ID = '22222222-2222-4222-8222-222222222222'
+  const VIDEO_ID = '33333333-3333-4333-8333-333333333333'
+
+  function video(): SavedVideo {
+    return {
+      id: VIDEO_ID,
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category_id: CATEGORY_ID,
+      tags: [],
+      priority: 'normal',
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+      deleted_at: null,
+    }
+  }
+
+  async function refuseCategory(): Promise<OutboxEntry> {
+    const refused = await append('video_categories', 'upsert', { ...row(), id: CATEGORY_ID })
+    await db.transaction('rw', db.outbox, db.deadLetters, async () => {
+      await db.deadLetters.put({ ...refused, error_code: '23514', failed_at: refused.created_at })
+      await db.outbox.delete(refused.id)
+    })
+
+    return refused
+  }
+
+  it('waits while its category sits in the dead letters', async () => {
+    await refuseCategory()
+    await append('saved_videos', 'upsert', video())
+
+    expect(await nextPending()).toBeUndefined()
+    expect(await syncedCount()).toBe(0)
+    expect(await pendingCount()).toBe(1)
+  })
+
+  it('is sent once the category leaves the dead letters', async () => {
+    const refused = await refuseCategory()
+    const queued = await append('saved_videos', 'upsert', video())
+
+    await db.deadLetters.delete(refused.id)
+
+    expect((await nextPending())?.id).toBe(queued.id)
+  })
+
+  it('is sent once a later write lands the category and clears its old refusal', async () => {
+    await refuseCategory()
+    const queued = await append('saved_videos', 'upsert', video())
+    const later = await append('video_categories', 'upsert', { ...row(), id: CATEGORY_ID })
+
+    await markDone(later.id)
+
+    expect(await db.deadLetters.count()).toBe(0)
+    expect((await nextPending())?.id).toBe(queued.id)
   })
 })

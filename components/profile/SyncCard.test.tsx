@@ -6,8 +6,10 @@ import {
   DEAD_DAY,
   DEAD_EXERCISE,
   DEAD_PROFILE,
+  DEAD_SAVED_VIDEO,
   DEAD_SESSION,
   DEAD_SET,
+  DEAD_VIDEO_CATEGORY,
 } from '../../tests/fixtures/sync'
 
 import { deadLetterName, failedHint, SyncCard } from './SyncCard'
@@ -221,5 +223,13 @@ describe('deadLetterName', () => {
 
   it('names a set by its position and the day it was logged', () => {
     expect(deadLetterName(DEAD_SET)).toBe('Set 3, Tuesday 1 September')
+  })
+
+  it('names a video category by its name', () => {
+    expect(deadLetterName(DEAD_VIDEO_CATEGORY)).toBe('Category Yoga')
+  })
+
+  it('names a saved video by its title', () => {
+    expect(deadLetterName(DEAD_SAVED_VIDEO)).toBe('Video Hip mobility')
   })
 })

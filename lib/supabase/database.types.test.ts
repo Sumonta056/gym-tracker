@@ -9,6 +9,31 @@ type ProfileRow = Tables<'profiles'>
 type ExerciseRow = Tables<'exercises'>
 type WorkoutSessionRow = Tables<'workout_sessions'>
 type WorkoutSetRow = Tables<'workout_sets'>
+type VideoCategoryRow = Tables<'video_categories'>
+type SavedVideoRow = Tables<'saved_videos'>
+
+const VIDEO_CATEGORY_COLUMNS: Record<keyof VideoCategoryRow, true> = {
+  id: true,
+  user_id: true,
+  name: true,
+  color: true,
+  created_at: true,
+  updated_at: true,
+  deleted_at: true,
+}
+
+const SAVED_VIDEO_COLUMNS: Record<keyof SavedVideoRow, true> = {
+  id: true,
+  user_id: true,
+  url: true,
+  title: true,
+  category_id: true,
+  tags: true,
+  priority: true,
+  created_at: true,
+  updated_at: true,
+  deleted_at: true,
+}
 
 const DAILY_ENTRY_COLUMNS: Record<keyof DailyEntryRow, true> = {
   id: true,
@@ -178,6 +203,22 @@ describe('database.types', () => {
   it('allows a soft delete through an update', () => {
     const update: TablesUpdate<'daily_entries'> = { deleted_at: '2026-09-21T00:00:00.000Z' }
     expect(update.deleted_at).toBe('2026-09-21T00:00:00.000Z')
+  })
+
+  it('gives video_categories and saved_videos every column of the saved videos spec', () => {
+    expect(Object.keys(VIDEO_CATEGORY_COLUMNS)).toHaveLength(7)
+    expect(Object.keys(SAVED_VIDEO_COLUMNS)).toHaveLength(10)
+  })
+
+  it('lets a saved video insert leave tags and priority to the server defaults', () => {
+    const insert: TablesInsert<'saved_videos'> = {
+      id: '00000000-0000-4000-8000-000000000002',
+      user_id: '00000000-0000-4000-8000-000000000001',
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category_id: '00000000-0000-4000-8000-000000000003',
+    }
+    expect(insert.tags).toBeUndefined()
   })
 
   it('exposes no enums', () => {

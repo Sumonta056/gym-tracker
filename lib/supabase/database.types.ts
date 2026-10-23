@@ -4,7 +4,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.5'
+    PostgrestVersion: '14.17'
   }
   public: {
     Tables: {
@@ -152,6 +152,83 @@ export type Database = {
           unit_system?: string
           updated_at?: string
           walk_goal_seconds?: number | null
+        }
+        Relationships: []
+      }
+      saved_videos: {
+        Row: {
+          category_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          priority: string
+          tags: string[]
+          title: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id: string
+          priority?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          priority?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'saved_videos_category_id_fkey'
+            columns: ['category_id']
+            isOneToOne: false
+            referencedRelation: 'video_categories'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      video_categories: {
+        Row: {
+          color: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          deleted_at?: string | null
+          id: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

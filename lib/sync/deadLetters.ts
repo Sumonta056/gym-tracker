@@ -1,6 +1,14 @@
 import { db, DEAD_STREAK_KEY } from '../db/dexie'
 
-import type { DeadLetter, OutboxEntry, OutboxPayload, WorkoutSet } from '../db/dexie'
+import type {
+  DeadLetter,
+  OutboxEntry,
+  OutboxPayload,
+  OutboxTableName,
+  SavedVideo,
+  VideoCategory,
+  WorkoutSet,
+} from '../db/dexie'
 
 export const GLOBAL_ROW = 'GLOBAL_ROW'
 
@@ -85,6 +93,10 @@ async function currentRow(letter: DeadLetter): Promise<OutboxPayload | undefined
       return db.workoutSets.get(letter.row_id)
     case 'daily_entries':
       return db.dailyEntries.get(letter.row_id)
+    case 'video_categories':
+      return db.videoCategories.get(letter.row_id)
+    case 'saved_videos':
+      return db.savedVideos.get(letter.row_id)
   }
 }
 
@@ -99,6 +111,8 @@ export async function retryDeadLetter(id: string): Promise<void> {
       db.exercises,
       db.workoutSessions,
       db.workoutSets,
+      db.videoCategories,
+      db.savedVideos,
     ],
     async () => {
       const letter = await db.deadLetters.get(id)
@@ -126,6 +140,24 @@ export async function retryDeadLetter(id: string): Promise<void> {
   )
 }
 
+async function nothingElseOf(
+  tableName: OutboxTableName,
+  rowId: string,
+  discarded: string,
+): Promise<boolean> {
+  const refusals = await db.deadLetters
+    .filter(
+      (letter) =>
+        letter.id !== discarded && letter.table_name === tableName && letter.row_id === rowId,
+    )
+    .count()
+  const queued = await db.outbox
+    .filter((entry) => entry.table_name === tableName && entry.row_id === rowId)
+    .count()
+
+  return refusals + queued === 0
+}
+
 async function sessionIsOver(sessionId: string, discarded: string): Promise<boolean> {
   const session = await db.workoutSessions.get(sessionId)
 
@@ -133,19 +165,33 @@ async function sessionIsOver(sessionId: string, discarded: string): Promise<bool
     return false
   }
 
-  const refusals = await db.deadLetters
-    .filter(
-      (letter) =>
-        letter.id !== discarded &&
-        letter.table_name === 'workout_sessions' &&
-        letter.row_id === sessionId,
-    )
-    .count()
-  const queued = await db.outbox
-    .filter((entry) => entry.table_name === 'workout_sessions' && entry.row_id === sessionId)
-    .count()
+  return nothingElseOf('workout_sessions', sessionId, discarded)
+}
 
-  return refusals + queued === 0
+async function categoryNeverLanded(letter: DeadLetter): Promise<boolean> {
+  const refused = letter.payload as VideoCategory
+
+  if (refused.created_at !== refused.updated_at) {
+    return false
+  }
+
+  return nothingElseOf('video_categories', letter.row_id, letter.id)
+}
+
+async function heldChildren(letter: DeadLetter): Promise<(entry: OutboxEntry) => boolean> {
+  if (letter.table_name === 'workout_sessions' && (await sessionIsOver(letter.row_id, letter.id))) {
+    return (entry) =>
+      entry.table_name === 'workout_sets' &&
+      (entry.payload as WorkoutSet).session_id === letter.row_id
+  }
+
+  if (letter.table_name === 'video_categories' && (await categoryNeverLanded(letter))) {
+    return (entry) =>
+      entry.table_name === 'saved_videos' &&
+      (entry.payload as SavedVideo).category_id === letter.row_id
+  }
+
+  return () => false
 }
 
 export async function discardDeadLetter(id: string): Promise<void> {
@@ -156,19 +202,7 @@ export async function discardDeadLetter(id: string): Promise<void> {
       return
     }
 
-    if (
-      letter.table_name === 'workout_sessions' &&
-      (await sessionIsOver(letter.row_id, letter.id))
-    ) {
-      await db.outbox
-        .filter(
-          (entry) =>
-            entry.table_name === 'workout_sets' &&
-            (entry.payload as WorkoutSet).session_id === letter.row_id,
-        )
-        .delete()
-    }
-
+    await db.outbox.filter(await heldChildren(letter)).delete()
     await db.deadLetters.delete(id)
   })
 }

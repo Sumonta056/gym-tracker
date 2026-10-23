@@ -1,10 +1,20 @@
 import { LOCAL_PROFILE_ID } from '../db/dexie'
 import { muscleGroupSchema } from '../schema/exercise'
 import { profileSchema } from '../schema/profile'
+import { prioritySchema } from '../schema/savedVideo'
+import { categoryColorSchema } from '../schema/videoCategory'
 import { storedWorkoutSessionSchema } from '../schema/workoutSession'
 import { MIN_REPS } from '../schema/workoutSet'
 
-import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
+import type {
+  DailyEntry,
+  Exercise,
+  Profile,
+  SavedVideo,
+  VideoCategory,
+  WorkoutSession,
+  WorkoutSet,
+} from '../db/dexie'
 import type { Tables, TablesInsert } from '../supabase/database.types'
 
 export function toServerEntry(payload: DailyEntry, userId: string): TablesInsert<'daily_entries'> {
@@ -170,6 +180,62 @@ export function toLocalSet(row: Tables<'workout_sets'>): WorkoutSet {
     weight_kg: row.weight_kg,
     rpe: row.rpe,
     completed_at: row.completed_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    deleted_at: row.deleted_at,
+  }
+}
+
+export function toServerVideoCategory(
+  payload: VideoCategory,
+  userId: string,
+): TablesInsert<'video_categories'> {
+  return {
+    id: payload.id,
+    user_id: userId,
+    name: payload.name,
+    color: payload.color,
+    created_at: payload.created_at,
+    deleted_at: payload.deleted_at,
+  }
+}
+
+export function toServerSavedVideo(
+  payload: SavedVideo,
+  userId: string,
+): TablesInsert<'saved_videos'> {
+  return {
+    id: payload.id,
+    user_id: userId,
+    url: payload.url,
+    title: payload.title,
+    category_id: payload.category_id,
+    tags: payload.tags,
+    priority: payload.priority,
+    created_at: payload.created_at,
+    deleted_at: payload.deleted_at,
+  }
+}
+
+export function toLocalVideoCategory(row: Tables<'video_categories'>): VideoCategory {
+  return {
+    id: row.id,
+    name: row.name,
+    color: categoryColorSchema.safeParse(row.color).data ?? 'data-slate',
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    deleted_at: row.deleted_at,
+  }
+}
+
+export function toLocalSavedVideo(row: Tables<'saved_videos'>): SavedVideo {
+  return {
+    id: row.id,
+    url: row.url,
+    title: row.title,
+    category_id: row.category_id,
+    tags: row.tags,
+    priority: prioritySchema.safeParse(row.priority).data ?? 'normal',
     created_at: row.created_at,
     updated_at: row.updated_at,
     deleted_at: row.deleted_at,

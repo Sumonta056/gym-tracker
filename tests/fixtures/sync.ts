@@ -107,3 +107,38 @@ export const DEAD_SET: DeadLetter = {
     deleted_at: null,
   },
 }
+
+export const DEAD_VIDEO_CATEGORY: DeadLetter = {
+  ...DEAD_DAY,
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  sequence: 8,
+  table_name: 'video_categories',
+  row_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  payload: {
+    id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    name: 'Yoga',
+    color: 'data-cyan',
+    created_at: '2026-09-01T10:05:00.000Z',
+    updated_at: '2026-09-01T10:05:00.000Z',
+    deleted_at: null,
+  },
+}
+
+export const DEAD_SAVED_VIDEO: DeadLetter = {
+  ...DEAD_DAY,
+  id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  sequence: 9,
+  table_name: 'saved_videos',
+  row_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  payload: {
+    id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    url: 'https://youtu.be/x',
+    title: 'Hip mobility',
+    category_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    tags: [],
+    priority: 'normal',
+    created_at: '2026-09-01T10:05:00.000Z',
+    updated_at: '2026-09-01T10:05:00.000Z',
+    deleted_at: null,
+  },
+}

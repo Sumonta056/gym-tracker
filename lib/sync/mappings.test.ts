@@ -12,15 +12,27 @@ import {
   toLocalExercise,
   toLocalProfile,
   toLocalSession,
+  toLocalSavedVideo,
   toLocalSet,
+  toLocalVideoCategory,
   toServerEntry,
   toServerExercise,
   toServerProfile,
   toServerSession,
+  toServerSavedVideo,
   toServerSet,
+  toServerVideoCategory,
 } from './mappings'
 
-import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
+import type {
+  DailyEntry,
+  Exercise,
+  Profile,
+  SavedVideo,
+  VideoCategory,
+  WorkoutSession,
+  WorkoutSet,
+} from '../db/dexie'
 import type { Tables } from '../supabase/database.types'
 
 const USER_ID = '99999999-9999-4999-8999-999999999999'
@@ -497,5 +509,106 @@ describe('toLocalSet', () => {
 
   it('reads missing reps as the lowest valid count', () => {
     expect(toLocalSet(serverSet({ reps: null })).reps).toBe(1)
+  })
+})
+
+function localCategory(overrides: Partial<VideoCategory> = {}): VideoCategory {
+  return {
+    id: ROW_C,
+    name: 'Yoga',
+    color: 'data-violet',
+    created_at: LOCAL_AT,
+    updated_at: LOCAL_AT,
+    deleted_at: null,
+    ...overrides,
+  }
+}
+
+function localVideo(overrides: Partial<SavedVideo> = {}): SavedVideo {
+  return {
+    id: ROW_A,
+    url: 'https://youtu.be/x',
+    title: 'Hip mobility',
+    category_id: ROW_C,
+    tags: ['hips', 'flow'],
+    priority: 'high',
+    created_at: LOCAL_AT,
+    updated_at: LOCAL_AT,
+    deleted_at: null,
+    ...overrides,
+  }
+}
+
+function serverCategory(overrides: Partial<Tables<'video_categories'>> = {}) {
+  return {
+    ...localCategory(),
+    user_id: USER_ID,
+    updated_at: SERVER_AT,
+    ...overrides,
+  }
+}
+
+function serverVideo(overrides: Partial<Tables<'saved_videos'>> = {}) {
+  return {
+    ...localVideo(),
+    user_id: USER_ID,
+    updated_at: SERVER_AT,
+    ...overrides,
+  }
+}
+
+describe('toServerVideoCategory', () => {
+  it('fills user_id and sends no updated_at', () => {
+    expect(toServerVideoCategory(localCategory({ deleted_at: LOCAL_AT }), USER_ID)).toEqual({
+      id: ROW_C,
+      user_id: USER_ID,
+      name: 'Yoga',
+      color: 'data-violet',
+      created_at: LOCAL_AT,
+      deleted_at: LOCAL_AT,
+    })
+  })
+})
+
+describe('toServerSavedVideo', () => {
+  it('fills user_id and sends no updated_at', () => {
+    expect(toServerSavedVideo(localVideo(), USER_ID)).toEqual({
+      id: ROW_A,
+      user_id: USER_ID,
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category_id: ROW_C,
+      tags: ['hips', 'flow'],
+      priority: 'high',
+      created_at: LOCAL_AT,
+      deleted_at: null,
+    })
+  })
+})
+
+describe('toLocalVideoCategory', () => {
+  it('drops user_id and keeps the server updated_at', () => {
+    expect(toLocalVideoCategory(serverCategory())).toEqual({
+      ...localCategory(),
+      updated_at: SERVER_AT,
+    })
+  })
+
+  it('pulls an unknown color as data-slate', () => {
+    expect(toLocalVideoCategory(serverCategory({ color: 'accent' })).color).toBe('data-slate')
+  })
+})
+
+describe('toLocalSavedVideo', () => {
+  it('drops user_id and keeps the server updated_at', () => {
+    expect(toLocalSavedVideo(serverVideo({ deleted_at: SERVER_AT }))).toEqual({
+      ...localVideo(),
+      updated_at: SERVER_AT,
+      deleted_at: SERVER_AT,
+    })
+  })
+
+  it('pulls an unknown priority as normal', () => {
+    expect(toLocalSavedVideo(serverVideo({ priority: 'urgent' })).priority).toBe('normal')
   })
 })

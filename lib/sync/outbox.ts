@@ -6,6 +6,7 @@ import type {
   OutboxOperation,
   OutboxPayload,
   OutboxTableName,
+  SavedVideo,
   SyncMetaRecord,
   WorkoutSet,
 } from '../db/dexie'
@@ -18,9 +19,15 @@ export const SYNCED_TABLES: ReadonlySet<OutboxTableName> = new Set([
   'exercises',
   'workout_sessions',
   'workout_sets',
+  'video_categories',
+  'saved_videos',
 ])
 
-const PARENT_TABLES: ReadonlySet<OutboxTableName> = new Set(['exercises', 'workout_sessions'])
+const PARENT_TABLES: ReadonlySet<OutboxTableName> = new Set([
+  'exercises',
+  'workout_sessions',
+  'video_categories',
+])
 
 async function refusedParents(): Promise<ReadonlySet<string>> {
   const letters = await db.deadLetters
@@ -31,6 +38,10 @@ async function refusedParents(): Promise<ReadonlySet<string>> {
 }
 
 function waitsOnParent(entry: OutboxEntry, refused: ReadonlySet<string>): boolean {
+  if (entry.table_name === 'saved_videos') {
+    return refused.has((entry.payload as SavedVideo).category_id)
+  }
+
   if (entry.table_name !== 'workout_sets') {
     return false
   }

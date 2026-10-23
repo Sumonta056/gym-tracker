@@ -142,6 +142,49 @@ const SAMPLE_DEAD_LETTER: DeadLetter = {
   failed_at: '2026-09-13T10:00:05.000Z',
 }
 
+const SAMPLE_CATEGORY_ID = '00000000-0000-4000-8000-000000000003'
+
+const SAMPLE_VIDEO_ID = '00000000-0000-4000-8000-000000000004'
+
+const SAMPLE_VIDEO_DEAD_LETTERS: DeadLetter[] = [
+  {
+    ...SAMPLE_DEAD_LETTER,
+    id: '00000000-0000-4000-8000-000000000005',
+    sequence: 8,
+    table_name: 'video_categories',
+    row_id: SAMPLE_CATEGORY_ID,
+    payload: {
+      id: SAMPLE_CATEGORY_ID,
+      name: 'Yoga',
+      color: 'data-cyan',
+      created_at: '2026-09-13T10:00:00.000Z',
+      updated_at: '2026-09-13T10:00:00.000Z',
+      deleted_at: null,
+    },
+    last_error: 'new row for relation "video_categories" violates check constraint',
+    error_code: '23514',
+  },
+  {
+    ...SAMPLE_DEAD_LETTER,
+    id: '00000000-0000-4000-8000-000000000006',
+    sequence: 9,
+    table_name: 'saved_videos',
+    row_id: SAMPLE_VIDEO_ID,
+    payload: {
+      id: SAMPLE_VIDEO_ID,
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility flow',
+      category_id: SAMPLE_CATEGORY_ID,
+      tags: ['hips'],
+      priority: 'normal',
+      created_at: '2026-09-13T10:00:00.000Z',
+      updated_at: '2026-09-13T10:00:00.000Z',
+      deleted_at: null,
+    },
+    last_error: 'new row violates row-level security policy for table "saved_videos"',
+  },
+]
+
 const SAMPLE_IMPORT_SHEET = [
   'Day,Walk Time,Gym Time,Avg Heart Rate,Highest Rate,Weight,Calories Burnt,Steps',
   'August 12,15.54,1:03:13,117,174,73.65,963,5909',
@@ -1436,6 +1479,20 @@ export function Styleguide({ only }: StyleguideProps) {
               busy={false}
               onSyncNow={() => undefined}
               deadLetters={[SAMPLE_DEAD_LETTER]}
+            />
+          </div>
+          <h3 className="text-text mt-6 text-base font-bold">
+            Sync card, a refused video category and saved video
+          </h3>
+          <div
+            data-testid="sync-card-refused-videos"
+            className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
+          >
+            <SyncCard
+              report={{ status: 'synced', pending: 0, failed: 2 }}
+              busy={false}
+              onSyncNow={() => undefined}
+              deadLetters={SAMPLE_VIDEO_DEAD_LETTERS}
             />
           </div>
           <h3 className="text-text mt-6 text-base font-bold">With the Phase 2 flag on</h3>

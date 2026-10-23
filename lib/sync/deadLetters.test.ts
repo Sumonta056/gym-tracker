@@ -23,7 +23,15 @@ import {
 } from './deadLetters'
 import { append, listPending, markDone } from './outbox'
 
-import type { DailyEntry, Exercise, Profile, WorkoutSession, WorkoutSet } from '../db/dexie'
+import type {
+  DailyEntry,
+  Exercise,
+  Profile,
+  SavedVideo,
+  VideoCategory,
+  WorkoutSession,
+  WorkoutSet,
+} from '../db/dexie'
 
 const ROW_A = '11111111-1111-4111-8111-111111111111'
 const ROW_B = '22222222-2222-4222-8222-222222222222'
@@ -102,6 +110,8 @@ beforeEach(async () => {
     db.exercises.clear(),
     db.workoutSessions.clear(),
     db.workoutSets.clear(),
+    db.videoCategories.clear(),
+    db.savedVideos.clear(),
   ])
 })
 
@@ -240,6 +250,41 @@ describe('deadLetterCount', () => {
 })
 
 describe('retryDeadLetter', () => {
+  it('sends the video category and the saved video as they stand now', async () => {
+    const yoga: VideoCategory = {
+      id: ROW_B,
+      name: 'Yoga',
+      color: 'data-cyan',
+      created_at: '2026-09-01T10:00:00.000Z',
+      updated_at: '2026-09-01T10:00:00.000Z',
+      deleted_at: null,
+    }
+    const clip: SavedVideo = {
+      id: ROW_A,
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category_id: ROW_B,
+      tags: [],
+      priority: 'normal',
+      created_at: '2026-09-01T10:00:00.000Z',
+      updated_at: '2026-09-01T10:00:00.000Z',
+      deleted_at: null,
+    }
+    const first = await append('video_categories', 'upsert', yoga)
+    const second = await append('saved_videos', 'upsert', clip)
+    await moveToDeadLetters(first.id, null, 'gone', FAILED_AT)
+    await moveToDeadLetters(second.id, null, 'gone', FAILED_AT)
+    const renamed = { ...yoga, name: 'Yoga flow' }
+    const retitled = { ...clip, title: 'Hip flow' }
+    await db.videoCategories.put(renamed)
+    await db.savedVideos.put(retitled)
+
+    await retryDeadLetter(first.id)
+    await retryDeadLetter(second.id)
+
+    expect((await listPending()).map((entry) => entry.payload)).toEqual([renamed, retitled])
+  })
+
   it('puts the entry back in the outbox with its original id, row and sequence', async () => {
     await db.dailyEntries.put(row(ROW_A))
     const entry = await append('daily_entries', 'upsert', row(ROW_A))
@@ -540,5 +585,138 @@ describe('discardDeadLetter for a refused session', () => {
 
     expect(await db.deadLetters.count()).toBe(1)
     expect(await pendingRows()).toEqual([SET_1])
+  })
+})
+
+describe('discardDeadLetter for a refused category', () => {
+  const CATEGORY = '44444444-4444-4444-8444-444444444444'
+  const OTHER_CATEGORY = '55555555-5555-4555-8555-555555555555'
+  const VIDEO_1 = '66666666-6666-4666-8666-666666666666'
+  const VIDEO_2 = '77777777-7777-4777-8777-777777777777'
+  const MADE_AT = '2026-09-01T10:00:00.000Z'
+  const RENAMED_AT = '2026-09-01T10:30:00.000Z'
+
+  function yoga(updatedAt = MADE_AT): VideoCategory {
+    return {
+      id: CATEGORY,
+      name: 'Yoga',
+      color: 'data-cyan',
+      created_at: MADE_AT,
+      updated_at: updatedAt,
+      deleted_at: null,
+    }
+  }
+
+  async function refusedCategory(updatedAt = MADE_AT): Promise<string> {
+    await db.videoCategories.put(yoga(updatedAt))
+    const entry = await append('video_categories', 'upsert', yoga(updatedAt))
+    await moveToDeadLetters(entry.id, '23514', 'check', FAILED_AT)
+
+    return entry.id
+  }
+
+  async function queueVideo(id: string, categoryId = CATEGORY): Promise<SavedVideo> {
+    const local: SavedVideo = {
+      id,
+      url: 'https://youtu.be/x',
+      title: 'Hip mobility',
+      category_id: categoryId,
+      tags: [],
+      priority: 'normal',
+      created_at: MADE_AT,
+      updated_at: MADE_AT,
+      deleted_at: null,
+    }
+    await db.savedVideos.put(local)
+    await append('saved_videos', 'upsert', local)
+
+    return local
+  }
+
+  function pendingRows(): Promise<string[]> {
+    return listPending().then((entries) => entries.map((entry) => entry.row_id))
+  }
+
+  it('drops the held videos of a category the server never took, so they never fail again', async () => {
+    const letter = await refusedCategory()
+    await queueVideo(VIDEO_1)
+    await queueVideo(VIDEO_2)
+
+    await discardDeadLetter(letter)
+
+    expect(await db.deadLetters.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('keeps the videos and the category on this device', async () => {
+    const letter = await refusedCategory()
+    const local = await queueVideo(VIDEO_1)
+
+    await discardDeadLetter(letter)
+
+    expect(await db.savedVideos.get(VIDEO_1)).toEqual(local)
+    expect(await db.videoCategories.get(CATEGORY)).toEqual(yoga())
+  })
+
+  it('drops a queued delete of a video of the category too', async () => {
+    const letter = await refusedCategory()
+    const local = await queueVideo(VIDEO_1)
+    await append('saved_videos', 'delete', { ...local, deleted_at: FAILED_AT_ISO })
+
+    await discardDeadLetter(letter)
+
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('keeps the queued videos of another category', async () => {
+    const letter = await refusedCategory()
+    await queueVideo(VIDEO_1)
+    await queueVideo(VIDEO_2, OTHER_CATEGORY)
+
+    await discardDeadLetter(letter)
+
+    expect(await pendingRows()).toEqual([VIDEO_2])
+  })
+
+  it('keeps the held videos behind a refused rename of a category the server already holds', async () => {
+    const letter = await refusedCategory(RENAMED_AT)
+    await queueVideo(VIDEO_1)
+
+    await discardDeadLetter(letter)
+
+    expect(await pendingRows()).toEqual([VIDEO_1])
+  })
+
+  it('keeps the held videos while another refusal of the same category remains', async () => {
+    const first = await refusedCategory()
+    await queueVideo(VIDEO_1)
+    const again = await append('video_categories', 'upsert', yoga(RENAMED_AT))
+    await moveToDeadLetters(again.id, '23514', 'check', FAILED_AT)
+
+    await discardDeadLetter(first)
+
+    expect(await pendingRows()).toEqual([VIDEO_1])
+    expect((await listDeadLetters()).map((letter) => letter.id)).toEqual([again.id])
+  })
+
+  it('keeps the held videos when a later write of the category still waits to be sent', async () => {
+    const letter = await refusedCategory()
+    await queueVideo(VIDEO_1)
+    await append('video_categories', 'upsert', yoga(RENAMED_AT))
+
+    await discardDeadLetter(letter)
+
+    expect(await pendingRows()).toEqual([VIDEO_1, CATEGORY])
+  })
+
+  it('leaves the queued videos alone when a refused video is discarded', async () => {
+    await queueVideo(VIDEO_1)
+    const [refusedVideo] = await listPending()
+    await moveToDeadLetters(refusedVideo?.id ?? '', '23514', 'check', FAILED_AT)
+    await queueVideo(VIDEO_2)
+
+    await discardDeadLetter(refusedVideo?.id ?? '')
+
+    expect(await pendingRows()).toEqual([VIDEO_2])
   })
 })
