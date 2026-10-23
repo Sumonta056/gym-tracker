@@ -17,6 +17,9 @@ It works with no network in the gym. It also works on a laptop.
 | `docs/design/prototype/index.html`            | The visual contract. Open it in a browser.          |
 | `.claude/skills/design-system/`               | Load this before any UI work                        |
 | `.claude/skills/coach-plan/`                  | Add or change a coach plan step, image or video     |
+| `.claude/skills/update-website/`              | Bring the website and the README up to date         |
+| `README.md`                                   | The public front page of the repository             |
+| `site/`                                       | The GitHub Pages website and its screenshots        |
 | `.claude/rules/architecture.md`               | The repository, UUID, soft delete and seconds rules |
 | `.claude/rules/testing.md`                    | Test first, coverage floors, test naming            |
 | `.claude/rules/git.md`                        | Conventional commits, scopes, the gate, branches    |
@@ -24,13 +27,13 @@ It works with no network in the gym. It also works on a laptop.
 
 ## The Claude workspace
 
-| Path                           | What it is                                                                   |
-| ------------------------------ | ---------------------------------------------------------------------------- |
-| `.claude/rules/`               | The four rule files above. Short and testable.                               |
-| `.claude/skills/`              | `design-system`, `commit-report`, `add-screen`, `db-migration`, `coach-plan` |
-| `.claude/agents/`              | `ui-reviewer`, `sync-auditor`, `test-writer`                                 |
-| `.claude/hooks/commit-gate.sh` | Blocks a commit with no matching report                                      |
-| `.claude/settings.json`        | The three hooks and the permission allow list                                |
+| Path                           | What it is                                                                                     |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `.claude/rules/`               | The four rule files above. Short and testable.                                                 |
+| `.claude/skills/`              | `design-system`, `commit-report`, `add-screen`, `db-migration`, `coach-plan`, `update-website` |
+| `.claude/agents/`              | `ui-reviewer`, `sync-auditor`, `test-writer`                                                   |
+| `.claude/hooks/commit-gate.sh` | Blocks a commit with no matching report                                                        |
+| `.claude/settings.json`        | The three hooks and the permission allow list                                                  |
 
 Design mockups: https://claude.ai/artifact/8pajWGN8ykJNhxaGLSNNG4
 
@@ -182,6 +185,15 @@ Conventional commits only. Scopes: `setup`, `db`, `sync`, `ui`, `design`, `chart
 `pwa`, `auth`, `csv`, `test`, `docs`, `ci`.
 
 Never commit or push without being told to.
+
+## Website
+
+`site/` is the website at https://sumonta056.github.io/gym-tracker/. `README.md` is the
+front page of the repository. Both describe what a user sees.
+
+After any user-visible `feat` under `app/` or `components/`, run the `update-website` skill
+before the commit report. A `feat` with nothing to show adds `Site-update: none` to its
+commit body. `pnpm site:check` enforces this in CI on every push to `main`.
 
 ## Phases
 

@@ -22,7 +22,14 @@ nothing you do not mean to ship.
 
 ## Steps
 
-### 1. Run the gates
+### 1. Check the website
+
+If the staged change is a user-visible `feat` under `app/` or `components/`, and neither
+`site/` nor `README.md` is staged, stop. Run the `update-website` skill first, or confirm
+with the owner that the commit body carries `Site-update: none`. `pnpm site:check` fails
+CI on `main` otherwise.
+
+### 2. Run the gates
 
 ```
 pnpm verify
@@ -46,13 +53,13 @@ pnpm vitest run --reporter=json --outputFile=reports/.vitest-report.json
 
 That file is optional. Without it the report says so instead of inventing numbers.
 
-### 2. Stage the change
+### 3. Stage the change
 
 The user stages it, or you do it on their instruction. The report describes the staged
 diff and nothing else. **Restage anything and the hash goes stale**, so finish staging
-before step 4.
+before step 5.
 
-### 3. Write `reports/.draft.md`
+### 4. Write `reports/.draft.md`
 
 Front matter, then four headings. Fifth heading optional.
 
@@ -107,7 +114,7 @@ The slug decides the filename. It is taken in this order, first one wins:
 
 Whatever wins is lowercased and non-alphanumeric runs become `-`.
 
-### 4. Run the script
+### 5. Run the script
 
 ```
 pnpm report
@@ -122,7 +129,7 @@ missing or incomplete.
 It runs on Node 24 or newer with no bundler and no `tsx`. It imports only `node:` built-ins and
 nothing from the project.
 
-### 5. Add the screenshots for a UI change
+### 6. Add the screenshots for a UI change
 
 Do this step when the staged diff touches `app/`, `components/` or
 `docs/design/prototype/`. Skip it for any other change. The user never has to ask.
@@ -147,7 +154,7 @@ Do this step when the staged diff touches `app/`, `components/` or
 `reports/` is git-ignored, so this edit leaves the gate hash valid. Check it anyway:
 the sha256 of `git diff --cached` must still equal `reports/.last-report-hash`.
 
-### 6. Hand the commit to the user
+### 7. Hand the commit to the user
 
 Print the report path and the commit command. Do not run it.
 

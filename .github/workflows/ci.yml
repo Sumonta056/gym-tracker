@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -50,6 +52,18 @@ jobs:
 
       - name: Every source file has a test
         run: pnpm test:required
+
+      - name: The website shows every new feature
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "Skipped: $BEFORE is not in this clone, for example after a force push."
+            exit 0
+          fi
+          pnpm site:check --range "$BEFORE..$AFTER"
 
   unit:
     name: Unit tests

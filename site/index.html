@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Gym Tracker — an offline gym log for iPhone and laptop</title>
+    <meta
+      name="description"
+      content="Gym Tracker is a free, installable gym log that replaces a spreadsheet: log the day, record every set live, follow a coach plan step by step with a muscle map, save workout videos and see your progress in charts. It works with no network in the gym and syncs when you are back online."
+    />
+    <meta
+      name="keywords"
+      content="Gym Tracker, gym log, workout tracker, offline workout app, progressive web app, iPhone gym app, coach plan, muscle map, workout analytics, CSV import"
+    />
+    <meta name="author" content="Sumonta Saha Mridul" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://sumonta056.github.io/gym-tracker/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Gym Tracker" />
+    <meta property="og:title" content="Gym Tracker — an offline gym log for iPhone and laptop" />
+    <meta
+      property="og:description"
+      content="Log the day, record every set live, follow a coach plan step by step and see your progress. Works with no network in the gym."
+    />
+    <meta property="og:url" content="https://sumonta056.github.io/gym-tracker/" />
+    <meta
+      property="og:image"
+      content="https://sumonta056.github.io/gym-tracker/screenshots/today-1440.png"
+    />
+    <meta property="og:image:width" content="1800" />
+    <meta property="og:image:height" content="1125" />
+    <meta
+      property="og:image:alt"
+      content="The Gym Tracker Today screen on a laptop: gym time, streak and the day's stats"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Gym Tracker" />
+    <meta
+      name="twitter:description"
+      content="An installable, offline-first gym log: daily stats, live workouts, coach plans, charts and saved videos."
+    />
+    <meta
+      name="twitter:image"
+      content="https://sumonta056.github.io/gym-tracker/screenshots/today-1440.png"
+    />
+    <meta name="theme-color" content="#0b0b0d" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap"
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Gym Tracker",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "iOS, Android, macOS, Windows, Linux (web browser)",
+        "browserRequirements": "Requires a current web browser. Installs on iPhone from Safari.",
+        "description": "An installable, offline-first gym log: a daily tracker, a live workout log, coach plans with a muscle map, saved workout videos, analytics charts and a CSV import.",
+        "url": "https://sumonta056.github.io/gym-tracker/",
+        "image": "https://sumonta056.github.io/gym-tracker/screenshots/today-1440.png",
+        "screenshot": [
+          "https://sumonta056.github.io/gym-tracker/screenshots/today-1440.png",
+          "https://sumonta056.github.io/gym-tracker/screenshots/analytics-1440.png",
+          "https://sumonta056.github.io/gym-tracker/screenshots/plan-step-1440.png",
+          "https://sumonta056.github.io/gym-tracker/screenshots/saved-1440.png"
+        ],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": {
+          "@type": "Person",
+          "name": "Sumonta Saha Mridul",
+          "url": "https://github.com/Sumonta056"
+        },
+        "codeRepository": "https://github.com/Sumonta056/gym-tracker"
+      }
+    </script>
+    <link rel="stylesheet" href="site.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="top">
+      <div class="wrap top-in">
+        <a class="brand" href="#main">
+          <img src="icon-192.png" alt="" width="28" height="28" />
+          <span>Gym Tracker</span>
+        </a>
+        <nav class="top-nav" aria-label="Sections">
+          <a href="#demo">Live demo</a>
+          <a href="#features">Features</a>
+          <a href="#install">Install</a>
+        </nav>
+        <a class="btn ghost sm" href="https://github.com/Sumonta056/gym-tracker" rel="noopener">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"
+            />
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="wrap">
+          <h1>Your gym log,<br /><span class="accent">even with no signal.</span></h1>
+          <p class="lead">
+            <strong>Gym Tracker</strong> replaces the spreadsheet. Log the day, record every set as
+            you lift, follow a coach plan one exercise at a time and watch the charts move. It
+            installs on an iPhone, works in the gym with no network and syncs when you are back
+            online.
+          </p>
+          <div class="cta">
+            <a class="btn primary" href="#demo">Try the live demo</a>
+            <a class="btn ghost" href="#install">Install it</a>
+          </div>
+          <ul class="facts">
+            <li><b>0</b> bars of signal needed in the gym</li>
+            <li><b>26</b> guided steps in 4 coach plans</li>
+            <li><b>1</b> account sees only its own rows</li>
+            <li><b>3</b> layouts: phone, tablet, laptop</li>
+          </ul>
+        </div>
+        <div class="wrap shots">
+          <figure class="frame browser">
+            <div class="frame-bar"><i></i><i></i><i></i><span>Today</span></div>
+            <img
+              src="screenshots/today-1440.png"
+              alt="The Today screen on a laptop: a sidebar on the left, the gym time hero card, the streak and the stat cards of the day"
+              width="1800"
+              height="1125"
+              fetchpriority="high"
+              data-zoom
+            />
+          </figure>
+          <figure class="phone hero-phone">
+            <img
+              src="screenshots/today-390.png"
+              alt="The Today screen on an iPhone with the bottom tab bar and the centre log button"
+              width="780"
+              height="1688"
+              data-zoom
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section id="demo" class="demo" aria-labelledby="demo-h">
+        <div class="wrap">
+          <p class="eyebrow">Live demo</p>
+          <h2 id="demo-h">Walk through every screen</h2>
+          <p class="lead">
+            This is the design prototype, the visual contract the app is built against: every screen
+            at phone size, and the big ones at laptop size. It saves nothing, so scroll freely.
+            Things to try:
+          </p>
+          <ul class="tries">
+            <li>
+              <button type="button" data-plate="p18"><b>Guided step</b>: a coach plan step</button>
+            </li>
+            <li>
+              <button type="button" data-plate="pl-guided">
+                <b>Laptop</b>: the step list beside the step
+              </button>
+            </li>
+            <li>
+              <button type="button" data-plate="p10">
+                <b>Import review</b>: unclear CSV rows flagged
+              </button>
+            </li>
+            <li>
+              <button type="button" data-plate="p5"><b>Stats</b>: Day, Week and Month</button>
+            </li>
+            <li>
+              <button type="button" data-plate="p20"><b>Saved</b>: videos by category</button>
+            </li>
+          </ul>
+          <div class="demo-bar">
+            <div class="demo-tabs" role="group" aria-label="Demo size">
+              <button type="button" aria-pressed="true" data-view="phone">Phone</button>
+              <button type="button" aria-pressed="false" data-view="laptop">Laptop</button>
+            </div>
+            <span class="spacer"></span>
+            <button class="btn ghost sm" id="demoReset" type="button">Reset demo</button>
+            <a
+              class="btn ghost sm"
+              id="demoOpen"
+              href="demo/index.html#p1"
+              target="_blank"
+              rel="noopener"
+              >Open full screen ↗</a
+            >
+          </div>
+          <div class="demo-stage" data-view="phone">
+            <div class="frame demo-frame">
+              <div class="frame-bar">
+                <i></i><i></i><i></i><span id="demoTitle">Phone · 390 px</span>
+              </div>
+              <iframe
+                id="demoFrame"
+                title="Gym Tracker live demo: the design prototype"
+                src="demo/index.html"
+                loading="lazy"
+              ></iframe>
+            </div>
+          </div>
+          <p class="note">On a small phone the plates are wide. Open the demo full screen.</p>
+        </div>
+      </section>
+
+      <section id="features" class="features" aria-labelledby="feat-h">
+        <div class="wrap">
+          <p class="eyebrow">Features</p>
+          <h2 id="feat-h">Everything the spreadsheet could not do</h2>
+        </div>
+
+        <div class="wrap feature">
+          <div class="txt">
+            <h3>Today</h3>
+            <p>
+              The home screen shows the day at a glance. Gym time is the hero number, with your
+              streak, the day's stats and how far you are from each goal.
+            </p>
+            <ul>
+              <li>Gym time from your finished sessions, or the time you type</li>
+              <li>Steps, calories, weight and walk time against your goals</li>
+              <li>Heart rate zones from your maximum heart rate</li>
+              <li>Week totals: sessions, gym minutes, calories, steps</li>
+            </ul>
+            <a class="more" href="#demo" data-plate="p1">Try it in the demo →</a>
+          </div>
+          <figure class="phone solo">
+            <img
+              src="screenshots/today-390.png"
+              alt="Today on an iPhone: the gym time hero card, the streak and the stat cards"
+              loading="lazy"
+              width="780"
+              height="1688"
+              data-zoom
+            />
+          </figure>
+        </div>
+
+        <div class="wrap feature flip">
+          <div class="txt">
+            <h3>Log days</h3>
+            <p>
+              The 8 columns of the old sheet, as one form: walk time, gym time, heart rate, weight,
+              calories and steps. Go back to any earlier day and fix it.
+            </p>
+            <ul>
+              <li>Previous and next day, a date picker and heat map links</li>
+              <li>A duration picker with presets and −15 s / +15 s, no keyboard</li>
+              <li>A swim time and a note for the day</li>
+              <li>A Saved toast after every save</li>
+            </ul>
+            <a class="more" href="#demo" data-plate="p2">Try it in the demo →</a>
+          </div>
+          <figure class="frame browser">
+            <div class="frame-bar"><i></i><i></i><i></i><span>Log the day</span></div>
+            <img
+              src="screenshots/log-1440.png"
+              alt="The daily log form on a laptop with walk time, gym time, heart rate, weight, calories and steps"
+              loading="lazy"
+              width="1800"
+              height="1125"
+              data-zoom
+            />
+          </figure>
+        </div>
+
+        <div class="wrap feature">
+          <div class="txt">
+            <h3>Stats and charts</h3>
+            <p>
+              Day, Week and Month tabs. Every chart has day labels, value labels, a goal or average
+              line, and reads well on the first day as on a full month.
+            </p>
+            <ul>
+              <li>Weight with a 7-day moving average</li>
+              <li>Volume load per session and estimated one-rep max</li>
+              <li>Personal records, muscle group balance, gaps between sessions</li>
+              <li>Edit mode: reorder and hide cards, saved to your profile</li>
+            </ul>
+            <a class="more" href="#demo" data-plate="p5">Try it in the demo →</a>
+          </div>
+          <div class="pair">
+            <figure class="frame browser">
+              <div class="frame-bar"><i></i><i></i><i></i><span>Stats</span></div>
+              <img
+                src="screenshots/analytics-1440.png"
+                alt="Stats on a laptop: weight with a 7-day average, calories, steps and heart rate charts"
+                loading="lazy"
+                width="1800"
+                height="1125"
+                data-zoom
+              />
+            </figure>
+            <figure class="phone over">
+              <img
+                src="screenshots/analytics-390.png"
+                alt="Stats on an iPhone with the Day, Week and Month tabs"
+                loading="lazy"
+                width="780"
+                height="1688"
+                data-zoom
+              />
+            </figure>
+          </div>
+        </div>
+
+        <div class="wrap feature flip">
+          <div class="txt">
+            <h3>Live workout</h3>
+            <p>
+              Start a session and log each set as you lift. A timer runs, a rest timer counts down,
+              and the volume adds up on screen.
+            </p>
+            <ul>
+              <li>Exercise picker with search, a muscle filter and a recent list</li>
+              <li>Set rows with reps and weight; untick with undo</li>
+              <li>A summary with new records when you finish</li>
+              <li>Every past session in the Workouts history</li>
+            </ul>
+            <a class="more" href="#demo" data-plate="p3">Try it in the demo →</a>
+          </div>
+          <figure class="frame browser">
+            <div class="frame-bar"><i></i><i></i><i></i><span>Workouts</span></div>
+            <img
+              src="screenshots/workouts-1440.png"
+              alt="Workouts on a laptop: the suggested coach plan, the plan cards and the session history"
+              loading="lazy"
+              width="1800"
+              height="1125"
+              data-zoom
+            />
+          </figure>
+        </div>
+
+        <div class="wrap feature">
+          <div class="txt">
+            <h3>Coach plans and muscle map</h3>
+            <p>
+              4 coach plans, 26 exercises, one exercise per screen. The app suggests the plan you
+              did least recently, and you can join 2 plans on a day you missed.
+            </p>
+            <ul>
+              <li>Start and end photos, the how-to and a muscle map per step</li>
+              <li>A tutorial link on YouTube for every exercise</li>
+              <li>Next, Back and Skip; the step list beside the step on a laptop</li>
+              <li>A Done screen: steps, sets, volume and new records</li>
+            </ul>
+            <a class="more" href="#demo" data-plate="p18">Try it in the demo →</a>
+          </div>
+          <div class="pair">
+            <figure class="frame browser">
+              <div class="frame-bar"><i></i><i></i><i></i><span>Guided step</span></div>
+              <img
+                src="screenshots/plan-step-1440.png"
+                alt="A guided coach plan step on a laptop: the step list on the left, the exercise photo, the set rows and the rest timer"
+                loading="lazy"
+                width="1800"
+                height="1125"
+                data-zoom
+              />
+            </figure>
+            <figure class="phone over">
+              <img
+                src="screenshots/plan-step-390.png"
+                alt="A guided coach plan step on an iPhone with the exercise photo, the muscle chips and the set rows"
+                loading="lazy"
+                width="780"
+                height="1688"
+                data-zoom
+              />
+            </figure>
+          </div>
+        </div>
+
+        <div class="wrap feature flip">
+          <div class="txt">
+            <h3>Saved videos</h3>
+            <p>
+              Keep the Instagram Reels and YouTube videos you find, grouped by your own categories.
+              Tap a card and the video opens in its own app.
+            </p>
+            <ul>
+              <li>A title, 1 category, tags and a priority per video</li>
+              <li>High first, then Normal, then Low</li>
+              <li>Filter by category, search titles and tags</li>
+              <li>Edit and delete, with undo</li>
+            </ul>
+            <a class="more" href="#demo" data-plate="p20">Try it in the demo →</a>
+          </div>
+          <div class="pair">
+            <figure class="frame browser">
+              <div class="frame-bar"><i></i><i></i><i></i><span>Saved</span></div>
+              <img
+                src="screenshots/saved-1440.png"
+                alt="Saved videos on a laptop: category chips, a search box and a grid of video cards"
+                loading="lazy"
+                width="1800"
+                height="1125"
+                data-zoom
+              />
+            </figure>
+            <figure class="phone over">
+              <img
+                src="screenshots/saved-390.png"
+                alt="Saved videos on an iPhone with priority badges"
+                loading="lazy"
+                width="780"
+                height="1688"
+                data-zoom
+              />
+            </figure>
+          </div>
+        </div>
+
+        <div class="wrap feature">
+          <div class="txt">
+            <h3>CSV import</h3>
+            <p>
+              Bring the old sheet with you. The sheet mixed <code>15.54</code>,
+              <code>1:03:13</code> and <code>01.44.50</code>; the importer guesses each format and
+              stores whole seconds.
+            </p>
+            <ul>
+              <li>Every unclear row is flagged, and only those</li>
+              <li>Fix the rows on a review screen before anything is saved</li>
+              <li>A result screen says what was added</li>
+            </ul>
+            <a class="more" href="#demo" data-plate="p10">Try it in the demo →</a>
+          </div>
+          <figure class="phone solo">
+            <img
+              src="screenshots/profile-390.png"
+              alt="Profile on an iPhone: goals, units, the CSV import, the sync state and sign out"
+              loading="lazy"
+              width="780"
+              height="1688"
+              data-zoom
+            />
+          </figure>
+        </div>
+
+        <div class="wrap feature flip compact">
+          <div class="txt">
+            <h3>Offline sync</h3>
+            <p>
+              Every save lands on your phone first, so the app never waits for the network. A chip
+              on every data screen says where your data is.
+            </p>
+            <ul>
+              <li>Saves work in flight mode, in a basement gym, anywhere</li>
+              <li>The outbox pushes when the network comes back</li>
+              <li>A retry never makes a duplicate row</li>
+            </ul>
+            <a class="more" href="#sync">How offline sync works →</a>
+          </div>
+          <div class="chips-card" aria-label="Sync status examples">
+            <div class="chip-row">
+              <span class="status ok"><i></i>Synced</span>
+              <span>Everything is on the server</span>
+            </div>
+            <div class="chip-row">
+              <span class="status off"><i></i>Offline</span>
+              <span>3 saves wait in the outbox</span>
+            </div>
+            <div class="chip-row">
+              <span class="status ok"><i></i>Synced</span>
+              <span>Back online: the outbox is empty</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wrap feature compact">
+          <div class="txt">
+            <h3>Install on iPhone</h3>
+            <p>
+              No App Store. Open the app in Safari and add it to your Home Screen. It then opens
+              full screen, like any other app, and logs offline.
+            </p>
+            <ol class="flow" aria-label="How to install on an iPhone">
+              <li><span class="kbd-big">Safari</span><span>Open the app address</span></li>
+              <li><span class="kbd-big">Share</span><span>Tap the Share button</span></li>
+              <li><span class="kbd-big">＋</span><span>Add to Home Screen</span></li>
+            </ol>
+            <a class="more" href="#install">See every step →</a>
+          </div>
+          <div class="home-mock" aria-hidden="true">
+            <div class="home-grid">
+              <span></span><span></span><span></span><span></span> <span></span><span></span>
+              <span class="app"><img src="icon-192.png" alt="" width="56" height="56" /></span>
+              <span></span>
+            </div>
+            <p>Gym Tracker</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="sync" class="sync wrap" aria-labelledby="sync-h">
+        <div class="sync-grid">
+          <div>
+            <p class="eyebrow">How offline sync works</p>
+            <h2 id="sync-h">Your phone first. The server when it can.</h2>
+            <p>
+              <b>The save goes to the device first.</b> When you tap Save, the app writes the row to
+              a database inside your browser and is done at once. No spinner, no lost set when the
+              gym has no signal.
+            </p>
+            <p>
+              <b>An outbox keeps the list.</b> The same save also adds an entry to an outbox, in one
+              step: never one without the other. Each row gets its own id on the device, so a retry
+              can never make a second copy.
+            </p>
+            <p>
+              <b>The sync pushes when online.</b> The outbox drains when the app starts, the moment
+              the network comes back, and every 30 seconds while you are online. A delete is a mark,
+              not a removal, so it syncs too.
+            </p>
+            <p>
+              <b>Each account sees only its own rows.</b> Every table on the server has a rule: a
+              row is visible only to the account that owns it.
+            </p>
+          </div>
+          <ol class="pipe" aria-label="The path of one save">
+            <li>
+              <span class="pipe-n">1</span>
+              <div><b>Save</b><small>You log a set. The screen updates at once.</small></div>
+            </li>
+            <li>
+              <span class="pipe-n">2</span>
+              <div>
+                <b>Device database</b><small>The row and its outbox entry, in one step.</small>
+              </div>
+            </li>
+            <li>
+              <span class="pipe-n">3</span>
+              <div>
+                <b>Outbox</b><small>Waits while you are offline. Retries after a failure.</small>
+              </div>
+            </li>
+            <li>
+              <span class="pipe-n">4</span>
+              <div>
+                <b>Server</b><small>Stores the row under your account, and only yours.</small>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="install" class="install" aria-labelledby="inst-h">
+        <div class="wrap">
+          <p class="eyebrow">Install</p>
+          <h2 id="inst-h">Ready in a minute</h2>
+          <p class="lead">Open it, make an account, add it to your Home Screen. No download.</p>
+          <div class="install-grid">
+            <aside class="dl-card">
+              <img src="icon-192.png" alt="" width="64" height="64" />
+              <h3>Gym Tracker</h3>
+              <p class="dl-meta">Free · open registration</p>
+              <a
+                class="btn primary dl-btn"
+                href="https://gym-tracker-ten-gamma.vercel.app"
+                rel="noopener"
+                >Open the app</a
+              >
+              <p class="dl-url"><code>gym-tracker-ten-gamma.vercel.app</code></p>
+              <button class="btn ghost sm" id="copyUrl" type="button">Copy the address</button>
+              <details class="dev">
+                <summary>For developers: run it from source</summary>
+                <pre><code>git clone https://github.com/Sumonta056/gym-tracker.git
+cd gym-tracker
+pnpm install
+cp .env.example .env.local
+pnpm dev</code></pre>
+                <p>
+                  Needs Node 24 and pnpm 10. Put your Supabase project URL and anon key in
+                  <code>.env.local</code>.
+                </p>
+              </details>
+            </aside>
+
+            <ol class="tut">
+              <li>
+                <div class="tut-txt">
+                  <h3>Open the app in Safari</h3>
+                  <p>
+                    On your iPhone, open the address in <b>Safari</b>. Other browsers on iPhone
+                    cannot add an app to the Home Screen.
+                  </p>
+                </div>
+                <div class="mock mock-url" aria-hidden="true">
+                  <code>gym-tracker-ten-gamma.vercel.app</code>
+                </div>
+              </li>
+              <li>
+                <div class="tut-txt">
+                  <h3>Create an account</h3>
+                  <p>
+                    Tap <b>Create an account</b>: your name, email and a password of 8 or more
+                    characters. Your rows belong to this account only.
+                  </p>
+                </div>
+                <div class="mock mock-buttons" aria-hidden="true">
+                  <span class="on">Create an account</span>
+                  <span>Sign in</span>
+                </div>
+              </li>
+              <li>
+                <div class="tut-txt">
+                  <h3>Tap Share</h3>
+                  <p>The Share button is the square with an arrow, in the Safari toolbar.</p>
+                </div>
+                <div class="mock" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="28" height="28" class="share-ico">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 3v12M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"
+                    />
+                  </svg>
+                  <span class="muted">Share</span>
+                </div>
+              </li>
+              <li>
+                <div class="tut-txt">
+                  <h3>Add to Home Screen</h3>
+                  <p>Scroll the share sheet and tap <b>Add to Home Screen</b>, then <b>Add</b>.</p>
+                </div>
+                <div class="mock mock-buttons" aria-hidden="true">
+                  <span class="on">Add to Home Screen</span>
+                </div>
+              </li>
+              <li>
+                <div class="tut-txt">
+                  <h3>Open it from the Home Screen</h3>
+                  <p>
+                    It opens full screen with no browser bar. Turn on flight mode and log a set: it
+                    syncs when you are back online.
+                  </p>
+                </div>
+                <div class="mock" aria-hidden="true">
+                  <img src="icon-192.png" alt="" width="40" height="40" class="mini-icon" />
+                  <span class="status ok"><i></i>Synced</span>
+                </div>
+              </li>
+            </ol>
+          </div>
+          <p class="update-note">
+            <b>On a laptop:</b> open the same address in any current browser. At 1024 px and wider
+            the app shows a sidebar and up to 3 columns. Your data is the same on both.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-in">
+        <span>Made by Sumonta Saha Mridul</span>
+        <span
+          ><a href="https://github.com/Sumonta056/gym-tracker" rel="noopener">GitHub</a> ·
+          <a href="https://github.com/Sumonta056/gym-tracker/issues" rel="noopener"
+            >Report an issue</a
+          ></span
+        >
+      </div>
+    </footer>
+
+    <dialog id="zoom" aria-label="Screenshot">
+      <button class="btn ghost sm close" type="button" aria-label="Close">✕</button>
+      <img src="icon-192.png" alt="" />
+    </dialog>
+
+    <script src="site.js" defer></script>
+  </body>
+</html>

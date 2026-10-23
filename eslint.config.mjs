@@ -51,6 +51,7 @@ export default tseslint.config(
       'public/sw.js.map',
       'public/swe-worker-*.js',
       'next-env.d.ts',
+      '_site/**',
     ],
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),

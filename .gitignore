@@ -63,3 +63,6 @@ Icon?
 
 # brainstorming plugin scratch
 /.superpowers
+
+# github pages site build
+/_site

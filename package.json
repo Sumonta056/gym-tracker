@@ -16,6 +16,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack && serwist build serwist.config.mjs",
+    "site:build": "node scripts/build-site.mjs",
     "start": "next start",
     "lint": "eslint . --cache --cache-location node_modules/.cache/eslint/",
     "lint:fix": "eslint . --fix",
@@ -35,6 +36,8 @@
     "e2e:step": "nice -n 10 playwright test --project=setup --project=desktop",
     "e2e:ui": "playwright test --ui",
     "lighthouse": "lhci autorun --config=./lighthouserc.json",
+    "site:shots": "node scripts/site-screenshots.mjs",
+    "site:check": "node scripts/site-check.mjs",
     "design:check": "node scripts/design-check.mjs",
     "design:check:staged": "node scripts/design-check.mjs --staged",
     "test:required": "node scripts/require-tests.mjs",
