@@ -136,7 +136,9 @@ async function readSaved(): Promise<SavedData> {
     listVideoTags(),
   ])
 
-  return { videos, categories, tags }
+  const used = new Set(videos.map((video) => video.category_id))
+
+  return { videos, categories: categories.filter((category) => used.has(category.id)), tags }
 }
 
 type Sheet = { open: false } | { open: true; video: ListedVideo | null }

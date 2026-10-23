@@ -49,8 +49,8 @@ async function saveVideo(page: Page, video: NewVideo): Promise<void> {
   }
 
   for (const tag of video.tags ?? []) {
-    await sheet.getByRole('textbox', { name: 'Add a tag' }).fill(tag)
-    await sheet.getByRole('textbox', { name: 'Add a tag' }).press('Enter')
+    await sheet.getByRole('textbox', { name: 'Add a new tag' }).fill(tag)
+    await sheet.getByRole('textbox', { name: 'Add a new tag' }).press('Enter')
   }
 
   if (video.priority !== undefined) {
@@ -286,4 +286,21 @@ test('renders /saved with the network down after the first visit', async ({
   await openSaved(page)
   await search(page).fill(token)
   await expect.poll(() => cardTitles(page)).toEqual([`Cached ${token}`])
+})
+
+test('shows the old category and tag when the form opens a 2nd time', async ({ page, token }) => {
+  const category = `Yoga ${token}`
+  await openSaved(page)
+  await saveVideo(page, { title: `First ${token}`, category: { add: category }, tags: ['morning'] })
+
+  await page.getByRole('button', { name: 'Save a video' }).first().click()
+  const sheet = page.getByRole('dialog', { name: 'Save a video' })
+  await expect(sheet).toBeVisible()
+
+  await expect(
+    sheet
+      .getByRole('group', { name: 'Category' })
+      .getByRole('button', { name: category, exact: true }),
+  ).toBeVisible()
+  await expect(sheet.getByRole('button', { name: '#morning', pressed: false })).toBeVisible()
 })

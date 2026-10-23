@@ -34,7 +34,9 @@ describe('SaveFormSample', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Save a video' })
     expect(within(dialog).getByLabelText('Link')).toHaveValue('')
-    expect(within(dialog).getByRole('button', { name: 'Add tag stretch' })).toBeInTheDocument()
+    expect(
+      within(dialog).getByRole('button', { name: '#stretch', pressed: false }),
+    ).toBeInTheDocument()
   })
 
   it('opens the edit form with the first sample video', async () => {

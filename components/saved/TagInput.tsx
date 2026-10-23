@@ -13,8 +13,6 @@ import type { KeyboardEvent } from 'react'
 
 export const TOO_MANY_TAGS = `A video takes at most ${String(MAX_TAGS)} tags.`
 
-const SUGGESTIONS = 8
-
 export type TagInputProps = {
   value: readonly string[]
   onChange: (tags: string[]) => void
@@ -82,38 +80,51 @@ export function TagInput({
     }
   }
 
-  const offered = suggestions.filter((tag) => !value.includes(tag)).slice(0, SUGGESTIONS)
+  const toggle = (tag: string) => {
+    if (value.includes(tag)) {
+      setTyped(null)
+      onChange(value.filter((kept) => kept !== tag))
+      return
+    }
+
+    add(tag)
+  }
+
+  const chips = [...suggestions, ...value.filter((tag) => !suggestions.includes(tag))]
 
   return (
     <div role="group" aria-labelledby={labelId} className="flex min-w-0 flex-col gap-2">
       <MicroLabel id={labelId}>Tags</MicroLabel>
-      {value.length === 0 ? null : (
+      {chips.length === 0 ? null : (
         <div className="flex flex-wrap gap-2">
-          {value.map((tag) => (
+          {chips.map((tag) => (
             <button
               key={tag}
               type="button"
-              aria-label={`Remove tag ${tag}`}
+              aria-pressed={value.includes(tag)}
               onClick={() => {
-                onChange(value.filter((kept) => kept !== tag))
+                toggle(tag)
               }}
-              className={cn(CHIP_CLASS, chipTone(true), 'max-w-full whitespace-normal')}
+              className={cn(
+                CHIP_CLASS,
+                chipTone(value.includes(tag)),
+                'max-w-full whitespace-normal',
+              )}
             >
               <span className="min-w-0 [overflow-wrap:anywhere]">#{tag}</span>
-              <span aria-hidden="true">×</span>
             </button>
           ))}
         </div>
       )}
       <label htmlFor={inputId} className="sr-only">
-        Add a tag
+        Add a new tag
       </label>
       <input
         id={inputId}
         type="text"
         autoComplete="off"
         enterKeyHint="done"
-        placeholder="Add a tag"
+        placeholder="Add a new tag…"
         value={draft}
         aria-invalid={shown === null ? undefined : true}
         aria-describedby={shown === null ? undefined : errorId}
@@ -128,23 +139,6 @@ export function TagInput({
         <p id={errorId} role="alert" className="text-danger text-xs">
           {shown}
         </p>
-      )}
-      {offered.length === 0 ? null : (
-        <div role="group" aria-label="Suggested tags" className="flex flex-wrap gap-2">
-          {offered.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              aria-label={`Add tag ${tag}`}
-              onClick={() => {
-                add(tag)
-              }}
-              className={cn(CHIP_CLASS, chipTone(false))}
-            >
-              #{tag}
-            </button>
-          ))}
-        </div>
       )}
     </div>
   )

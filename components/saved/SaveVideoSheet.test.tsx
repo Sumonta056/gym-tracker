@@ -224,12 +224,12 @@ describe('SaveVideoSheet', () => {
     expect(saved?.category?.name).toBe('Yoga')
   })
 
-  it('suggests used tags and adds one on tap', async () => {
+  it('shows the used tags as chips and adds one on tap', async () => {
     show({ tags: ['evening', 'legs'] })
 
-    await userEvent.click(screen.getByRole('button', { name: 'Add tag legs' }))
+    await userEvent.click(screen.getByRole('button', { name: '#legs', pressed: false }))
 
-    expect(screen.getByRole('button', { name: 'Remove tag legs' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '#legs', pressed: true })).toBeInTheDocument()
   })
 
   it('saves and closes, and the new card shows at once', async () => {
@@ -238,7 +238,7 @@ describe('SaveVideoSheet', () => {
 
     await fillLinkAndTitle('  https://youtu.be/x  ')
     await userEvent.click(within(categoryGroup()).getByRole('button', { name: 'Home' }))
-    await userEvent.type(screen.getByRole('textbox', { name: 'Add a tag' }), '#Yoga{Enter}')
+    await userEvent.type(screen.getByRole('textbox', { name: 'Add a new tag' }), '#Yoga{Enter}')
     await userEvent.click(screen.getByText('High'))
     await submit()
 
@@ -276,7 +276,7 @@ describe('SaveVideoSheet', () => {
       'true',
     )
     expect(screen.getByRole('radio', { name: 'Low' })).toBeChecked()
-    expect(screen.getByRole('button', { name: 'Remove tag legs' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '#legs', pressed: true })).toBeInTheDocument()
 
     await userEvent.clear(screen.getByLabelText('Title'))
     await userEvent.type(screen.getByLabelText('Title'), 'New title')
@@ -373,8 +373,8 @@ describe('SaveVideoSheet', () => {
 
     await fillLinkAndTitle()
     await userEvent.click(within(categoryGroup()).getByRole('button', { name: 'Home' }))
-    await userEvent.type(screen.getByRole('textbox', { name: 'Add a tag' }), '#Yoga')
-    expect(screen.getByRole('textbox', { name: 'Add a tag' })).toHaveFocus()
+    await userEvent.type(screen.getByRole('textbox', { name: 'Add a new tag' }), '#Yoga')
+    expect(screen.getByRole('textbox', { name: 'Add a new tag' })).toHaveFocus()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
@@ -391,10 +391,10 @@ describe('SaveVideoSheet', () => {
 
     await fillLinkAndTitle()
     await userEvent.click(within(categoryGroup()).getByRole('button', { name: 'Home' }))
-    await userEvent.type(screen.getByRole('textbox', { name: 'Add a tag' }), '#')
+    await userEvent.type(screen.getByRole('textbox', { name: 'Add a new tag' }), '#')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    const field = screen.getByRole('textbox', { name: 'Add a tag' })
+    const field = screen.getByRole('textbox', { name: 'Add a new tag' })
     await waitFor(() => {
       expect(field).toHaveAttribute('aria-invalid', 'true')
     })
@@ -409,7 +409,7 @@ describe('SaveVideoSheet', () => {
 
     await fillLinkAndTitle()
     await userEvent.click(within(categoryGroup()).getByRole('button', { name: 'Home' }))
-    const field = screen.getByRole('textbox', { name: 'Add a tag' })
+    const field = screen.getByRole('textbox', { name: 'Add a new tag' })
     for (let index = 0; index < 10; index += 1) {
       await userEvent.type(field, `tag${String(index)}{Enter}`)
     }

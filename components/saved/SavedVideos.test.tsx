@@ -391,6 +391,76 @@ describe('SavedVideos', () => {
     expect(screen.getByText('1 video · 1 category')).toBeInTheDocument()
   })
 
+  it('shows the old category and tag in the form when it opens a 2nd time', async () => {
+    render(<SavedVideos />)
+    await screen.findByText(NO_VIDEOS)
+
+    const [header] = screen.getAllByRole('button', { name: 'Save a video' })
+    await userEvent.click(header ?? document.body)
+    const first = screen.getByRole('dialog', { name: 'Save a video' })
+    await userEvent.type(within(first).getByLabelText('Link'), 'https://youtu.be/x')
+    await userEvent.type(within(first).getByLabelText('Title'), 'Morning yoga flow')
+    await userEvent.click(within(first).getByRole('button', { name: '+ New' }))
+    await userEvent.type(within(first).getByRole('textbox', { name: 'New category name' }), 'Yoga')
+    await userEvent.type(within(first).getByRole('textbox', { name: 'Add a new tag' }), 'morning')
+    await userEvent.click(within(first).getByRole('button', { name: 'Save' }))
+    await screen.findByRole('list', { name: 'Saved videos' })
+
+    const [again] = screen.getAllByRole('button', { name: 'Save a video' })
+    await userEvent.click(again ?? document.body)
+    const second = screen.getByRole('dialog', { name: 'Save a video' })
+
+    expect(within(second).getByRole('button', { name: 'Yoga' })).toBeInTheDocument()
+    expect(within(second).getByRole('button', { name: '#morning' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+  })
+
+  it('shows every tag used before as a chip in the form, with no cap', async () => {
+    await seedSeven()
+    await save('Morning abs', 'Home', 'normal', ['morning', 'abs'])
+    await ready()
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: 'Save a video' })[0] ?? document.body,
+    )
+    const dialog = screen.getByRole('dialog', { name: 'Save a video' })
+    const tags = within(within(dialog).getByRole('group', { name: 'Tags' }))
+      .getAllByRole('button')
+      .map((button) => button.textContent)
+
+    expect(tags).toEqual([
+      '#abs',
+      '#back',
+      '#chest',
+      '#evening',
+      '#fullbody',
+      '#gym',
+      '#legs',
+      '#morning',
+      '#shoulders',
+    ])
+  })
+
+  it('offers only the categories that still have a live video in the form', async () => {
+    await seedSeven()
+    await deleteSavedVideo(
+      (await listSavedVideos()).find((row) => row.title === '5 min box breathing')?.id ?? '',
+    )
+    await ready()
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: 'Save a video' })[0] ?? document.body,
+    )
+    const dialog = screen.getByRole('dialog', { name: 'Save a video' })
+    const names = within(within(dialog).getByRole('group', { name: 'Category' }))
+      .getAllByRole('button')
+      .map((button) => button.textContent)
+
+    expect(names).toEqual(['Gym tricks', 'Home', 'Stretching', '+ New'])
+  })
+
   it('renders a video whose category is not on this device, counted in All', async () => {
     await seedSeven()
     const [first] = await listSavedVideos()
